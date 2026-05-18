@@ -111,3 +111,14 @@ tasks.register('composeLogs', Exec) {
     workingDir rootDir
     commandLine dockerComposeCommand('logs -f --tail=100')
 }
+tasks.register('updateGitHooks', Copy) {
+    from './scripts/prepare-commit-msg'
+    into './.git/hooks'
+    filePermissions {
+        unix('rwxrwxr-x')
+    }
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('updateGitHooks')
+}
