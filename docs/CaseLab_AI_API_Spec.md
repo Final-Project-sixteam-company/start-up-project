@@ -2082,11 +2082,17 @@ POST /play-sessions/{sessionId}/invite
 GET /play-sessions/{sessionId}/shared
 협력 세션 공유 상태 조회
 
-POST /payments/credits
-AI 생성 크레딧 충전
+GET /wallet
+내 크레딧 지갑 조회
 
-GET /users/me/credits
-내 크레딧 조회
+POST /wallet/charge-mock
+Mock 크레딧 충전
+
+POST /scenarios/{scenarioId}/purchase
+시나리오 구매/언락
+
+GET /users/me/purchases
+내 구매 시나리오 조회
 ```
 
 ---
@@ -2102,4 +2108,5 @@ GET /users/me/credits
 4. AI에게 전체 정답을 넘기지 않고, 현재 허용된 정보만 전달한다.
 5. 공식 시나리오와 커스텀 시나리오를 모두 지원한다.
 6. 커스텀 시나리오 공유 플랫폼 구조를 가진다.
+7. 후속 단계에서 Mock 크레딧 기반 구매/언락 거래 흐름을 붙인다.
 ```
