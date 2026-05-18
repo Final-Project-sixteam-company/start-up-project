@@ -25,3 +25,4 @@ docker compose ps
 echo
 echo "App:   http://localhost:${SERVER_PORT:-8080}"
 echo "MySQL: localhost:${MYSQL_HOST_PORT:-33306}"
+echo "Redis: localhost:${REDIS_HOST_PORT:-16379}"

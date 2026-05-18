@@ -21,11 +21,12 @@ services:
       retries: 20
 
   # Redis Cache와 Redisson 분산락을 함께 테스트할 수 있는 Redis 인스턴스다.
+  # Windows가 6379를 예약 포트로 잡는 경우가 있어 호스트 포트 기본값은 16379로 둔다.
   redis:
     image: redis:8-alpine
     container_name: start-up-redis
     ports:
-      - "${REDIS_HOST_PORT:-6379}:6379"
+      - "${REDIS_HOST_PORT:-16379}:6379"
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     command:

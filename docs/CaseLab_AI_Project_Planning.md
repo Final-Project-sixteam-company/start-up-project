@@ -142,11 +142,14 @@ CaseLab AI의 해결 방향은 다음과 같다.
 대형 멀티플레이
 3D 맵
 음성 심문
-실제 결제 / 시나리오 거래
+실제 PG 결제 / 실제 정산
 복잡한 애니메이션
 실제 사건 직접 재현
 완전 자동 무검수 사건 공개
 ```
+
+거래 흐름 자체는 과제 요구사항 때문에 후속 MVP에 포함한다.  
+다만 1차 MVP에서는 실제 결제 PG가 아니라 Mock 크레딧 기반 구매/언락 구조로 확장한다.
 
 ---
 
@@ -594,22 +597,21 @@ OFFICIAL:
 권장 패키지 구조:
 
 ```text
-com.caselab
- ├─ auth
- ├─ user
- ├─ scenario
- ├─ suspect
- ├─ evidence
- ├─ hint
- ├─ solution
- ├─ play
- ├─ interrogation
- ├─ deduction
- ├─ review
- ├─ bookmark
- ├─ report
- ├─ ai
- └─ common
+com.startup
+ ├─ common
+ ├─ domain
+ │   ├─ user
+ │   ├─ scenario
+ │   ├─ play
+ │   ├─ interrogation
+ │   ├─ deduction
+ │   ├─ review
+ │   ├─ bookmark
+ │   ├─ report
+ │   └─ ai
+ └─ infrastructure
+     ├─ persistence
+     └─ redis
 ```
 
 ---

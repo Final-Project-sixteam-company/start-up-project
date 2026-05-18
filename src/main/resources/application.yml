@@ -71,6 +71,8 @@ logging:
     com.startup: ${LOG_LEVEL_APP:debug}
 
 app:
+  # 인증 구현 전까지 사용할 임시 사용자 ID다. JWT 도입 후 제거하거나 SecurityContext 기반으로 교체한다.
+  mock-user-id: ${MOCK_USER_ID:1}
   cors:
     # 브라우저/WebView 로컬 테스트용 CORS 허용 목록이다. Native Android 앱은 CORS 영향을 받지 않는다.
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:[*],http://127.0.0.1:[*],http://10.0.2.2:[*],http://192.168.*.*:[*]}
