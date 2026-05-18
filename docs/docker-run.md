@@ -23,7 +23,7 @@ bash scripts/compose-down.sh
 - App: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 - MySQL: `localhost:33306`
-- Redis: `localhost:6379`
+- Redis: `localhost:16379`
 - Prometheus: `http://localhost:9090`
 - Grafana: `http://localhost:3000`
 - Docker 내부 DB: `mysql:3306 / startup`
@@ -184,7 +184,7 @@ docker compose version
 ```text
 Bind for 0.0.0.0:8080 failed: port is already allocated
 Bind for 0.0.0.0:33306 failed: port is already allocated
-Bind for 0.0.0.0:6379 failed: port is already allocated
+Bind for 0.0.0.0:16379 failed: port is already allocated
 Bind for 0.0.0.0:9090 failed: port is already allocated
 Bind for 0.0.0.0:3000 failed: port is already allocated
 ```
@@ -193,7 +193,7 @@ Bind for 0.0.0.0:3000 failed: port is already allocated
 
 - 8080: 다른 Spring 앱이 이미 실행 중
 - 33306: 다른 MySQL 컨테이너나 로컬 프로세스가 사용 중
-- 6379: 다른 Redis 컨테이너나 로컬 Redis가 사용 중
+- 16379: 다른 Redis 컨테이너나 로컬 Redis가 사용 중
 - 9090: 다른 Prometheus가 사용 중
 - 3000: 다른 Grafana나 프론트 개발 서버가 사용 중
 
@@ -202,7 +202,7 @@ Windows 확인:
 ```powershell
 netstat -ano | findstr :8080
 netstat -ano | findstr :33306
-netstat -ano | findstr :6379
+netstat -ano | findstr :16379
 netstat -ano | findstr :9090
 netstat -ano | findstr :3000
 taskkill /PID <PID> /F
@@ -213,7 +213,7 @@ macOS/Linux 확인:
 ```bash
 lsof -i :8080
 lsof -i :33306
-lsof -i :6379
+lsof -i :16379
 lsof -i :9090
 lsof -i :3000
 kill -9 <PID>
@@ -224,7 +224,7 @@ kill -9 <PID>
 ```properties
 SERVER_PORT=8081
 MYSQL_HOST_PORT=33307
-REDIS_HOST_PORT=6380
+REDIS_HOST_PORT=16380
 PROMETHEUS_HOST_PORT=9091
 GRAFANA_HOST_PORT=3001
 ```
@@ -308,7 +308,7 @@ docker compose ps
 
 ```properties
 REDIS_HOST=localhost
-REDIS_PORT=6379
+REDIS_PORT=16379
 ```
 
 ### 8. Spring AI를 OpenAI로 켰는데 부팅 또는 호출이 실패함

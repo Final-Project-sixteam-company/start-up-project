@@ -5,7 +5,7 @@ BRANCH_NAME=$(git branch --show-current) # 현재 브랜치명을 가져옴
 BRANCH_NAME="${BRANCH_NAME##*/}" # / 부분을 기준으로 앞 부분을 제거
 
 # 브랜치 이름에서 JIRA 이슈 키 추출 (예: feat/DP-123 -> DP-123)
-JIRA_ISSUE_KEY=$(echo "$BRANCH_NAME" | egrep -o 'DP-[0-9]+')
+JIRA_ISSUE_KEY=$(echo "$BRANCH_NAME" | egrep -o 'ST-[0-9]+')
 
 # 커밋 메시지 파일 경로
 COMMIT_MSG_FILE=$1
