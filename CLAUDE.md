@@ -73,7 +73,7 @@ com.startup
 |--------|------|----------|
 | 황도윤 | 리더 / 인프라 / 공식 시나리오 / PR 리뷰 | 공통 세팅, Seed Data, 문서 최신화 |
 | 배강혁 | AI 엔진 / 프롬프트 / AI 백엔드 | interrogation, final-deduction, validate |
-| 소수경 | 핵심 백엔드 CRUD / 게임 세션 / 증거 해금 | scenarios, game-sessions, evidences, hints |
+| 소수경 | 핵심 백엔드 CRUD / 게임 세션 / 증거 해금 | scenarios, play-sessions, evidences, hints |
 | 정채림 | Android UI / 화면 흐름 / API 연동 / QA | Android 화면, Mock → API 전환 |
 
 다른 담당자의 패키지를 수정해야 할 때는 사유를 밝히고 최소 범위로 한정한다.
@@ -125,7 +125,7 @@ AI에게는 현재 장면에서 말해도 되는 정보와 답변 정책만 전�
 ```text
 사용자 질문 → play_session 조회 → suspect 조회
 → 현재 해금 evidence 조회 → presentedEvidenceId 확인
-→ NpcResponsePolicyService가 답변 정책 결정
+→ ResponsePolicyResolver가 답변 정책 결정
 → AI에게 허용된 정보만 전달 → 1~2줄 답변 생성
 → interrogation_logs 저장 → 조건 충족 시 추가 evidence 해금
 ```
@@ -157,10 +157,10 @@ POST /api/ai/scenarios/{scenarioId}/validate             시나리오 논리 검
 ```text
 GET  /api/scenarios                                      시나리오 목록
 GET  /api/scenarios/{scenarioId}                         시나리오 상세
-POST /api/game-sessions                                  게임 세션 생성
-GET  /api/game-sessions/{sessionId}/evidences            해금 증거 조회
-GET  /api/game-sessions/{sessionId}/suspects             용의자 조회
-GET  /api/game-sessions/{sessionId}/hints                힌트 조회
+POST /api/play-sessions                                  게임 세션 생성
+GET  /api/play-sessions/{sessionId}/evidences            해금 증거 조회
+GET  /api/play-sessions/{sessionId}/suspects             용의자 조회
+GET  /api/play-sessions/{sessionId}/hints                힌트 조회
 ```
 
 API 명세 전체: `docs/CaseLab_AI_API_Spec.md`
@@ -173,7 +173,7 @@ API 명세 전체: `docs/CaseLab_AI_API_Spec.md`
 범인 선택: 30점 / 범행 방법: 25점 / 범행 동기: 20점
 은폐 방법: 10점 / 결정적 증거 선택: 15점
 
-힌트 감점: 1단계 -3점, 2단계 -5점, 3단계 -10점
+힌트 감점: 1단계 -5점, 2단계 -10점, 3단계 -20점
 
 등급: S(90+) A(80+) B(70+) C(60+) D(60-)
 ```

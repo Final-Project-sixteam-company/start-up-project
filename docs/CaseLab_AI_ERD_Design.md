@@ -25,7 +25,7 @@
 | User | 서비스 사용자. 시나리오 제작자, 플레이어, 리뷰 작성자, 신고자 역할을 모두 가질 수 있다. |
 
 현재 SQL 기준으로 `users` 테이블이 존재한다.  
-초기 MVP에서는 `MockUserProvider`로 `userId = 1`을 사용하더라도, `play_sessions`, `scenarios`, `reviews`, `bookmarks`에는 `user_id` 또는 `creator_id`를 유지해야 한다.
+초기 MVP에서는 `MockUserProvider`로 `MOCK_USER_ID=1`을 사용하더라도, `play_sessions`, `scenarios`, `reviews`, `bookmarks`에는 `user_id` 또는 `creator_id`를 유지해야 한다.
 
 ---
 
@@ -431,7 +431,7 @@ Unique Constraint
 | synopsis | 플레이어 공개 시놉시스 | nullable |
 | thumbnail_url | 썸네일 URL | nullable |
 | scenario_type | OFFICIAL, CUSTOM | enum 문자열 |
-| visibility | PRIVATE, UNLISTED, PUBLIC | enum 문자열 |
+| visibility | PRIVATE, UNLISTED, PUBLIC, OFFICIAL | enum 문자열 |
 | status | DRAFT, VALIDATING, PUBLISHED 등 | enum 문자열 |
 | difficulty | EASY, NORMAL, HARD 등 | enum 문자열 |
 | player_count_min, player_count_max | 권장 플레이 인원 | not null |
@@ -932,7 +932,7 @@ user_id + scenario_id unique 제약 필수.
 |---|---|---|
 | id | 검증 결과 ID | PK |
 | scenario_id | 시나리오 ID | scenarios.id FK |
-| validation_status | PENDING, PASSED, FAILED 등 | enum 문자열 |
+| validation_status | PASSED, PASSED_WITH_WARNINGS, NEEDS_FIX, FAILED 등 | enum 문자열 |
 | validation_score | 검증 점수 | nullable |
 | problem_summary | 문제 요약 | nullable |
 | suggestion | 개선 제안 | nullable |

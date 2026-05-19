@@ -29,7 +29,7 @@ creator_id
 visibility
 scenario_type
 price_credit
-AccessService
+ScenarioAccessService
 MockUserProvider
 ```
 
@@ -58,7 +58,7 @@ AI 용의자 심문 완성
 ```text
 로그인 없음
 MockUserProvider 사용
-기본 userId = 1L
+기본값은 `MOCK_USER_ID=1`
 모든 시나리오 접근 허용
 ```
 
@@ -68,7 +68,7 @@ MockUserProvider 사용
 모든 시나리오는 무료로 간주
 price_credit = 0
 구매/환불/정산 없음
-AccessService는 항상 true 반환
+ScenarioAccessService는 항상 true 반환
 ```
 
 ---
@@ -212,7 +212,7 @@ score
 grade
 ```
 
-초기에는 `user_id = 1L`로 저장한다.
+초기에는 `MockUserProvider.currentUserId()`가 반환하는 값을 `user_id`로 저장한다.
 
 ---
 
@@ -247,8 +247,14 @@ JWT 도입 후에는 로그인 사용자 기준으로 전환한다.
 @Component
 public class MockUserProvider {
 
+    private final Long mockUserId;
+
+    public MockUserProvider(@Value("${app.mock-user-id:1}") Long mockUserId) {
+        this.mockUserId = mockUserId;
+    }
+
     public Long currentUserId() {
-        return 1L;
+        return mockUserId;
     }
 }
 ```
@@ -824,7 +830,7 @@ Long userId = 1L;
 Long userId = userProvider.currentUserId();
 ```
 
-초기에는 MockUserProvider가 1L을 반환하고, 나중에 SecurityUserProvider로 교체한다.
+초기에는 MockUserProvider가 `MOCK_USER_ID` 값을 반환하고, 나중에 SecurityUserProvider로 교체한다.
 
 ---
 
@@ -987,7 +993,7 @@ Mock 충전
   "scenarioId": 1,
   "title": "데모데이 전야 살인사건",
   "scenarioType": "OFFICIAL",
-  "visibility": "PUBLIC",
+  "visibility": "OFFICIAL",
   "priceCredit": 0,
   "isPaid": false,
   "canPlay": true,
@@ -1108,10 +1114,10 @@ IntelliJ/Android Studio AI에게 이 문서를 먹일 때 다음 지시를 함�
 
 ```text
 현재 CaseLab AI는 인증/거래를 바로 구현하지 않는다.
-하지만 user_id, creator_id, visibility, price_credit, AccessService 구조는 유지해야 한다.
+하지만 user_id, creator_id, visibility, price_credit, ScenarioAccessService 구조는 유지해야 한다.
 
 Service 내부에 userId를 직접 하드코딩하지 말고 UserProvider를 통해 가져와라.
-현재는 MockUserProvider가 1L을 반환한다.
+현재는 MockUserProvider가 `MOCK_USER_ID` 값을 반환한다. 기본값은 1이다.
 
 시나리오 접근 권한 판단은 ScenarioAccessService에 모아라.
 초기 MVP에서는 canPlay/canView/canEdit이 true를 반환해도 된다.

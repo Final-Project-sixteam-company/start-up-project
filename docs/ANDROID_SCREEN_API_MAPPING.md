@@ -35,11 +35,11 @@
 초기 개발 단계에서는 로그인 없이 진행할 수 있다.
 
 ```text
-MockUserId = 1
+MOCK_USER_ID = 1
 ```
 
 Android는 초반에 Authorization Header 없이 API를 호출할 수 있다.  
-백엔드는 `MockUserProvider` 또는 임시 userId를 사용한다.
+백엔드는 `MockUserProvider.currentUserId()`를 사용한다.
 
 추후 JWT 인증이 추가되면 Android는 다음 Header를 추가한다.
 
@@ -54,7 +54,7 @@ Authorization: Bearer {accessToken}
 로컬 개발:
 
 ```text
-http://10.0.2.2:8080/api
+http://10.0.2.2:8080
 ```
 
 Android Emulator에서 로컬 PC의 백엔드를 호출할 때는 `localhost`가 아니라 `10.0.2.2`를 사용한다.
@@ -62,8 +62,10 @@ Android Emulator에서 로컬 PC의 백엔드를 호출할 때는 `localhost`가
 배포 환경:
 
 ```text
-https://api.caselab.ai/api
+https://api.caselab.ai
 ```
+
+실제 API 호출 경로는 `/api/...` prefix를 포함한다.
 
 ---
 
@@ -93,6 +95,8 @@ https://api.caselab.ai/api
 ```
 
 Android에서는 `success == false`이면 공통 에러 처리로 Toast, Snackbar, Dialog 중 하나를 띄운다.
+
+이 문서의 화면별 `응답 데이터 예시`는 가독성을 위해 대부분 `ApiResponse.data` 내부 값만 표기한다. 실제 Retrofit DTO는 `success`, `data`, `error` 공통 래퍼를 먼저 받은 뒤 `data`를 화면 모델로 매핑한다.
 
 ---
 
@@ -130,7 +134,7 @@ Android 앱의 기본 하단 탭은 다음과 같다.
 |---|---|---|---|
 | 스플래시 | 앱 진입 | 없음 | 선택 |
 | 온보딩 | 서비스 설명 | 없음 | 선택 |
-| 홈 | 추천/인기/최근 사건 표시 | `GET /api/scenarios`, `GET /api/play-sessions/me` | MVP |
+| 홈 | 추천/인기 사건 표시 | `GET /api/scenarios` | MVP |
 | 시나리오 라이브러리 | 시나리오 검색/필터 | `GET /api/scenarios` | MVP |
 | 시나리오 상세 | 사건 상세 확인 | `GET /api/scenarios/{scenarioId}` | MVP |
 | 사건 브리핑 | 게임 시작 전 브리핑 | `GET /api/scenarios/{scenarioId}`, `POST /api/play-sessions` | MVP |
@@ -146,13 +150,13 @@ Android 앱의 기본 하단 탭은 다음과 같다.
 | 힌트 | 힌트 조회/사용 | `GET /api/play-sessions/{sessionId}/hints`, `POST /api/play-sessions/{sessionId}/hints/{hintId}/use` | MVP |
 | 최종 추리 제출 | 정답 제출 | `POST /api/play-sessions/{sessionId}/final-deduction` | MVP |
 | 결과/해설 | 채점 결과 확인 | `GET /api/play-sessions/{sessionId}/result` | MVP |
-| 커스텀 제작 | 시나리오 제작 | `POST/PATCH /api/scenarios`, 하위 리소스 API | 2차 |
+| 커스텀 제작 | 시나리오 제작 | `POST/PATCH /api/scenarios`, 하위 리소스 API | MVP |
 | AI 초안 생성 | 시나리오 초안 생성 | `POST /api/ai/scenarios/draft` | 2차 |
-| AI 검증 | 시나리오 검증 | `POST /api/ai/scenarios/{scenarioId}/validate` | 2차 |
-| 리뷰 | 리뷰 조회/작성 | `GET/POST /api/scenarios/{scenarioId}/reviews` | 2차 |
-| 북마크 | 시나리오 북마크 | `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` | 2차 |
+| AI 검증 | 시나리오 검증 | `POST /api/ai/scenarios/{scenarioId}/validate` | MVP |
+| 리뷰 | 리뷰 조회/작성 | `GET/POST /api/scenarios/{scenarioId}/reviews` | MVP |
+| 북마크 | 시나리오 북마크 | `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` | MVP |
 | 마이페이지 | 내 정보 | `GET /api/users/me` | 인증 후 |
-| 구매/크레딧 | 거래 확장 | `POST /api/scenarios/{id}/purchase`, `GET /api/wallet` | 후순위 |
+| 구매/크레딧 | 거래 확장 | `POST /api/scenarios/{scenarioId}/purchase`, `GET /api/wallet` | 후순위 |
 
 ---
 
@@ -327,7 +331,7 @@ GET /api/scenarios?type={type}&difficulty={difficulty}&sort={sort}&page={page}&s
 | 시나리오 카드 클릭 | 시나리오 상세 |
 | 필터 변경 | `GET /api/scenarios` 재호출 |
 | 검색어 입력 | debounce 후 API 재호출 |
-| 북마크 클릭 | `POST/DELETE /api/scenarios/{id}/bookmarks` |
+| 북마크 클릭 | `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` |
 
 ---
 
@@ -391,7 +395,7 @@ POST /api/play-sessions
 
 ```json
 {
-  "playSessionId": 1001,
+  "sessionId": 1001,
   "scenarioId": 1,
   "status": "PLAYING",
   "startedAt": "2026-05-18T20:00:00"
@@ -1000,18 +1004,18 @@ POST /api/play-sessions/{sessionId}/hints/{hintId}/use
   "hints": [
     {
       "hintId": 1,
-      "level": 1,
+      "hintLevel": 1,
       "content": "피해자가 마신 음료와 알레르기 정보를 함께 보세요.",
       "isUsed": true,
       "penaltyScore": 5
     },
     {
       "hintId": 2,
-      "level": 2,
+      "hintLevel": 2,
       "content": null,
       "isUsed": false,
       "penaltyScore": 10,
-      "unlockConditionText": "힌트 1 사용 후 열람 가능"
+      "unlockAfterMinutes": 20
     }
   ]
 }
@@ -1021,7 +1025,7 @@ POST /api/play-sessions/{sessionId}/hints/{hintId}/use
 
 | 액션 | 호출 |
 |---|---|
-| 힌트 열기 | `POST /hints/{hintId}/use` |
+| 힌트 열기 | `POST /api/play-sessions/{sessionId}/hints/{hintId}/use` |
 | 힌트 사용 확인 | 확인 Dialog |
 | 사용된 힌트 보기 | content 표시 |
 
@@ -1155,7 +1159,7 @@ GET /api/play-sessions/me?page=0&size=20
 ```
 
 추후 인증 적용 후 사용한다.  
-초기 MVP에서는 Mock 데이터 또는 `userId=1` 기준으로 조회한다.
+초기 MVP에서는 Mock 데이터 또는 `MOCK_USER_ID=1` 기준으로 조회한다.
 
 ### 화면 표시 데이터
 
@@ -1264,7 +1268,7 @@ POST /api/scenarios/{scenarioId}/publish
 
 ---
 
-## 23. AI 시나리오 생성 화면
+## 23. AI 시나리오 생성 화면 (2차)
 
 ### 목적
 
@@ -1308,6 +1312,7 @@ POST /api/ai/scenarios/draft
 - 초안 생성은 시간이 걸릴 수 있으므로 Loading 화면 필요
 - 실패 시 “다시 생성하기” 버튼 제공
 - 생성 결과는 사용자가 수정할 수 있어야 한다
+- `solution`은 제작자 편집 화면 전용이다. 플레이 화면, 심문 화면, 일반 시나리오 상세 화면에 노출하지 않는다.
 
 ---
 
@@ -1327,7 +1332,7 @@ POST /api/ai/scenarios/{scenarioId}/validate
 
 ```json
 {
-  "validationStatus": "PASS_WITH_WARNINGS",
+  "validationStatus": "PASSED_WITH_WARNINGS",
   "validationScore": 78,
   "problems": [
     "범인을 가리키는 결정적 증거가 부족합니다."
@@ -1425,7 +1430,8 @@ DELETE /api/scenarios/{scenarioId}/bookmarks
 ```text
 홈
 → 제작
-→ AI 초안 생성 또는 직접 작성
+→ 직접 작성
+→ AI 초안 생성은 2차 기능으로 선택 제공
 → 사건 정보 입력
 → 용의자 등록
 → 증거 등록
@@ -1471,16 +1477,16 @@ DELETE /api/scenarios/{scenarioId}/bookmarks
 증거 제시 모달
 용의자 상세
 증거 상세
+커스텀 시나리오 제작
+AI 검증
+리뷰
+북마크
 ```
 
 ### 3순위
 
 ```text
-커스텀 시나리오 제작
 AI 초안 생성
-AI 검증
-리뷰
-북마크
 내 기록
 ```
 
@@ -1525,7 +1531,7 @@ Android Studio에 연결된 AI는 아래 규칙을 지켜야 한다.
 4. 시나리오 원본 증거와 플레이 세션의 해금 상태를 분리한다.
 5. AI 심문 API는 응답과 함께 새로 해금된 증거 목록을 반환할 수 있어야 한다.
 6. 최종 추리 제출은 중복 제출을 막아야 한다.
-7. 현재는 MockUserId를 사용하되 user_id 구조는 유지한다.
+7. 현재는 MockUserProvider를 사용하되 user_id 구조는 유지한다.
 8. 추후 인증/거래 확장을 고려해 creator_id, visibility, price_credit 필드를 유지한다.
 ```
 
@@ -1552,15 +1558,22 @@ Android Studio에 연결된 AI는 아래 규칙을 지켜야 한다.
 
 ---
 
-## 32. 후속 확장 체크리스트
+## 32. 1차 MVP 확장 체크리스트
 
 ```text
 [ ] 커스텀 시나리오를 만들 수 있다.
-[ ] AI가 시나리오 초안을 생성한다.
 [ ] AI가 시나리오를 검증한다.
 [ ] 시나리오를 공개/비공개로 설정할 수 있다.
 [ ] 시나리오에 리뷰를 남길 수 있다.
 [ ] 시나리오를 북마크할 수 있다.
+```
+
+---
+
+## 33. 후속 확장 체크리스트
+
+```text
+[ ] AI가 시나리오 초안을 생성한다.
 [ ] 로그인 사용자를 구분한다.
 [ ] 유료 시나리오 구매/언락 기능을 붙인다.
 ```

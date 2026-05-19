@@ -51,6 +51,7 @@ Windows 방화벽이 8080 포트를 막으면 실제 기기에서 접속이 안 
 ## Retrofit 기준 예시
 
 Retrofit baseUrl은 마지막 `/`가 필요합니다.
+현재 API 문서의 엔드포인트는 `/api/...` 경로를 기준으로 하므로, Retrofit 인터페이스에서 `@GET("api/scenarios")`처럼 `api/`를 포함해 호출합니다.
 
 ```kotlin
 Retrofit.Builder()

@@ -12,7 +12,7 @@ CaseLab AI의 1차 운영 구조는 아래처럼 가져간다.
 ```text
 Android App
   ↓ HTTPS
-api.caselab-ai.com
+api.caselab.ai
   ↓
 Cloudflare DNS
   ↓
@@ -81,7 +81,7 @@ Android 앱은 결국 백엔드 API를 호출한다.
 ```text
 Android App
   ↓
-https://api.caselab-ai.com/api/scenarios
+https://api.caselab.ai/api/scenarios
 ```
 
 이 백엔드 배포는 웹 백엔드 배포와 거의 같다.
@@ -148,11 +148,11 @@ Firebase App Distribution
 ```text
 [Android App]
   - Firebase App Distribution으로 테스트 배포
-  - API Base URL: https://api.caselab-ai.com
+- API Base URL: https://api.caselab.ai
 
 [DNS]
   - Cloudflare DNS
-  - api.caselab-ai.com → Lightsail Public IP
+  - api.caselab.ai → Lightsail Public IP
 
 [Server]
   - AWS Lightsail Ubuntu
@@ -167,7 +167,8 @@ Firebase App Distribution
   - 시나리오 썸네일, 증거 이미지, 용의자 이미지, 현장 이미지 저장
 
 [AI]
-  - OpenAI / Gemini / Claude 중 하나를 백엔드에서만 호출
+  - 초기 구현은 Spring AI OpenAI를 백엔드에서만 호출
+  - Claude / Gemini는 Provider 추상화 후 확장
   - Android 앱에는 AI API Key를 절대 넣지 않음
 
 [Monitoring]
@@ -515,15 +516,16 @@ MYSQL_ROOT_PASSWORD=change-root-me
 REDIS_HOST=redis
 REDIS_PORT=6379
 
-AI_PROVIDER=openai
-AI_API_KEY=change-me
-AI_MODEL=gpt-4o-mini
+SPRING_AI_MODEL_CHAT=openai
+OPENAI_API_KEY=change-me
+OPENAI_CHAT_MODEL=gpt-4o-mini
+OPENAI_CHAT_TEMPERATURE=0.4
 
 R2_ACCESS_KEY=change-me
 R2_SECRET_KEY=change-me
 R2_BUCKET=caselab-images
 R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
-R2_PUBLIC_BASE_URL=https://cdn.caselab-ai.com
+R2_PUBLIC_BASE_URL=https://cdn.caselab.ai
 ```
 
 주의:
@@ -605,7 +607,7 @@ docker compose logs -f app
 ```nginx
 server {
     listen 80;
-    server_name api.caselab-ai.com;
+    server_name api.caselab.ai;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -644,7 +646,7 @@ upstream caselab_backend {
 
 server {
     listen 80;
-    server_name api.caselab-ai.com;
+    server_name api.caselab.ai;
 
     location / {
         proxy_pass http://caselab_backend;
@@ -667,7 +669,7 @@ Let's Encrypt + Certbot 사용.
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d api.caselab-ai.com
+sudo certbot --nginx -d api.caselab.ai
 ```
 
 확인:
@@ -742,7 +744,7 @@ file_size
 예시:
 
 ```text
-evidences.image_url = https://cdn.caselab-ai.com/evidences/123/cup-label.png
+evidences.image_url = https://cdn.caselab.ai/evidences/123/cup-label.png
 ```
 
 ---
@@ -911,7 +913,7 @@ Android Emulator:
 http://10.0.2.2:8080
 
 실제 기기:
-서버에 배포된 https://api.caselab-ai.com 사용
+서버에 배포된 https://api.caselab.ai 사용
 ```
 
 ---
@@ -971,7 +973,7 @@ CORS 허용 도메인 제한
 ```text
 3306 MySQL을 0.0.0.0으로 공개 ❌
 6379 Redis를 0.0.0.0으로 공개 ❌
-OpenAI/Gemini/Claude API Key를 Android에 포함 ❌
+AI Provider API Key를 Android에 포함 ❌
 이미지 파일을 DB BLOB으로 직접 저장 ❌
 root 계정으로 서비스 운영 ❌
 ```
@@ -1063,7 +1065,7 @@ crontab -e
 ## 20.1 API가 안 열릴 때
 
 ```bash
-curl -I https://api.caselab-ai.com
+curl -I https://api.caselab.ai
 sudo nginx -t
 sudo systemctl status nginx
 docker compose ps

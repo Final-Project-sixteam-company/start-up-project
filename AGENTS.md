@@ -47,7 +47,7 @@ bash scripts/compose-up.sh     # Docker 빌드 + 실행
 |--------|------|----------|
 | 황도윤 | 리더 / 인프라 / 공식 시나리오 / PR 리뷰 | 공통 세팅, Seed Data, 문서 최신화 |
 | 배강혁 | AI 엔진 / 프롬프트 / AI 백엔드 | interrogation, final-deduction, validate |
-| 소수경 | 핵심 백엔드 CRUD / 게임 세션 / 증거 해금 | scenarios, game-sessions, evidences, hints |
+| 소수경 | 핵심 백엔드 CRUD / 게임 세션 / 증거 해금 | scenarios, play-sessions, evidences, hints |
 | 정채림 | Android UI / 화면 흐름 / API 연동 / QA | Android 화면, Mock → API 전환 |
 
 ---
@@ -74,7 +74,7 @@ AI에게 전달되는 정보가 다음으로 한정되는지 확인:
   - 현재 답변 정책 (ResponsePolicy)
   - 사용자 질문
 
-답변 정책이 NpcResponsePolicyService를 통해 결정되는지 확인.
+답변 정책이 ResponsePolicyResolver를 통해 결정되는지 확인.
 프롬프트에 "답변은 2문장 이내" 제약이 포함되는지 확인.
 ```
 
