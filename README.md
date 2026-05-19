@@ -1,29 +1,54 @@
 # CaseLab AI
 
-Spring Boot 기반 CaseLab AI 백엔드 프로젝트입니다.
+AI 용의자를 심문하고, 증거와 알리바이를 조합해 범인·동기·범행 방법을 추리하는 Android 기반 AI 추리게임 플랫폼입니다.
 
-CaseLab AI는 AI 용의자 심문형 추리게임에 커스텀 시나리오 마켓플레이스와 Mock 크레딧 기반 구매/언락 거래 흐름을 붙이는 Android 기반 서비스입니다.
+```text
+Client: Android Kotlin
+Backend: Java 21, Spring Boot 4
+Database: MySQL
+Cache/Lock: Redis
+AI: Spring AI 기반 LLM 연동
+```
+
+---
 
 ## 문서
 
 처음 보는 팀원이나 개발용 AI는 아래 순서로 읽으면 됩니다.
 
-1. 프로젝트 전제와 문서 읽는 순서: [docs/AI_CONTEXT_GUIDE.md](docs/AI_CONTEXT_GUIDE.md)
-2. 제품 요구사항: [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md)
-3. 개발 핸드오버: [docs/CaseLab_AI_Project_Planning.md](docs/CaseLab_AI_Project_Planning.md)
-4. API 명세: [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md)
-5. ERD 설계/리뷰: [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md)
-6. ERDCloud import SQL: [docs/CaseLab_AI_ERDCloud.sql](docs/CaseLab_AI_ERDCloud.sql)
-7. 백엔드 구현 규칙: [docs/BACKEND_IMPLEMENTATION_RULES.md](docs/BACKEND_IMPLEMENTATION_RULES.md)
-8. 인증/거래 확장 계획: [docs/AUTH_TRANSACTION_EXPANSION_PLAN.md](docs/AUTH_TRANSACTION_EXPANSION_PLAN.md)
-9. AI NPC 프롬프트 정책: [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md)
-10. Android 화면-API 매핑: [docs/ANDROID_SCREEN_API_MAPPING.md](docs/ANDROID_SCREEN_API_MAPPING.md)
-11. 공식 시나리오 Seed 기준: [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md)
-12. 인프라/배포 계획: [docs/CaseLab_AI_Infrastructure_Deployment_Plan.md](docs/CaseLab_AI_Infrastructure_Deployment_Plan.md)
+| 순서 | 문서 | 역할 |
+|---:|---|---|
+| 1 | [CLAUDE.md](CLAUDE.md) | 프로젝트 핵심 컨텍스트와 작업 규칙 요약 |
+| 2 | [AGENTS.md](AGENTS.md) | Codex 리뷰 기준 |
+| 3 | [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md) | 제품 요구사항, MVP 범위, 구현 우선순위 |
+| 4 | [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md) | API 경로, Request/Response, DTO 필드명 정본 |
+| 5 | [docs/ANDROID_SCREEN_API_MAPPING.md](docs/ANDROID_SCREEN_API_MAPPING.md) | Android 화면별 호출 API 매핑 |
+| 6 | [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md) | ERD 설계, 엔티티, 관계, Enum |
+| 7 | [docs/CaseLab_AI_ERDCloud.sql](docs/CaseLab_AI_ERDCloud.sql) | ERDCloud import SQL |
+| 8 | [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) | AI NPC 프롬프트 정책과 정답 누설 방지 |
+| 9 | [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 구현 규칙, MockUser, 접근 권한, 인증/거래 확장 |
+| 10 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 로컬 실행, Android 연결, Docker, 배포 |
+| 11 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 시나리오 seed 기준 |
 
-## 실행
+### 문서 수정 기준
 
-빠른 실행:
+같은 사실을 여러 문서에 복사하지 않습니다. 내용이 바뀌면 아래 정본 문서만 수정하고, 다른 문서에서는 링크로 참조합니다.
+
+| 수정할 내용 | 정본 문서 |
+|---|---|
+| MVP 범위, Phase, 기능 우선순위 | [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md) |
+| API 경로, Request/Response, DTO 필드명 | [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md) |
+| Android 화면별 호출 API | [docs/ANDROID_SCREEN_API_MAPPING.md](docs/ANDROID_SCREEN_API_MAPPING.md) |
+| 엔티티, 관계, Enum, DB 제약 | [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md) |
+| ERDCloud import SQL | [docs/CaseLab_AI_ERDCloud.sql](docs/CaseLab_AI_ERDCloud.sql) |
+| AI 프롬프트, 답변 정책, 정답 누설 방지 | [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) |
+| 백엔드 구현 규칙, MockUser, 접근 권한, 인증/거래 확장 | [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md) |
+| 로컬 실행, Android 연결, Docker, 배포 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) |
+| 공식 시나리오 seed data | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) |
+
+현재 `docs` 기준 문서는 위 9개입니다.
+
+## 빠른 실행
 
 ```bash
 bash scripts/compose-up.sh
@@ -35,22 +60,38 @@ bash scripts/compose-up.sh
 bash scripts/compose-down.sh
 ```
 
-## 실행 관련 문서
+Gradle task:
 
-- Docker/MySQL/Redis 실행, Spring AI 환경변수, IntelliJ Run Configuration, 에러 해결: [docs/docker-run.md](docs/docker-run.md)
-- Android 앱에서 백엔드 붙이는 방법: [docs/android-client.md](docs/android-client.md)
+```bash
+./gradlew composeUp
+./gradlew composeDown
+./gradlew test
+```
+
+실행과 배포 상세는 [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md)를 따릅니다.
+
+---
 
 ## 주요 URL
 
-- API: `http://localhost:8080`
-- Swagger: `http://localhost:8080/swagger-ui.html`
-- Actuator Health: `http://localhost:8080/actuator/health`
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3000`
+| 대상 | URL |
+|---|---|
+| API | `http://localhost:8080` |
+| Swagger | `http://localhost:8080/swagger-ui.html` |
+| Actuator Health | `http://localhost:8080/actuator/health` |
+| Prometheus | `http://localhost:9090` |
+| Grafana | `http://localhost:3000` |
 
-Android Emulator에서 백엔드 API를 호출할 때는 `localhost` 대신 아래 주소를 사용합니다.
+Android Emulator에서 로컬 백엔드를 호출할 때는 아래 주소를 사용합니다.
 
 ```text
 http://10.0.2.2:8080
 ```
 
+운영 API Base URL:
+
+```text
+https://api.caselab.ai
+```
+
+Base URL에는 `/api`를 넣지 않고, 실제 API path에만 `/api/...` prefix를 포함합니다.

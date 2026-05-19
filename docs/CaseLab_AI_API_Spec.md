@@ -202,6 +202,7 @@ CASE_EXPLANATION
 ### 3.10 ScenarioValidationStatus
 
 ```text
+PENDING
 PASSED
 PASSED_WITH_WARNINGS
 NEEDS_FIX
@@ -2156,6 +2157,185 @@ POST /api/scenarios/{scenarioId}/purchase
 
 GET /api/users/me/purchases
 내 구매 시나리오 조회
+
+GET /api/scenarios/{scenarioId}/access
+시나리오 접근 권한 확인
+
+POST /api/scenarios/{scenarioId}/refund
+시나리오 구매 환불
+```
+
+---
+
+## 19.1 거래/크레딧 API 계획
+
+거래/크레딧 API는 1차 MVP 범위가 아니다.
+인증/인가 도입 후 Mock 크레딧 기반으로 추가한다.
+
+### 지갑 조회
+
+```http
+GET /api/wallet
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": 1,
+    "balance": 1200
+  },
+  "error": null
+}
+```
+
+### Mock 크레딧 충전
+
+```http
+POST /api/wallet/charge-mock
+```
+
+Request:
+
+```json
+{
+  "amount": 1000
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "transactionId": 10,
+    "balance": 2000
+  },
+  "error": null
+}
+```
+
+### 시나리오 구매
+
+```http
+POST /api/scenarios/{scenarioId}/purchase
+```
+
+정책:
+
+```text
+이미 구매한 경우 실패 또는 기존 Access 반환
+잔액 부족 시 실패
+무료 시나리오는 구매 없이 접근 가능
+작성자는 자신의 시나리오를 구매하지 않음
+구매 성공 시 ScenarioPurchase, CreditTransaction, ScenarioAccess를 함께 기록
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "purchaseId": 5,
+    "scenarioId": 12,
+    "priceCredit": 300,
+    "balanceAfter": 700,
+    "accessGranted": true
+  },
+  "error": null
+}
+```
+
+### 구매 내역 조회
+
+```http
+GET /api/users/me/purchases
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "purchaseId": 5,
+      "scenarioId": 12,
+      "scenarioTitle": "데모데이 전야 살인사건",
+      "priceCredit": 300,
+      "purchaseStatus": "COMPLETED",
+      "purchasedAt": "2026-05-18T12:00:00"
+    }
+  ],
+  "error": null
+}
+```
+
+### 접근 권한 확인
+
+```http
+GET /api/scenarios/{scenarioId}/access
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "scenarioId": 12,
+    "canPlay": true,
+    "accessType": "PURCHASED"
+  },
+  "error": null
+}
+```
+
+### 환불
+
+```http
+POST /api/scenarios/{scenarioId}/refund
+```
+
+초기 정책:
+
+```text
+아직 플레이를 시작하지 않은 구매 건만 환불 가능
+플레이 세션이 생성되었으면 환불 불가
+환불 시 ScenarioAccess 비활성화
+CreditTransaction REFUND 생성
+ScenarioPurchase 상태 REFUNDED 변경
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "scenarioId": 12,
+    "purchaseId": 5,
+    "refundTransactionId": 11,
+    "refundCredit": 300,
+    "purchaseStatus": "REFUNDED",
+    "accessRevoked": true
+  },
+  "error": null
+}
+```
+
+거래 동시성 방어:
+
+```text
+scenario_purchases에 user_id + scenario_id Unique 제약
+wallet 차감은 하나의 Transaction 안에서 처리
+잔액 검증 후 차감
+중복 요청 방지를 위해 idempotency key 검토
+필요 시 wallet:user:{userId}, purchase:scenario:{scenarioId}:user:{userId} Redis Lock 적용
 ```
 
 ---
