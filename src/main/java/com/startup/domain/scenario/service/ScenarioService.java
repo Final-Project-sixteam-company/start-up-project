@@ -1,8 +1,6 @@
 package com.startup.domain.scenario.service;
 
 import com.startup.common.dto.PageResponse;
-import com.startup.common.error.BusinessException;
-import com.startup.common.error.CommonErrorCode;
 import com.startup.domain.scenario.dto.ScenarioDetailResponse;
 import com.startup.domain.scenario.dto.ScenarioSearchCondition;
 import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
@@ -55,6 +53,16 @@ public class ScenarioService {
         Scenario scenario = scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
+        // 작성자 본인이 아니면서, 대중에게 공개되지 않은 시나리오에 접근하는 것을 차단
+        boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
+        boolean isPubliclyVisible = scenario.getStatus() == ScenarioStatus.PUBLISHED && 
+                (scenario.getVisibility() == ScenarioVisibility.PUBLIC || scenario.getVisibility() == ScenarioVisibility.OFFICIAL);
+                
+        if (!isCreator && !isPubliclyVisible) {
+            // 작성자가 아니면 에러 반환
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
+        }
+
         scenarioAccessService.validateViewable(userId, scenarioId);
 
         // TODO: 실제 작성자 닉네임 조회 및 북마크 여부 확인 로직 구현하기
@@ -74,7 +82,16 @@ public class ScenarioService {
                 case "latest" -> "createdAt";
                 default -> order.getProperty();
             };
-            mappedSort = mappedSort.and(Sort.by(order.getDirection(), property));
+            
+            // 스프링은 정렬 방향 생략 시 기본값으로 ASC(오름차순)를 주지만,
+            // 인기순, 평점순, 최신순은 내림차순(DESC)이 논리적으로 맞으므로 DESC로 엎어칩니다.
+            Sort.Direction direction = order.getDirection();
+            if (direction == Sort.Direction.ASC && 
+               (property.equals("playCount") || property.equals("averageRating") || property.equals("createdAt"))) {
+                direction = Sort.Direction.DESC;
+            }
+            
+            mappedSort = mappedSort.and(Sort.by(direction, property));
         }
 
         // 정렬 조건이 없으면 기본값으로 최신순(createdAt DESC) 정렬
