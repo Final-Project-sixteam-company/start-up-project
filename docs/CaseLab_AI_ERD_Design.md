@@ -573,7 +573,13 @@ AI 호출 시 직접 전달 금지.
 | suspect_id | 용의자 ID | suspects.id FK |
 | condition_key | 정책 조건 키 | not null |
 | user_intent | 질문 의도 | nullable |
+| required_evidence_ids | 필수 해금 증거 ID 목록 | JSON, nullable |
+| excluded_evidence_ids | 미해금 필수 증거 ID 목록 | JSON, nullable |
+| presented_evidence_id | 제시 증거 ID | evidences.id FK, nullable |
 | policy_text | 답변 정책 | not null |
+| allowed_facts | 말해도 되는 사실 목록 | JSON, nullable |
+| forbidden_facts | 말하면 안 되는 사실 목록 | JSON, nullable |
+| tone | 답변 톤 | nullable |
 | priority | 우선순위 | not null |
 | created_at | 생성 시각 | not null |
 
@@ -792,7 +798,7 @@ play_session_id + hint_id unique 제약 필수.
 | play_session_id | 플레이 세션 ID | play_sessions.id FK |
 | suspect_id | 용의자 ID | suspects.id FK |
 | presented_evidence_id | 제시 증거 ID | evidences.id FK, nullable |
-| question_type | FREE, EVIDENCE_PRESENT 등 | enum 문자열 |
+| question_type | FREE, RECOMMENDED, EVIDENCE_PRESENTED | enum 문자열 |
 | question | 질문 | not null |
 | answer | 답변 | not null |
 | ai_model | 사용 모델 | nullable |

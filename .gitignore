@@ -43,3 +43,5 @@ out/
 .env.local
 .env.*.local
 CLAUDE.local.md
+.instructions/
+.review/
