@@ -70,6 +70,19 @@ logging:
     root: ${LOG_LEVEL_ROOT:info}
     com.startup: ${LOG_LEVEL_APP:debug}
 
+caselab:
+  ai:
+    interrogation:
+      max-history-turns: ${AI_INTERROGATION_MAX_HISTORY_TURNS:5}
+      temperature: ${AI_INTERROGATION_TEMPERATURE:0.3}
+      max-tokens: ${AI_INTERROGATION_MAX_TOKENS:150}
+    deduction:
+      temperature: ${AI_DEDUCTION_TEMPERATURE:0.2}
+      max-tokens: ${AI_DEDUCTION_MAX_TOKENS:1500}
+    validation:
+      temperature: ${AI_VALIDATION_TEMPERATURE:0.2}
+      max-tokens: ${AI_VALIDATION_MAX_TOKENS:1500}
+
 app:
   # 인증 구현 전까지 사용할 임시 사용자 ID다. JWT 도입 후 제거하거나 SecurityContext 기반으로 교체한다.
   mock-user-id: ${MOCK_USER_ID:1}
