@@ -51,7 +51,7 @@ http://localhost:8080
 배포 환경 예시:
 
 ```text
-https://api.caselab.ai
+https://api.clueroom.xyz
 ```
 
 실제 컨트롤러 경로는 `/api/...` prefix를 포함한다.
