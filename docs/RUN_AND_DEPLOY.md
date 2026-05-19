@@ -138,9 +138,15 @@ cp .env.example .env
 | `SPRING_AI_MODEL_CHAT` | `none` | AI Provider 비활성/활성 |
 | `OPENAI_API_KEY` | empty | 서버에서만 사용하는 OpenAI API Key |
 | `OPENAI_CHAT_MODEL` | `gpt-4o-mini` | OpenAI chat model |
+| `AWS_REGION` | `ap-northeast-2` | S3 리전 |
+| `AWS_ACCESS_KEY_ID` | empty | 서버에서만 사용하는 AWS access key |
+| `AWS_SECRET_ACCESS_KEY` | empty | 서버에서만 사용하는 AWS secret key |
+| `AWS_S3_BUCKET` | empty | 이미지/백업 업로드용 S3 bucket |
+| `AWS_S3_PUBLIC_BASE_URL` | empty | Android에 내려줄 이미지 URL base |
 | `FCM_ENABLED` | `false` | FCM 푸시 알림 활성 여부 |
 | `FCM_PROJECT_ID` | empty | Firebase project ID |
 | `FCM_SERVICE_ACCOUNT_PATH` | empty | 서버 내부 Firebase service account JSON 경로 |
+| `SECRETS_HOST_DIR` | `./secrets` | Compose에서 `/opt/caselab/secrets`로 mount할 host secret 디렉터리 |
 | `CORS_ALLOWED_ORIGIN_PATTERNS` | local patterns | 브라우저/WebView 테스트용 CORS |
 
 ### 3.2 Docker 내부 환경
@@ -305,6 +311,7 @@ Git 저장소, Android 앱, 문서 예시에 실제 JSON을 남기지 않는다.
 FCM_ENABLED=true
 FCM_PROJECT_ID=clueroom
 FCM_SERVICE_ACCOUNT_PATH=/opt/caselab/secrets/firebase-service-account.json
+SECRETS_HOST_DIR=/opt/caselab/secrets
 ```
 
 GitHub Actions로 배포할 때는 service account JSON을 secret으로 관리하고,
