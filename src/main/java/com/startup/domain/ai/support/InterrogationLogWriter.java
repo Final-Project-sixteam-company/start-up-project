@@ -14,8 +14,9 @@ public class InterrogationLogWriter {
     private final InterrogationLogRepository interrogationLogRepository;
 
     @Transactional
-    public void save(Long playSessionId, Long suspectId, Long presentedEvidenceId,
-                     QuestionType questionType, String question, String answer, String aiModel) {
+    public InterrogationLog save(Long playSessionId, Long suspectId, Long presentedEvidenceId,
+                                 QuestionType questionType, String question, String answer,
+                                 String aiModel) {
         InterrogationLog logEntry = InterrogationLog.builder()
                 .playSessionId(playSessionId)
                 .suspectId(suspectId)
@@ -26,6 +27,6 @@ public class InterrogationLogWriter {
                 .aiModel(aiModel)
                 .build();
 
-        interrogationLogRepository.save(logEntry);
+        return interrogationLogRepository.save(logEntry);
     }
 }

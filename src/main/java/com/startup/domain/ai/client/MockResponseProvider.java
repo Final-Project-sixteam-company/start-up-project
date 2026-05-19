@@ -1,7 +1,7 @@
 package com.startup.domain.ai.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,16 +24,16 @@ public class MockResponseProvider {
     @Value("classpath:mock/interrogation_mock_responses.json")
     private Resource mockResource;
 
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
     private List<MockEntry> entries = Collections.emptyList();
 
     @PostConstruct
     void init() {
         try {
-            entries = objectMapper.readValue(
+            entries = jsonMapper.readValue(
                     mockResource.getInputStream(),
-                    new TypeReference<>() {});
+                    new TypeReference<List<MockEntry>>() {});
         } catch (IOException e) {
             log.warn("Mock 응답 파일 로드 실패, Fallback만 사용합니다", e);
         }

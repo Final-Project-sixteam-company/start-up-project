@@ -9,6 +9,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +23,7 @@ public class AiClient {
     private final MockResponseProvider mockResponseProvider;
     private final boolean mockMode;
 
-    public AiClient(ChatModel chatModel,
+    public AiClient(@Autowired(required = false) ChatModel chatModel,
                     MockResponseProvider mockResponseProvider,
                     @Value("${spring.ai.model.chat:none}") String chatModelType) {
         this.chatModel = chatModel;
@@ -31,8 +32,9 @@ public class AiClient {
     }
 
     public String chat(String systemPrompt, String userPrompt, AiRequestParams params) {
-        if (mockMode) {
-            return null;
+        if (chatModel == null) {
+            throw new AiException(AiErrorCode.AI_SERVICE_UNAVAILABLE,
+                    "ChatModel not configured. Set SPRING_AI_MODEL_CHAT in .env");
         }
 
         long startTime = System.currentTimeMillis();

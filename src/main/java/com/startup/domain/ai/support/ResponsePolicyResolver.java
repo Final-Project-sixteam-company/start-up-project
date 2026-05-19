@@ -1,7 +1,7 @@
 package com.startup.domain.ai.support;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import com.startup.domain.ai.dto.ResponsePolicyResult;
 import com.startup.domain.ai.entity.SuspectResponsePolicy;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
@@ -22,7 +22,7 @@ public class ResponsePolicyResolver {
     private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {};
 
     private final SuspectResponsePolicyRepository policyRepository;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
     public ResponsePolicyResult resolve(Long suspectId,
                                         List<Long> unlockedEvidenceIds,
@@ -30,19 +30,24 @@ public class ResponsePolicyResolver {
         List<SuspectResponsePolicy> policies = policyRepository.findAllBySuspectId(suspectId);
 
         return policies.stream()
+                .filter(policy -> !"DEFAULT".equals(policy.getConditionKey()))
                 .filter(policy -> matchesCondition(policy, unlockedEvidenceIds, presentedEvidenceId))
                 .max(Comparator.comparingInt(SuspectResponsePolicy::getPriority))
                 .map(this::toResult)
-                .orElse(ResponsePolicyResult.defaultPolicy());
+                .orElseGet(() -> findDefaultPolicy(policies));
+    }
+
+    private ResponsePolicyResult findDefaultPolicy(List<SuspectResponsePolicy> policies) {
+        return policies.stream()
+                .filter(policy -> "DEFAULT".equals(policy.getConditionKey()))
+                .findFirst()
+                .map(this::toResult)
+                .orElse(ResponsePolicyResult.hardcodedFallback());
     }
 
     private boolean matchesCondition(SuspectResponsePolicy policy,
                                      List<Long> unlockedEvidenceIds,
                                      Long presentedEvidenceId) {
-        if ("DEFAULT".equals(policy.getConditionKey())) {
-            return false;
-        }
-
         List<Long> required = parseLongList(policy.getRequiredEvidenceIds());
         if (!required.isEmpty() && !unlockedEvidenceIds.containsAll(required)) {
             return false;
@@ -77,7 +82,7 @@ public class ResponsePolicyResolver {
             return List.of();
         }
         try {
-            return objectMapper.readValue(json, LONG_LIST_TYPE);
+            return jsonMapper.readValue(json, LONG_LIST_TYPE);
         } catch (Exception e) {
             log.warn("JSON 파싱 실패 (Long list): {}", json, e);
             return List.of();
@@ -89,7 +94,7 @@ public class ResponsePolicyResolver {
             return List.of();
         }
         try {
-            return objectMapper.readValue(json, STRING_LIST_TYPE);
+            return jsonMapper.readValue(json, STRING_LIST_TYPE);
         } catch (Exception e) {
             log.warn("JSON 파싱 실패 (String list): {}", json, e);
             return List.of();
