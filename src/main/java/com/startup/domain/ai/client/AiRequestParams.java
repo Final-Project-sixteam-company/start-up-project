@@ -16,4 +16,8 @@ public class AiRequestParams {
     public static AiRequestParams interrogation(double temperature, int maxTokens) {
         return new AiRequestParams(temperature, maxTokens);
     }
+
+    public static AiRequestParams deduction(double temperature, int maxTokens) {
+        return new AiRequestParams(temperature, maxTokens);
+    }
 }

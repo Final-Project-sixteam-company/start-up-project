@@ -2,7 +2,11 @@ package com.startup.domain.ai.prompt;
 
 import com.startup.domain.ai.dto.ChatTurn;
 import com.startup.domain.ai.dto.EvidenceInfo;
+import com.startup.domain.ai.dto.FinalDeductionRequest;
 import com.startup.domain.ai.dto.ResponsePolicyResult;
+import com.startup.domain.ai.dto.ScoringCriteria;
+import com.startup.domain.ai.dto.ScoringResult;
+import com.startup.domain.ai.dto.SolutionInfo;
 import com.startup.domain.ai.dto.SuspectProfile;
 import com.startup.domain.ai.enums.QuestionType;
 import com.startup.domain.ai.error.AiErrorCode;
@@ -24,14 +28,17 @@ public class AiPromptBuilder {
     private final Resource systemPromptResource;
     private final Resource userPromptResource;
     private final Resource evidenceUserPromptResource;
+    private final Resource deductionScoringPromptResource;
 
     public AiPromptBuilder(
             @Value("classpath:prompts/interrogation_system_prompt.txt") Resource systemPromptResource,
             @Value("classpath:prompts/interrogation_user_prompt.txt") Resource userPromptResource,
-            @Value("classpath:prompts/evidence_interrogation_user_prompt.txt") Resource evidenceUserPromptResource) {
+            @Value("classpath:prompts/evidence_interrogation_user_prompt.txt") Resource evidenceUserPromptResource,
+            @Value("classpath:prompts/final_deduction_scoring_prompt.txt") Resource deductionScoringPromptResource) {
         this.systemPromptResource = systemPromptResource;
         this.userPromptResource = userPromptResource;
         this.evidenceUserPromptResource = evidenceUserPromptResource;
+        this.deductionScoringPromptResource = deductionScoringPromptResource;
     }
 
     public String buildSystemPrompt() {
@@ -49,6 +56,38 @@ public class AiPromptBuilder {
             return buildEvidenceUserPrompt(suspect, presentedEvidence, revealedEvidences, policy, history, question);
         }
         return buildFreeUserPrompt(suspect, revealedEvidences, presentedEvidence, policy, history, question);
+    }
+
+    public String buildDeductionScoringPrompt(ScoringResult result,
+                                               SolutionInfo solution,
+                                               FinalDeductionRequest request,
+                                               ScoringCriteria criteria) {
+        String template = loadTemplate(deductionScoringPromptResource);
+        return template
+                .replace("{totalScore}", String.valueOf(result.totalScore()))
+                .replace("{culpritScore}", String.valueOf(result.culpritScore()))
+                .replace("{culpritMaxScore}", String.valueOf(criteria.culpritMaxScore()))
+                .replace("{culpritResult}", result.culpritCorrect() ? "정답" : "오답")
+                .replace("{methodScore}", String.valueOf(result.methodScore()))
+                .replace("{methodMaxScore}", String.valueOf(criteria.method().maxScore()))
+                .replace("{methodResult}", result.methodScore() == criteria.method().maxScore() ? "정답" : (result.methodScore() > 0 ? "부분 정답" : "오답"))
+                .replace("{motiveScore}", String.valueOf(result.motiveScore()))
+                .replace("{motiveMaxScore}", String.valueOf(criteria.motive().maxScore()))
+                .replace("{motiveResult}", result.motiveScore() == criteria.motive().maxScore() ? "정답" : (result.motiveScore() > 0 ? "부분 정답" : "오답"))
+                .replace("{coverUpScore}", String.valueOf(result.coverUpScore()))
+                .replace("{coverUpMaxScore}", String.valueOf(criteria.coverUp().maxScore()))
+                .replace("{coverUpResult}", result.coverUpScore() == criteria.coverUp().maxScore() ? "정답" : (result.coverUpScore() > 0 ? "부분 정답" : "오답"))
+                .replace("{evidenceScore}", String.valueOf(result.evidenceScore()))
+                .replace("{evidenceMaxScore}", String.valueOf(criteria.evidenceMaxScore()))
+                .replace("{evidenceMatchCount}", String.valueOf(result.evidenceMatchCount()))
+                .replace("{correctCulprit}", nullSafe(solution.culpritSuspectId() + "번 용의자"))
+                .replace("{correctMotive}", nullSafe(solution.motive()))
+                .replace("{correctMethod}", nullSafe(solution.method()))
+                .replace("{correctCoverUp}", nullSafe(solution.coverUp()))
+                .replace("{userCulprit}", request.selectedCulpritId() + "번 용의자")
+                .replace("{userMotive}", nullSafe(request.motiveText()))
+                .replace("{userMethod}", nullSafe(request.methodText()))
+                .replace("{userCoverUp}", nullSafe(request.coverUpText()));
     }
 
     private String buildFreeUserPrompt(SuspectProfile suspect,

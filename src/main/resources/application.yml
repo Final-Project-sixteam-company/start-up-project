@@ -71,6 +71,8 @@ logging:
     com.startup: ${LOG_LEVEL_APP:debug}
 
 caselab:
+  scoring:
+    criteria-path: ${SCORING_CRITERIA_PATH:classpath:scoring/demo_day_criteria.json}
   ai:
     interrogation:
       max-history-turns: ${AI_INTERROGATION_MAX_HISTORY_TURNS:5}
