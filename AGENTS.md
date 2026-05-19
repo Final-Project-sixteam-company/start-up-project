@@ -2,6 +2,7 @@
 
 AI 용의자 심문형 추리게임 플랫폼. Android(Kotlin) + Spring Boot(Java 21, Spring Boot 4) 백엔드.
 프로젝트 상세 컨텍스트는 `CLAUDE.md`를 함께 참조한다.
+구현 규칙 상세는 `docs/BACKEND_IMPLEMENTATION_GUIDE.md`를 따른다.
 
 ---
 
@@ -34,6 +35,7 @@ com.startup
 
 새 도메인 패키지는 `domain/example/` 구조를 따른다.
 AI 호출 관련 코드는 `domain/ai`에 집중한다 — 다른 도메인 Service에서 프롬프트를 직접 만들지 않는다.
+패키지/계층/예외/트랜잭션 상세 규칙은 `docs/BACKEND_IMPLEMENTATION_GUIDE.md`를 따른다.
 
 ---
 
@@ -44,6 +46,8 @@ bash scripts/compose-up.sh     # Docker 빌드 + 실행
 ./gradlew test                 # 테스트
 ./gradlew bootJar              # jar 생성
 ```
+
+실행, Android 연결, Docker, 배포 상세는 `docs/RUN_AND_DEPLOY.md`를 따른다.
 
 ---
 
@@ -86,7 +90,7 @@ AI에게 전달되는 정보가 다음으로 한정되는지 확인:
 프롬프트 인젝션 방어 문구가 System Prompt에 포함되는지 확인.
 프롬프트 문자열이 AiPromptBuilder에 집중되어 있는지 확인 (여러 Service에 분산되면 안 된다).
 프롬프트 템플릿이 resources/prompts/ 파일 기반인지 확인 (하드코딩 금지).
-상세 기준: AI_NPC_PROMPT_POLICY.md 섹션 8~9
+상세 기준: `docs/AI_NPC_PROMPT_POLICY.md`
 ```
 
 ### 트랜잭션과 AI 호출 분리
@@ -147,11 +151,12 @@ AI가 설정에 없는 사실을 만드는 구조를 허용하지 않는다.
 CLAUDE.md                                   프로젝트 전체 컨텍스트
 docs/CaseLab_AI_PRD.md                      제품 요구사항
 docs/CaseLab_AI_API_Spec.md                 API 명세 (Request/Response 포함)
-docs/CaseLab_AI_Project_Planning.md         기획 / 도메인 모델
+docs/ANDROID_SCREEN_API_MAPPING.md          Android 화면-API 매핑
 docs/AI_NPC_PROMPT_POLICY.md                AI 심문 프롬프트 정책 정본
 docs/OFFICIAL_SCENARIO_DEMO_DAY.md          공식 데모 시나리오 정본 (채점 기준 포함)
-docs/BACKEND_IMPLEMENTATION_RULES.md        백엔드 구현 규칙
-docs/CaseLab_AI_ERD_Design.md              ERD 설계 / 비판적 리뷰
+docs/BACKEND_IMPLEMENTATION_GUIDE.md        백엔드 구현 규칙 정본
+docs/CaseLab_AI_ERD_Design.md               ERD 설계 / 비판적 리뷰
+docs/RUN_AND_DEPLOY.md                      실행 / Android 연결 / Docker / 배포
 ```
 
 리뷰 요청 시 **리뷰 지시서**가 함께 전달된다. 지시서에는 작업 목표, 변경 범위, 핵심 결정, 리뷰 초점, 참조 문서가 포함된다.
