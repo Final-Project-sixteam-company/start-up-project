@@ -49,10 +49,10 @@ public record ScenarioDetailResponse(
                 scenario.getPlayCount(),
                 scenario.getAverageRating(),
                 scenario.getRatingCount(),
-                scenario.getSuspectCount(),
-                scenario.getEvidenceCount(),
-                scenario.getHintCount(),
-                null, // TODO: 나중에 태그 목록 반환 로직 추가하기
+                0, // TODO: 나중에 용의자 수 계산 로직 추가하기
+                0, // TODO: 나중에 증거 수 계산 로직 추가하기
+                0, // TODO: 나중에 힌트 수 계산 로직 추가하기
+                java.util.Collections.emptyList(), // TODO: 나중에 태그 목록 반환 로직 추가하기
                 new CreatorDto(scenario.getCreatorId(), creatorNickname),
                 isBookmarked,
                 canPlay

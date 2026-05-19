@@ -31,8 +31,8 @@ public record ScenarioSummaryResponse(
                 scenario.getEstimatedPlayTimeMinutes(),
                 scenario.getPlayerCountMin(),
                 scenario.getPlayerCountMax(),
-                scenario.getSuspectCount(),
-                scenario.getEvidenceCount(),
+                0, // TODO: 나중에 용의자 수 계산 로직 추가하기
+                0, // TODO: 나중에 증거 수 계산 로직 추가하기
                 scenario.getPlayCount(),
                 scenario.getAverageRating(),
                 isBookmarked
