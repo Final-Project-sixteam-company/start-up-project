@@ -1,0 +1,22 @@
+{
+  "scenarioId": 1,
+  "culpritSuspectId": 1,
+  "method": {
+    "keywords": ["아몬드라떼", "아몬드", "견과류", "알레르기", "에피펜", "알러지"],
+    "minMatch": 2,
+    "maxScore": 25
+  },
+  "motive": {
+    "keywords": ["회계", "자금", "유용", "비리", "횡령", "데모데이", "투자", "폭로"],
+    "minMatch": 2,
+    "maxScore": 20
+  },
+  "coverUp": {
+    "keywords": ["메시지", "휴대폰", "사망 이후", "위장", "조작", "단톡", "카톡"],
+    "minMatch": 2,
+    "maxScore": 10
+  },
+  "keyEvidenceIds": [2, 6, 7, 8, 11, 12, 13, 14],
+  "evidenceMaxScore": 15,
+  "culpritMaxScore": 30
+}
