@@ -30,7 +30,7 @@ public record InterrogationResponse(
 ) {
     @Schema(description = "해금된 증거 요약")
     public record UnlockedEvidenceDto(
-            Long id,
+            Long evidenceId,
             String title
     ) {}
 }
