@@ -932,7 +932,7 @@ user_id + scenario_id unique 제약 필수.
 |---|---|---|
 | id | 검증 결과 ID | PK |
 | scenario_id | 시나리오 ID | scenarios.id FK |
-| validation_status | PASSED, PASSED_WITH_WARNINGS, NEEDS_FIX, FAILED 등 | enum 문자열 |
+| validation_status | PENDING, PASSED, PASSED_WITH_WARNINGS, NEEDS_FIX, FAILED 등 | enum 문자열 |
 | validation_score | 검증 점수 | nullable |
 | problem_summary | 문제 요약 | nullable |
 | suggestion | 개선 제안 | nullable |

@@ -1,215 +1,220 @@
 # CaseLab AI
 
 AI 용의자를 심문하고, 증거와 알리바이를 조합해 범인·동기·범행 방법을 추리하는 Android 기반 AI 추리게임 플랫폼.
-Android 앱(Kotlin) + Spring Boot 백엔드(Java) + AI 심문 엔진(LLM API) 구조.
-
----
-
-## 기술 스택
 
 ```text
-Java 21, Spring Boot 4, Spring Security, JWT
-Spring Data JPA, MySQL, Redis
-Spring AI (OpenAI / Claude / Gemini 택1)
-Gradle, Docker / Docker Compose
-Swagger (springdoc-openapi)
-Prometheus + Grafana (모니터링)
+Android App(Kotlin)
+Spring Boot Backend(Java 21, Spring Boot 4)
+MySQL + Redis
+Spring AI 기반 LLM 연동
 ```
 
 ---
 
-## 빌드 / 실행
+## 1. 가장 중요한 원칙
 
-```bash
-bash scripts/compose-up.sh     # Docker 빌드 + 실행 (MySQL, Redis, App)
-bash scripts/compose-down.sh   # 종료
-
-./gradlew bootJar              # jar 생성
-./gradlew composeUp            # Gradle task로 실행
-./gradlew test                 # 테스트
+```text
+AI 용의자에게 범인 정보를 직접 전달하지 않는다.
+범인, 정답, 핵심 비밀은 백엔드 secret으로 관리한다.
+AI에게는 현재 공개 정보와 답변 정책만 전달한다.
+답변 정책은 ResponsePolicyResolver가 결정한다.
+NPC 답변은 1~2줄, 최대 2문장으로 제한한다.
+설정에 없는 사실을 생성하지 않는다.
+트랜잭션 안에서 AI API를 호출하지 않는다.
 ```
 
-실행 후 URL:
-- API: `http://localhost:8080`
-- Swagger: `http://localhost:8080/swagger-ui.html`
-- Grafana: `http://localhost:3000`
-
-Spring AI 기본값은 `SPRING_AI_MODEL_CHAT=none`이다. AI 기능을 붙일 때만 `.env`에서 `openai`로 전환한다.
+AI 프롬프트 상세 기준은 `docs/AI_NPC_PROMPT_POLICY.md`를 따른다.
 
 ---
 
-## 패키지 구조
+## 2. 현재 MVP 범위
+
+1차 MVP는 아래 흐름을 먼저 완성한다.
+
+```text
+공식 시나리오 조회
+게임 세션 시작
+탐정 대시보드
+현장 / 증거 / 용의자 / 힌트 조회
+AI 용의자 심문
+최종 추리 제출
+결과 해설 조회
+커스텀 시나리오 제작 기본형
+AI 시나리오 검증
+리뷰 / 북마크 기본형
+```
+
+아래 기능은 후순위다.
+
+```text
+JWT 인증 완성
+거래 / 크레딧 / 구매 / 언락
+제작자 정산
+AI 시나리오 초안 생성 고도화
+내 기록 / 마이페이지 완성
+```
+
+제품 범위와 우선순위 정본은 `docs/CaseLab_AI_PRD.md`를 따른다.
+
+---
+
+## 3. 패키지 구조 요약
 
 ```text
 com.startup
- ├─ common/                  공통 설정, DTO, 에러, 유틸
- │   ├─ config/              SwaggerConfig, WebMvcConfig
- │   ├─ dto/                 ApiResponse, PageResponse, ErrorResponse
- │   ├─ entity/              BaseEntity
- │   ├─ error/               BusinessException, ErrorCode, GlobalExceptionHandler
- │   └─ util/                QueryDSL support 등
- ├─ domain/                  도메인별 비즈니스 로직
- │   └─ example/             패키지 템플릿 (새 도메인은 이 구조를 따른다)
- │       ├─ controller/
- │       ├─ dto/
- │       ├─ entity/
- │       ├─ enums/
- │       ├─ error/
- │       ├─ repository/
- │       ├─ service/
- │       └─ support/
- └─ infrastructure/          외부 시스템 연동
-     ├─ persistence/
-     └─ redis/               config, lock
+ ├─ common/         공통 설정, DTO, 에러, 인증, 유틸
+ ├─ domain/         도메인 비즈니스 로직
+ │   ├─ example/    패키지 템플릿
+ │   ├─ scenario/   시나리오 CRUD / 커스텀 시나리오
+ │   ├─ play/       플레이 세션 / 증거 해금 / 힌트
+ │   └─ ai/         AI 심문 / 채점 / 검증 / 프롬프트
+ └─ infrastructure/ 외부 시스템 연동
 ```
 
-새 도메인 패키지를 만들 때는 `domain/example/`의 controller-dto-entity-enums-error-repository-service-support 구조를 따른다.
+새 도메인 패키지는 `domain/example/`의 구조를 따른다.
+상세 구현 규칙은 `docs/BACKEND_IMPLEMENTATION_GUIDE.md`를 따른다.
 
 ---
 
-## 팀 역할
+## 4. 백엔드 구현 규칙 요약
+
+```text
+Controller는 HTTP 요청/응답 경계만 담당한다.
+Service는 비즈니스 로직과 트랜잭션 경계를 담당한다.
+Repository는 저장소 접근만 담당한다.
+Entity를 API 응답으로 직접 반환하지 않는다.
+모든 API는 ApiResponse 래퍼를 사용한다.
+예외는 BusinessException + ErrorCode 체계를 사용한다.
+userId를 1L로 하드코딩하지 않고 MockUserProvider를 사용한다.
+시나리오 접근 판단은 ScenarioAccessService를 통한다.
+DTO ID 필드명은 API Spec을 따른다.
+```
+
+정본:
+
+```text
+docs/BACKEND_IMPLEMENTATION_GUIDE.md
+docs/CaseLab_AI_API_Spec.md
+```
+
+---
+
+## 5. AI 구현 규칙 요약
+
+AI에게 전달 가능한 정보:
+
+```text
+용의자 공개 프로필
+공개 진술 / 알리바이
+현재 해금된 증거
+사용자 질문
+사용자가 제시한 증거
+ResponsePolicyResolver가 결정한 답변 정책
+답변 길이 제한
+```
+
+AI에게 전달 금지:
+
+```text
+진범 여부
+Solution 전체
+범행 동기 / 방법 / 은폐 전체
+아직 해금되지 않은 핵심 증거
+아직 공개되지 않은 용의자 비밀
+게임 종료 전 최종 해설
+```
+
+AI 호출 흐름:
+
+```text
+DB 조회
+→ 트랜잭션 종료
+→ ResponsePolicyResolver 정책 결정
+→ PromptTemplateService 프롬프트 생성
+→ AiClient 호출
+→ 새 트랜잭션으로 InterrogationLog 저장
+→ 응답 반환
+```
+
+프롬프트, Fallback, 모델 파라미터 상세는 `docs/AI_NPC_PROMPT_POLICY.md`를 따른다.
+
+---
+
+## 6. 담당 API
+
+### AI 담당
+
+```text
+POST /api/play-sessions/{sessionId}/interrogations
+POST /api/play-sessions/{sessionId}/final-deduction
+POST /api/ai/scenarios/{scenarioId}/validate
+```
+
+### 핵심 플레이 담당
+
+```text
+GET  /api/scenarios
+GET  /api/scenarios/{scenarioId}
+POST /api/play-sessions
+GET  /api/play-sessions/{sessionId}/dashboard
+GET  /api/play-sessions/{sessionId}/evidences
+GET  /api/play-sessions/{sessionId}/suspects
+GET  /api/play-sessions/{sessionId}/hints
+```
+
+API 명세 전체는 `docs/CaseLab_AI_API_Spec.md`를 따른다.
+
+---
+
+## 7. 실행
+
+```bash
+bash scripts/compose-up.sh
+bash scripts/compose-down.sh
+./gradlew test
+./gradlew bootJar
+```
+
+로컬 실행, Android 연결, Docker, 배포 상세는 `docs/RUN_AND_DEPLOY.md`를 따른다.
+
+---
+
+## 8. 팀 역할
 
 | 담당자 | 역할 | 핵심 범위 |
-|--------|------|----------|
+|---|---|---|
 | 황도윤 | 리더 / 인프라 / 공식 시나리오 / PR 리뷰 | 공통 세팅, Seed Data, 문서 최신화 |
 | 배강혁 | AI 엔진 / 프롬프트 / AI 백엔드 | interrogation, final-deduction, validate |
 | 소수경 | 핵심 백엔드 CRUD / 게임 세션 / 증거 해금 | scenarios, play-sessions, evidences, hints |
-| 정채림 | Android UI / 화면 흐름 / API 연동 / QA | Android 화면, Mock → API 전환 |
+| 정채림 | Android UI / 화면 흐름 / API 연동 / QA | Android 화면, Mock -> API 전환 |
 
 다른 담당자의 패키지를 수정해야 할 때는 사유를 밝히고 최소 범위로 한정한다.
-상세 역할 배분: 팀 공유 Notion 또는 리더에게 확인.
 
 ---
 
-## AI 엔진 핵심 규칙
+## 9. 참조 문서
 
-### 가장 중요한 원칙
+| 문서 | 역할 |
+|---|---|
+| `docs/CaseLab_AI_PRD.md` | 제품 요구사항, MVP 범위, 구현 우선순위 |
+| `docs/CaseLab_AI_API_Spec.md` | API 경로, Request/Response, DTO 필드명 정본 |
+| `docs/ANDROID_SCREEN_API_MAPPING.md` | Android 화면별 호출 API 매핑 |
+| `docs/CaseLab_AI_ERD_Design.md` | ERD 설계, 엔티티, 관계, Enum |
+| `docs/CaseLab_AI_ERDCloud.sql` | ERDCloud import SQL |
+| `docs/AI_NPC_PROMPT_POLICY.md` | AI NPC 프롬프트 정책 정본 |
+| `docs/BACKEND_IMPLEMENTATION_GUIDE.md` | 백엔드 구현 규칙 정본 |
+| `docs/RUN_AND_DEPLOY.md` | 로컬 실행, Android 연결, Docker, 배포 |
+| `docs/OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 데모 시나리오 seed 정본 |
 
-AI 용의자에게 "네가 범인이다"라는 정보를 직접 주지 않는다.
-범인 정보와 핵심 비밀은 백엔드 secret으로 관리한다.
-AI에게는 현재 장면에서 말해도 되는 정보와 답변 정책만 전달한다.
-
-### AI에게 전달하는 정보
-
-```text
-현재 용의자 공개 프로필
-현재 용의자 공개 알리바이
-현재 공개된 증거
-사용자가 제시한 증거
-현재 답변 정책 (ResponsePolicy)
-사용자 질문
-```
-
-### AI에게 전달하면 안 되는 정보
+권장 읽기 순서:
 
 ```text
-전체 정답
-진범 여부
-아직 해금되지 않은 핵심 비밀
-다른 용의자의 비밀
-최종 해설 전체
+CLAUDE.md
+→ CaseLab_AI_PRD.md
+→ CaseLab_AI_API_Spec.md
+→ ANDROID_SCREEN_API_MAPPING.md
+→ CaseLab_AI_ERD_Design.md
+→ AI_NPC_PROMPT_POLICY.md
+→ BACKEND_IMPLEMENTATION_GUIDE.md
+→ RUN_AND_DEPLOY.md
 ```
-
-### NPC 응답 제약
-
-```text
-답변은 1~2줄로 제한한다.
-설정에 없는 사실을 만들지 않는다.
-해금되지 않은 비밀을 말하지 않는다.
-결정적 증거가 제시되기 전까지 자백하지 않는다.
-질문에 답할 수 없으면 "기억나지 않는다", "잘 모르겠다"로 답한다.
-```
-
-### 심문 처리 흐름
-
-```text
-사용자 질문 → play_session 조회 → suspect 조회
-→ 현재 해금 evidence 조회 → presentedEvidenceId 확인
-→ ResponsePolicyResolver가 답변 정책 결정
-→ AI에게 허용된 정보만 전달 → 1~2줄 답변 생성
-→ interrogation_logs 저장 → 조건 충족 시 추가 evidence 해금
-```
-
-### AI 서비스 구조
-
-```text
-AiInterrogationService     심문 응답 생성
-AiDeductionScorer          최종 추리 채점
-AiScenarioValidator        커스텀 시나리오 논리 검증
-AiPromptBuilder            프롬프트 조립
-AiUsageLogger              AI 호출 로그
-```
-
----
-
-## 담당 API
-
-### 배강혁 담당
-
-```text
-POST /api/play-sessions/{sessionId}/interrogations      AI 용의자 심문
-POST /api/play-sessions/{sessionId}/final-deduction      최종 추리 제출/채점
-POST /api/ai/scenarios/{scenarioId}/validate             시나리오 논리 검증
-```
-
-### 소수경 담당
-
-```text
-GET  /api/scenarios                                      시나리오 목록
-GET  /api/scenarios/{scenarioId}                         시나리오 상세
-POST /api/play-sessions                                  게임 세션 생성
-GET  /api/play-sessions/{sessionId}/evidences            해금 증거 조회
-GET  /api/play-sessions/{sessionId}/suspects             용의자 조회
-GET  /api/play-sessions/{sessionId}/hints                힌트 조회
-```
-
-API 명세 전체: `docs/CaseLab_AI_API_Spec.md`
-
----
-
-## 점수 계산
-
-```text
-범인 선택: 30점 / 범행 방법: 25점 / 범행 동기: 20점
-은폐 방법: 10점 / 결정적 증거 선택: 15점
-
-힌트 감점: 1단계 -5점, 2단계 -10점, 3단계 -20점
-
-등급: S(90+) A(80+) B(70+) C(60+) D(60-)
-```
-
----
-
-## Mock / Fallback 정책
-
-AI API가 실패해도 시연 플로우가 끊기지 않아야 한다.
-- `SPRING_AI_MODEL_CHAT=none`일 때 Mock 응답을 반환하는 Fallback 구현 필수
-- 심문 Mock 응답, 채점 Mock 결과, 검증 Mock 결과를 준비한다.
-
----
-
-## 금지 사항
-
-```text
-AI NPC에게 "너는 범인이다"라는 정보를 프롬프트에 넣지 않는다.
-AI가 설정에 없는 사실을 만들어내는 구조를 허용하지 않는다.
-심문 로그를 저장하지 않는 구조를 만들지 않는다.
-최종 추리 채점을 단순 텍스트 비교로 구현하지 않는다.
-시나리오와 플레이 세션 상태를 혼동하지 않는다.
-모든 증거를 처음부터 공개하지 않는다.
-스포일러 리뷰 관리 없이 리뷰를 공개하지 않는다.
-```
-
----
-
-## 참조 문서
-
-```text
-docs/CaseLab_AI_PRD.md                 제품 요구사항 전체
-docs/CaseLab_AI_API_Spec.md            API 명세 전체 (Request/Response 포함)
-docs/CaseLab_AI_Project_Planning.md    프로젝트 기획 / 도메인 모델 / AI 프롬프트 정책
-docs/docker-run.md                     Docker 실행 / 에러 해결
-docs/android-client.md                 Android 앱 연동
-```
-
-권장 읽기 순서: PRD → Project Planning → API Spec
