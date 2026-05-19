@@ -10,15 +10,10 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
-
 @Entity
 @Table(name = "scenarios")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLDelete(sql = "UPDATE scenarios SET deleted_at = NOW() WHERE id = ?")
-@SQLRestriction("deleted_at IS NULL")
 public class Scenario extends BaseEntity {
 
     @Id
@@ -50,10 +45,6 @@ public class Scenario extends BaseEntity {
     private Integer playerCountMin;
     private Integer playerCountMax;
 
-    private Integer suspectCount = 0;
-    private Integer evidenceCount = 0;
-    private Integer hintCount = 0;
-
     private Integer playCount = 0;
     private Double averageRating = 0.0;
     private Integer ratingCount = 0;
@@ -61,7 +52,7 @@ public class Scenario extends BaseEntity {
     @Column(name = "price_credit")
     private Integer priceCredit = 0;
 
-    @Column(nullable = false)
+    @Column(name = "creator_id")
     private Long creatorId;
 
     @Enumerated(EnumType.STRING)
@@ -85,8 +76,5 @@ public class Scenario extends BaseEntity {
         this.playCount = 0;
         this.averageRating = 0.0;
         this.ratingCount = 0;
-        this.suspectCount = 0;
-        this.evidenceCount = 0;
-        this.hintCount = 0;
     }
 }
