@@ -59,7 +59,8 @@ public class RuleBasedScorer {
             return 0;
         }
         Set<Long> keySet = new HashSet<>(keyIds);
-        return (int) selected.stream().filter(keySet::contains).count();
+        Set<Long> distinctSelected = new HashSet<>(selected);
+        return (int) distinctSelected.stream().filter(keySet::contains).count();
     }
 
     private int scoreEvidence(int matchCount, ScoringCriteria criteria) {

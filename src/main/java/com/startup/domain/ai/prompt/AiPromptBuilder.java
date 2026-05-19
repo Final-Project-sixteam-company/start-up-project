@@ -80,7 +80,9 @@ public class AiPromptBuilder {
                 .replace("{evidenceScore}", String.valueOf(result.evidenceScore()))
                 .replace("{evidenceMaxScore}", String.valueOf(criteria.evidenceMaxScore()))
                 .replace("{evidenceMatchCount}", String.valueOf(result.evidenceMatchCount()))
-                .replace("{correctCulprit}", nullSafe(solution.culpritSuspectId() + "번 용의자"))
+                .replace("{correctCulprit}", nullSafe(solution.culpritName() != null
+                        ? solution.culpritName() + " (" + solution.culpritRole() + ")"
+                        : solution.culpritSuspectId() + "번 용의자"))
                 .replace("{correctMotive}", nullSafe(solution.motive()))
                 .replace("{correctMethod}", nullSafe(solution.method()))
                 .replace("{correctCoverUp}", nullSafe(solution.coverUp()))

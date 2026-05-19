@@ -3,6 +3,7 @@ package com.startup.domain.ai.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
@@ -20,6 +21,8 @@ public record FinalDeductionRequest(
         @Schema(description = "은폐 방법 서술")
         String coverUpText,
 
-        @NotNull @Schema(description = "선택한 결정적 증거 ID 목록")
-        List<Long> selectedEvidenceIds
+        @NotNull
+        @Size(min = 1, max = 15, message = "증거는 1~15개 선택해야 합니다")
+        @Schema(description = "선택한 결정적 증거 ID 목록")
+        List<@NotNull Long> selectedEvidenceIds
 ) {}

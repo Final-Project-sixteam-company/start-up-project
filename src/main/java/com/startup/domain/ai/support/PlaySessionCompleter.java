@@ -2,5 +2,7 @@ package com.startup.domain.ai.support;
 
 public interface PlaySessionCompleter {
 
-    void lockAndComplete(Long sessionId);
+    void lockForFinalDeduction(Long sessionId);
+
+    void complete(Long sessionId);
 }

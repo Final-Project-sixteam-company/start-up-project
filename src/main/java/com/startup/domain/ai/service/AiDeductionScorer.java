@@ -56,50 +56,61 @@ public class AiDeductionScorer {
     private int maxTokens;
 
     public FinalDeductionResponse submitAndScore(Long sessionId, FinalDeductionRequest request) {
-        // 1. Lock + 상태 변경 (트랜잭션 1)
-        contextLoader.lockAndComplete(sessionId);
+        try {
+            // 1. 중복 제출 확인 + 잠금 (트랜잭션 1) — 세션을 COMPLETED로 변경하지 않음
+            contextLoader.ensureNotSubmitted(sessionId);
 
-        // 2. 채점 수행 (트랜잭션 밖)
-        Long scenarioId = playSessionReader.getScenarioId(sessionId);
-        SolutionInfo solution = solutionReader.findByScenarioId(scenarioId);
-        ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
+            // 2. 채점 수행 (트랜잭션 밖)
+            Long scenarioId = playSessionReader.getScenarioId(sessionId);
+            SolutionInfo solution = solutionReader.findByScenarioId(scenarioId);
+            ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
 
-        ScoringResult scoringResult = ruleBasedScorer.score(request, criteria);
+            ScoringResult scoringResult = ruleBasedScorer.score(request, criteria);
 
-        int hintPenalty = hintPenaltyReader.getTotalPenalty(sessionId);
-        int finalScore = Math.max(0, scoringResult.totalScore() - hintPenalty);
-        String grade = calculateGrade(finalScore);
+            int hintPenalty = hintPenaltyReader.getTotalPenalty(sessionId);
+            int finalScore = Math.max(0, scoringResult.totalScore() - hintPenalty);
+            String grade = calculateGrade(finalScore);
 
-        // 3. AI 피드백 (트랜잭션 밖)
-        AiFeedbackResult feedbackResult = generateFeedback(scoringResult, solution, request, criteria);
+            // 3. AI 피드백 (트랜잭션 밖)
+            AiFeedbackResult feedbackResult = generateFeedback(scoringResult, solution, request, criteria);
 
-        // 4. 결과 저장 (트랜잭션 2)
-        LocalDateTime submittedAt = LocalDateTime.now();
+            // 4. 결과 저장 + 세션 완료 (트랜잭션 2) — 저장 성공 시에만 COMPLETED
+            LocalDateTime submittedAt = LocalDateTime.now();
 
-        FinalDeduction entity = FinalDeduction.builder()
-                .playSessionId(sessionId)
-                .selectedCulpritId(request.selectedCulpritId())
-                .motiveText(request.motiveText())
-                .methodText(request.methodText())
-                .coverUpText(request.coverUpText())
-                .score(finalScore)
-                .grade(grade)
-                .feedback(feedbackResult.feedback())
-                .matchedParts(toJson(feedbackResult.matchedParts()))
-                .missedParts(toJson(feedbackResult.missedParts()))
-                .submittedAt(submittedAt)
-                .build();
+            FinalDeduction entity = FinalDeduction.builder()
+                    .playSessionId(sessionId)
+                    .selectedCulpritId(request.selectedCulpritId())
+                    .motiveText(request.motiveText())
+                    .methodText(request.methodText())
+                    .coverUpText(request.coverUpText())
+                    .score(finalScore)
+                    .grade(grade)
+                    .feedback(feedbackResult.feedback())
+                    .matchedParts(toJson(feedbackResult.matchedParts()))
+                    .missedParts(toJson(feedbackResult.missedParts()))
+                    .submittedAt(submittedAt)
+                    .build();
 
-        FinalDeduction saved = contextLoader.saveResult(entity, request.selectedEvidenceIds());
+            List<Long> distinctEvidenceIds = request.selectedEvidenceIds().stream()
+                    .distinct()
+                    .toList();
 
-        return new FinalDeductionResponse(
-                saved.getId(),
-                finalScore,
-                grade,
-                feedbackResult.feedback(),
-                true,
-                submittedAt
-        );
+            FinalDeduction saved = contextLoader.saveResultAndComplete(sessionId, entity, distinctEvidenceIds);
+
+            return new FinalDeductionResponse(
+                    saved.getId(),
+                    finalScore,
+                    grade,
+                    feedbackResult.feedback(),
+                    true,
+                    submittedAt
+            );
+        } catch (AiException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("최종 추리 채점 처리 실패. sessionId={}", sessionId, e);
+            throw new AiException(AiErrorCode.SCORING_FAILED);
+        }
     }
 
     public DeductionResultResponse getResult(Long sessionId) {
@@ -110,11 +121,25 @@ public class AiDeductionScorer {
 
         Long scenarioId = playSessionReader.getScenarioId(sessionId);
         SolutionInfo solution = solutionReader.findByScenarioId(scenarioId);
+        ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
 
         List<FinalDeductionEvidence> evidences =
                 finalDeductionEvidenceRepository.findAllByFinalDeductionId(deduction.getId());
 
-        ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
+        List<Long> evidenceIds = evidences.stream()
+                .map(FinalDeductionEvidence::getEvidenceId)
+                .toList();
+
+        ScoringResult scoring = ruleBasedScorer.score(
+                new FinalDeductionRequest(
+                        deduction.getSelectedCulpritId(),
+                        deduction.getMotiveText(),
+                        deduction.getMethodText(),
+                        deduction.getCoverUpText(),
+                        evidenceIds
+                ),
+                criteria
+        );
 
         List<String> matchedParts = fromJson(deduction.getMatchedParts());
         List<String> missedParts = fromJson(deduction.getMissedParts());
@@ -124,23 +149,23 @@ public class AiDeductionScorer {
                 deduction.getScore(),
                 deduction.getGrade(),
                 new DeductionResultResponse.CorrectCulpritDto(
-                        solution.culpritSuspectId(), null, null),
+                        solution.culpritSuspectId(),
+                        solution.culpritName(),
+                        solution.culpritRole()),
                 new DeductionResultResponse.MatchedDto(
-                        deduction.getSelectedCulpritId() != null
-                                && deduction.getSelectedCulpritId().equals(solution.culpritSuspectId()),
-                        deduction.getMotiveText() != null,
-                        deduction.getMethodText() != null,
-                        deduction.getCoverUpText() != null,
-                        (int) evidences.stream()
-                                .filter(e -> criteria.keyEvidenceIds().contains(e.getEvidenceId()))
-                                .count()
+                        scoring.culpritCorrect(),
+                        scoring.motiveScore() == criteria.motive().maxScore(),
+                        scoring.methodScore() == criteria.method().maxScore(),
+                        scoring.coverUpScore() == criteria.coverUp().maxScore(),
+                        scoring.evidenceMatchCount()
                 ),
                 matchedParts,
                 missedParts,
                 deduction.getFeedback(),
                 solution.fullExplanation(),
                 criteria.keyEvidenceIds().stream()
-                        .map(id -> new DeductionResultResponse.EvidenceDto(id, null))
+                        .map(id -> new DeductionResultResponse.EvidenceDto(
+                                id, solution.evidenceTitles().getOrDefault(id, null)))
                         .toList(),
                 List.of()
         );

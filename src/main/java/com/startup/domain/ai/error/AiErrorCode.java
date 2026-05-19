@@ -20,7 +20,8 @@ public enum AiErrorCode implements ErrorCode {
     FINAL_DEDUCTION_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "AI010", "이미 최종 추리를 제출했습니다"),
     SOLUTION_NOT_FOUND(HttpStatus.NOT_FOUND, "AI011", "시나리오 정답 정보를 찾을 수 없습니다"),
     SCORING_CRITERIA_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "AI012", "채점 기준 정보를 찾을 수 없습니다"),
-    DEDUCTION_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "AI013", "채점 결과를 찾을 수 없습니다");
+    DEDUCTION_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "AI013", "채점 결과를 찾을 수 없습니다"),
+    SCORING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AI014", "채점 처리 중 오류가 발생했습니다. 다시 시도해 주세요");
 
     private final HttpStatus status;
     private final String code;

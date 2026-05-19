@@ -51,10 +51,10 @@ public class FinalDeduction {
     @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
 
-    @Column(name = "matched_parts", columnDefinition = "TEXT")
+    @Column(name = "matched_parts", columnDefinition = "JSON")
     private String matchedParts;
 
-    @Column(name = "missed_parts", columnDefinition = "TEXT")
+    @Column(name = "missed_parts", columnDefinition = "JSON")
     private String missedParts;
 
     @Column(name = "submitted_at", nullable = false)

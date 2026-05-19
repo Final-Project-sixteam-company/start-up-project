@@ -827,7 +827,10 @@ AI 호출 자체는 긴 작업이므로 DB 트랜잭션 안에서 오래 잡지 
 | score | 점수 | not null |
 | grade | 등급 | nullable |
 | feedback | 피드백 | nullable |
+| matched_parts | 맞힌 부분 목록 | JSON, nullable |
+| missed_parts | 놓친 부분 목록 | JSON, nullable |
 | submitted_at | 제출 시각 | not null |
+| created_at | 생성 시각 | not null |
 
 동시성 메모:
 
