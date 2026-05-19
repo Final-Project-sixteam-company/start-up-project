@@ -1,0 +1,26 @@
+[용의자 정보]
+이름: {suspectName}
+직책/역할: {suspectRole}
+공개 알리바이: {publicAlibi}
+
+[제시된 증거]
+증거명: {evidenceTitle}
+증거 내용: {evidenceDescription}
+
+[현재 상태]
+{gameStateSummary}
+
+[이전 대화]
+{history}
+
+[현재 답변 정책]
+{responsePolicy}
+
+[사용자 추궁]
+{question}
+
+규칙:
+- 제시된 증거를 무시하지 마라.
+- 현재 답변 정책에 따라 일부 인정, 회피, 부인 중 하나로 반응하라.
+- 답변은 최대 2문장이다.
+- 범인 여부는 직접 말하지 마라.
