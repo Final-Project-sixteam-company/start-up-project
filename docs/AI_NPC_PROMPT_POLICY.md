@@ -428,7 +428,7 @@ AI에게 전달 가능한 정보는 다음으로 제한한다.
 피해자와의 관계: {relationToVictim}
 공개 프로필: {publicProfile}
 공개 진술: {publicStatement}
-공개 알리바이: {publicAlibi}
+공개 알리바이: {alibi}
 
 [현재 공개된 관련 증거]
 {revealedEvidenceSummary}
@@ -500,7 +500,7 @@ AI 기대 응답:
 [용의자 정보]
 이름: {suspectName}
 직책/역할: {suspectRole}
-공개 알리바이: {publicAlibi}
+공개 알리바이: {alibi}
 
 [제시된 증거]
 증거명: {evidenceTitle}
@@ -654,7 +654,7 @@ AI 시나리오 검증은 커스텀 시나리오 공개 전 또는 공식 시나
 ```json
 {
   "score": 82,
-  "grade": "B+",
+  "grade": "B",
   "matchedParts": [
     "범인을 정확히 지목했습니다.",
     "알레르기 쇼크를 이용한 범행 방법을 맞혔습니다."

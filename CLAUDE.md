@@ -76,7 +76,7 @@ com.startup
 |--------|------|----------|
 | 황도윤 | 리더 / 인프라 / 공식 시나리오 / PR 리뷰 | 공통 세팅, Seed Data, 문서 최신화 |
 | 배강혁 | AI 엔진 / 프롬프트 / AI 백엔드 | interrogation, final-deduction, validate |
-| 소수경 | 핵심 백엔드 CRUD / 게임 세션 / 증거 해금 | scenarios, game-sessions, evidences, hints |
+| 소수경 | 핵심 백엔드 CRUD / 게임 세션 / 증거 해금 | scenarios, play-sessions, evidences, hints |
 | 정채림 | Android UI / 화면 흐름 / API 연동 / QA | Android 화면, Mock → API 전환 |
 
 다른 담당자의 패키지를 수정해야 할 때는 사유를 밝히고 최소 범위로 한정한다.

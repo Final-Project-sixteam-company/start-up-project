@@ -52,6 +52,7 @@ AI 용의자 심문형 추리게임
 6. 결과 해설 조회
 7. 커스텀 시나리오 제작 기본형
 8. AI 시나리오 검증 기본형
+9. 리뷰 / 북마크 기본형
 ```
 
 인증/인가와 거래 기능은 나중에 붙입니다.  
@@ -93,7 +94,8 @@ status
 초기 MVP에서는 인증을 붙이지 않고 임시 사용자로 개발합니다.
 
 ```text
-Mock userId = 1L
+MockUserProvider.currentUserId() 사용
+기본값은 `MOCK_USER_ID=1`
 ```
 
 단, 코드 여기저기에 `1L`을 직접 박으면 안 됩니다.
@@ -183,7 +185,7 @@ domain.play
 domain.ai
 ```
 
-리뷰, 북마크, 거래, 인증은 기능이 붙을 때 분리합니다.
+리뷰/북마크는 1차 MVP 확장 구현 시 분리하고, 거래/인증은 후속 단계에서 분리합니다.
 
 ---
 
@@ -511,6 +513,12 @@ PUBLISHED
 @Component
 public class MockUserProvider {
 
+    private final Long mockUserId;
+
+    public MockUserProvider(@Value("${app.mock-user-id:1}") Long mockUserId) {
+        this.mockUserId = mockUserId;
+    }
+
     public Long currentUserId() {
         return mockUserId;
     }
@@ -545,7 +553,7 @@ Long userId = mockUserProvider.currentUserId();
 
 ---
 
-## 8. AccessService 확장 규칙
+## 8. ScenarioAccessService 확장 규칙
 
 인증/거래를 나중에 붙이기 위해 접근 권한 검사를 담당하는 서비스를 둡니다.
 
@@ -934,7 +942,7 @@ DELETED
 범인을 가리키는 핵심 증거가 존재함
 ```
 
-AI 검증은 선택적으로 호출할 수 있습니다.
+공개 전 AI 검증은 호출합니다. 단, 개발 중 임시 저장 단계에서는 생략할 수 있습니다.
 
 ### 15.3 검증 결과 저장
 
@@ -995,7 +1003,7 @@ price_credit
 
 `price_credit`이 없으면 나중에 유료 시나리오 구매 구조를 붙이기 어렵습니다.
 
-### 17.2 AccessService 유지
+### 17.2 ScenarioAccessService 유지
 
 현재는 모두 허용하더라도 `ScenarioAccessService`를 거쳐야 합니다.
 
@@ -1209,13 +1217,13 @@ FinalDeduction 제출
 커스텀 시나리오 제작
 AI 시나리오 검증
 시나리오 공개/비공개
+리뷰
+북마크
 ```
 
 ### 24.6 6차
 
 ```text
-리뷰
-북마크
 내 기록
 인증/거래 확장
 ```

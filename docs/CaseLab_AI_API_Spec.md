@@ -45,14 +45,16 @@ DELETE  삭제
 개발 환경 예시:
 
 ```text
-http://localhost:8080/api
+http://localhost:8080
 ```
 
 배포 환경 예시:
 
 ```text
-https://api.caselab.ai/api
+https://api.caselab.ai
 ```
+
+실제 컨트롤러 경로는 `/api/...` prefix를 포함한다.
 
 ### 1.3 공통 Header
 
@@ -62,6 +64,12 @@ Authorization: Bearer {accessToken}
 ```
 
 인증이 필요 없는 API는 `Authorization` 생략 가능.
+
+### 1.4 ID 필드 네이밍 규칙
+
+- JPA Entity의 PK 필드명은 `id`를 사용한다.
+- API Request/Response DTO에서는 Android 화면 매핑과 혼동을 줄이기 위해 `scenarioId`, `evidenceId`, `suspectId`처럼 자원명이 포함된 필드명을 우선 사용한다.
+- 중첩 객체도 다른 엔티티를 참조하면 `creatorId`, `locationId`, `reviewId`처럼 명시한다.
 
 ---
 
@@ -143,7 +151,6 @@ DELETED
 EASY
 NORMAL
 HARD
-EXPERT
 ```
 
 ### 3.5 PlaySessionStatus
@@ -192,6 +199,15 @@ FINAL_DEDUCTION_SCORE
 CASE_EXPLANATION
 ```
 
+### 3.10 ScenarioValidationStatus
+
+```text
+PASSED
+PASSED_WITH_WARNINGS
+NEEDS_FIX
+FAILED
+```
+
 ---
 
 # 4. API 전체 테이블
@@ -200,12 +216,12 @@ CASE_EXPLANATION
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/auth/signup` | 회원가입 | X | O |
-| 2 | POST | `/auth/login` | 로그인 | X | O |
-| 3 | POST | `/auth/logout` | 로그아웃 | O | △ |
-| 4 | POST | `/auth/refresh` | Access Token 재발급 | X/Refresh | △ |
-| 5 | GET | `/users/me` | 내 정보 조회 | O | O |
-| 6 | PATCH | `/users/me` | 내 정보 수정 | O | △ |
+| 1 | POST | `/api/auth/signup` | 회원가입 | X | 인증 도입 후 |
+| 2 | POST | `/api/auth/login` | 로그인 | X | 인증 도입 후 |
+| 3 | POST | `/api/auth/logout` | 로그아웃 | O | 인증 도입 후 |
+| 4 | POST | `/api/auth/refresh` | Access Token 재발급 | X/Refresh | 인증 도입 후 |
+| 5 | GET | `/api/users/me` | 내 정보 조회 | O | 인증 도입 후 |
+| 6 | PATCH | `/api/users/me` | 내 정보 수정 | O | 인증 도입 후 |
 
 ---
 
@@ -213,15 +229,15 @@ CASE_EXPLANATION
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | GET | `/scenarios` | 시나리오 목록 조회 | 선택 | O |
-| 2 | GET | `/scenarios/{scenarioId}` | 시나리오 상세 조회 | 선택 | O |
-| 3 | POST | `/scenarios` | 커스텀 시나리오 생성 | O | O |
-| 4 | PATCH | `/scenarios/{scenarioId}` | 시나리오 기본 정보 수정 | O | O |
-| 5 | DELETE | `/scenarios/{scenarioId}` | 시나리오 삭제 | O | △ |
-| 6 | POST | `/scenarios/{scenarioId}/publish` | 시나리오 공개 등록 | O | O |
-| 7 | POST | `/scenarios/{scenarioId}/hide` | 시나리오 비공개/숨김 | O | △ |
-| 8 | GET | `/scenarios/me` | 내가 만든 시나리오 조회 | O | O |
-| 9 | GET | `/scenarios/bookmarked` | 북마크한 시나리오 조회 | O | △ |
+| 1 | GET | `/api/scenarios` | 시나리오 목록 조회 | 선택 | O |
+| 2 | GET | `/api/scenarios/{scenarioId}` | 시나리오 상세 조회 | 선택 | O |
+| 3 | POST | `/api/scenarios` | 커스텀 시나리오 생성 | O | O |
+| 4 | PATCH | `/api/scenarios/{scenarioId}` | 시나리오 기본 정보 수정 | O | O |
+| 5 | DELETE | `/api/scenarios/{scenarioId}` | 시나리오 삭제 | O | △ |
+| 6 | POST | `/api/scenarios/{scenarioId}/publish` | 시나리오 공개 등록 | O | O |
+| 7 | POST | `/api/scenarios/{scenarioId}/hide` | 시나리오 비공개/숨김 | O | △ |
+| 8 | GET | `/api/scenarios/me` | 내가 만든 시나리오 조회 | O | △ |
+| 9 | GET | `/api/scenarios/bookmarked` | 북마크한 시나리오 조회 | O | △ |
 
 ---
 
@@ -229,22 +245,22 @@ CASE_EXPLANATION
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/scenarios/{scenarioId}/locations` | 장소 등록 | O | O |
-| 2 | GET | `/scenarios/{scenarioId}/locations` | 장소 목록 조회 | O | O |
-| 3 | POST | `/scenarios/{scenarioId}/victim` | 피해자 정보 등록/수정 | O | O |
-| 4 | GET | `/scenarios/{scenarioId}/victim` | 피해자 정보 조회 | O | O |
-| 5 | POST | `/scenarios/{scenarioId}/suspects` | 용의자 등록 | O | O |
-| 6 | GET | `/scenarios/{scenarioId}/suspects` | 용의자 목록 조회 | O | O |
-| 7 | PATCH | `/suspects/{suspectId}` | 용의자 수정 | O | O |
-| 8 | DELETE | `/suspects/{suspectId}` | 용의자 삭제 | O | △ |
-| 9 | POST | `/scenarios/{scenarioId}/evidences` | 증거 등록 | O | O |
-| 10 | GET | `/scenarios/{scenarioId}/evidences` | 증거 목록 조회 | O | O |
-| 11 | PATCH | `/evidences/{evidenceId}` | 증거 수정 | O | O |
-| 12 | DELETE | `/evidences/{evidenceId}` | 증거 삭제 | O | △ |
-| 13 | POST | `/scenarios/{scenarioId}/hints` | 힌트 등록 | O | O |
-| 14 | GET | `/scenarios/{scenarioId}/hints` | 힌트 목록 조회 | O | O |
-| 15 | POST | `/scenarios/{scenarioId}/solution` | 정답 등록/수정 | O | O |
-| 16 | GET | `/scenarios/{scenarioId}/solution` | 정답 조회 | O/작성자 | O |
+| 1 | POST | `/api/scenarios/{scenarioId}/locations` | 장소 등록 | O | O |
+| 2 | GET | `/api/scenarios/{scenarioId}/locations` | 장소 목록 조회 | O | O |
+| 3 | POST | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 등록/수정 | O | O |
+| 4 | GET | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 조회 | O | O |
+| 5 | POST | `/api/scenarios/{scenarioId}/suspects` | 용의자 등록 | O | O |
+| 6 | GET | `/api/scenarios/{scenarioId}/suspects` | 용의자 목록 조회 | O | O |
+| 7 | PATCH | `/api/suspects/{suspectId}` | 용의자 수정 | O | O |
+| 8 | DELETE | `/api/suspects/{suspectId}` | 용의자 삭제 | O | △ |
+| 9 | POST | `/api/scenarios/{scenarioId}/evidences` | 증거 등록 | O | O |
+| 10 | GET | `/api/scenarios/{scenarioId}/evidences` | 증거 목록 조회 | O | O |
+| 11 | PATCH | `/api/evidences/{evidenceId}` | 증거 수정 | O | O |
+| 12 | DELETE | `/api/evidences/{evidenceId}` | 증거 삭제 | O | △ |
+| 13 | POST | `/api/scenarios/{scenarioId}/hints` | 힌트 등록 | O | O |
+| 14 | GET | `/api/scenarios/{scenarioId}/hints` | 힌트 목록 조회 | O | O |
+| 15 | POST | `/api/scenarios/{scenarioId}/solution` | 정답 등록/수정 | O/작성자·관리자 | O |
+| 16 | GET | `/api/scenarios/{scenarioId}/solution` | 정답 조회 | O/작성자·관리자 전용, Android 플레이 화면 호출 금지 | △ |
 
 ---
 
@@ -252,10 +268,10 @@ CASE_EXPLANATION
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/ai/scenarios/draft` | AI 시나리오 초안 생성 | O | O |
-| 2 | POST | `/ai/scenarios/{scenarioId}/validate` | 시나리오 논리 검증 | O | O |
-| 3 | GET | `/scenarios/{scenarioId}/validation-result` | 검증 결과 조회 | O | O |
-| 4 | GET | `/ai/logs` | 내 AI 요청 로그 조회 | O | △ |
+| 1 | POST | `/api/ai/scenarios/draft` | AI 시나리오 초안 생성 | O | △ |
+| 2 | POST | `/api/ai/scenarios/{scenarioId}/validate` | 시나리오 논리 검증 | O | O |
+| 3 | GET | `/api/scenarios/{scenarioId}/validation-result` | 검증 결과 조회 | O | O |
+| 4 | GET | `/api/ai/logs` | 내 AI 요청 로그 조회 | O | △ |
 
 ---
 
@@ -263,19 +279,19 @@ CASE_EXPLANATION
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/play-sessions` | 게임 세션 시작 | O | O |
-| 2 | GET | `/play-sessions/{sessionId}` | 게임 세션 상세 조회 | O | O |
-| 3 | GET | `/play-sessions/{sessionId}/dashboard` | 탐정 대시보드 조회 | O | O |
-| 4 | GET | `/play-sessions/{sessionId}/locations` | 현장 정보 조회 | O | O |
-| 5 | GET | `/play-sessions/{sessionId}/evidences` | 현재 해금된 증거 조회 | O | O |
-| 6 | GET | `/play-sessions/{sessionId}/evidences/{evidenceId}` | 증거 상세 조회 | O | O |
-| 7 | POST | `/play-sessions/{sessionId}/evidences/{evidenceId}/unlock` | 증거 수동/조건 해금 | O | O |
-| 8 | GET | `/play-sessions/{sessionId}/suspects` | 용의자 목록 조회 | O | O |
-| 9 | GET | `/play-sessions/{sessionId}/suspects/{suspectId}` | 용의자 상세 조회 | O | O |
-| 10 | GET | `/play-sessions/{sessionId}/timeline` | 타임라인 조회 | O | O |
-| 11 | GET | `/play-sessions/{sessionId}/hints` | 사용 가능 힌트 조회 | O | O |
-| 12 | POST | `/play-sessions/{sessionId}/hints/{hintId}/use` | 힌트 사용 | O | O |
-| 13 | POST | `/play-sessions/{sessionId}/abandon` | 게임 포기/중단 | O | △ |
+| 1 | POST | `/api/play-sessions` | 게임 세션 시작 | O | O |
+| 2 | GET | `/api/play-sessions/{sessionId}` | 게임 세션 기본 정보 조회 | △ | △ |
+| 3 | GET | `/api/play-sessions/{sessionId}/dashboard` | 탐정 대시보드 조회 | O | O |
+| 4 | GET | `/api/play-sessions/{sessionId}/locations` | 현장 정보 조회 | O | O |
+| 5 | GET | `/api/play-sessions/{sessionId}/evidences` | 현재 해금된 증거 조회 | O | O |
+| 6 | GET | `/api/play-sessions/{sessionId}/evidences/{evidenceId}` | 증거 상세 조회 | O | O |
+| 7 | POST | `/api/play-sessions/{sessionId}/evidences/{evidenceId}/unlock` | 증거 수동/조건 해금 | O | O |
+| 8 | GET | `/api/play-sessions/{sessionId}/suspects` | 용의자 목록 조회 | O | O |
+| 9 | GET | `/api/play-sessions/{sessionId}/suspects/{suspectId}` | 용의자 상세 조회 | O | O |
+| 10 | GET | `/api/play-sessions/{sessionId}/timeline` | 타임라인 조회 | O | O |
+| 11 | GET | `/api/play-sessions/{sessionId}/hints` | 사용 가능 힌트 조회 | O | O |
+| 12 | POST | `/api/play-sessions/{sessionId}/hints/{hintId}/use` | 힌트 사용 | O | O |
+| 13 | POST | `/api/play-sessions/{sessionId}/abandon` | 게임 포기/중단 | O | △ |
 
 ---
 
@@ -283,10 +299,10 @@ CASE_EXPLANATION
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/play-sessions/{sessionId}/interrogations` | AI 용의자 심문 | O | O |
-| 2 | GET | `/play-sessions/{sessionId}/interrogations` | 심문 로그 조회 | O | O |
-| 3 | GET | `/play-sessions/{sessionId}/suspects/{suspectId}/interrogations` | 특정 용의자 심문 로그 조회 | O | △ |
-| 4 | GET | `/play-sessions/{sessionId}/recommended-questions` | 추천 질문 조회 | O | △ |
+| 1 | POST | `/api/play-sessions/{sessionId}/interrogations` | AI 용의자 심문 | O | O |
+| 2 | GET | `/api/play-sessions/{sessionId}/interrogations` | 심문 로그 조회 | O | O |
+| 3 | GET | `/api/play-sessions/{sessionId}/interrogations?suspectId={suspectId}` | 특정 용의자 심문 로그 조회 | O | △ |
+| 4 | GET | `/api/play-sessions/{sessionId}/recommended-questions` | 추천 질문 조회 | O | △ |
 
 ---
 
@@ -294,9 +310,9 @@ CASE_EXPLANATION
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/play-sessions/{sessionId}/final-deduction` | 최종 추리 제출 | O | O |
-| 2 | GET | `/play-sessions/{sessionId}/result` | 결과/해설 조회 | O | O |
-| 3 | GET | `/play-sessions/me` | 내 플레이 기록 조회 | O | O |
+| 1 | POST | `/api/play-sessions/{sessionId}/final-deduction` | 최종 추리 제출 | O | O |
+| 2 | GET | `/api/play-sessions/{sessionId}/result` | 결과/해설 조회 | O | O |
+| 3 | GET | `/api/play-sessions/me` | 내 플레이 기록 조회 | O | △ |
 
 ---
 
@@ -304,19 +320,22 @@ CASE_EXPLANATION
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/scenarios/{scenarioId}/bookmarks` | 시나리오 북마크 | O | O |
-| 2 | DELETE | `/scenarios/{scenarioId}/bookmarks` | 북마크 취소 | O | O |
-| 3 | POST | `/scenarios/{scenarioId}/reviews` | 리뷰 작성 | O | O |
-| 4 | GET | `/scenarios/{scenarioId}/reviews` | 리뷰 목록 조회 | 선택 | O |
-| 5 | PATCH | `/reviews/{reviewId}` | 리뷰 수정 | O | △ |
-| 6 | DELETE | `/reviews/{reviewId}` | 리뷰 삭제 | O | △ |
-| 7 | POST | `/scenarios/{scenarioId}/reports` | 시나리오 신고 | O | △ |
+| 1 | POST | `/api/scenarios/{scenarioId}/bookmarks` | 시나리오 북마크 | O | O |
+| 2 | DELETE | `/api/scenarios/{scenarioId}/bookmarks` | 북마크 취소 | O | O |
+| 3 | POST | `/api/scenarios/{scenarioId}/reviews` | 리뷰 작성 | O | O |
+| 4 | GET | `/api/scenarios/{scenarioId}/reviews` | 리뷰 목록 조회 | 선택 | O |
+| 5 | PATCH | `/api/reviews/{reviewId}` | 리뷰 수정 | O | △ |
+| 6 | DELETE | `/api/reviews/{reviewId}` | 리뷰 삭제 | O | △ |
+| 7 | POST | `/api/scenarios/{scenarioId}/reports` | 시나리오 신고 | O | △ |
 
 ---
 
 # 5. 상세 API 명세
 
 ---
+
+> 초기 MVP에서는 로그인 없이 `MockUserProvider`로 사용자를 식별한다.
+> 5.1~5.3의 인증 API는 JWT 인증 도입 단계의 계약으로 유지한다.
 
 ## 5.1 회원가입
 
@@ -374,7 +393,7 @@ POST /api/auth/login
     "accessToken": "jwt-access-token",
     "refreshToken": "jwt-refresh-token",
     "user": {
-      "id": 1,
+      "userId": 1,
       "email": "user@example.com",
       "nickname": "탐정순구"
     }
@@ -397,7 +416,7 @@ GET /api/users/me
 {
   "success": true,
   "data": {
-    "id": 1,
+    "userId": 1,
     "email": "user@example.com",
     "nickname": "탐정순구",
     "profileImageUrl": null,
@@ -423,7 +442,7 @@ GET /api/scenarios
 |---|---|---|---|
 | keyword | String | N | 제목/설명 검색어 |
 | type | String | N | OFFICIAL, CUSTOM |
-| difficulty | String | N | EASY, NORMAL, HARD, EXPERT |
+| difficulty | String | N | EASY, NORMAL, HARD |
 | visibility | String | N | PUBLIC, OFFICIAL |
 | minPlayers | Integer | N | 최소 플레이 인원 |
 | maxPlayers | Integer | N | 최대 플레이 인원 |
@@ -446,7 +465,7 @@ GET /api/scenarios?type=CUSTOM&difficulty=NORMAL&sort=popular&page=0&size=20
   "data": {
     "content": [
       {
-        "id": 10,
+        "scenarioId": 10,
         "title": "데모데이 전야 살인사건",
         "description": "AI 스타트업 대표가 데모데이 전날 사망한 사건",
         "thumbnailUrl": "https://example.com/thumb.png",
@@ -486,7 +505,7 @@ GET /api/scenarios/{scenarioId}
 {
   "success": true,
   "data": {
-    "id": 10,
+    "scenarioId": 10,
     "title": "데모데이 전야 살인사건",
     "description": "AI 스타트업 모노로그랩스의 대표 강도현이 사망한 사건",
     "synopsis": "처음에는 알레르기 쇼크로 보였지만 현장에는 수상한 단서가 남아 있었다.",
@@ -499,12 +518,16 @@ GET /api/scenarios/{scenarioId}
     "playCount": 1234,
     "averageRating": 4.7,
     "ratingCount": 312,
+    "suspectCount": 5,
+    "evidenceCount": 15,
+    "hintCount": 3,
     "tags": ["스타트업", "살인", "디지털증거", "보통"],
     "creator": {
-      "id": 1,
+      "creatorId": 1,
       "nickname": "운영자"
     },
-    "isBookmarked": false
+    "isBookmarked": false,
+    "canPlay": true
   },
   "error": null
 }
@@ -659,7 +682,7 @@ GET /api/scenarios/{scenarioId}/locations
   "success": true,
   "data": [
     {
-      "id": 1,
+      "locationId": 1,
       "name": "데모룸",
       "description": "피해자가 발견된 장소",
       "mapX": 120,
@@ -760,7 +783,7 @@ GET /api/scenarios/{scenarioId}/suspects
   "success": true,
   "data": [
     {
-      "id": 1,
+      "suspectId": 1,
       "name": "박재민",
       "role": "CFO",
       "relationToVictim": "공동창업자",
@@ -825,7 +848,7 @@ GET /api/scenarios/{scenarioId}/evidences
   "success": true,
   "data": [
     {
-      "id": 1,
+      "evidenceId": 1,
       "title": "찢긴 컵 라벨",
       "description": "쓰레기통에서 발견된 컵 라벨 조각",
       "locationName": "데모룸",
@@ -834,7 +857,7 @@ GET /api/scenarios/{scenarioId}/evidences
       "unlockType": "NONE",
       "relatedSuspects": [
         {
-          "id": 1,
+          "suspectId": 1,
           "name": "박재민"
         }
       ]
@@ -912,7 +935,7 @@ POST /api/scenarios/{scenarioId}/solution
 
 # 8. AI 시나리오 생성 / 검증 API
 
-## 8.1 AI 시나리오 초안 생성
+## 8.1 AI 시나리오 초안 생성 (2차)
 
 ```http
 POST /api/ai/scenarios/draft
@@ -954,6 +977,8 @@ POST /api/ai/scenarios/draft
   "error": null
 }
 ```
+
+`caseGraph.solution`은 커스텀 시나리오 제작자 편집 화면 전용 초안이다. 플레이 API, 심문 프롬프트, 일반 시나리오 상세 응답에 그대로 노출하면 안 된다.
 
 ---
 
@@ -1045,18 +1070,19 @@ GET /api/play-sessions/{sessionId}/dashboard
   "success": true,
   "data": {
     "sessionId": 100,
-    "scenario": {
-      "id": 10,
-      "title": "데모데이 전야 살인사건",
-      "difficulty": "NORMAL",
-      "estimatedPlayTimeMinutes": 30
-    },
+    "scenarioId": 10,
+    "scenarioTitle": "데모데이 전야 살인사건",
+    "status": "PLAYING",
     "elapsedSeconds": 320,
     "unlockedEvidenceCount": 5,
     "totalEvidenceCount": 15,
-    "hintCount": 0,
+    "hintUsedCount": 0,
     "interrogationCount": 3,
-    "status": "PLAYING"
+    "briefing": {
+      "victimName": "강도현",
+      "foundLocation": "데모룸",
+      "summary": "대표 강도현이 데모데이 전날 밤 데모룸에서 사망했다."
+    }
   },
   "error": null
 }
@@ -1077,14 +1103,15 @@ GET /api/play-sessions/{sessionId}/locations
   "success": true,
   "data": [
     {
-      "id": 1,
+      "locationId": 1,
       "name": "데모룸",
       "description": "피해자가 발견된 장소",
       "mapX": 120,
       "mapY": 80,
+      "evidenceCount": 3,
       "evidences": [
         {
-          "id": 1,
+          "evidenceId": 1,
           "title": "찢긴 컵 라벨",
           "isUnlocked": true
         }
@@ -1108,6 +1135,7 @@ GET /api/play-sessions/{sessionId}/evidences
 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|
 | includeLocked | Boolean | N | 잠긴 증거 포함 여부 |
+| status | String | N | unlocked 등 해금 상태 필터. `includeLocked`와 함께 사용하지 않음 |
 
 ### Response
 
@@ -1116,7 +1144,7 @@ GET /api/play-sessions/{sessionId}/evidences
   "success": true,
   "data": [
     {
-      "id": 1,
+      "evidenceId": 1,
       "title": "찢긴 컵 라벨",
       "description": "라벨 조각에는 '...MOND LAT...'라는 글자가 남아 있다.",
       "locationName": "데모룸",
@@ -1124,13 +1152,13 @@ GET /api/play-sessions/{sessionId}/evidences
       "isUnlocked": true,
       "relatedSuspects": [
         {
-          "id": 1,
+          "suspectId": 1,
           "name": "박재민"
         }
       ]
     },
     {
-      "id": 2,
+      "evidenceId": 2,
       "title": "휴대폰 위치 기록",
       "description": null,
       "locationName": null,
@@ -1157,17 +1185,17 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 {
   "success": true,
   "data": {
-    "id": 1,
+    "evidenceId": 1,
     "title": "찢긴 컵 라벨",
     "description": "쓰레기통에서 발견된 컵 라벨 조각에는 '...MOND LAT...'라는 글자가 남아 있다.",
     "location": {
-      "id": 1,
+      "locationId": 1,
       "name": "데모룸"
     },
     "importance": "CORE",
     "relatedSuspects": [
       {
-        "id": 1,
+        "suspectId": 1,
         "name": "박재민"
       }
     ],
@@ -1227,7 +1255,7 @@ GET /api/play-sessions/{sessionId}/suspects
   "success": true,
   "data": [
     {
-      "id": 1,
+      "suspectId": 1,
       "name": "박재민",
       "role": "CFO",
       "relationToVictim": "공동창업자",
@@ -1255,7 +1283,7 @@ GET /api/play-sessions/{sessionId}/suspects/{suspectId}
 {
   "success": true,
   "data": {
-    "id": 1,
+    "suspectId": 1,
     "name": "박재민",
     "role": "CFO",
     "relationToVictim": "공동창업자",
@@ -1264,7 +1292,7 @@ GET /api/play-sessions/{sessionId}/suspects/{suspectId}
     "alibi": "데모룸 근처에는 가지 않았다고 주장한다.",
     "relatedEvidences": [
       {
-        "id": 1,
+        "evidenceId": 1,
         "title": "찢긴 컵 라벨",
         "isUnlocked": true
       }
@@ -1325,7 +1353,7 @@ GET /api/play-sessions/{sessionId}/hints
   "success": true,
   "data": [
     {
-      "id": 1,
+      "hintId": 1,
       "hintLevel": 1,
       "content": null,
       "isAvailable": true,
@@ -1333,7 +1361,7 @@ GET /api/play-sessions/{sessionId}/hints
       "penaltyScore": 5
     },
     {
-      "id": 2,
+      "hintId": 2,
       "hintLevel": 2,
       "content": null,
       "isAvailable": false,
@@ -1440,7 +1468,7 @@ POST /api/play-sessions/{sessionId}/interrogations
     "answer": "커피를 산 건 맞습니다. 하지만 그건 제가 마시려고 산 것이지 대표님께 드린 건 아닙니다.",
     "unlockedEvidences": [
       {
-        "id": 6,
+        "evidenceId": 6,
         "title": "박재민의 법인카드 결제 내역"
       }
     ],
@@ -1458,6 +1486,12 @@ POST /api/play-sessions/{sessionId}/interrogations
 GET /api/play-sessions/{sessionId}/interrogations
 ```
 
+### Query Parameters
+
+| 이름 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| suspectId | Long | N | 특정 용의자 기준 로그 필터 |
+
 ### Response
 
 ```json
@@ -1465,7 +1499,7 @@ GET /api/play-sessions/{sessionId}/interrogations
   "success": true,
   "data": [
     {
-      "id": 500,
+      "interrogationId": 500,
       "suspectId": 1,
       "suspectName": "박재민",
       "questionType": "FREE",
@@ -1548,6 +1582,8 @@ POST /api/play-sessions/{sessionId}/final-deduction
     "finalDeductionId": 900,
     "score": 87,
     "grade": "A",
+    "feedbackSummary": "범인과 범행 방법을 정확히 파악했습니다.",
+    "resultAvailable": true,
     "submittedAt": "2026-05-15T20:40:00"
   },
   "error": null
@@ -1568,10 +1604,11 @@ GET /api/play-sessions/{sessionId}/result
 {
   "success": true,
   "data": {
+    "sessionId": 100,
     "score": 87,
     "grade": "A",
     "correctCulprit": {
-      "id": 1,
+      "suspectId": 1,
       "name": "박재민",
       "role": "CFO"
     },
@@ -1582,9 +1619,26 @@ GET /api/play-sessions/{sessionId}/result
       "coverUp": false,
       "keyEvidences": 2
     },
+    "matchedParts": [
+      "범인을 정확히 지목했습니다.",
+      "알레르기 음료를 이용한 범행 방법을 맞혔습니다."
+    ],
+    "missedParts": [
+      "사망 이후 메시지를 통한 은폐 방법 설명이 조금 부족했습니다."
+    ],
     "feedback": "범인과 범행 방법, 동기를 정확히 파악했습니다. 다만 사망 이후 메시지를 통한 은폐 방법 설명이 조금 부족했습니다.",
     "fullExplanation": "범인은 CFO 박재민입니다. 그는 회사 자금 유용 사실이 공개될 위기에 놓이자...",
-    "nextRecommendations": [
+    "keyEvidences": [
+      {
+        "evidenceId": 1,
+        "title": "찢긴 컵 라벨"
+      },
+      {
+        "evidenceId": 3,
+        "title": "카페 결제 내역"
+      }
+    ],
+    "nextRecommendedScenarios": [
       {
         "scenarioId": 12,
         "title": "단톡방 캡처 유출 사건"
@@ -1737,9 +1791,9 @@ GET /api/scenarios/{scenarioId}/reviews
   "data": {
     "content": [
       {
-        "id": 1,
+        "reviewId": 1,
         "user": {
-          "id": 2,
+          "userId": 2,
           "nickname": "추리러버"
         },
         "rating": 5,
@@ -1795,31 +1849,31 @@ POST /api/scenarios/{scenarioId}/reports
 | Android 화면 | 주요 API |
 |---|---|
 | 스플래시 / 온보딩 | 없음 |
-| 로그인 | `POST /auth/login` |
-| 회원가입 | `POST /auth/signup` |
-| 홈 | `GET /scenarios?sort=popular`, `GET /play-sessions/me` |
-| 시나리오 라이브러리 | `GET /scenarios` |
-| 시나리오 상세 | `GET /scenarios/{scenarioId}`, `GET /scenarios/{scenarioId}/reviews` |
-| 사건 시작 | `POST /play-sessions` |
-| 사건 브리핑 | `GET /play-sessions/{sessionId}` |
-| 탐정 대시보드 | `GET /play-sessions/{sessionId}/dashboard` |
-| 현장 정보 | `GET /play-sessions/{sessionId}/locations` |
-| 증거 보드 | `GET /play-sessions/{sessionId}/evidences` |
-| 증거 상세 | `GET /play-sessions/{sessionId}/evidences/{evidenceId}` |
-| 용의자 목록 | `GET /play-sessions/{sessionId}/suspects` |
-| 용의자 상세 | `GET /play-sessions/{sessionId}/suspects/{suspectId}` |
-| 심문 채팅 | `POST /play-sessions/{sessionId}/interrogations` |
-| 심문 로그 | `GET /play-sessions/{sessionId}/interrogations` |
-| 타임라인 | `GET /play-sessions/{sessionId}/timeline` |
-| 힌트 | `GET /play-sessions/{sessionId}/hints`, `POST /play-sessions/{sessionId}/hints/{hintId}/use` |
-| 최종 추리 제출 | `POST /play-sessions/{sessionId}/final-deduction` |
-| 결과 / 해설 | `GET /play-sessions/{sessionId}/result` |
-| 커스텀 제작 | `POST /scenarios`, `POST /scenarios/{id}/suspects`, `POST /scenarios/{id}/evidences` |
-| AI 초안 생성 | `POST /ai/scenarios/draft` |
-| AI 검증 | `POST /ai/scenarios/{scenarioId}/validate` |
-| 내 기록 | `GET /play-sessions/me`, `GET /scenarios/me`, `GET /scenarios/bookmarked` |
-| 리뷰 작성 | `POST /scenarios/{scenarioId}/reviews` |
-| 북마크 | `POST /scenarios/{scenarioId}/bookmarks` |
+| 로그인(인증 도입 후) | `POST /api/auth/login` |
+| 회원가입(인증 도입 후) | `POST /api/auth/signup` |
+| 홈 | `GET /api/scenarios?sort=popular` |
+| 시나리오 라이브러리 | `GET /api/scenarios` |
+| 시나리오 상세 | `GET /api/scenarios/{scenarioId}`, `GET /api/scenarios/{scenarioId}/reviews` |
+| 사건 시작 | `POST /api/play-sessions` |
+| 사건 브리핑 | `GET /api/scenarios/{scenarioId}`, `GET /api/play-sessions/{sessionId}/dashboard` |
+| 탐정 대시보드 | `GET /api/play-sessions/{sessionId}/dashboard` |
+| 현장 정보 | `GET /api/play-sessions/{sessionId}/locations` |
+| 증거 보드 | `GET /api/play-sessions/{sessionId}/evidences` |
+| 증거 상세 | `GET /api/play-sessions/{sessionId}/evidences/{evidenceId}` |
+| 용의자 목록 | `GET /api/play-sessions/{sessionId}/suspects` |
+| 용의자 상세 | `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` |
+| 심문 채팅 | `POST /api/play-sessions/{sessionId}/interrogations` |
+| 심문 로그 | `GET /api/play-sessions/{sessionId}/interrogations` |
+| 타임라인 | `GET /api/play-sessions/{sessionId}/timeline` |
+| 힌트 | `GET /api/play-sessions/{sessionId}/hints`, `POST /api/play-sessions/{sessionId}/hints/{hintId}/use` |
+| 최종 추리 제출 | `POST /api/play-sessions/{sessionId}/final-deduction` |
+| 결과 / 해설 | `GET /api/play-sessions/{sessionId}/result` |
+| 커스텀 제작 | `POST /api/scenarios`, `POST /api/scenarios/{scenarioId}/suspects`, `POST /api/scenarios/{scenarioId}/evidences` |
+| AI 초안 생성 | `POST /api/ai/scenarios/draft` |
+| AI 검증 | `POST /api/ai/scenarios/{scenarioId}/validate` |
+| 내 기록 | `GET /api/play-sessions/me`, `GET /api/scenarios/me`, `GET /api/scenarios/bookmarked` |
+| 리뷰 작성 | `POST /api/scenarios/{scenarioId}/reviews` |
+| 북마크 | `POST /api/scenarios/{scenarioId}/bookmarks` |
 
 ---
 
@@ -1828,22 +1882,33 @@ POST /api/scenarios/{scenarioId}/reports
 ## 14.1 1차 MVP 필수
 
 ```text
-POST /auth/signup
-POST /auth/login
-GET /users/me
-
-GET /scenarios
-GET /scenarios/{scenarioId}
-POST /play-sessions
-GET /play-sessions/{sessionId}/dashboard
-GET /play-sessions/{sessionId}/locations
-GET /play-sessions/{sessionId}/evidences
-GET /play-sessions/{sessionId}/suspects
-POST /play-sessions/{sessionId}/interrogations
-GET /play-sessions/{sessionId}/hints
-POST /play-sessions/{sessionId}/hints/{hintId}/use
-POST /play-sessions/{sessionId}/final-deduction
-GET /play-sessions/{sessionId}/result
+GET /api/scenarios
+GET /api/scenarios/{scenarioId}
+POST /api/play-sessions
+GET /api/play-sessions/{sessionId}/dashboard
+GET /api/play-sessions/{sessionId}/locations
+GET /api/play-sessions/{sessionId}/evidences
+GET /api/play-sessions/{sessionId}/suspects
+GET /api/play-sessions/{sessionId}/suspects/{suspectId}
+POST /api/play-sessions/{sessionId}/interrogations
+GET /api/play-sessions/{sessionId}/hints
+POST /api/play-sessions/{sessionId}/hints/{hintId}/use
+POST /api/play-sessions/{sessionId}/final-deduction
+GET /api/play-sessions/{sessionId}/result
+POST /api/scenarios
+PATCH /api/scenarios/{scenarioId}
+POST /api/scenarios/{scenarioId}/locations
+POST /api/scenarios/{scenarioId}/victim
+POST /api/scenarios/{scenarioId}/suspects
+POST /api/scenarios/{scenarioId}/evidences
+POST /api/scenarios/{scenarioId}/hints
+POST /api/scenarios/{scenarioId}/solution
+POST /api/ai/scenarios/{scenarioId}/validate
+POST /api/scenarios/{scenarioId}/publish
+GET /api/scenarios/{scenarioId}/reviews
+POST /api/scenarios/{scenarioId}/reviews
+POST /api/scenarios/{scenarioId}/bookmarks
+DELETE /api/scenarios/{scenarioId}/bookmarks
 ```
 
 ---
@@ -1851,19 +1916,13 @@ GET /play-sessions/{sessionId}/result
 ## 14.2 2차 MVP
 
 ```text
-POST /scenarios
-PATCH /scenarios/{scenarioId}
-POST /scenarios/{scenarioId}/locations
-POST /scenarios/{scenarioId}/victim
-POST /scenarios/{scenarioId}/suspects
-POST /scenarios/{scenarioId}/evidences
-POST /scenarios/{scenarioId}/hints
-POST /scenarios/{scenarioId}/solution
-POST /ai/scenarios/draft
-POST /ai/scenarios/{scenarioId}/validate
-POST /scenarios/{scenarioId}/publish
-POST /scenarios/{scenarioId}/reviews
-POST /scenarios/{scenarioId}/bookmarks
+POST /api/auth/signup
+POST /api/auth/login
+GET /api/users/me
+POST /api/ai/scenarios/draft
+GET /api/play-sessions/me
+GET /api/scenarios/me
+GET /api/scenarios/bookmarked
 ```
 
 ---
@@ -1905,7 +1964,7 @@ ScenarioRankingService
 PlaySessionService
 EvidenceUnlockService
 InterrogationService
-NpcResponsePolicyService
+ResponsePolicyResolver
 HintService
 FinalDeductionService
 ScoringService
@@ -1932,7 +1991,7 @@ suspect 조회
   ↓
 presentedEvidenceId 확인
   ↓
-NpcResponsePolicyService가 답변 정책 결정
+ResponsePolicyResolver가 답변 정책 결정
   ↓
 AI에게 현재 허용된 정보만 전달
   ↓
@@ -1951,6 +2010,10 @@ interrogation_logs 저장
 
 ```text
 사용자 최종 추리 제출
+  ↓
+PlaySession Pessimistic Lock 또는 @Version으로 상태 확인
+  ↓
+이미 COMPLETED이면 중복 제출 오류
   ↓
 solution 조회
   ↓
@@ -2067,31 +2130,31 @@ AI 검증 완료
 # 19. 향후 확장 API 후보
 
 ```text
-POST /scenarios/{scenarioId}/fork
+POST /api/scenarios/{scenarioId}/fork
 시나리오 변주 생성
 
-POST /scenarios/{scenarioId}/variants
+POST /api/scenarios/{scenarioId}/variants
 범인 변경 버전 생성
 
-GET /rankings/scenarios
+GET /api/rankings/scenarios
 시나리오 랭킹 조회
 
-POST /play-sessions/{sessionId}/invite
+POST /api/play-sessions/{sessionId}/invite
 친구 초대 협력 모드
 
-GET /play-sessions/{sessionId}/shared
+GET /api/play-sessions/{sessionId}/shared
 협력 세션 공유 상태 조회
 
-GET /wallet
+GET /api/wallet
 내 크레딧 지갑 조회
 
-POST /wallet/charge-mock
+POST /api/wallet/charge-mock
 Mock 크레딧 충전
 
-POST /scenarios/{scenarioId}/purchase
+POST /api/scenarios/{scenarioId}/purchase
 시나리오 구매/언락
 
-GET /users/me/purchases
+GET /api/users/me/purchases
 내 구매 시나리오 조회
 ```
 
