@@ -1,0 +1,27 @@
+[용의자 정보]
+이름: {suspectName}
+직책/역할: {suspectRole}
+피해자와의 관계: {relationToVictim}
+공개 프로필: {publicProfile}
+공개 진술: {publicStatement}
+공개 알리바이: {publicAlibi}
+
+[현재 공개된 관련 증거]
+{revealedEvidenceSummary}
+
+[사용자가 제시한 증거]
+{presentedEvidenceSummary}
+
+[이전 대화]
+{history}
+
+[현재 답변 정책]
+{responsePolicy}
+
+[답변 톤]
+{tone}
+
+[사용자 질문]
+{question}
+
+위 정보와 답변 정책 안에서만 용의자처럼 1~2줄로 답하라.
