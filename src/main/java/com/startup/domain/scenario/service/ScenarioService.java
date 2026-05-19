@@ -7,6 +7,8 @@ import com.startup.domain.scenario.dto.ScenarioDetailResponse;
 import com.startup.domain.scenario.dto.ScenarioSearchCondition;
 import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
 import com.startup.domain.scenario.entity.Scenario;
+import com.startup.domain.scenario.error.ScenarioErrorCode;
+import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -36,7 +38,7 @@ public class ScenarioService {
     @Transactional(readOnly = true)
     public ScenarioDetailResponse getScenario(Long userId, Long scenarioId) {
         Scenario scenario = scenarioRepository.findById(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.SCENARIO_NOT_FOUND));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         scenarioAccessService.validateViewable(userId, scenarioId);
 

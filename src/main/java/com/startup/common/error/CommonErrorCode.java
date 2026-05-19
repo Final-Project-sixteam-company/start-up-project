@@ -17,9 +17,7 @@ public enum CommonErrorCode implements ErrorCode {
     PAYLOAD_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "C007", "Payload is too large."),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "C008", "HTTP method is not allowed."),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "C009", "Unsupported media type."),
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C010", "Internal server error."),
-    SCENARIO_NOT_FOUND(HttpStatus.NOT_FOUND, "SCENARIO_001", "시나리오를 찾을 수 없습니다."),
-    SCENARIO_CANNOT_PUBLISH(HttpStatus.BAD_REQUEST, "SCENARIO_002", "현재 상태에서는 시나리오를 공개할 수 없습니다.");
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C010", "Internal server error.");
 
     private final HttpStatus status;
     private final String code;
