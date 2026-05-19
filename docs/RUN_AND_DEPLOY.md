@@ -16,6 +16,7 @@ MySQL / Redis / Prometheus / Grafana 포트
 Android Emulator / 실제 기기 연결 주소
 환경변수
 Spring AI / OpenAI 키 관리
+FCM 푸시 알림 secret 관리
 초기 운영 인프라 구조
 배포 단계 로드맵
 기본 장애 대응
@@ -137,6 +138,9 @@ cp .env.example .env
 | `SPRING_AI_MODEL_CHAT` | `none` | AI Provider 비활성/활성 |
 | `OPENAI_API_KEY` | empty | 서버에서만 사용하는 OpenAI API Key |
 | `OPENAI_CHAT_MODEL` | `gpt-4o-mini` | OpenAI chat model |
+| `FCM_ENABLED` | `false` | FCM 푸시 알림 활성 여부 |
+| `FCM_PROJECT_ID` | empty | Firebase project ID |
+| `FCM_SERVICE_ACCOUNT_PATH` | empty | 서버 내부 Firebase service account JSON 경로 |
 | `CORS_ALLOWED_ORIGIN_PATTERNS` | local patterns | 브라우저/WebView 테스트용 CORS |
 
 ### 3.2 Docker 내부 환경
@@ -197,7 +201,7 @@ Windows 방화벽이 8080 포트를 막으면 실제 기기에서 접속되지 �
 운영 API Base URL:
 
 ```text
-https://api.caselab.ai
+https://api.clueroom.xyz
 ```
 
 Base URL에는 `/api`를 넣지 않는다.  
@@ -261,7 +265,65 @@ Android 앱, Git 저장소, 문서 예시에 실제 키를 남기지 않는다.
 
 ---
 
-## 6. Docker 구성
+## 6. FCM 푸시 알림
+
+Android 푸시 알림은 Firebase Cloud Messaging(FCM)을 사용한다.
+
+```text
+Spring Boot Backend
+  ↓ FCM Admin SDK 또는 HTTP v1 API
+Firebase Cloud Messaging
+  ↓
+Android App
+```
+
+### 6.1 역할 분리
+
+```text
+Android App
+  - FCM registration token 발급
+  - 로그인/앱 시작 시 백엔드에 token 등록
+  - 알림 수신/화면 이동 처리
+
+Spring Boot Backend
+  - 사용자별 FCM token 저장
+  - 알림 발송 요청 생성
+  - 발송 성공/실패 로그 기록
+
+Firebase
+  - Android 기기로 푸시 메시지 전달
+```
+
+### 6.2 서버 Secret 관리
+
+FCM service account JSON은 서버 secret이다.
+Git 저장소, Android 앱, 문서 예시에 실제 JSON을 남기지 않는다.
+
+운영 서버 예시:
+
+```properties
+FCM_ENABLED=true
+FCM_PROJECT_ID=clueroom
+FCM_SERVICE_ACCOUNT_PATH=/opt/caselab/secrets/firebase-service-account.json
+```
+
+GitHub Actions로 배포할 때는 service account JSON을 secret으로 관리하고,
+서버의 `/opt/caselab/secrets` 경로에 생성하거나 별도 secret manager로 주입한다.
+
+### 6.3 초기 알림 후보
+
+FCM은 1차 MVP 필수 플로우가 아니라 후순위 확장 기능으로 둔다.
+
+```text
+시간 해금 증거 공개 알림
+AI 시나리오 검증 완료 알림
+리뷰/북마크 관련 알림
+운영 공지
+```
+
+---
+
+## 7. Docker 구성
 
 현재 `docker-compose.yml`의 주요 서비스:
 
@@ -286,9 +348,9 @@ start-up-grafana-data
 
 ---
 
-## 7. 로컬 문제 해결
+## 8. 로컬 문제 해결
 
-### 7.1 `bootJar` 실패
+### 8.1 `bootJar` 실패
 
 증상:
 
@@ -313,7 +375,7 @@ Gradle 의존성 다운로드 실패
 환경변수 누락
 ```
 
-### 7.2 Docker가 실행 중이 아님
+### 8.2 Docker가 실행 중이 아님
 
 확인:
 
@@ -324,7 +386,7 @@ docker compose version
 
 Docker Desktop이 꺼져 있으면 먼저 실행한다.
 
-### 7.3 포트 충돌
+### 8.3 포트 충돌
 
 확인:
 
@@ -341,7 +403,7 @@ netstat -ano | findstr :16379
 .env에서 SERVER_PORT / MYSQL_HOST_PORT / REDIS_HOST_PORT 변경
 ```
 
-### 7.4 MySQL이 healthy가 되지 않음
+### 8.4 MySQL이 healthy가 되지 않음
 
 확인:
 
@@ -358,7 +420,7 @@ DB_PASSWORD 확인
 필요 시 docker compose down -v 후 재실행
 ```
 
-### 7.5 앱 컨테이너 DB 연결 실패
+### 8.5 앱 컨테이너 DB 연결 실패
 
 Docker 내부에서는 DB 호스트가 `localhost`가 아니라 `mysql`이어야 한다.
 
@@ -369,7 +431,7 @@ DB_HOST=mysql
 DB_PORT=3306
 ```
 
-### 7.6 Redis 연결 실패
+### 8.6 Redis 연결 실패
 
 확인:
 
@@ -388,7 +450,7 @@ REDIS_PASSWORD
 
 Docker 내부 app은 `redis:6379`를 사용하고, 호스트는 `localhost:16379`를 사용한다.
 
-### 7.7 Spring AI 부팅 실패
+### 8.7 Spring AI 부팅 실패
 
 AI Provider를 켰는데 API Key가 없으면 부팅 또는 호출이 실패할 수 있다.
 
@@ -406,7 +468,7 @@ SPRING_AI_MODEL_CHAT=openai
 OPENAI_API_KEY=실제_키
 ```
 
-### 7.8 Grafana에 데이터가 안 보임
+### 8.8 Grafana에 데이터가 안 보임
 
 확인:
 
@@ -420,14 +482,14 @@ Prometheus가 `app`의 Actuator Prometheus endpoint를 읽을 수 있어야 한�
 
 ---
 
-## 8. 1차 운영 인프라 구조
+## 9. 1차 운영 인프라 구조
 
 초기 운영은 저비용 단일 서버 구조로 시작한다.
 
 ```text
 Android App
   ↓ HTTPS
-api.caselab.ai
+api.clueroom.xyz
   ↓
 Cloudflare DNS
   ↓
@@ -441,7 +503,13 @@ Docker Compose
   └─ Redis
   ↓
 Object Storage
-  └─ Cloudflare R2 또는 S3
+  └─ AWS S3
+
+Spring Boot App
+  ↓
+Firebase Cloud Messaging
+  ↓
+Android App Push Notification
 ```
 
 초기에는 AWS ALB, RDS 같은 완전 관리형 리소스를 바로 붙이지 않는다.
@@ -459,7 +527,7 @@ HTTPS 직접 설정
 
 ---
 
-## 9. 권장 서버 스펙 / 비용 기준
+## 10. 권장 서버 스펙 / 비용 기준
 
 > 클라우드 가격은 리전과 정책에 따라 바뀔 수 있다. 실제 결제 전에는 AWS 공식 Lightsail Pricing 페이지를 다시 확인한다.
 
@@ -483,7 +551,8 @@ AI 호출 로그와 백업 작업이 늘어남
 
 ```text
 도메인 구매 비용
-Cloudflare R2 또는 S3 이미지 저장 비용
+AWS S3 이미지 저장 비용
+Firebase / FCM 운영 정책 확인
 AI API 사용량 비용
 Managed DB 또는 RDS 분리 비용
 Load Balancer 도입 비용
@@ -506,7 +575,7 @@ AWS Lightsail Pricing: https://aws.amazon.com/lightsail/pricing/
 
 ---
 
-## 10. 배포 단계 로드맵
+## 11. 배포 단계 로드맵
 
 ### Phase 0. 로컬 개발
 
@@ -527,6 +596,7 @@ Cloudflare DNS
 Let's Encrypt HTTPS
 수동 백업
 Firebase App Distribution 테스트 배포
+FCM project / service account 준비
 ```
 
 ### Phase 2. Blue/Green 직접 운영
@@ -552,32 +622,33 @@ Load Balancer
 App Server 분리
 Managed DB
 Managed Redis
-Object Storage
+AWS S3
+FCM 푸시 알림
 CI/CD 고도화
 모니터링/알림
 ```
 
 ---
 
-## 11. 운영 서버 기본 세팅
+## 12. 운영 서버 기본 세팅
 
 초기 운영 서버는 Ubuntu 기준으로 잡는다.
 
-### 10.1 필수 패키지
+### 12.1 필수 패키지
 
 ```bash
 sudo apt update
 sudo apt install -y git curl unzip vim htop
 ```
 
-### 10.2 Docker 설치 확인
+### 12.2 Docker 설치 확인
 
 ```bash
 docker version
 docker compose version
 ```
 
-### 10.3 Nginx 설치
+### 12.3 Nginx 설치
 
 ```bash
 sudo apt install -y nginx
@@ -585,27 +656,28 @@ sudo systemctl enable nginx
 sudo systemctl start nginx
 ```
 
-### 10.4 서버 디렉터리 예시
+### 12.4 서버 디렉터리 예시
 
 ```text
 /opt/caselab
  ├─ app
  ├─ logs
  ├─ backup
+ ├─ secrets
  └─ .env
 ```
 
-`.env`에는 운영 secret을 둔다.  
+`.env`와 `secrets/`에는 운영 secret을 둔다.
 운영 `.env`는 Git에 커밋하지 않는다.
 
 ---
 
-## 12. Nginx Reverse Proxy
+## 13. Nginx Reverse Proxy
 
 운영 API 도메인:
 
 ```text
-https://api.caselab.ai
+https://api.clueroom.xyz
 ```
 
 Nginx는 외부 HTTPS 요청을 내부 Spring Boot app으로 전달한다.
@@ -614,7 +686,7 @@ Nginx는 외부 HTTPS 요청을 내부 Spring Boot app으로 전달한다.
 
 ```nginx
 server {
-    server_name api.caselab.ai;
+    server_name api.clueroom.xyz;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -636,11 +708,11 @@ sudo systemctl reload nginx
 
 ---
 
-## 13. HTTPS와 DNS
+## 14. HTTPS와 DNS
 
-### 12.1 Cloudflare DNS
+### 14.1 Cloudflare DNS
 
-`api.caselab.ai`가 운영 서버 Public IP를 가리키게 설정한다.
+`api.clueroom.xyz`가 운영 서버 Public IP를 가리키게 설정한다.
 
 ```text
 Type: A
@@ -648,13 +720,13 @@ Name: api
 Value: Lightsail Public IP
 ```
 
-### 12.2 Let's Encrypt
+### 14.2 Let's Encrypt
 
 Certbot을 사용해 HTTPS 인증서를 발급한다.
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d api.caselab.ai
+sudo certbot --nginx -d api.clueroom.xyz
 ```
 
 갱신 확인:
@@ -665,14 +737,13 @@ sudo certbot renew --dry-run
 
 ---
 
-## 14. 이미지 저장 전략
+## 15. 이미지 저장 전략
 
 초기에는 이미지 파일을 서버 디스크에 직접 저장하지 않는 방향을 우선 검토한다.
 
-권장 후보:
+권장 저장소는 AWS S3다.
 
 ```text
-Cloudflare R2
 AWS S3
 ```
 
@@ -689,7 +760,7 @@ Android에는 이미지 URL만 내려준다.
 
 ---
 
-## 15. 백업 전략
+## 16. 백업 전략
 
 초기 MySQL이 Docker 컨테이너 안에 있으면 수동 백업부터 준비한다.
 
@@ -697,8 +768,10 @@ Android에는 이미지 URL만 내려준다.
 
 ```bash
 mkdir -p /opt/caselab/backup
-docker exec start-up-mysql mysqldump -uroot -p"$DB_PASSWORD" startup > /opt/caselab/backup/startup_$(date +%Y%m%d_%H%M%S).sql
+docker compose exec -T mysql sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"' > /opt/caselab/backup/startup_$(date +%Y%m%d_%H%M%S).sql
 ```
+
+이 명령은 호스트의 `DB_PASSWORD` export 여부에 의존하지 않고, MySQL 컨테이너 내부 환경변수인 `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`를 사용한다.
 
 운영에서는 아래를 추가한다.
 
@@ -707,14 +780,14 @@ docker exec start-up-mysql mysqldump -uroot -p"$DB_PASSWORD" startup > /opt/case
 cron 등록
 백업 파일 보관 주기
 복구 절차 테스트
-Object Storage 업로드
+S3 업로드
 ```
 
 ---
 
-## 16. 배포 방식
+## 17. 배포 방식
 
-### 15.1 1단계: 수동 배포
+### 17.1 1단계: 수동 배포
 
 ```bash
 cd /opt/caselab/app
@@ -724,7 +797,7 @@ docker compose up -d --build
 docker compose ps
 ```
 
-### 15.2 2단계: 배포 스크립트
+### 17.2 2단계: 배포 스크립트
 
 운영 서버에 `deploy.sh`를 두고 아래 작업을 묶는다.
 
@@ -736,7 +809,7 @@ health check
 old image prune
 ```
 
-### 15.3 3단계: GitHub Actions
+### 17.3 3단계: GitHub Actions
 
 자동화 단계에서는 GitHub Actions secret으로 운영 서버 접속 정보를 관리한다.
 
@@ -748,43 +821,46 @@ SSH_USER
 SSH_KEY
 APP_ENV
 OPENAI_API_KEY
+FCM_SERVICE_ACCOUNT_JSON 또는 FCM_SERVICE_ACCOUNT_PATH
 ```
 
 초기에는 수동 배포로 흐름을 검증한 뒤 자동화한다.
 
 ---
 
-## 17. Android 앱 배포
+## 18. Android 앱 배포
 
 Android 앱 배포는 백엔드 서버 배포와 다르다.
 
-### 16.1 개발 중
+### 18.1 개발 중
 
 ```text
 Android Studio에서 직접 실행
 Emulator base URL = http://10.0.2.2:8080
 ```
 
-### 16.2 테스터 배포
+### 18.2 테스터 배포
 
 ```text
 APK 직접 공유
 Firebase App Distribution
 ```
 
-### 16.3 실제 출시
+### 18.3 실제 출시
 
 ```text
 Google Play Console
-운영 API Base URL = https://api.caselab.ai
+운영 API Base URL = https://api.clueroom.xyz
+FCM push notification 설정 포함
 ```
 
 ---
 
-## 18. 운영 보안 체크리스트
+## 19. 운영 보안 체크리스트
 
 - [ ] 운영 `.env`를 Git에 커밋하지 않는다.
 - [ ] OpenAI API Key를 Android 앱에 넣지 않는다.
+- [ ] FCM service account JSON을 Git 또는 Android 앱에 넣지 않는다.
 - [ ] Grafana 기본 비밀번호를 변경한다.
 - [ ] MySQL root password를 로컬 기본값 그대로 쓰지 않는다.
 - [ ] 운영 서버 방화벽에서 필요한 포트만 연다.
@@ -796,9 +872,9 @@ Google Play Console
 
 ---
 
-## 19. 로그와 모니터링
+## 20. 로그와 모니터링
 
-### 18.1 로컬 로그
+### 20.1 로컬 로그
 
 ```bash
 docker compose logs app
@@ -814,7 +890,7 @@ docker compose logs grafana
 docker compose logs -f app
 ```
 
-### 18.2 서버 상태 확인
+### 20.2 서버 상태 확인
 
 ```bash
 docker compose ps
@@ -823,21 +899,22 @@ df -h
 free -m
 ```
 
-### 18.3 이후 확장
+### 20.3 이후 확장
 
 ```text
 Prometheus / Grafana 운영 대시보드
 애플리케이션 로그 수집
 AI 비용 로깅
+FCM 발송 성공/실패 로그
 에러 알림
 Slow query 확인
 ```
 
 ---
 
-## 20. 장애 대응 Runbook
+## 21. 장애 대응 Runbook
 
-### 19.1 API가 안 열릴 때
+### 21.1 API가 안 열릴 때
 
 ```bash
 docker compose ps
@@ -856,7 +933,7 @@ DNS가 서버 IP를 가리키는지
 HTTPS 인증서 상태
 ```
 
-### 19.2 Spring Boot 컨테이너가 죽었을 때
+### 21.2 Spring Boot 컨테이너가 죽었을 때
 
 ```bash
 docker compose logs app --tail=200
@@ -873,7 +950,7 @@ AI Provider 설정 오류
 메모리 부족
 ```
 
-### 19.3 DB 연결 실패
+### 21.3 DB 연결 실패
 
 ```bash
 docker compose logs mysql
@@ -890,7 +967,7 @@ DB_PORT
 볼륨 초기화 여부
 ```
 
-### 19.4 Nginx 설정 오류
+### 21.4 Nginx 설정 오류
 
 ```bash
 sudo nginx -t
@@ -903,7 +980,7 @@ sudo journalctl -u nginx --no-pager -n 100
 sudo systemctl reload nginx
 ```
 
-### 19.5 디스크 부족
+### 21.5 디스크 부족
 
 ```bash
 df -h
@@ -915,11 +992,13 @@ docker image prune
 
 ---
 
-## 21. 발표용 요약
+## 22. 발표용 요약
 
 ```text
 Android 앱은 Firebase App Distribution 또는 Google Play로 배포하고,
-백엔드는 api.caselab.ai 도메인 뒤에 Nginx + Docker Compose 구조로 운영한다.
+백엔드는 api.clueroom.xyz 도메인 뒤에 Nginx + Docker Compose 구조로 운영한다.
+
+이미지 파일은 AWS S3에 저장하고, Android 푸시 알림은 FCM으로 처리한다.
 
 초기에는 비용과 학습 효율을 위해 Lightsail 단일 서버에서
 Spring Boot, MySQL, Redis를 함께 운영한다.

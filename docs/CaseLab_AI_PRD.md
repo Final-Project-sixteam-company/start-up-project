@@ -6,6 +6,19 @@
 
 ---
 
+## 이름 / 도메인 기준
+
+```text
+공개 앱 이름: ClueRoom
+서비스 도메인: clueroom.xyz
+운영 API 도메인: https://api.clueroom.xyz
+```
+
+`CaseLab AI`, `CaseLab_AI`는 초기 설계 문서명과 내부 레거시 명칭이다.
+이 문서의 제품 요구사항은 공개 앱명 **ClueRoom**에 적용된다.
+
+---
+
 ## 0. 문서 목적
 
 이 PRD는 CaseLab AI의 제품 목표, 사용자 경험, 핵심 기능, MVP 범위, AI 사용 원칙, Android 화면 흐름, 백엔드 요구사항을 정리한다.

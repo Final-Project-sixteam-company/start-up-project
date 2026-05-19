@@ -11,6 +11,21 @@ Spring AI 기반 LLM 연동
 
 ---
 
+## 0. 이름 / 도메인 기준
+
+```text
+공개 앱 이름: ClueRoom
+서비스 도메인: clueroom.xyz
+운영 API 도메인: https://api.clueroom.xyz
+```
+
+`CaseLab AI`, `CaseLab_AI`, `start-up`, `startup`, `com.startup`은 초기 설계/코드에서 사용한 내부 레거시 식별자다.
+문서 파일명, Java package, Gradle rootProject, Docker container/volume, DB 이름은 별도 마이그레이션 작업 전까지 유지한다.
+
+AI는 사용자가 "프로젝트명/앱명"을 물으면 **ClueRoom**으로 답하고, 코드 구조나 파일 경로를 다룰 때는 현재 저장소의 실제 식별자를 그대로 사용한다.
+
+---
+
 ## 1. 가장 중요한 원칙
 
 ```text

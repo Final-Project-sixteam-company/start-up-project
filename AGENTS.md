@@ -6,6 +6,19 @@ AI 용의자 심문형 추리게임 플랫폼. Android(Kotlin) + Spring Boot(Jav
 
 ---
 
+## 이름 / 도메인 기준
+
+```text
+공개 앱 이름: ClueRoom
+서비스 도메인: clueroom.xyz
+운영 API 도메인: https://api.clueroom.xyz
+```
+
+`CaseLab AI`, `CaseLab_AI`, `start-up`, `startup`, `com.startup`은 내부 레거시 식별자로 유지한다.
+리뷰나 수정 중 패키지명, 문서 파일명, Gradle 프로젝트명, Docker/DB 이름을 앱명 변경만을 이유로 바꾸지 않는다.
+
+---
+
 ## 프로젝트 핵심 제약
 
 ```text
