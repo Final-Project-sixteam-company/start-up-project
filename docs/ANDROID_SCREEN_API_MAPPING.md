@@ -54,7 +54,7 @@ Android 문서에 API 응답 JSON을 복사하지 않는다.
 | 환경 | Base URL |
 |---|---|
 | Android Emulator 로컬 개발 | `http://10.0.2.2:8080` |
-| 배포 환경 | `https://api.caselab.ai` |
+| 배포 환경 | `https://api.clueroom.xyz` |
 
 Base URL에는 `/api`를 넣지 않는다.
 실제 API 경로는 `/api/...` prefix를 포함한다.

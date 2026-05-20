@@ -12,6 +12,19 @@ AI: Spring AI 기반 LLM 연동
 
 ---
 
+## 이름 / 도메인 기준
+
+```text
+공개 앱 이름: ClueRoom
+서비스 도메인: clueroom.xyz
+운영 API 도메인: https://api.clueroom.xyz
+```
+
+기존 문서명, 코드 패키지, Gradle 프로젝트명, Docker/DB 이름에 남아 있는 `CaseLab AI`, `CaseLab_AI`, `start-up`, `startup`, `com.startup`은 내부 레거시 식별자로 유지한다.
+이름 변경 자체가 목적이 아닌 작업에서는 위 내부 식별자를 임의로 바꾸지 않는다.
+
+---
+
 ## 문서
 
 처음 보는 팀원이나 개발용 AI는 아래 순서로 읽으면 됩니다.
@@ -91,7 +104,7 @@ http://10.0.2.2:8080
 운영 API Base URL:
 
 ```text
-https://api.caselab.ai
+https://api.clueroom.xyz
 ```
 
 Base URL에는 `/api`를 넣지 않고, 실제 API path에만 `/api/...` prefix를 포함합니다.

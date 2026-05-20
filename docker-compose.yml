@@ -73,8 +73,18 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4o-mini}
       OPENAI_CHAT_TEMPERATURE: ${OPENAI_CHAT_TEMPERATURE:-0.4}
+      AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_S3_PUBLIC_BASE_URL: ${AWS_S3_PUBLIC_BASE_URL:-}
+      FCM_ENABLED: ${FCM_ENABLED:-false}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FCM_SERVICE_ACCOUNT_PATH: ${FCM_SERVICE_ACCOUNT_PATH:-}
       LOG_LEVEL_ROOT: ${LOG_LEVEL_ROOT:-info}
       LOG_LEVEL_APP: ${LOG_LEVEL_APP:-debug}
+    volumes:
+      - ${SECRETS_HOST_DIR:-./secrets}:/opt/caselab/secrets:ro
     depends_on:
       mysql:
         condition: service_healthy

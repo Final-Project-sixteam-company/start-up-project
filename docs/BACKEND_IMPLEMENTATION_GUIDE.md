@@ -534,7 +534,7 @@ profileImageUrl
 ```
 
 초기 MVP에서는 Mock URL 또는 정적 샘플 URL을 사용할 수 있다.
-운영에서는 Cloudflare R2 또는 AWS S3 같은 Object Storage에 파일을 저장하고, DB에는 URL/Key만 저장한다.
+운영에서는 AWS S3에 파일을 저장하고, DB에는 URL/Key만 저장한다.
 
 파일 업로드를 붙일 때는 아래 원칙을 따른다.
 
