@@ -45,4 +45,9 @@ public class DeductionContextLoader {
     public FinalDeduction findBySessionId(Long sessionId) {
         return finalDeductionRepository.findByPlaySessionId(sessionId).orElse(null);
     }
+
+    @Transactional
+    public void releaseFinalDeductionLock(Long sessionId) {
+        playSessionCompleter.releaseFinalDeductionLock(sessionId);
+    }
 }

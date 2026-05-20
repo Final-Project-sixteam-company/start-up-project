@@ -18,12 +18,19 @@ public class MockPlaySessionCompleter implements PlaySessionCompleter {
         if (completedSessions.contains(sessionId)) {
             throw new AiException(AiErrorCode.FINAL_DEDUCTION_ALREADY_SUBMITTED);
         }
-        lockedSessions.add(sessionId);
+        if (!lockedSessions.add(sessionId)) {
+            throw new AiException(AiErrorCode.SCORING_IN_PROGRESS);
+        }
     }
 
     @Override
     public void complete(Long sessionId) {
         lockedSessions.remove(sessionId);
         completedSessions.add(sessionId);
+    }
+
+    @Override
+    public void releaseFinalDeductionLock(Long sessionId) {
+        lockedSessions.remove(sessionId);
     }
 }

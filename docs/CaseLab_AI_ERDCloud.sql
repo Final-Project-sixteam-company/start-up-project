@@ -458,7 +458,9 @@ CREATE TABLE scenario_validation_results (
     validation_score INT NULL,
     problem_summary TEXT NULL,
     suggestion TEXT NULL,
+    check_items_json JSON NULL,
     checked_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_scenario_validation_results_scenario (scenario_id, checked_at),
     CONSTRAINT fk_scenario_validation_results_scenario
