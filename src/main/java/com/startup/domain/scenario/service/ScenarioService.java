@@ -56,7 +56,9 @@ public class ScenarioService {
         // 작성자 본인이 아니면서, 대중에게 공개되지 않은 시나리오에 접근하는 것을 차단
         boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
         boolean isPubliclyVisible = scenario.getStatus() == ScenarioStatus.PUBLISHED && 
-                (scenario.getVisibility() == ScenarioVisibility.PUBLIC || scenario.getVisibility() == ScenarioVisibility.OFFICIAL);
+                (scenario.getVisibility() == ScenarioVisibility.PUBLIC || 
+                 scenario.getVisibility() == ScenarioVisibility.OFFICIAL ||
+                 scenario.getVisibility() == ScenarioVisibility.UNLISTED);  // UNLISTED는 링크 기반 접근 허용
                 
         if (!isCreator && !isPubliclyVisible) {
             // 작성자가 아니면 에러 반환
@@ -80,7 +82,11 @@ public class ScenarioService {
                 case "popular" -> "playCount";
                 case "rating" -> "averageRating";
                 case "latest" -> "createdAt";
-                default -> order.getProperty();
+                default -> {
+                    // 지원하지 않는 정렬 키는 기본값(createdAt)으로 대체
+                    // 런타임 에러 방지
+                    yield "createdAt";
+                }
             };
             
             // 스프링은 정렬 방향 생략 시 기본값으로 ASC(오름차순)를 주지만,
