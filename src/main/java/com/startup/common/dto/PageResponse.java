@@ -8,20 +8,20 @@ import java.util.List;
 // Spring Page의 0-base page number는 API 응답에서 1-base로 변환한다.
 public record PageResponse<T>(
         List<T> content,
-        int number,
+        int page,
         int size,
         long totalPages,
         long totalElements,
-        boolean last
+        boolean hasNext
 ) {
-    public static <T> PageResponse<T> from(Page<T> page) {
+    public static <T> PageResponse<T> from(Page<T> springPage) {
         return new PageResponse<>(
-                page.getContent(),
-                page.getNumber() + 1,
-                page.getSize(),
-                page.getTotalPages(),
-                page.getTotalElements(),
-                page.isLast()
+                springPage.getContent(),
+                springPage.getNumber(),
+                springPage.getSize(),
+                springPage.getTotalPages(),
+                springPage.getTotalElements(),
+                springPage.hasNext()
         );
     }
 }
