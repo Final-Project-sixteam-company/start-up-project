@@ -70,7 +70,7 @@ public class Evidence {
 
     @Builder
     private Evidence(Long scenarioId, Long locationId, String title, String description,
-                     EvidenceType evidenceType, String importance, String imageUrl,
+                     EvidenceType evidenceType, EvidenceImportance importance, String imageUrl,
                      Boolean isInitialPublic, String unlockType, String unlockConditionJson,
                      Integer unlockAfterMinutes, Integer sortOrder) {
         this.scenarioId = scenarioId;
