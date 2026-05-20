@@ -11,6 +11,7 @@ import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScenarioService {
@@ -62,6 +64,8 @@ public class ScenarioService {
                 
         if (!isCreator && !isPubliclyVisible) {
             // 작성자가 아니면 에러 반환
+            log.warn("인증되지 않은 시나리오 접근 시도: userId={}, scenarioId={}, status={}, visibility={}",
+                    userId, scenarioId, scenario.getStatus(), scenario.getVisibility());
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
         }
 
