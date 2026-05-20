@@ -17,7 +17,7 @@ public record PageResponse<T>(
     public static <T> PageResponse<T> from(Page<T> springPage) {
         return new PageResponse<>(
                 springPage.getContent(),
-                springPage.getNumber() + 1,
+                springPage.getNumber(),
                 springPage.getSize(),
                 springPage.getTotalPages(),
                 springPage.getTotalElements(),
