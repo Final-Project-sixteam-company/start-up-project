@@ -25,6 +25,7 @@ import com.startup.domain.ai.support.SolutionReader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
@@ -56,9 +57,11 @@ public class AiDeductionScorer {
     private int maxTokens;
 
     public FinalDeductionResponse submitAndScore(Long sessionId, FinalDeductionRequest request) {
+        boolean locked = false;
         try {
             // 1. 중복 제출 확인 + 잠금 (트랜잭션 1) — 세션을 COMPLETED로 변경하지 않음
             contextLoader.ensureNotSubmitted(sessionId);
+            locked = true;
 
             // 2. 채점 수행 (트랜잭션 밖)
             Long scenarioId = playSessionReader.getScenarioId(sessionId);
@@ -96,6 +99,7 @@ public class AiDeductionScorer {
                     .toList();
 
             FinalDeduction saved = contextLoader.saveResultAndComplete(sessionId, entity, distinctEvidenceIds);
+            locked = false;
 
             return new FinalDeductionResponse(
                     saved.getId(),
@@ -106,8 +110,20 @@ public class AiDeductionScorer {
                     submittedAt
             );
         } catch (AiException e) {
+            if (locked) {
+                releaseLockQuietly(sessionId);
+            }
             throw e;
+        } catch (DataIntegrityViolationException e) {
+            if (locked) {
+                releaseLockQuietly(sessionId);
+            }
+            log.warn("최종 추리 중복 제출 감지. sessionId={}", sessionId, e);
+            throw new AiException(AiErrorCode.FINAL_DEDUCTION_ALREADY_SUBMITTED);
         } catch (Exception e) {
+            if (locked) {
+                releaseLockQuietly(sessionId);
+            }
             log.error("최종 추리 채점 처리 실패. sessionId={}", sessionId, e);
             throw new AiException(AiErrorCode.SCORING_FAILED);
         }
@@ -229,6 +245,14 @@ public class AiDeductionScorer {
             return jsonMapper.readValue(json, new TypeReference<List<String>>() {});
         } catch (Exception e) {
             return List.of();
+        }
+    }
+
+    private void releaseLockQuietly(Long sessionId) {
+        try {
+            contextLoader.releaseFinalDeductionLock(sessionId);
+        } catch (Exception releaseException) {
+            log.warn("최종 추리 in-flight lock 해제 실패. sessionId={}", sessionId, releaseException);
         }
     }
 }

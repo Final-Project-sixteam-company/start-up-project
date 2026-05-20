@@ -945,7 +945,9 @@ user_id + scenario_id unique 제약 필수.
 | validation_score | 검증 점수 | nullable |
 | problem_summary | 문제 요약 | nullable |
 | suggestion | 개선 제안 | nullable |
+| check_items_json | 내부 hard blocker와 공개 검증 항목 JSON | nullable |
 | checked_at | 검증 시각 | not null |
+| created_at | 결과 생성 시각 | not null |
 
 동시성 메모:
 
