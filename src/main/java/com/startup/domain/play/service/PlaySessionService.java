@@ -19,6 +19,7 @@ import com.startup.domain.scenario.repository.*;
 import com.startup.domain.scenario.service.ScenarioAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -343,9 +344,7 @@ public class PlaySessionService {
                 .toList();
 
         for (Evidence evidence : timeBasedEvidences) {
-            boolean alreadyUnlocked = unlockedEvidenceRepository
-                    .existsByPlaySessionIdAndEvidenceId(session.getId(), evidence.getId());
-            if (!alreadyUnlocked) {
+            try {
                 unlockedEvidenceRepository.save(
                         UnlockedEvidence.builder()
                                 .playSessionId(session.getId())
@@ -355,6 +354,8 @@ public class PlaySessionService {
                 );
                 log.info("시간 기반 증거 자동 해금: sessionId={}, evidenceId={}, elapsedMinutes={}",
                         session.getId(), evidence.getId(), elapsedMinutes);
+            } catch (DataIntegrityViolationException e) {
+                log.debug("시간 기반 증거 이미 해금됨 (중복 삽입 방어): sessionId={}, evidenceId={}", session.getId(), evidence.getId());
             }
         }
     }

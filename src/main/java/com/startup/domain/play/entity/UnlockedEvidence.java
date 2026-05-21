@@ -10,7 +10,15 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "unlocked_evidences")
+@Table(
+        name = "unlocked_evidences",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_unlocked_evidences_session_evidence",
+                        columnNames = {"play_session_id", "evidence_id"}
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 // 플레이 세션별 해금된 증거 기록. 사용자가 현재 볼 수 있는 증거를 판단하는 기준이다.
 public class UnlockedEvidence {
