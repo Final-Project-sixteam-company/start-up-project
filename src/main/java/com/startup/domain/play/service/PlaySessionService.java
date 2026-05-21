@@ -90,13 +90,16 @@ public class PlaySessionService {
     }
 
     //대시보드 조회
-    @Transactional(readOnly = true)
+    @Transactional
     public DashboardResponse getDashboard(Long userId, Long sessionId) {
         PlaySession session = getSessionOrThrow(sessionId);
         validateSessionOwner(session, userId);
 
         Scenario scenario = scenarioRepository.findById(session.getScenarioId())
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        //카운트 조회 전에 시간 기반 해금을 먼저 동기화
+        processTimeBasedUnlocks(session);
 
         // 해금 증거 수
         int unlockedCount = unlockedEvidenceRepository.countByPlaySessionId(sessionId);
