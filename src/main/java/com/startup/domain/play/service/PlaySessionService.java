@@ -183,7 +183,7 @@ public class PlaySessionService {
                     evidence.getId(),
                     evidence.getTitle(),
                     description,
-                    locationNameMap.get(evidence.getLocationId()),
+                    isUnlocked ? locationNameMap.get(evidence.getLocationId()) : null,
                     evidence.getImportance(),
                     isUnlocked,
                     unlockHint,
