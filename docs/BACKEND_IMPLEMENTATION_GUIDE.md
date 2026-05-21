@@ -15,7 +15,7 @@
 | 공통 응답, 예외 처리, 트랜잭션 규칙 | API Request/Response JSON |
 | MockUserProvider, ScenarioAccessService | ERD, DDL, DB 제약 전문 |
 | AI 호출 경계, Fallback, 로그 저장 | AI 프롬프트 템플릿 전문 |
-| 인증/인가, 거래/크레딧 후순위 확장 계획 | 로컬 실행, Docker, 배포 |
+| 인증/인가, 거래/크레딧 후순위 확장 계획 | 로컬 실행, Docker, 배포, 인프라 전략 |
 
 세부 정본은 다음 문서를 따른다.
 
@@ -26,6 +26,8 @@
 | `CaseLab_AI_ERD_Design.md` | 엔티티, 관계, Enum, 동시성 메모 |
 | `CaseLab_AI_ERDCloud.sql` | ERDCloud/DB 설계용 SQL |
 | `AI_NPC_PROMPT_POLICY.md` | AI NPC 프롬프트, 답변 정책, 정답 누설 방지 |
+| `RUN_AND_DEPLOY.md` | 로컬 실행, Docker Compose, Android 연결, 배포 명령 |
+| `CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 운영 구조, 확장 계획 |
 
 ---
 
