@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Getter
@@ -74,6 +75,9 @@ public class PlaySession extends BaseEntity {
     }
 
     public void complete(int score, String grade) {
+        //종료 전에 경과시간 먼저 저장
+        this.currentElapsedSeconds = (int) Duration.between(this.startedAt, LocalDateTime.now()).getSeconds();
+
         this.status = PlaySessionStatus.COMPLETED;
         this.score = score;
         this.grade = grade;
@@ -81,6 +85,9 @@ public class PlaySession extends BaseEntity {
     }
 
     public void abandon() {
+        //종료 전에 경과시간 먼저 저장
+        this.currentElapsedSeconds = (int) Duration.between(this.startedAt, LocalDateTime.now()).getSeconds();
+
         this.status = PlaySessionStatus.ABANDONED;
         this.endedAt = LocalDateTime.now();
     }
