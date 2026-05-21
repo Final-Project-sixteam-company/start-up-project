@@ -331,11 +331,18 @@ public class PlaySessionService {
     }
 
     // 경과 시간에 따라 자동 해금 조건이 충족된 증거를 DB에 기록한다.
-    // 이미 해금된 증거는 중복 삽입하지 않도록 existsByPlaySessionIdAndEvidenceId로 체크한다.
+    // 이미 해금된 증거 id를 먼저 조회해 중복 저장을 시도하지 않는다
     private void processTimeBasedUnlocks(PlaySession session) {
         if (!session.isPlaying()) return;
 
         int elapsedMinutes = calculateElapsedSeconds(session) / 60;
+
+        //먼저 해금된 증거 id를 set으로 가져옴
+        Set<Long> alreadyUnlockedIds = unlockedEvidenceRepository
+                .findAllByPlaySessionId(session.getId())
+                .stream()
+                .map(UnlockedEvidence::getEvidenceId)
+                .collect(Collectors.toSet());
 
         List<Evidence> timeBasedEvidences = evidenceRepository
                 .findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
@@ -343,22 +350,19 @@ public class PlaySessionService {
                 .filter(e -> !e.getIsInitialPublic())
                 .filter(e -> e.getUnlockAfterMinutes() != null)
                 .filter(e -> elapsedMinutes >= e.getUnlockAfterMinutes())
+                .filter(e -> !alreadyUnlockedIds.contains(e.getId())) //이미 해금된건 제외
                 .toList();
 
         for (Evidence evidence : timeBasedEvidences) {
-            try {
-                unlockedEvidenceRepository.save(
-                        UnlockedEvidence.builder()
-                                .playSessionId(session.getId())
-                                .evidenceId(evidence.getId())
-                                .unlockedReason("TIME_BASED")
-                                .build()
-                );
-                log.info("시간 기반 증거 자동 해금: sessionId={}, evidenceId={}, elapsedMinutes={}",
-                        session.getId(), evidence.getId(), elapsedMinutes);
-            } catch (DataIntegrityViolationException e) {
-                log.debug("시간 기반 증거 이미 해금됨 (중복 삽입 방어): sessionId={}, evidenceId={}", session.getId(), evidence.getId());
-            }
+            unlockedEvidenceRepository.save(
+                    UnlockedEvidence.builder()
+                            .playSessionId(session.getId())
+                            .evidenceId(evidence.getId())
+                            .unlockedReason("TIME_BASED")
+                            .build()
+            );
+            log.info("시간 기반 증거 자동 해금: sessionId={}, evidenceId={}, elapsedMinutes={}",
+                    session.getId(), evidence.getId(), elapsedMinutes);
         }
     }
 
