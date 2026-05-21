@@ -11,6 +11,7 @@ import com.startup.domain.play.repository.UnlockedEvidenceRepository;
 import com.startup.domain.play.repository.UsedHintRepository;
 import com.startup.domain.play.entity.UsedHint;
 import com.startup.domain.scenario.entity.*;
+import com.startup.domain.scenario.enums.EvidenceUnlockType;
 import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
@@ -359,10 +360,10 @@ public class PlaySessionService {
         if (evidence.getUnlockAfterMinutes() != null) {
             return evidence.getUnlockAfterMinutes() + "분 후 공개";
         }
-        if ("INTERROGATION".equals(evidence.getUnlockType())) {
+        if (EvidenceUnlockType.INTERROGATION == evidence.getUnlockType()) {
             return "심문을 통해 해금";
         }
-        if ("EVIDENCE_PRESENTED".equals(evidence.getUnlockType())) {
+        if (EvidenceUnlockType.EVIDENCE_PRESENTED == evidence.getUnlockType()) {
             return "증거 제시로 해금";
         }
         return "조건 충족 시 해금";
