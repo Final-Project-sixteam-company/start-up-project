@@ -30,10 +30,7 @@ public class PlaySessionController {
         return ApiResponse.success(response);
     }
 
-    /**
-     * 탐정 대시보드 조회
-     * GET /api/play-sessions/{sessionId}/dashboard
-     */
+    //탐정 대시보드 조회
     @GetMapping("/{sessionId}/dashboard")
     public ApiResponse<DashboardResponse> getDashboard(
             @PathVariable Long sessionId
@@ -43,10 +40,7 @@ public class PlaySessionController {
         return ApiResponse.success(response);
     }
 
-    /**
-     * 현재 해금된 증거 목록 조회
-     * GET /api/play-sessions/{sessionId}/evidences
-     */
+    //현재 해금된 증거 목록 조회
     @GetMapping("/{sessionId}/evidences")
     public ApiResponse<List<PlayEvidenceResponse>> getEvidences(
             @PathVariable Long sessionId,
@@ -57,16 +51,23 @@ public class PlaySessionController {
         return ApiResponse.success(response);
     }
 
-    /**
-     * 용의자 목록 조회
-     * GET /api/play-sessions/{sessionId}/suspects
-     */
+    //용의자 목록 조회
     @GetMapping("/{sessionId}/suspects")
     public ApiResponse<List<PlaySuspectResponse>> getSuspects(
             @PathVariable Long sessionId
     ) {
         Long userId = mockUserProvider.currentUserId();
         List<PlaySuspectResponse> response = playSessionService.getSuspects(userId, sessionId);
+        return ApiResponse.success(response);
+    }
+
+    //사용 가능 힌트 목록 조회 - isAvailable=true면 해금 가능, isUsed=true면 이미 열람한 힌트 (content 포함)
+    @GetMapping("/{sessionId}/hints")
+    public ApiResponse<List<PlayHintResponse>> getHints(
+            @PathVariable Long sessionId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        List<PlayHintResponse> response = playSessionService.getHints(userId, sessionId);
         return ApiResponse.success(response);
     }
 }

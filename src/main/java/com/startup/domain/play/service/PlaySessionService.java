@@ -8,7 +8,10 @@ import com.startup.domain.play.error.PlayErrorCode;
 import com.startup.domain.play.error.PlayException;
 import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
+import com.startup.domain.play.repository.UsedHintRepository;
+import com.startup.domain.play.entity.UsedHint;
 import com.startup.domain.scenario.entity.*;
+import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.*;
@@ -37,6 +40,8 @@ public class PlaySessionService {
     private final VictimRepository victimRepository;
     private final ScenarioLocationRepository scenarioLocationRepository;
     private final EvidenceSuspectRepository evidenceSuspectRepository;
+    private final HintRepository hintRepository;
+    private final UsedHintRepository usedHintRepository;
 
     //게임 시작 세션
     @Transactional
@@ -116,11 +121,14 @@ public class PlaySessionService {
         );
     }
 
-    //증거 목록 조회
-    @Transactional(readOnly = true)
+    // 증거 목록 조회 - 조회 시점에 시간 기반 자동 해금 처리후 반환
+    @Transactional
     public List<PlayEvidenceResponse> getEvidences(Long userId, Long sessionId, Boolean includeLocked) {
         PlaySession session = getSessionOrThrow(sessionId);
         validateSessionOwner(session, userId);
+
+        // 조회 시점에 시간 기반으로 자동 해금 처리 (Lazy Evaluation)
+        processTimeBasedUnlocks(session);
 
         // 시나리오의 전체 증거 조회
         List<Evidence> allEvidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
@@ -177,6 +185,49 @@ public class PlaySessionService {
         }
 
         return result;
+    }
+
+    //힌트 목록 조회
+    @Transactional(readOnly = true)
+    public List<PlayHintResponse> getHints(Long userId, Long sessionId) {
+        PlaySession session = getSessionOrThrow(sessionId);
+        validateSessionOwner(session, userId);
+
+        // 현재 경과 시간
+        int elapsedMinutes = calculateElapsedSeconds(session) / 60;
+
+        List<Hint> hints = hintRepository.findAllByScenarioIdOrderByHintLevel(session.getScenarioId());
+
+        // 사용한 힌트 ID Set
+        Set<Long> usedHintIds = usedHintRepository.findAllByPlaySessionId(sessionId)
+                .stream()
+                .map(UsedHint::getHintId)
+                .collect(Collectors.toSet());
+
+        return hints.stream()
+                .map(hint -> {
+                    // 해금 가능 여부: unlock_after_minutes가 null(즉시)이거나 경과 시간을 넘겼을 때
+                    boolean isAvailable = hint.getUnlockAfterMinutes() == null
+                            || elapsedMinutes >= hint.getUnlockAfterMinutes();
+                    boolean isUsed = usedHintIds.contains(hint.getId());
+
+                    // 사용하지 않은 힌트는 content를 null로 숨긴다
+                    String content = isUsed ? hint.getContent() : null;
+
+                    // 미해금 상태이면 남은 시간을 내려준다
+                    Integer unlockAfterMinutes = !isAvailable ? hint.getUnlockAfterMinutes() : null;
+
+                    return new PlayHintResponse(
+                            hint.getId(),
+                            hint.getHintLevel(),
+                            content,
+                            isAvailable,
+                            isUsed,
+                            unlockAfterMinutes,
+                            hint.getPenaltyScore()
+                    );
+                })
+                .toList();
     }
 
     //용의자 목록 조회
@@ -270,6 +321,38 @@ public class PlaySessionService {
         return scenarioLocationRepository.findAllById(new ArrayList<>(locationIds))
                 .stream()
                 .collect(Collectors.toMap(ScenarioLocation::getId, ScenarioLocation::getName));
+    }
+
+    // 경과 시간에 따라 자동 해금 조건이 충족된 증거를 DB에 기록한다.
+    // 이미 해금된 증거는 중복 삽입하지 않도록 existsByPlaySessionIdAndEvidenceId로 체크한다.
+    private void processTimeBasedUnlocks(PlaySession session) {
+        if (!session.isPlaying()) return;
+
+        int elapsedMinutes = calculateElapsedSeconds(session) / 60;
+
+        List<Evidence> timeBasedEvidences = evidenceRepository
+                .findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
+                .stream()
+                .filter(e -> !e.getIsInitialPublic())
+                .filter(e -> e.getUnlockAfterMinutes() != null)
+                .filter(e -> elapsedMinutes >= e.getUnlockAfterMinutes())
+                .toList();
+
+        for (Evidence evidence : timeBasedEvidences) {
+            boolean alreadyUnlocked = unlockedEvidenceRepository
+                    .existsByPlaySessionIdAndEvidenceId(session.getId(), evidence.getId());
+            if (!alreadyUnlocked) {
+                unlockedEvidenceRepository.save(
+                        UnlockedEvidence.builder()
+                                .playSessionId(session.getId())
+                                .evidenceId(evidence.getId())
+                                .unlockedReason("TIME_BASED")
+                                .build()
+                );
+                log.info("시간 기반 증거 자동 해금: sessionId={}, evidenceId={}, elapsedMinutes={}",
+                        session.getId(), evidence.getId(), elapsedMinutes);
+            }
+        }
     }
 
     private String buildUnlockHint(Evidence evidence) {
