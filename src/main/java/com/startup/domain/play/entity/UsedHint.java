@@ -10,7 +10,15 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "used_hints")
+@Table(
+        name = "used_hints",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_used_hints_session_hint",
+                        columnNames = {"play_session_id", "hint_id"}
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 // 플레이어가 실제로 사용(열람)한 힌트 기록.
 // 사용 여부 추적 및 중복 사용 방지를 위해 play_session_id + hint_id 에 unique 제약이 걸려 있다.
