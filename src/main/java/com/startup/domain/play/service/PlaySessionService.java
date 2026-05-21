@@ -216,7 +216,7 @@ public class PlaySessionService {
                     String content = isUsed ? hint.getContent() : null;
 
                     // 미해금 상태이면 남은 시간을 내려준다
-                    Integer unlockAfterMinutes = !isAvailable ? hint.getUnlockAfterMinutes() : null;
+                    Integer remainingMinutes = !isAvailable ? hint.getUnlockAfterMinutes() - elapsedMinutes : null;
 
                     return new PlayHintResponse(
                             hint.getId(),
@@ -224,7 +224,7 @@ public class PlaySessionService {
                             content,
                             isAvailable,
                             isUsed,
-                            unlockAfterMinutes,
+                            remainingMinutes,
                             hint.getPenaltyScore()
                     );
                 })
