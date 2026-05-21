@@ -71,17 +71,17 @@ public class Evidence {
     @Builder
     private Evidence(Long scenarioId, Long locationId, String title, String description,
                      EvidenceType evidenceType, EvidenceImportance importance, String imageUrl,
-                     Boolean isInitialPublic, String unlockType, String unlockConditionJson,
+                     Boolean isInitialPublic, EvidenceUnlockType unlockType, String unlockConditionJson,
                      Integer unlockAfterMinutes, Integer sortOrder) {
         this.scenarioId = scenarioId;
         this.locationId = locationId;
         this.title = title;
         this.description = description;
-        this.evidenceType = EvidenceType.GENERAL;
-        this.importance = EvidenceImportance.NORMAL;
+        this.evidenceType = evidenceType != null ? evidenceType : EvidenceType.GENERAL;
+        this.importance = importance != null ? importance : EvidenceImportance.NORMAL;
         this.imageUrl = imageUrl;
         this.isInitialPublic = isInitialPublic != null ? isInitialPublic : false;
-        this.unlockType = EvidenceUnlockType.NONE;
+        this.unlockType = unlockType != null ? unlockType : EvidenceUnlockType.NONE;
         this.unlockConditionJson = unlockConditionJson;
         this.unlockAfterMinutes = unlockAfterMinutes;
         this.sortOrder = sortOrder;
