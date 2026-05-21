@@ -1,5 +1,8 @@
 package com.startup.domain.ai.service;
 
+import com.startup.common.auth.MockUserProvider;
+import com.startup.common.error.BusinessException;
+import com.startup.common.error.CommonErrorCode;
 import com.startup.domain.ai.client.AiClient;
 import com.startup.domain.ai.client.AiRequestParams;
 import com.startup.domain.ai.dto.AiFeedbackResult;
@@ -31,13 +34,16 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiDeductionScorer {
 
+    private final MockUserProvider mockUserProvider;
     private final DeductionContextLoader contextLoader;
     private final PlaySessionReader playSessionReader;
     private final SolutionReader solutionReader;
@@ -130,6 +136,8 @@ public class AiDeductionScorer {
     }
 
     public DeductionResultResponse getResult(Long sessionId) {
+        validateResultOwner(sessionId);
+
         FinalDeduction deduction = contextLoader.findBySessionId(sessionId);
         if (deduction == null) {
             throw new AiException(AiErrorCode.DEDUCTION_RESULT_NOT_FOUND);
@@ -138,6 +146,8 @@ public class AiDeductionScorer {
         Long scenarioId = playSessionReader.getScenarioId(sessionId);
         SolutionInfo solution = solutionReader.findByScenarioId(scenarioId);
         ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
+
+        warnIfKeyEvidenceSourcesDiverge(criteria, solution);
 
         List<FinalDeductionEvidence> evidences =
                 finalDeductionEvidenceRepository.findAllByFinalDeductionId(deduction.getId());
@@ -179,12 +189,30 @@ public class AiDeductionScorer {
                 missedParts,
                 deduction.getFeedback(),
                 solution.fullExplanation(),
-                criteria.keyEvidenceIds().stream()
-                        .map(id -> new DeductionResultResponse.EvidenceDto(
-                                id, solution.evidenceTitles().getOrDefault(id, null)))
-                        .toList(),
+                buildKeyEvidenceDtos(solution),
                 List.of()
         );
+    }
+
+    private void validateResultOwner(Long sessionId) {
+        Long currentUserId = mockUserProvider.currentUserId();
+        Long ownerUserId = playSessionReader.getOwnerUserId(sessionId);
+        if (!Objects.equals(currentUserId, ownerUserId)) {
+            throw new BusinessException(CommonErrorCode.ACCESS_DENIED, "Deduction result access is denied.");
+        }
+    }
+
+    private List<DeductionResultResponse.EvidenceDto> buildKeyEvidenceDtos(SolutionInfo solution) {
+        return solution.keyEvidenceIds().stream()
+                .map(id -> new DeductionResultResponse.EvidenceDto(id, solution.evidenceTitles().get(id)))
+                .toList();
+    }
+
+    private void warnIfKeyEvidenceSourcesDiverge(ScoringCriteria criteria, SolutionInfo solution) {
+        if (!new LinkedHashSet<>(criteria.keyEvidenceIds()).equals(new LinkedHashSet<>(solution.keyEvidenceIds()))) {
+            log.warn("keyEvidenceIds 소스 불일치. criteria={}, solution={}",
+                    criteria.keyEvidenceIds(), solution.keyEvidenceIds());
+        }
     }
 
     private AiFeedbackResult generateFeedback(ScoringResult scoringResult,

@@ -46,3 +46,5 @@ secrets/
 CLAUDE.local.md
 .instructions/
 .review/
+scripts/review-snapshot.sh
+docs/REVIEW_SNAPSHOT_GUIDE.md
