@@ -125,7 +125,7 @@ public class PlaySessionService {
                 elapsedSeconds,
                 unlockedCount,
                 totalCount,
-                session.getHintCount(),
+                usedHintRepository.countByPlaySessionId(sessionId),
                 interrogationLogRepository.countByPlaySessionId(sessionId),
                 briefing
         );
