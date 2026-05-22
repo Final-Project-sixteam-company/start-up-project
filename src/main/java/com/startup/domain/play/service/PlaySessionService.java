@@ -74,8 +74,7 @@ public class PlaySessionService {
         playSessionRepository.save(session);
 
         // 시나리오 플레이 카운트 증가
-        // TODO: 동시성이 중요해지면 atomic update 또는 @Version 적용 검토
-        scenario.incrementPlayCount();
+        scenarioRepository.incrementPlayCount(scenarioId);
 
         // 초기 공개 증거(is_initial_public = true) 자동 해금
         List<Evidence> initialEvidences = evidenceRepository.findAllByScenarioIdAndIsInitialPublicTrue(scenarioId);
