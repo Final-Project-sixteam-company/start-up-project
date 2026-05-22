@@ -350,6 +350,7 @@ public class PlaySessionService {
                 .findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
                 .stream()
                 .filter(e -> !e.getIsInitialPublic())
+                .filter(e -> EvidenceUnlockType.TIME == e.getUnlockType())
                 .filter(e -> e.getUnlockAfterMinutes() != null)
                 .filter(e -> elapsedMinutes >= e.getUnlockAfterMinutes())
                 .filter(e -> !alreadyUnlockedIds.contains(e.getId())) //이미 해금된건 제외
