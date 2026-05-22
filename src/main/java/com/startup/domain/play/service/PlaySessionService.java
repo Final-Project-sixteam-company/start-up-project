@@ -20,7 +20,6 @@ import com.startup.domain.scenario.repository.*;
 import com.startup.domain.scenario.service.ScenarioAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -370,7 +369,8 @@ public class PlaySessionService {
     }
 
     private String buildUnlockHint(Evidence evidence) {
-        if (evidence.getUnlockAfterMinutes() != null) {
+        if (EvidenceUnlockType.TIME == evidence.getUnlockType() &&
+                evidence.getUnlockAfterMinutes() != null) {
             return evidence.getUnlockAfterMinutes() + "분 후 공개";
         }
         if (EvidenceUnlockType.INTERROGATION == evidence.getUnlockType()) {
