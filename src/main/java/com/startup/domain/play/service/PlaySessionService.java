@@ -247,7 +247,16 @@ public class PlaySessionService {
 
         List<Suspect> suspects = suspectRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
 
-        // 용의자별 심문 횟수 조회 - interrogation_logs 기준 집계
+        //세션 내 모든 용의자의 심문 횟수를 한번의 쿼리로 조회하여 map으로 변환
+        Map<Long, Integer> interrogationCountMap = interrogationLogRepository
+                .countInterrogationsPerSuspect(sessionId)
+                .stream()
+                .collect(Collectors.toMap(
+                        InterrogationLogRepository.SuspectInterrogationCount::getSuspectId,
+                        countDto -> countDto.getCount().intValue()
+                ));
+
+        // 용의자별 심문 횟수 조회
         return suspects.stream()
                 .map(suspect -> new PlaySuspectResponse(
                         suspect.getId(),
@@ -257,7 +266,7 @@ public class PlaySessionService {
                         suspect.getPublicStatement(),
                         suspect.getAlibi(),
                         suspect.getSuspicionLevel(),
-                        interrogationLogRepository.countByPlaySessionIdAndSuspectId(sessionId, suspect.getId())
+                        interrogationCountMap.getOrDefault(suspect.getId(), 0) //map에서 가져오고 없으면 0
                 ))
                 .toList();
     }
