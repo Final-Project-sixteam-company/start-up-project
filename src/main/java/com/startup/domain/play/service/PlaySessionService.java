@@ -1,5 +1,6 @@
 package com.startup.domain.play.service;
 
+import com.startup.domain.ai.repository.InterrogationLogRepository;
 import com.startup.domain.play.dto.*;
 import com.startup.domain.play.entity.PlaySession;
 import com.startup.domain.play.entity.UnlockedEvidence;
@@ -45,6 +46,7 @@ public class PlaySessionService {
     private final HintRepository hintRepository;
     private final UsedHintRepository usedHintRepository;
     private final UnlockedEvidencePersister unlockedEvidencePersister;
+    private final InterrogationLogRepository interrogationLogRepository;
 
     //게임 시작 세션
     @Transactional
@@ -246,8 +248,7 @@ public class PlaySessionService {
 
         List<Suspect> suspects = suspectRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
 
-        // 용의자별 심문 횟수 조회 (현재 심문 로그 테이블 미구현 → 0으로 반환)
-        // TODO: InterrogationLog 테이블 연결 후 용의자별 심문 횟수 계산 로직 추가
+        // 용의자별 심문 횟수 조회 - interrogation_logs 기준 집계
         return suspects.stream()
                 .map(suspect -> new PlaySuspectResponse(
                         suspect.getId(),
@@ -257,7 +258,7 @@ public class PlaySessionService {
                         suspect.getPublicStatement(),
                         suspect.getAlibi(),
                         suspect.getSuspicionLevel(),
-                        0 // TODO: 실제 용의자별 심문 횟수 계산
+                        interrogationLogRepository.countByPlaySessionIdAndSuspectId(sessionId, suspect.getId())
                 ))
                 .toList();
     }
