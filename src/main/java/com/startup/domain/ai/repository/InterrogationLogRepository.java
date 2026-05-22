@@ -11,4 +11,7 @@ public interface InterrogationLogRepository extends JpaRepository<InterrogationL
             Long playSessionId, Long suspectId);
 
     int countByPlaySessionIdAndSuspectId(Long playSessionId, Long suspectId);
+
+    //세션 전체 심문 횟수(대시보드)
+    int countByPlaySessionId(Long playSessionId);
 }
