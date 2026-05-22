@@ -9,7 +9,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-// 테스트 푸시 API가 prod profile에 노출되지 않는지 확인하는 안전장치 테스트다.
+// 테스트 푸시 API가 명시적으로 허용한 local/test profile에만 노출되는지 확인하는 안전장치 테스트다.
 class NotificationTestControllerProfileTest {
 
     @Test
@@ -25,9 +25,33 @@ class NotificationTestControllerProfileTest {
     }
 
     @Test
+    void notificationTestControllerIsNotRegisteredInDockerProfile() {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.getEnvironment().setActiveProfiles("docker");
+            registerDependencies(context);
+            context.register(NotificationTestController.class);
+            context.refresh();
+
+            assertThat(context.getBeanNamesForType(NotificationTestController.class)).isEmpty();
+        }
+    }
+
+    @Test
     void notificationTestControllerIsRegisteredOutsideProdProfile() {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
             context.getEnvironment().setActiveProfiles("local");
+            registerDependencies(context);
+            context.register(NotificationTestController.class);
+            context.refresh();
+
+            assertThat(context.getBeanNamesForType(NotificationTestController.class)).hasSize(1);
+        }
+    }
+
+    @Test
+    void notificationTestControllerIsRegisteredInTestProfile() {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.getEnvironment().setActiveProfiles("test");
             registerDependencies(context);
             context.register(NotificationTestController.class);
             context.refresh();

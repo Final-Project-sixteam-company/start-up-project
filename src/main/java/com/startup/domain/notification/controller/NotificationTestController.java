@@ -19,8 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @Tag(name = "Notification Test", description = "개발/검증용 푸시 알림 API")
-// MockUser 기반 검증용 API이므로 prod profile에서는 route 자체를 등록하지 않는다.
-@Profile("!prod")
+// MockUser 기반 검증용 API이므로 local/test profile에서만 route를 등록한다.
+@Profile({"local", "test"})
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/notifications")
