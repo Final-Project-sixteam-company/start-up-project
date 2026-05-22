@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
+// 디바이스 토큰 등록/upsert와 활성 token 조회 정책을 실제 Repository로 검증한다.
 class DeviceTokenServiceTest {
 
     @Autowired
@@ -26,6 +27,7 @@ class DeviceTokenServiceTest {
 
     @Test
     void registerCreatesDeviceToken() {
+        // 처음 보는 token은 active=true 상태로 새 row를 만든다.
         DeviceTokenResponse response = deviceTokenService.register(
                 1L,
                 new DeviceTokenRegisterRequest("new-token", "ANDROID")
@@ -43,6 +45,7 @@ class DeviceTokenServiceTest {
 
     @Test
     void registerExistingTokenReusesRowAndActivatesIt() {
+        // 이미 저장된 token은 새 row를 만들지 않고 기존 row를 최신 사용자/활성 상태로 갱신한다.
         DeviceToken existing = deviceTokenRepository.save(DeviceToken.builder()
                 .userId(1L)
                 .token("existing-token")
@@ -68,6 +71,7 @@ class DeviceTokenServiceTest {
 
     @Test
     void getActiveTokensReturnsOnlyActiveTokensForUser() {
+        // 발송 대상 조회에서는 다른 사용자 token과 비활성 token을 제외한다.
         deviceTokenRepository.save(DeviceToken.builder()
                 .userId(1L)
                 .token("active-token")

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/device-tokens")
+// Android 앱이 발급받은 FCM registration token을 백엔드 사용자와 연결하는 진입점이다.
 public class DeviceTokenController {
 
     private final DeviceTokenService deviceTokenService;
@@ -29,6 +30,7 @@ public class DeviceTokenController {
     public ResponseEntity<ApiResponse<DeviceTokenResponse>> register(
             @Valid @RequestBody DeviceTokenRegisterRequest request
     ) {
+        // 인증 도입 전까지는 프로젝트 공통 MockUserProvider로 현재 사용자를 통일한다.
         Long userId = mockUserProvider.currentUserId();
         DeviceTokenResponse response = deviceTokenService.register(userId, request);
         return ResponseEntity.ok(ApiResponse.success(response));

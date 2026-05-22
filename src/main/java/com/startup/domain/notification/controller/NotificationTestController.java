@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @Tag(name = "Notification Test", description = "개발/검증용 푸시 알림 API")
+// MockUser 기반 검증용 API이므로 prod profile에서는 route 자체를 등록하지 않는다.
 @Profile("!prod")
 @RestController
 @RequiredArgsConstructor
@@ -34,6 +35,7 @@ public class NotificationTestController {
     public ResponseEntity<ApiResponse<Void>> sendTestPush(
             @Valid @RequestBody TestPushRequest request
     ) {
+        // 트랜잭션 조회가 끝난 뒤 FCM 호출을 수행해 DB 작업과 외부 호출을 분리한다.
         Long userId = mockUserProvider.currentUserId();
         List<String> tokens = deviceTokenService.getActiveTokens(userId);
         fcmNotificationService.sendToTokens(tokens, request.title(), request.body());

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "테스트 푸시 발송 요청")
+// 개발/검증용 API라 MVP에서는 notification title/body만 받는다.
 public record TestPushRequest(
         @Schema(description = "알림 제목", example = "ClueRoom")
         @NotBlank(message = "알림 제목은 필수입니다.")

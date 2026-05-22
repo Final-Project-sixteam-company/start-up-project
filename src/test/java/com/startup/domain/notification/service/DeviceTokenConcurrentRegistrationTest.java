@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+// 같은 token 최초 등록이 동시에 들어와도 unique key 예외 대신 하나의 row로 수렴하는지 검증한다.
 class DeviceTokenConcurrentRegistrationTest {
 
     @Autowired
@@ -31,6 +32,7 @@ class DeviceTokenConcurrentRegistrationTest {
     @BeforeEach
     @AfterEach
     void cleanUp() {
+        // 동시성 테스트는 커밋된 데이터가 남으므로 테스트 전후로 직접 정리한다.
         deviceTokenRepository.deleteAll();
     }
 
@@ -40,6 +42,7 @@ class DeviceTokenConcurrentRegistrationTest {
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
 
+        // 두 요청이 최대한 같은 시점에 register()로 진입하도록 latch로 시작 시점을 맞춘다.
         Future<DeviceTokenResponse> first = executorService.submit(() -> registerAfterStart(1L, ready, start));
         Future<DeviceTokenResponse> second = executorService.submit(() -> registerAfterStart(2L, ready, start));
 
@@ -60,6 +63,7 @@ class DeviceTokenConcurrentRegistrationTest {
 
     private DeviceTokenResponse registerAfterStart(Long userId, CountDownLatch ready, CountDownLatch start)
             throws InterruptedException {
+        // ready를 먼저 내린 뒤 start 신호까지 대기해 두 스레드의 경쟁 상황을 만든다.
         ready.countDown();
         assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
         return deviceTokenService.register(
