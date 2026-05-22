@@ -64,6 +64,9 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // 서버에서 Android FCM registration token으로 푸시를 발송하기 위한 Firebase Admin SDK다.
+    implementation 'com.google.firebase:firebase-admin:9.9.0'
 }
 
 tasks.named('test') {

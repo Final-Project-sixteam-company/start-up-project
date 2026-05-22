@@ -84,7 +84,8 @@ services:
       LOG_LEVEL_ROOT: ${LOG_LEVEL_ROOT:-info}
       LOG_LEVEL_APP: ${LOG_LEVEL_APP:-debug}
     volumes:
-      - ${SECRETS_HOST_DIR:-./secrets}:/opt/caselab/secrets:ro
+      # Firebase service account JSON은 서버 secret이므로 컨테이너에서 읽기 전용으로만 마운트한다.
+      - ${SECRETS_HOST_DIR:-./secrets}:/opt/clueroom/secrets:ro
     depends_on:
       mysql:
         condition: service_healthy
