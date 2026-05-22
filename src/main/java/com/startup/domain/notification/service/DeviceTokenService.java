@@ -3,6 +3,8 @@ package com.startup.domain.notification.service;
 import com.startup.domain.notification.dto.DeviceTokenRegisterRequest;
 import com.startup.domain.notification.dto.DeviceTokenResponse;
 import com.startup.domain.notification.entity.DeviceToken;
+import com.startup.domain.notification.error.NotificationErrorCode;
+import com.startup.domain.notification.error.NotificationException;
 import com.startup.domain.notification.repository.DeviceTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,16 +26,11 @@ public class DeviceTokenService {
         String token = request.token().trim();
         String deviceType = normalizeDeviceType(request.deviceType());
 
-        DeviceToken deviceToken = deviceTokenRepository.findByToken(token)
-                .orElseGet(() -> deviceTokenRepository.save(DeviceToken.builder()
-                        .userId(userId)
-                        .token(token)
-                        .deviceType(deviceType)
-                        .build()));
+        deviceTokenRepository.upsertActiveToken(userId, token, deviceType);
 
-        deviceToken.register(userId, deviceType);
-
-        return DeviceTokenResponse.from(deviceToken);
+        return deviceTokenRepository.findByToken(token)
+                .map(DeviceTokenResponse::from)
+                .orElseThrow(() -> new NotificationException(NotificationErrorCode.DEVICE_TOKEN_SAVE_FAILED));
     }
 
     @Transactional(readOnly = true)

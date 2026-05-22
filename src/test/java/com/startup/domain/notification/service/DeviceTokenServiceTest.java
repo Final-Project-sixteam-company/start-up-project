@@ -55,13 +55,14 @@ class DeviceTokenServiceTest {
                 2L,
                 new DeviceTokenRegisterRequest("existing-token", "android")
         );
+        DeviceToken updated = deviceTokenRepository.findByToken("existing-token").orElseThrow();
 
         assertThat(response.deviceTokenId()).isEqualTo(existing.getId());
         assertThat(response.active()).isTrue();
-        assertThat(existing.getUserId()).isEqualTo(2L);
-        assertThat(existing.getDeviceType()).isEqualTo("ANDROID");
-        assertThat(existing.isActive()).isTrue();
-        assertThat(existing.getLastUsedAt()).isAfterOrEqualTo(previousLastUsedAt);
+        assertThat(updated.getUserId()).isEqualTo(2L);
+        assertThat(updated.getDeviceType()).isEqualTo("ANDROID");
+        assertThat(updated.isActive()).isTrue();
+        assertThat(updated.getLastUsedAt()).isAfterOrEqualTo(previousLastUsedAt);
         assertThat(deviceTokenRepository.findAll()).hasSize(1);
     }
 
