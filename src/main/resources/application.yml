@@ -70,6 +70,11 @@ logging:
     root: ${LOG_LEVEL_ROOT:info}
     com.startup: ${LOG_LEVEL_APP:debug}
 
+fcm:
+  enabled: ${FCM_ENABLED:false}
+  project-id: ${FCM_PROJECT_ID:}
+  service-account-path: ${FCM_SERVICE_ACCOUNT_PATH:}
+
 caselab:
   scoring:
     criteria-path: ${SCORING_CRITERIA_PATH:classpath:scoring/demo_day_criteria.json}
