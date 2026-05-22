@@ -1,0 +1,54 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    env:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_AI_MODEL_CHAT: none
+      SPRING_AI_MODEL_EMBEDDING: none
+      SPRING_AI_MODEL_IMAGE: none
+      SPRING_AI_MODEL_MODERATION: none
+      FCM_ENABLED: false
+      OPENAI_API_KEY: dummy
+      AWS_REGION: ap-northeast-2
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+      AWS_S3_BUCKET: dummy
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for Gradle Wrapper
+        run: chmod +x ./gradlew
+
+      - name: Run tests
+        run: ./gradlew clean test --no-daemon
+
+      - name: Build bootJar
+        run: ./gradlew bootJar --no-daemon
