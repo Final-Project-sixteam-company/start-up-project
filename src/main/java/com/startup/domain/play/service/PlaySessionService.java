@@ -45,7 +45,6 @@ public class PlaySessionService {
     private final EvidenceSuspectRepository evidenceSuspectRepository;
     private final HintRepository hintRepository;
     private final UsedHintRepository usedHintRepository;
-    private final UnlockedEvidencePersister unlockedEvidencePersister;
     private final InterrogationLogRepository interrogationLogRepository;
 
     //게임 시작 세션
@@ -357,13 +356,15 @@ public class PlaySessionService {
                 .toList();
 
         for (Evidence evidence : timeBasedEvidences) {
-            try{
-                unlockedEvidencePersister.saveIfNotExists(session.getId(), evidence.getId(), "TIME_BASED");
-            } catch (DataIntegrityViolationException e){
-                // 동시 요청으로 다른 트랜잭션이 먼저 insert한 경우 — 정상 케이스, 무시
-                log.debug("시간 기반 증거 이미 해금됨 (동시 요청 경쟁): sessionId={}, evidenceId={}",
-                        session.getId(), evidence.getId());
-            }
+            unlockedEvidenceRepository.save(
+                    UnlockedEvidence.builder()
+                            .playSessionId(session.getId())
+                            .evidenceId(evidence.getId())
+                            .unlockedReason("TIME_BASED")
+                            .build()
+            );
+            log.info("시간 기반 증거 자동 해금: sessionId={}, evidenceId={}, elapsedMinutes={}",
+                    session.getId(), evidence.getId(), elapsedMinutes);
         }
     }
 
