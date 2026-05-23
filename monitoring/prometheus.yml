@@ -2,14 +2,6 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  # 기본 로컬 compose 모드에서 실행되는 단일 app target이다.
-  - job_name: 'clueroom-app'
-    metrics_path: /actuator/prometheus
-    static_configs:
-      - targets:
-          - app:8080
-
-  # Blue-Green compose 모드에서는 Nginx active upstream 전환과 무관하게 양쪽 app을 수집한다.
   - job_name: 'clueroom-app-blue'
     metrics_path: /actuator/prometheus
     static_configs:

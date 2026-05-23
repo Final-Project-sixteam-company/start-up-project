@@ -2,11 +2,11 @@
 
 set -Eeuo pipefail
 
-APP_DIR="${APP_DIR:-/opt/clueroom/app}"
-BRANCH="${BRANCH:-develop}"
-HEALTH_URL="${HEALTH_URL:-https://api.clueroom.xyz/actuator/health}"
-UPSTREAM_FILE="${UPSTREAM_FILE:-/etc/nginx/conf.d/clueroom-upstream.conf}"
-SECRET_ENV_DIR="${SECRET_ENV_DIR:-/opt/clueroom/secrets/env.d}"
+APP_DIR="/opt/clueroom/app"
+BRANCH="develop"
+HEALTH_URL="https://api.clueroom.xyz/actuator/health"
+UPSTREAM_FILE="/etc/nginx/conf.d/clueroom-upstream.conf"
+SECRET_ENV_DIR="/opt/clueroom/secrets/env.d"
 
 COMPOSE_ARGS=(
   --env-file "$APP_DIR/.env"
@@ -69,7 +69,7 @@ done
 echo "[2/9] Fetch latest code"
 git fetch origin "$BRANCH"
 
-echo "[3/9] Pull latest branch"
+echo "[3/9] Pull latest develop"
 git checkout "$BRANCH"
 git pull --ff-only origin "$BRANCH"
 

@@ -2,10 +2,10 @@
 
 set -Eeuo pipefail
 
-APP_DIR="${APP_DIR:-/opt/clueroom/app}"
+APP_DIR="/opt/clueroom/app"
 ENV_FILE="${APP_DIR}/.env"
-BACKUP_DIR="${BACKUP_DIR:-/opt/clueroom/backups/mysql}"
-RETENTION_DAYS="${RETENTION_DAYS:-7}"
+BACKUP_DIR="/opt/clueroom/backups/mysql"
+RETENTION_DAYS=7
 
 echo "========================================"
 echo " ClueRoom MySQL Backup Start"
@@ -18,7 +18,7 @@ fi
 
 read_env_value() {
   local key="$1"
-  grep -E "^${key}=" "$ENV_FILE" | tail -n 1 | cut -d '=' -f2- | tr -d '\r'
+  grep -E "^${key}=" "$ENV_FILE" | tail -n 1 | cut -d '=' -f2-
 }
 
 DB_NAME="$(read_env_value DB_NAME)"
