@@ -411,12 +411,25 @@ cat /etc/nginx/conf.d/clueroom-upstream.conf
 
 old service 정리:
 
+먼저 현재 active upstream을 확인한다.
+
 ```bash
-/opt/clueroom/bg-compose stop app-blue
+cat /etc/nginx/conf.d/clueroom-upstream.conf
+```
+
+upstream이 `127.0.0.1:8081`이면 `app-blue`가 active이므로 non-active인 `app-green`만 중지한다.
+
+```bash
 /opt/clueroom/bg-compose stop app-green
 ```
 
-둘 중 현재 active가 아닌 서비스만 중지한다. 어떤 서비스가 active인지 확인하지 않고 양쪽을 모두 중지하지 않는다.
+upstream이 `127.0.0.1:8082`이면 `app-green`이 active이므로 non-active인 `app-blue`만 중지한다.
+
+```bash
+/opt/clueroom/bg-compose stop app-blue
+```
+
+현재 active가 아닌 서비스를 확인하지 않고 양쪽을 모두 중지하지 않는다.
 
 레포 원본:
 
