@@ -191,7 +191,7 @@ bash scripts/compose-down.sh
 ```
 
 로컬 실행, Android 연결, Docker Compose, 배포 명령/장애 대응은 `docs/RUN_AND_DEPLOY.md`를 따른다.
-인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보는 `docs/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`를 따른다.
+인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보는 `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`를 따른다.
 
 ---
 
@@ -220,7 +220,7 @@ bash scripts/compose-down.sh
 | `docs/AI_NPC_PROMPT_POLICY.md` | AI NPC 프롬프트 정책 정본 |
 | `docs/BACKEND_IMPLEMENTATION_GUIDE.md` | 백엔드 구현 규칙 정본 |
 | `docs/RUN_AND_DEPLOY.md` | 로컬 실행, Android 연결, Docker Compose, 배포 명령/장애 대응 |
-| `docs/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
+| `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
 | `docs/OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 데모 시나리오 seed 정본 |
 
 권장 읽기 순서:

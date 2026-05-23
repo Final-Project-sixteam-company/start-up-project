@@ -27,7 +27,7 @@
 | `CaseLab_AI_ERDCloud.sql` | ERDCloud/DB 설계용 SQL |
 | `AI_NPC_PROMPT_POLICY.md` | AI NPC 프롬프트, 답변 정책, 정답 누설 방지 |
 | `RUN_AND_DEPLOY.md` | 로컬 실행, Docker Compose, Android 연결, 배포 명령 |
-| `CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 운영 구조, 확장 계획 |
+| `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 운영 구조, 확장 계획 |
 
 ---
 

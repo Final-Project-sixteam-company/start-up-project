@@ -1,7 +1,7 @@
 # ClueRoom - Run and Deploy Guide
 
 > 문서 목적: 로컬 실행, Docker Compose 실행, Android 연결, 운영 서버 배포 명령, 문제 해결을 간단히 정리한다.  
-> 인프라 선택 이유, 확장 계획, PoC 계획, ADR 후보는 별도 문서 `CLUEROOM_INFRASTRUCTURE_STRATEGY.md`에서 관리한다.
+> 인프라 선택 이유, 확장 계획, PoC 계획, ADR 후보는 별도 문서 `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`에서 관리한다.
 
 ---
 
@@ -702,7 +702,7 @@ docker image prune
 
 | 문서 | 내용 |
 |---|---|
-| `CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 확장 계획, PoC 계획, ADR 후보 |
+| `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 확장 계획, PoC 계획, ADR 후보 |
 | `infra/OPS_RUNBOOK.md` | 운영 상태 확인, Blue-Green rollback, 백업, 장애 대응 |
 | `infra/CLUEROOM_SECRET_INPUT_GUIDE.md` | 운영 secret 입력/ACL/검증 절차 |
 | `CaseLab_AI_PRD.md` | 제품 범위, MVP 우선순위 |
