@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
+set -Eeuo pipefail
+
 cd /opt/clueroom/app
 
-docker compose \
-  --env-file .env \
-  --env-file /opt/clueroom/secrets/env.d/ai.env \
-  --env-file /opt/clueroom/secrets/env.d/portone.env \
-  --env-file /opt/clueroom/secrets/env.d/oauth.env \
+exec docker compose \
   -f docker-compose.yml \
   -f docker-compose.bluegreen.yml \
   "$@"

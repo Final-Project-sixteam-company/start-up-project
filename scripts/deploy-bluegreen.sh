@@ -9,10 +9,6 @@ UPSTREAM_FILE="/etc/nginx/conf.d/clueroom-upstream.conf"
 SECRET_ENV_DIR="/opt/clueroom/secrets/env.d"
 
 COMPOSE_ARGS=(
-  --env-file "$APP_DIR/.env"
-  --env-file "$SECRET_ENV_DIR/ai.env"
-  --env-file "$SECRET_ENV_DIR/portone.env"
-  --env-file "$SECRET_ENV_DIR/oauth.env"
   -f "$APP_DIR/docker-compose.yml"
   -f "$APP_DIR/docker-compose.bluegreen.yml"
 )
@@ -114,8 +110,17 @@ for i in {1..20}; do
 
   if [ "$i" = "20" ]; then
     echo "ERROR: external health check failed"
-    echo "Rollback command:"
-    echo "sudo sed -i -E 's#127\\.0\\.0\\.1:808[12]#127.0.0.1:${ACTIVE_PORT}#g' $UPSTREAM_FILE && sudo nginx -t && sudo systemctl reload nginx"
+    echo "Rolling back Nginx upstream to ${ACTIVE_PORT}"
+    sudo sed -i -E "s#127\.0\.0\.1:808[12]#127.0.0.1:${ACTIVE_PORT}#g" "$UPSTREAM_FILE"
+    sudo nginx -t
+    sudo systemctl reload nginx
+
+    if curl -fsS "$HEALTH_URL" > /dev/null; then
+      echo "Rollback external health check success"
+    else
+      echo "WARNING: rollback completed, but external health check still fails"
+    fi
+
     exit 1
   fi
 
@@ -132,7 +137,7 @@ curl -I "$HEALTH_URL" 2>/dev/null | grep -i "X-ClueRoom-Upstream" || true
 
 echo ""
 echo "If everything is stable, you may stop the old service manually:"
-echo "docker compose --env-file $APP_DIR/.env --env-file $SECRET_ENV_DIR/ai.env --env-file $SECRET_ENV_DIR/portone.env --env-file $SECRET_ENV_DIR/oauth.env -f $APP_DIR/docker-compose.yml -f $APP_DIR/docker-compose.bluegreen.yml stop $OLD_SERVICE"
+echo "docker compose -f $APP_DIR/docker-compose.yml -f $APP_DIR/docker-compose.bluegreen.yml stop $OLD_SERVICE"
 
 echo ""
 echo "Rollback command:"
