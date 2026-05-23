@@ -5,6 +5,16 @@
 .idea
 out
 *.iml
+.env
+.env.*
+secrets
+*.pem
+*.key
+*.sql
+*.sql.gz
+*.tfstate
+*.tfstate.*
+*.tfvars
 
 src
 gradle
