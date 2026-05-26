@@ -6,14 +6,7 @@ services:
     image: clueroom-app-blue:latest
     container_name: start-up-app-blue
     env_file:
-      - path: .env
-        required: false
-      - path: /opt/clueroom/secrets/env.d/ai.env
-        required: false
-      - path: /opt/clueroom/secrets/env.d/portone.env
-        required: false
-      - path: /opt/clueroom/secrets/env.d/oauth.env
-        required: false
+      - ${CLUEROOM_RUNTIME_ENV_FILE:-.env.example}
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
@@ -40,14 +33,7 @@ services:
     image: clueroom-app-green:latest
     container_name: start-up-app-green
     env_file:
-      - path: .env
-        required: false
-      - path: /opt/clueroom/secrets/env.d/ai.env
-        required: false
-      - path: /opt/clueroom/secrets/env.d/portone.env
-        required: false
-      - path: /opt/clueroom/secrets/env.d/oauth.env
-        required: false
+      - ${CLUEROOM_RUNTIME_ENV_FILE:-.env.example}
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080

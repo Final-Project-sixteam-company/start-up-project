@@ -8,6 +8,20 @@ HEALTH_URL="https://api.clueroom.xyz/actuator/health"
 UPSTREAM_FILE="/etc/nginx/conf.d/clueroom-upstream.conf"
 SECRET_ENV_DIR="/opt/clueroom/secrets/env.d"
 LOCK_FILE="/tmp/clueroom-bluegreen-deploy.lock"
+RUNTIME_ENV_FILE=""
+SECRET_ENV_FILES=()
+
+cleanup() {
+  if [ -n "${RUNTIME_ENV_FILE:-}" ] && [ "$RUNTIME_ENV_FILE" != "$APP_DIR/.env" ]; then
+    rm -f "$RUNTIME_ENV_FILE"
+  fi
+
+  if [ -n "${UPSTREAM_BACKUP_FILE:-}" ]; then
+    rm -f "$UPSTREAM_BACKUP_FILE"
+  fi
+}
+
+trap cleanup EXIT
 
 echo "========================================"
 echo " ClueRoom Blue-Green Deploy Start"
@@ -50,8 +64,27 @@ add_optional_secret_env() {
     exit 1
   fi
 
-  COMPOSE_ARGS+=(--env-file "$env_file")
+  SECRET_ENV_FILES+=("$env_file")
   echo "Found readable secret env file: $env_file"
+}
+
+build_runtime_env_file() {
+  if [ "${#SECRET_ENV_FILES[@]}" -eq 0 ]; then
+    RUNTIME_ENV_FILE="$APP_DIR/.env"
+  else
+    RUNTIME_ENV_FILE="$(mktemp /tmp/clueroom-runtime-env.XXXXXX)"
+    cat "$APP_DIR/.env" > "$RUNTIME_ENV_FILE"
+
+    for secret_env in "${SECRET_ENV_FILES[@]}"; do
+      printf '\n' >> "$RUNTIME_ENV_FILE"
+      cat "$secret_env" >> "$RUNTIME_ENV_FILE"
+    done
+
+    chmod 600 "$RUNTIME_ENV_FILE"
+  fi
+
+  export CLUEROOM_RUNTIME_ENV_FILE="$RUNTIME_ENV_FILE"
+  echo "Using runtime env file: $RUNTIME_ENV_FILE"
 }
 
 restore_upstream_backup() {
@@ -100,6 +133,7 @@ echo "[1/9] Check secret env files"
 add_optional_secret_env "$SECRET_ENV_DIR/ai.env"
 add_optional_secret_env "$SECRET_ENV_DIR/portone.env"
 add_optional_secret_env "$SECRET_ENV_DIR/oauth.env"
+build_runtime_env_file
 
 COMPOSE_ARGS+=(
   -f "$APP_DIR/docker-compose.yml"

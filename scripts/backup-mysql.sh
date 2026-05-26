@@ -18,7 +18,78 @@ fi
 
 read_env_value() {
   local key="$1"
-  grep -E "^${key}=" "$ENV_FILE" | tail -n 1 | cut -d '=' -f2-
+  local line
+  local value
+
+  line="$(grep -E "^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*=" "$ENV_FILE" | tail -n 1 || true)"
+
+  if [ -z "$line" ]; then
+    return
+  fi
+
+  value="${line#*=}"
+  parse_env_value "$value"
+}
+
+parse_env_value() {
+  local raw="$1"
+  local out=""
+  local quote=""
+  local char
+  local next_char
+  local i
+
+  raw="${raw%$'\r'}"
+
+  for ((i = 0; i < ${#raw}; i++)); do
+    char="${raw:i:1}"
+
+    if [ "$quote" = '"' ] && [ "$char" = "\\" ]; then
+      if [ $((i + 1)) -lt "${#raw}" ]; then
+        next_char="${raw:i + 1:1}"
+
+        case "$next_char" in
+          '"' | "\\" | '$' | '`')
+            out+="$next_char"
+            i=$((i + 1))
+            ;;
+          *)
+            out+="$char"
+            ;;
+        esac
+      else
+        out+="$char"
+      fi
+
+      continue
+    fi
+
+    if [ -n "$quote" ]; then
+      if [ "$char" = "$quote" ]; then
+        quote=""
+      else
+        out+="$char"
+      fi
+      continue
+    fi
+
+    case "$char" in
+      "'" | '"')
+        quote="$char"
+        ;;
+      "#")
+        if [[ -z "$out" || "${out: -1}" =~ [[:space:]] ]]; then
+          break
+        fi
+        out+="$char"
+        ;;
+      *)
+        out+="$char"
+        ;;
+    esac
+  done
+
+  printf '%s' "$out" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'
 }
 
 DB_NAME="$(read_env_value DB_NAME)"
