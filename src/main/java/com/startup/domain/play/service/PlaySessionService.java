@@ -370,14 +370,10 @@ public class PlaySessionService {
                 .toList();
 
         for (Evidence evidence : timeBasedEvidences) {
-            unlockedEvidenceRepository.save(
-                    UnlockedEvidence.builder()
-                            .playSessionId(session.getId())
-                            .evidenceId(evidence.getId())
-                            .unlockedReason("TIME_BASED")
-                            .build()
-            );
-            log.info("시간 기반 증거 자동 해금: sessionId={}, evidenceId={}, elapsedMinutes={}",
+            unlockedEvidenceRepository.insertIgnoreUnlockedEvidence(
+                    session.getId(), evidence.getId(), "TIME_BASED");
+
+            log.info("시간 기반 증거 자동 해금 시도: sessionId={}, evidenceId={}, elapsedMinutes={}",
                     session.getId(), evidence.getId(), elapsedMinutes);
         }
     }
