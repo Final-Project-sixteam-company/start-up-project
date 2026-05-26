@@ -1,6 +1,6 @@
 # ClueRoom Infrastructure Strategy
 
-> 문서 목적: ClueRoom 프로젝트의 인프라 구성, 선택 이유, 운영 범위, 확장 계획, PoC 계획을 별도 정본으로 관리한다.  
+> 문서 목적: ClueRoom 프로젝트의 인프라 구성, 선택 이유, 운영 범위, 확장 계획, PoC 계획을 별도 정본으로 관리한다.
 > 기존 기획명 `CaseLab AI`는 레거시 명칭이며, 현재 서비스/도메인 기준 이름은 `ClueRoom`이다.
 
 ---
@@ -42,10 +42,13 @@ Firebase Cloud Messaging
 - Dynadot DNS: api.clueroom.xyz
 - AWS S3 이미지 저장소
 - Firebase Cloud Messaging 푸시 알림
-- deploy.sh 수동 배포 스크립트
+- Secret 분리 구조
+- deploy.sh Blue-Green 배포 스크립트
 - GitHub Actions CI/CD
 - MySQL 백업 스크립트
 - 로그 / 장애 대응 Runbook
+- Prometheus / Grafana 모니터링
+- Blue-Green 무중단 배포 PoC
 - 인프라 의사결정 ADR
 - 트래픽 증가 단계별 확장 계획
 ```
@@ -60,7 +63,7 @@ Firebase Cloud Messaging
 - 운영용 RDS / ElastiCache / ALB / ASG
 ```
 
-위 항목은 현재 트래픽과 비용을 고려하면 과설계로 판단한다.  
+위 항목은 현재 트래픽과 비용을 고려하면 과설계로 판단한다.
 다만 학습/검증 목적의 PoC로는 별도 구성할 수 있다.
 
 ---
@@ -206,7 +209,7 @@ DNS Record:
   Target: Lightsail Static IP
 ```
 
-현재 루트 도메인 `clueroom.xyz`는 사용하지 않는다.  
+현재 루트 도메인 `clueroom.xyz`는 사용하지 않는다.
 API 서버는 `api.clueroom.xyz`로 분리한다.
 
 ```text
@@ -258,7 +261,7 @@ Nginx
 Spring Boot App
 ```
 
-Spring Boot는 직접 HTTPS를 처리하지 않는다.  
+Spring Boot는 직접 HTTPS를 처리하지 않는다.
 SSL termination은 Nginx에서 수행한다.
 
 ### 4.4 Docker Compose
@@ -280,8 +283,18 @@ Docker Compose
   └─ redis
 ```
 
-Prometheus / Grafana는 로컬 또는 후순위 운영 항목으로 둔다.  
-2GB 서버에서 상시 운영하면 메모리 부담이 있을 수 있다.
+Blue-Green PoC 구조에서는 같은 MySQL/Redis를 공유하고 App 컨테이너만 분리한다.
+
+```text
+Docker Compose + Blue-Green overlay
+  ├─ app-blue  : 127.0.0.1:8081
+  ├─ app-green : 127.0.0.1:8082
+  ├─ mysql
+  └─ redis
+```
+
+Prometheus / Grafana는 actuator metric 확인용으로 구성했다.
+운영 서버에서는 외부에 직접 공개하지 않고 SSH 터널로 접근한다. 2GB 서버에서 상시 운영할지는 메모리 사용량을 기준으로 판단한다.
 
 ### 4.5 데이터베이스
 
@@ -425,48 +438,66 @@ pem private key
 Let's Encrypt private key
 ```
 
+운영 runtime secret은 서버의 `.env`와 `/opt/clueroom/secrets/env.d`에 둔다.
+
+```text
+/opt/clueroom/app/.env
+/opt/clueroom/secrets/env.d/ai.env
+/opt/clueroom/secrets/env.d/portone.env
+/opt/clueroom/secrets/env.d/oauth.env
+/opt/clueroom/secrets/firebase-service-account.json
+```
+
+GitHub Actions Secrets에는 배포 접속에 필요한 값만 둔다.
+
+```text
+LIGHTSAIL_HOST
+LIGHTSAIL_USER
+LIGHTSAIL_SSH_KEY
+```
+
+AI/PortOne/OAuth/Firebase/DB secret은 GitHub Actions 로그에 노출될 이유가 없으므로 서버 secret으로 관리한다.
+
 ### 5.3 이미지 보안
 
-S3는 Public Access Block을 유지한다.  
+S3는 Public Access Block을 유지한다.
 이미지 조회는 public URL 직접 노출보다 Presigned URL 또는 백엔드 제어 방식으로 확장한다.
 
 ---
 
 ## 6. 배포 전략
 
-### 6.1 현재 수동 배포
+### 6.1 현재 서버 배포
 
-현재 서버 배포 흐름:
+현재 운영 배포는 서버의 `/opt/clueroom/deploy.sh`로 수행한다.
 
 ```bash
 ssh clueroom
-cd /opt/clueroom/app
-git pull origin develop
-./gradlew clean bootJar
-docker compose up -d --build app
-curl -f https://api.clueroom.xyz/actuator/health
+/opt/clueroom/deploy.sh
 ```
 
-`git pull`은 서버 소스코드만 최신화한다.  
-실제 실행 중인 앱을 갱신하려면 `bootJar`와 `docker compose up -d --build app`이 필요하다.
+배포 스크립트는 현재 Nginx active upstream을 읽고 반대편 Blue/Green 컨테이너를 target으로 선택한다. target 컨테이너 health check가 성공한 뒤에만 Nginx upstream을 전환한다.
 
 ### 6.2 deploy.sh
 
-수동 배포 흐름이 안정화되면 `deploy.sh`로 묶는다.
-
-예정 작업:
+레포에는 서버 배치용 원본 스크립트를 둔다.
 
 ```text
-- git pull
-- bootJar
-- docker compose up -d --build app
-- health check
-- 실패 시 로그 출력
+scripts/deploy-bluegreen.sh
+scripts/bg-compose.sh
+docker-compose.bluegreen.yml
 ```
 
-### 6.3 CI/CD
+서버 배치 위치:
 
-CI/CD는 Phase 2 후반에 도입한다.
+```text
+/opt/clueroom/deploy.sh
+/opt/clueroom/bg-compose
+```
+
+이전 active service는 rollback용으로 남기며, 안정화 후 수동으로 중지한다.
+
+### 6.3 CI/CD
 
 #### CI
 
@@ -481,7 +512,7 @@ CI는 서버를 건드리지 않으므로 먼저 적용할 수 있다.
 
 #### CD
 
-초기에는 `workflow_dispatch` 수동 실행으로 시작한다.
+CD는 `workflow_dispatch` 수동 실행으로 시작한다.
 
 ```text
 GitHub Actions
@@ -491,7 +522,7 @@ Lightsail Server
 deploy.sh 실행
 ```
 
-이후 안정화되면 develop merge 시 자동 배포로 전환할 수 있다.
+CD workflow에는 서버 접속 secret만 둔다. runtime secret은 서버의 `.env`와 `/opt/clueroom/secrets`에서 읽는다. 이후 안정화되면 develop merge 시 자동 배포로 전환할 수 있다.
 
 ---
 
@@ -521,8 +552,7 @@ Green = 새 배포 버전
 
 ### 7.2 ClueRoom에서의 적용 계획
 
-MVP 운영에서는 Blue-Green을 필수 적용하지 않는다.  
-대신 학습/검증용 PoC로 수행할 수 있다.
+MVP 운영은 단일 Lightsail 서버를 유지한다. Blue-Green은 실제 멀티 서버 고가용성이 아니라, 같은 서버 안에서 무중단 배포 전환을 검증하는 PoC로 적용한다.
 
 단일 서버 PoC 구조:
 
@@ -536,6 +566,15 @@ Lightsail 단일 서버
 ```
 
 이 구조는 진짜 멀티 서버 고가용성은 아니지만, Nginx upstream 전환과 무중단 배포 개념을 검증하기에는 충분하다.
+
+전환 방식:
+
+```text
+active upstream 8081 -> target app-green/8082
+active upstream 8082 -> target app-blue/8081
+```
+
+target health check가 성공한 뒤에만 Nginx upstream을 바꾸고, 이전 active service는 rollback용으로 유지한다.
 
 ### 7.3 인증샷 포인트
 
@@ -564,7 +603,7 @@ Blue-Green은 같은 DB를 공유하므로 스키마 변경이 위험하다.
 
 ## 8. 트래픽 증가에 따른 확장 계획
 
-현재는 구체적인 사용자 수보다 “운영 징후”를 기준으로 확장한다.  
+현재는 구체적인 사용자 수보다 “운영 징후”를 기준으로 확장한다.
 아래 수치는 문서화를 위한 기준이며 실제 운영 지표에 따라 조정한다.
 
 ### Phase 1. MVP 운영
@@ -604,13 +643,14 @@ DAU 100~500
 소규모 외부 테스트
 ```
 
-추가 작업:
+완료 또는 고도화 대상:
 
 ```text
 - deploy.sh
 - GitHub Actions CI/CD
 - MySQL 백업 스크립트
 - 로그 Runbook
+- Prometheus / Grafana
 - S3 이미지 업로드 안정화
 - FCM 발송 로그
 - Redis rate limit / lock
@@ -639,6 +679,7 @@ Nginx upstream
 - 무중단 배포 PoC
 - 포트폴리오 인증샷
 - Nginx upstream 학습
+- 운영 배포 rollback 절차 검증
 ```
 
 ### Phase 4. DB / Redis 분리

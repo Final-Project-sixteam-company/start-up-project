@@ -40,6 +40,8 @@ out/
 ### Environment ###
 # 실제 secret이 들어갈 수 있는 env 파일은 항상 제외한다. 공유용 값은 .env.example에만 둔다.
 .env
+.env.*
+!.env.example
 .env.local
 .env.*.local
 secrets/
@@ -48,3 +50,25 @@ CLAUDE.local.md
 .review/
 scripts/review-snapshot.sh
 docs/REVIEW_SNAPSHOT_GUIDE.md
+
+# Runtime env / secrets
+*.pem
+*.key
+
+# Server-only docker compose override
+docker-compose.override.yml
+
+# Firebase / service account secrets
+firebase-service-account*.json
+**/firebase-service-account*.json
+
+# Database backups
+*.sql
+*.sql.gz
+
+# Terraform local state
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
