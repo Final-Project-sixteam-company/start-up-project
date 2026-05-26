@@ -74,7 +74,7 @@ public class PlaySessionService {
         try {
             // saveAndFlush로 즉시 DB에 반영 → active_key UNIQUE 제약 위반 즉시 캐치
             playSessionRepository.saveAndFlush(session);
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+        } catch (DataIntegrityViolationException e) {
             // 동시 요청 또는 이미 PLAYING 중인 세션 존재 시 처리
             throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
         }
@@ -276,6 +276,22 @@ public class PlaySessionService {
                         interrogationCountMap.getOrDefault(suspect.getId(), 0) //map에서 가져오고 없으면 0
                 ))
                 .toList();
+    }
+
+    // 최종 추리 완료 시 세션 상태 전환 (임시)
+    @Transactional
+    public void completeSession(Long sessionId, int score, String grade) {
+        PlaySession session = getSessionOrThrow(sessionId);
+        session.complete(score, grade); // active_key도 null로 초기화됨
+        log.info("세션 완료 처리: sessionId={}, score={}, grade={}", sessionId, score, grade);
+    }
+    // 유저가 게임을 포기할 때 (임시)
+    @Transactional
+    public void abandonSession(Long userId, Long sessionId) {
+        PlaySession session = getSessionOrThrow(sessionId);
+        validateSessionOwner(session, userId);
+        session.abandon(); // active_key도 null로 초기화됨
+        log.info("세션 포기 처리: sessionId={}", sessionId);
     }
 
     // ──────────────────────────────────────────────
