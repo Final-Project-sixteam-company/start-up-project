@@ -2,9 +2,25 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  # Docker 네트워크 안에서는 app 서비스명을 통해 Spring Boot actuator endpoint에 접근한다.
-  - job_name: start-up-app
+  - job_name: 'clueroom-app'
     metrics_path: /actuator/prometheus
     static_configs:
       - targets:
           - app:8080
+
+  - job_name: 'clueroom-app-blue'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - app-blue:8080
+
+  - job_name: 'clueroom-app-green'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - app-green:8080
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+          - localhost:9090
