@@ -1,5 +1,7 @@
 package com.startup.domain.play.service;
 
+import com.startup.common.error.BusinessException;
+import com.startup.common.error.CommonErrorCode;
 import com.startup.domain.ai.repository.InterrogationLogRepository;
 import com.startup.domain.play.dto.*;
 import com.startup.domain.play.entity.PlaySession;
@@ -138,6 +140,11 @@ public class PlaySessionService {
     // 증거 목록 조회 - 조회 시점에 시간 기반 자동 해금 처리후 반환
     @Transactional
     public List<PlayEvidenceResponse> getEvidences(Long userId, Long sessionId, Boolean includeLocked, String status) {
+        if (status != null && !status.trim().isEmpty() &&
+                !"unlocked".equalsIgnoreCase(status) && !"locked".equalsIgnoreCase(status)) {
+            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+
         PlaySession session = getSessionOrThrow(sessionId);
         validateSessionOwner(session, userId);
 
