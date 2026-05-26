@@ -13,7 +13,17 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "play_sessions")
+@Table(
+        name = "play_sessions",
+        uniqueConstraints = {
+                // NULL은 UNIQUE 충돌 안 함 → COMPLETED 세션이 여러 개여도 문제없음
+                // PLAYING 상태일 때만 "userId_scenarioId" 값이 들어가 중복 방지
+                @UniqueConstraint(
+                        name = "uk_play_sessions_active_key",
+                        columnNames = {"active_key"}
+                )
+        }
+    )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 // 사용자별 시나리오 플레이 진행 상태를 관리하는 Aggregate Root.
 // 증거 해금, 힌트 사용, 심문, 최종 추리는 모두 이 세션 기준으로 추적한다.
@@ -54,6 +64,10 @@ public class PlaySession extends BaseEntity {
     @Column(name = "interrogation_count", nullable = false)
     private Integer interrogationCount = 0; //심문 횟수
 
+    // PLAYING 상태일 때 "userId_scenarioId" 값 저장, 완료/포기 시 null로 초기화
+    @Column(name = "active_key", unique = true)
+    private String activeKey;
+
     @Builder
     private PlaySession(Long userId, Long scenarioId) {
         this.userId = userId;
@@ -64,6 +78,8 @@ public class PlaySession extends BaseEntity {
         this.score = 0;
         this.hintCount = 0;
         this.interrogationCount = 0;
+        // PLAYING 시작 시 active_key 설정
+        this.activeKey = userId + "_" + scenarioId;
     }
 
     public void incrementInterrogationCount() {
@@ -82,6 +98,7 @@ public class PlaySession extends BaseEntity {
         this.score = score;
         this.grade = grade;
         this.endedAt = LocalDateTime.now();
+        this.activeKey = null; // 완료 시 null로 초기화 → UNIQUE 제약에서 자유로워짐
     }
 
     public void abandon() {
@@ -90,6 +107,7 @@ public class PlaySession extends BaseEntity {
 
         this.status = PlaySessionStatus.ABANDONED;
         this.endedAt = LocalDateTime.now();
+        this.activeKey = null; // 포기 시 null로 초기화
     }
 
     public boolean isPlaying() {

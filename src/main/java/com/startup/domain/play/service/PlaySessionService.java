@@ -52,8 +52,8 @@ public class PlaySessionService {
     public PlaySessionCreateResponse createSession(Long userId, PlaySessionCreateRequest request) {
         Long scenarioId = request.scenarioId();
 
-        // 시나리오 존재 확인 - 동시성 방어를 위해 비관적 락을 걸고 시나리오를 조회
-        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+        // 시나리오 존재 확인
+        Scenario scenario = scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 접근 권한 확인
@@ -70,12 +70,19 @@ public class PlaySessionService {
                 .userId(userId)
                 .scenarioId(scenarioId)
                 .build();
-        playSessionRepository.save(session);
+
+        try {
+            // saveAndFlush로 즉시 DB에 반영 → active_key UNIQUE 제약 위반 즉시 캐치
+            playSessionRepository.saveAndFlush(session);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // 동시 요청 또는 이미 PLAYING 중인 세션 존재 시 처리
+            throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
+        }
 
         // 시나리오 플레이 카운트 증가
         scenarioRepository.incrementPlayCount(scenarioId);
 
-        // 초기 공개 증거(is_initial_public = true) 자동 해금
+        // 초기 공개 증거 자동 해금
         List<Evidence> initialEvidences = evidenceRepository.findAllByScenarioIdAndIsInitialPublicTrue(scenarioId);
         for (Evidence evidence : initialEvidences) {
             UnlockedEvidence unlocked = UnlockedEvidence.builder()

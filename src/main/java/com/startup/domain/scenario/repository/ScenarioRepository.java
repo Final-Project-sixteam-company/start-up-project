@@ -25,8 +25,4 @@ public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
     @Query("UPDATE Scenario s SET s.playCount = s.playCount + 1 WHERE s.id = :id")
     void incrementPlayCount(@Param("id") Long id);
 
-    // 세션 동시 생성 방지를 위한 비관적 락
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM Scenario s WHERE s.id = :id")
-    Optional<Scenario> findByIdForUpdate(@Param("id") Long id);
 }
