@@ -17,7 +17,7 @@ public interface UnlockedEvidenceRepository extends JpaRepository<UnlockedEviden
     boolean existsByPlaySessionIdAndEvidenceId(Long playSessionId, Long evidenceId);
 
     @Modifying
-    @Query(value = "INSERT IGNORE INTO unlocked_evidences (play_session_id, evidence_id, unlocked_reason, created_at, updated_at) " +
-            "VALUES (:sessionId, :evidenceId, :reason, NOW(), NOW())", nativeQuery = true)
+    @Query(value = "INSERT IGNORE INTO unlocked_evidences (play_session_id, evidence_id, unlocked_reason, unlocked_at) " +
+            "VALUES (:sessionId, :evidenceId, :reason, NOW())", nativeQuery = true)
     int insertIgnoreUnlockedEvidence(@Param("sessionId") Long sessionId, @Param("evidenceId") Long evidenceId, @Param("reason") String reason);
 }
