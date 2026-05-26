@@ -167,11 +167,11 @@ public class PlaySessionService {
         for (Evidence evidence : allEvidences) {
             boolean isUnlocked = unlockedEvidenceIds.contains(evidence.getId());
 
-            // status 필터: "unlocked"이면 해금된 것만
-            if ("unlocked".equalsIgnoreCase(status) && !isUnlocked) continue;
-
-            // includeLocked가 false(기본)이면 해금된 증거만 반환
-            if (!Boolean.TRUE.equals(includeLocked) && !"unlocked".equalsIgnoreCase(status) && !isUnlocked) continue;
+            // status 파라미터 필터링
+            if ("unlocked".equalsIgnoreCase(status) && !isUnlocked) continue; // unlocked 요청인데 미해금이면 스킵
+            if ("locked".equalsIgnoreCase(status) && isUnlocked) continue;    // locked 요청인데 해금됐으면 스킵
+            // status가 없을 때: includeLocked=false(기본)이면 해금된 증거만 반환
+            if (status == null && !Boolean.TRUE.equals(includeLocked) && !isUnlocked) continue;
 
             // 관련 용의자 정보 (해금된 증거만 표시)
             List<PlayEvidenceResponse.RelatedSuspectDto> relatedSuspects = new ArrayList<>();
