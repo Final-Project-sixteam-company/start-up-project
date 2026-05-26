@@ -7,10 +7,17 @@ BRANCH="develop"
 HEALTH_URL="https://api.clueroom.xyz/actuator/health"
 UPSTREAM_FILE="/etc/nginx/conf.d/clueroom-upstream.conf"
 SECRET_ENV_DIR="/opt/clueroom/secrets/env.d"
+LOCK_FILE="/tmp/clueroom-bluegreen-deploy.lock"
 
 echo "========================================"
 echo " ClueRoom Blue-Green Deploy Start"
 echo "========================================"
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "ERROR: another Blue-Green deploy is already running."
+  exit 1
+fi
 
 cd "$APP_DIR"
 
@@ -45,6 +52,25 @@ add_optional_secret_env() {
 
   COMPOSE_ARGS+=(--env-file "$env_file")
   echo "Found readable secret env file: $env_file"
+}
+
+restore_upstream_backup() {
+  local backup_file="$1"
+
+  if [ -f "$backup_file" ]; then
+    sudo cp "$backup_file" "$UPSTREAM_FILE"
+  else
+    sudo sed -i -E "s#127\.0\.0\.1:808[12]#127.0.0.1:${ACTIVE_PORT}#g" "$UPSTREAM_FILE"
+  fi
+}
+
+rollback_nginx_upstream() {
+  local backup_file="$1"
+
+  echo "Rolling back Nginx upstream to ${ACTIVE_PORT}"
+  restore_upstream_backup "$backup_file"
+  sudo nginx -t
+  sudo systemctl reload nginx
 }
 
 echo "[0/9] Detect active upstream"
@@ -115,9 +141,20 @@ for i in {1..40}; do
 done
 
 echo "[8/9] Switch Nginx upstream to $TARGET_PORT"
+UPSTREAM_BACKUP_FILE="$(mktemp /tmp/clueroom-upstream.XXXXXX.conf)"
+sudo cp "$UPSTREAM_FILE" "$UPSTREAM_BACKUP_FILE"
 sudo sed -i -E "s#127\.0\.0\.1:808[12]#127.0.0.1:${TARGET_PORT}#g" "$UPSTREAM_FILE"
-sudo nginx -t
-sudo systemctl reload nginx
+if ! sudo nginx -t; then
+  echo "ERROR: nginx config test failed after upstream switch"
+  rollback_nginx_upstream "$UPSTREAM_BACKUP_FILE"
+  exit 1
+fi
+
+if ! sudo systemctl reload nginx; then
+  echo "ERROR: nginx reload failed after upstream switch"
+  rollback_nginx_upstream "$UPSTREAM_BACKUP_FILE"
+  exit 1
+fi
 
 echo "[9/9] Check external health"
 for i in {1..20}; do
@@ -128,10 +165,7 @@ for i in {1..20}; do
 
   if [ "$i" = "20" ]; then
     echo "ERROR: external health check failed"
-    echo "Rolling back Nginx upstream to ${ACTIVE_PORT}"
-    sudo sed -i -E "s#127\.0\.0\.1:808[12]#127.0.0.1:${ACTIVE_PORT}#g" "$UPSTREAM_FILE"
-    sudo nginx -t
-    sudo systemctl reload nginx
+    rollback_nginx_upstream "$UPSTREAM_BACKUP_FILE"
 
     if curl -fsS "$HEALTH_URL" > /dev/null; then
       echo "Rollback external health check success"

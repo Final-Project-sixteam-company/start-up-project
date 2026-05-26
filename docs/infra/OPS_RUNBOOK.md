@@ -10,6 +10,8 @@ curl https://api.clueroom.xyz/actuator/health
 
 ## 2. Spring Boot App 로그 확인
 
+단일 app 모드:
+
 ```bash
 cd /opt/clueroom/app
 docker compose logs -f app
@@ -20,6 +22,20 @@ docker compose logs -f app
 ```bash
 cd /opt/clueroom/app
 docker compose logs --tail=120 app
+```
+
+Blue-Green 모드:
+
+```bash
+/opt/clueroom/bg-compose logs -f app-blue
+/opt/clueroom/bg-compose logs -f app-green
+```
+
+Blue-Green 최근 로그:
+
+```bash
+/opt/clueroom/bg-compose logs --tail=120 app-blue
+/opt/clueroom/bg-compose logs --tail=120 app-green
 ```
 
 ## 3. MySQL 로그 확인
@@ -100,8 +116,47 @@ docker system df
 
 ## 9. 배포
 
+레포 원본 스크립트를 서버 실행 위치로 배치한다.
+
+```bash
+cd /opt/clueroom/app
+git pull origin develop
+sudo cp scripts/deploy-bluegreen.sh /opt/clueroom/deploy.sh
+sudo cp scripts/bg-compose.sh /opt/clueroom/bg-compose
+sudo cp scripts/backup-mysql.sh /opt/clueroom/backup-mysql.sh
+sudo chmod +x /opt/clueroom/deploy.sh /opt/clueroom/bg-compose /opt/clueroom/backup-mysql.sh
+```
+
+배포 실행:
+
 ```bash
 /opt/clueroom/deploy.sh
+```
+
+Blue-Green 상태 확인:
+
+```bash
+curl -I https://api.clueroom.xyz/actuator/health
+cat /etc/nginx/conf.d/clueroom-upstream.conf
+/opt/clueroom/bg-compose ps
+```
+
+old service 정리는 현재 active upstream을 확인한 뒤 non-active만 중지한다.
+
+```bash
+cat /etc/nginx/conf.d/clueroom-upstream.conf
+```
+
+upstream이 `127.0.0.1:8081`이면 `app-blue`가 active이므로 `app-green`만 중지한다.
+
+```bash
+/opt/clueroom/bg-compose stop app-green
+```
+
+upstream이 `127.0.0.1:8082`이면 `app-green`이 active이므로 `app-blue`만 중지한다.
+
+```bash
+/opt/clueroom/bg-compose stop app-blue
 ```
 
 ## 10. MySQL 백업
@@ -134,7 +189,25 @@ tail -f /opt/clueroom/logs/mysql-backup.log
 6. mysql / redis 로그 확인
 7. 서버 메모리와 디스크 확인
 
-## 12. 주의사항
+## 12. Prometheus / Grafana 확인
+
+운영 서버에서는 외부에 직접 공개하지 않고 SSH 터널로 확인한다.
+
+```bash
+ssh -N -L 3000:localhost:3000 -L 9090:localhost:9090 clueroom
+```
+
+Blue-Green scrape target:
+
+```text
+app:8080
+app-blue:8080
+app-green:8080
+```
+
+standby app을 중지한 경우 `app-blue` 또는 `app-green` target이 `DOWN`으로 보일 수 있다. 단일 서버 Blue-Green PoC에서는 active app이 정상이고 외부 health check가 통과하면 정상 범위로 본다.
+
+## 13. 주의사항
 
 - `.env` 전체 내용을 출력하지 않는다.
 - AWS Secret Key, FCM service account JSON, DB password를 캡처하지 않는다.

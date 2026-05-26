@@ -384,6 +384,20 @@ ping
 
 운영 서버의 `/opt/clueroom/deploy.sh`는 Blue-Green 배포를 수행한다.
 
+레포 원본 스크립트를 서버 실행 위치로 배치한다.
+
+```bash
+ssh clueroom
+cd /opt/clueroom/app
+git pull origin develop
+sudo cp scripts/deploy-bluegreen.sh /opt/clueroom/deploy.sh
+sudo cp scripts/bg-compose.sh /opt/clueroom/bg-compose
+sudo cp scripts/backup-mysql.sh /opt/clueroom/backup-mysql.sh
+sudo chmod +x /opt/clueroom/deploy.sh /opt/clueroom/bg-compose /opt/clueroom/backup-mysql.sh
+```
+
+배포 실행:
+
 ```bash
 ssh clueroom
 /opt/clueroom/deploy.sh
@@ -512,11 +526,12 @@ http://localhost:3000
 Blue-Green target:
 
 ```text
+app:8080
 app-blue:8080
 app-green:8080
 ```
 
-standby app을 중지하면 Prometheus target이 `DOWN`으로 보일 수 있다.
+standby app을 중지하면 `app-blue` 또는 `app-green` target이 `DOWN`으로 보일 수 있다. 단일 서버 Blue-Green PoC에서는 active app과 외부 health check가 정상이라면 허용 가능한 상태다.
 
 ---
 
