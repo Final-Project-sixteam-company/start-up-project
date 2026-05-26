@@ -124,7 +124,16 @@ git pull origin develop
 sudo cp scripts/deploy-bluegreen.sh /opt/clueroom/deploy.sh
 sudo cp scripts/bg-compose.sh /opt/clueroom/bg-compose
 sudo cp scripts/backup-mysql.sh /opt/clueroom/backup-mysql.sh
-sudo chmod +x /opt/clueroom/deploy.sh /opt/clueroom/bg-compose /opt/clueroom/backup-mysql.sh
+sudo cp scripts/bg-status.sh /opt/clueroom/bg-status.sh
+sudo cp scripts/stop-standby.sh /opt/clueroom/stop-standby.sh
+sudo cp scripts/rollback-bluegreen.sh /opt/clueroom/rollback-bluegreen.sh
+sudo chmod +x \
+  /opt/clueroom/deploy.sh \
+  /opt/clueroom/bg-compose \
+  /opt/clueroom/backup-mysql.sh \
+  /opt/clueroom/bg-status.sh \
+  /opt/clueroom/stop-standby.sh \
+  /opt/clueroom/rollback-bluegreen.sh
 ```
 
 배포 실행:
@@ -136,28 +145,27 @@ sudo chmod +x /opt/clueroom/deploy.sh /opt/clueroom/bg-compose /opt/clueroom/bac
 Blue-Green 상태 확인:
 
 ```bash
-curl -I https://api.clueroom.xyz/actuator/health
-cat /etc/nginx/conf.d/clueroom-upstream.conf
-/opt/clueroom/bg-compose ps
+/opt/clueroom/bg-status.sh
 ```
 
-old service 정리는 현재 active upstream을 확인한 뒤 non-active만 중지한다.
+배포 성공 후 standby 정리:
 
 ```bash
-cat /etc/nginx/conf.d/clueroom-upstream.conf
+/opt/clueroom/stop-standby.sh
 ```
 
-upstream이 `127.0.0.1:8081`이면 `app-blue`가 active이므로 `app-green`만 중지한다.
+새 배포에 문제가 있을 때 이전 slot으로 rollback:
 
 ```bash
-/opt/clueroom/bg-compose stop app-green
+/opt/clueroom/rollback-bluegreen.sh
 ```
 
-upstream이 `127.0.0.1:8082`이면 `app-green`이 active이므로 `app-blue`만 중지한다.
+주의사항:
 
-```bash
-/opt/clueroom/bg-compose stop app-blue
-```
+- `stop-standby.sh`는 active slot을 자동 감지하고 active가 아닌 slot만 중지한다.
+- `rollback-bluegreen.sh`는 반대편 slot container가 기존에 존재할 때만 rollback한다.
+- rollback script는 target slot을 새로 build하지 않는다.
+- blue/green을 사람이 직접 판단해 stop하지 말고 helper script를 사용한다.
 
 ## 10. MySQL 백업
 
