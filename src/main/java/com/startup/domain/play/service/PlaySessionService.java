@@ -137,7 +137,7 @@ public class PlaySessionService {
 
     // 증거 목록 조회 - 조회 시점에 시간 기반 자동 해금 처리후 반환
     @Transactional
-    public List<PlayEvidenceResponse> getEvidences(Long userId, Long sessionId, Boolean includeLocked) {
+    public List<PlayEvidenceResponse> getEvidences(Long userId, Long sessionId) {
         PlaySession session = getSessionOrThrow(sessionId);
         validateSessionOwner(session, userId);
 
@@ -165,35 +165,26 @@ public class PlaySessionService {
 
         List<PlayEvidenceResponse> result = new ArrayList<>();
         for (Evidence evidence : allEvidences) {
-            boolean isUnlocked = unlockedEvidenceIds.contains(evidence.getId());
-
-            // includeLocked가 false(기본)이면 해금된 증거만 반환
-            if (!Boolean.TRUE.equals(includeLocked) && !isUnlocked) {
+            if (!unlockedEvidenceIds.contains(evidence.getId())){
                 continue;
             }
 
             // 관련 용의자 정보 (해금된 증거만 관련 용의자를 표시)
             List<PlayEvidenceResponse.RelatedSuspectDto> relatedSuspects = new ArrayList<>();
-            if (isUnlocked) {
-                List<EvidenceSuspect> relations = evidenceSuspectMap.getOrDefault(evidence.getId(), List.of());
-                for (EvidenceSuspect rel : relations) {
-                    String suspectName = suspectNameMap.getOrDefault(rel.getSuspectId(), "알 수 없음");
-                    relatedSuspects.add(new PlayEvidenceResponse.RelatedSuspectDto(rel.getSuspectId(), suspectName));
-                }
+            List<EvidenceSuspect> relations = evidenceSuspectMap.getOrDefault(evidence.getId(), List.of());
+            for (EvidenceSuspect rel : relations) {
+                String suspectName = suspectNameMap.getOrDefault(rel.getSuspectId(), "알 수 없음");
+                relatedSuspects.add(new PlayEvidenceResponse.RelatedSuspectDto(rel.getSuspectId(), suspectName));
             }
-
-            // 미해금 증거는 설명을 숨기고 힌트만 표시
-            String description = isUnlocked ? evidence.getDescription() : null;
-            String unlockHint = isUnlocked ? null : buildUnlockHint(evidence);
 
             result.add(new PlayEvidenceResponse(
                     evidence.getId(),
                     evidence.getTitle(),
-                    description,
-                    isUnlocked ? locationNameMap.get(evidence.getLocationId()) : null,
+                    evidence.getDescription(),
+                    locationNameMap.get(evidence.getLocationId()),
                     evidence.getImportance(),
-                    isUnlocked,
-                    unlockHint,
+                    true,
+                    null,
                     relatedSuspects.isEmpty() ? null : relatedSuspects
             ));
         }
