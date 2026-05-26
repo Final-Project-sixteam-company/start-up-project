@@ -20,6 +20,7 @@ import com.startup.domain.scenario.repository.*;
 import com.startup.domain.scenario.service.ScenarioAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,8 +60,6 @@ public class PlaySessionService {
         scenarioAccessService.validatePlayable(userId, scenarioId);
 
         // 이미 진행 중인 세션이 있는지 확인
-        // TODO: 동시 요청 시 두 요청 모두 "없음"으로 판단해 PLAYING 세션이 2개 생길 수 있다.
-        //play_sessions(user_id, scenario_id, status) unique 제약 또는 낙관적 락(@Version) 도입을 검토해야 한다.
         playSessionRepository.findByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING)
                 .ifPresent(existing -> {
                     throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
@@ -71,7 +70,14 @@ public class PlaySessionService {
                 .userId(userId)
                 .scenarioId(scenarioId)
                 .build();
-        playSessionRepository.save(session);
+
+        try{
+            //flush를 호출하여 트랜잭션 종료 전 즉시 쿼리를 날려 Unique Constraint 위반을 캐치함
+            playSessionRepository.saveAndFlush(session);
+        } catch (DataIntegrityViolationException e) {
+            // DB 제약조건 위반 에러가 발생하면, 동시에 요청이 들어온 것으로 간주하고 예외 처리
+            throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
+        }
 
         // 시나리오 플레이 카운트 증가
         scenarioRepository.incrementPlayCount(scenarioId);
