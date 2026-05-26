@@ -44,10 +44,12 @@ public class PlaySessionController {
     @Operation(summary = "현재 해금된 증거 목록 조회")
     @GetMapping("/{sessionId}/evidences")
     public ResponseEntity<ApiResponse<List<PlayEvidenceResponse>>> getEvidences(
-            @PathVariable Long sessionId
+            @PathVariable Long sessionId,
+            @RequestParam(required = false, defaultValue = "false") Boolean includeLocked,
+            @RequestParam(required = false) String status
     ) {
         Long userId = mockUserProvider.currentUserId();
-        List<PlayEvidenceResponse> response = playSessionService.getEvidences(userId, sessionId);
+        List<PlayEvidenceResponse> response = playSessionService.getEvidences(userId, sessionId, includeLocked, status);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

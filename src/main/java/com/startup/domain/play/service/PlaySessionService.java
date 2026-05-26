@@ -130,7 +130,7 @@ public class PlaySessionService {
 
     // 증거 목록 조회 - 조회 시점에 시간 기반 자동 해금 처리후 반환
     @Transactional
-    public List<PlayEvidenceResponse> getEvidences(Long userId, Long sessionId) {
+    public List<PlayEvidenceResponse> getEvidences(Long userId, Long sessionId, Boolean includeLocked, String status) {
         PlaySession session = getSessionOrThrow(sessionId);
         validateSessionOwner(session, userId);
 
@@ -158,26 +158,37 @@ public class PlaySessionService {
 
         List<PlayEvidenceResponse> result = new ArrayList<>();
         for (Evidence evidence : allEvidences) {
-            if (!unlockedEvidenceIds.contains(evidence.getId())){
-                continue;
+            boolean isUnlocked = unlockedEvidenceIds.contains(evidence.getId());
+
+            // status 필터: "unlocked"이면 해금된 것만
+            if ("unlocked".equalsIgnoreCase(status) && !isUnlocked) continue;
+
+            // includeLocked가 false(기본)이면 해금된 증거만 반환
+            if (!Boolean.TRUE.equals(includeLocked) && !"unlocked".equalsIgnoreCase(status) && !isUnlocked) continue;
+
+            // 관련 용의자 정보 (해금된 증거만 표시)
+            List<PlayEvidenceResponse.RelatedSuspectDto> relatedSuspects = new ArrayList<>();
+            if(isUnlocked) {
+                List<EvidenceSuspect> relations = evidenceSuspectMap.getOrDefault(evidence.getId(), List.of());
+                for (EvidenceSuspect rel : relations) {
+                    String suspectName = suspectNameMap.getOrDefault(rel.getSuspectId(), "알 수 없음");
+                    relatedSuspects.add(new PlayEvidenceResponse.RelatedSuspectDto(rel.getSuspectId(), suspectName));
+                }
             }
 
-            // 관련 용의자 정보 (해금된 증거만 관련 용의자를 표시)
-            List<PlayEvidenceResponse.RelatedSuspectDto> relatedSuspects = new ArrayList<>();
-            List<EvidenceSuspect> relations = evidenceSuspectMap.getOrDefault(evidence.getId(), List.of());
-            for (EvidenceSuspect rel : relations) {
-                String suspectName = suspectNameMap.getOrDefault(rel.getSuspectId(), "알 수 없음");
-                relatedSuspects.add(new PlayEvidenceResponse.RelatedSuspectDto(rel.getSuspectId(), suspectName));
-            }
+            // 미해금 증거는 description, locationName 마스킹
+            String description = isUnlocked ? evidence.getDescription() : null;
+            String locationName = isUnlocked ? locationNameMap.get(evidence.getLocationId()) : null;
+            String unlockHint = isUnlocked ? null : buildUnlockHint(evidence);
 
             result.add(new PlayEvidenceResponse(
                     evidence.getId(),
                     evidence.getTitle(),
-                    evidence.getDescription(),
-                    locationNameMap.get(evidence.getLocationId()),
+                    description,
+                    locationName,
                     evidence.getImportance(),
-                    true,
-                    null,
+                    isUnlocked,
+                    unlockHint,
                     relatedSuspects.isEmpty() ? null : relatedSuspects
             ));
         }
