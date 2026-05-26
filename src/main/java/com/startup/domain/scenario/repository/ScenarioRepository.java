@@ -3,14 +3,17 @@ package com.startup.domain.scenario.repository;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.enums.ScenarioVisibility;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
     
@@ -21,4 +24,9 @@ public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Scenario s SET s.playCount = s.playCount + 1 WHERE s.id = :id")
     void incrementPlayCount(@Param("id") Long id);
+
+    // 세션 동시 생성 방지를 위한 비관적 락
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Scenario s WHERE s.id = :id")
+    Optional<Scenario> findByIdForUpdate(@Param("id") Long id);
 }

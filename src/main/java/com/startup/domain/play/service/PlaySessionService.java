@@ -52,8 +52,8 @@ public class PlaySessionService {
     public PlaySessionCreateResponse createSession(Long userId, PlaySessionCreateRequest request) {
         Long scenarioId = request.scenarioId();
 
-        // 시나리오 존재 확인
-        Scenario scenario = scenarioRepository.findById(scenarioId)
+        // 시나리오 존재 확인 - 동시성 방어를 위해 비관적 락을 걸고 시나리오를 조회
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 접근 권한 확인
@@ -70,14 +70,7 @@ public class PlaySessionService {
                 .userId(userId)
                 .scenarioId(scenarioId)
                 .build();
-
-        try{
-            //flush를 호출하여 트랜잭션 종료 전 즉시 쿼리를 날려 Unique Constraint 위반을 캐치함
-            playSessionRepository.saveAndFlush(session);
-        } catch (DataIntegrityViolationException e) {
-            // DB 제약조건 위반 에러가 발생하면, 동시에 요청이 들어온 것으로 간주하고 예외 처리
-            throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
-        }
+        playSessionRepository.save(session);
 
         // 시나리오 플레이 카운트 증가
         scenarioRepository.incrementPlayCount(scenarioId);

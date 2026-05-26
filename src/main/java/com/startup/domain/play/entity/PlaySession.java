@@ -13,14 +13,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(
-        name = "play_sessions",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_play_sessions_user_scenario_status",
-                        columnNames = {"user_id", "scenario_id", "status"}
-                )
-})
+@Table(name = "play_sessions")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 // 사용자별 시나리오 플레이 진행 상태를 관리하는 Aggregate Root.
 // 증거 해금, 힌트 사용, 심문, 최종 추리는 모두 이 세션 기준으로 추적한다.
