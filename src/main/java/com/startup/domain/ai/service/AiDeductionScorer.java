@@ -121,7 +121,7 @@ public class AiDeductionScorer {
                     true,
                     submittedAt
             );
-        } catch (AiException e) {
+        } catch (BusinessException e) {
             if (locked) {
                 releaseLockQuietly(sessionId);
             }
