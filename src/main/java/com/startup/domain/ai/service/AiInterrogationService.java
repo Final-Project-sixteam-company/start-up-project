@@ -1,5 +1,6 @@
 package com.startup.domain.ai.service;
 
+import com.startup.common.auth.MockUserProvider;
 import com.startup.domain.ai.client.AiClient;
 import com.startup.domain.ai.client.AiRequestParams;
 import com.startup.domain.ai.client.MockResponseProvider;
@@ -35,6 +36,7 @@ public class AiInterrogationService {
     private final InterrogationLogRepository interrogationLogRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final TimeEvidenceUnlockSyncer timeEvidenceUnlockSyncer;
+    private final MockUserProvider mockUserProvider;
 
     @Value("${caselab.ai.interrogation.temperature:0.3}")
     private double temperature;
@@ -44,7 +46,7 @@ public class AiInterrogationService {
 
     public InterrogationResponse interrogate(Long sessionId, InterrogationRequest request) {
         // readOnly 트랜잭션 시작 전에 시간 해금 동기화 (REPEATABLE READ 대응)
-        timeEvidenceUnlockSyncer.sync(sessionId);
+        timeEvidenceUnlockSyncer.sync(sessionId, mockUserProvider.currentUserId());
 
         // 1. 데이터 조회 (readOnly 트랜잭션 — InterrogationContextLoader)
         InterrogationContext context = contextLoader.load(

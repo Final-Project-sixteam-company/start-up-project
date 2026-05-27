@@ -22,8 +22,12 @@ public class TimeEvidenceUnlockSyncer {
 
     // REQUIRES_NEW: 외부 readOnly 트랜잭션과 분리된 쓰기 트랜잭션으로 실행
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void sync(Long sessionId) {
+    public void sync(Long sessionId, Long currentUserId) {
         playSessionRepository.findById(sessionId).ifPresent(session -> {
+            //소유자 검증 + playing 상태 확인 후 동기화
+            if (!session.isPlaying()) return;
+            if (!session.getUserId().equals(currentUserId)) return;
+
             int elapsedMinutes = (int) Duration.between(session.getStartedAt(), LocalDateTime.now()).toMinutes();
             evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
                     .stream()
