@@ -140,9 +140,13 @@ public class PlaySessionService {
     // 증거 목록 조회 - 조회 시점에 시간 기반 자동 해금 처리후 반환
     @Transactional
     public List<PlayEvidenceResponse> getEvidences(Long userId, Long sessionId, Boolean includeLocked, String status) {
-        if (status != null && !status.trim().isEmpty() &&
-                !"unlocked".equalsIgnoreCase(status) && !"locked".equalsIgnoreCase(status)) {
-            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+
+        if (status != null) {
+            if (status.trim().isEmpty()) {
+                status = null; // 빈 문자열은 null로 취급하여 기본 로직을 타게 함
+            } else if (!"unlocked".equalsIgnoreCase(status) && !"locked".equalsIgnoreCase(status)) {
+                throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE); // 이상한 문자열은 400 에러
+            }
         }
 
         PlaySession session = getSessionOrThrow(sessionId);
