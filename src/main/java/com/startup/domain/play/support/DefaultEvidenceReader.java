@@ -25,9 +25,6 @@ public class DefaultEvidenceReader implements EvidenceReader {
 
     @Override
     public List<Long> getUnlockedEvidenceIds(Long sessionId) {
-        //읽기 전에 시간 해금 동기화
-        timeEvidenceUnlockSyncer.sync(sessionId);
-
         return unlockedEvidenceRepository.findAllByPlaySessionId(sessionId)
                 .stream()
                 .map(unlocked -> unlocked.getEvidenceId())

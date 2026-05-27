@@ -13,6 +13,7 @@ import com.startup.domain.ai.prompt.AiPromptBuilder;
 import com.startup.domain.ai.repository.InterrogationLogRepository;
 import com.startup.domain.ai.support.InterrogationContextLoader;
 import com.startup.domain.ai.support.InterrogationLogWriter;
+import com.startup.domain.play.service.TimeEvidenceUnlockSyncer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,7 @@ public class AiInterrogationService {
     private final InterrogationLogWriter logWriter;
     private final InterrogationLogRepository interrogationLogRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final TimeEvidenceUnlockSyncer timeEvidenceUnlockSyncer;
 
     @Value("${caselab.ai.interrogation.temperature:0.3}")
     private double temperature;
@@ -41,6 +43,9 @@ public class AiInterrogationService {
     private int maxTokens;
 
     public InterrogationResponse interrogate(Long sessionId, InterrogationRequest request) {
+        // readOnly 트랜잭션 시작 전에 시간 해금 동기화 (REPEATABLE READ 대응)
+        timeEvidenceUnlockSyncer.sync(sessionId);
+
         // 1. 데이터 조회 (readOnly 트랜잭션 — InterrogationContextLoader)
         InterrogationContext context = contextLoader.load(
                 sessionId, request.suspectId(), request.presentedEvidenceId());
