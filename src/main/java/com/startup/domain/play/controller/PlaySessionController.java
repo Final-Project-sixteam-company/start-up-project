@@ -72,4 +72,6 @@ public class PlaySessionController {
         List<PlayHintResponse> response = playSessionService.getHints(userId, sessionId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    // TODO: 힌트 사용 /hints/{hintId}/use는 후속 구현 예정
 }
