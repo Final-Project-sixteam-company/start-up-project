@@ -5,10 +5,17 @@ set -Eeuo pipefail
 UPSTREAM_FILE="/etc/nginx/conf.d/clueroom-upstream.conf"
 HEALTH_URL="https://api.clueroom.xyz/actuator/health"
 BG_COMPOSE="/opt/clueroom/bg-compose"
+LOCK_FILE="/tmp/clueroom-bluegreen-deploy.lock"
 
 echo "========================================"
 echo " ClueRoom Stop Standby Slot"
 echo "========================================"
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "ERROR: another Blue-Green operation is already running."
+  exit 1
+fi
 
 if [ ! -f "$UPSTREAM_FILE" ]; then
   echo "ERROR: upstream file not found: $UPSTREAM_FILE"
