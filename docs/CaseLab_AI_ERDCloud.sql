@@ -278,6 +278,7 @@ CREATE TABLE play_sessions (
     grade VARCHAR(20) NULL,
     hint_count INT NOT NULL DEFAULT 0,
     interrogation_count INT NOT NULL DEFAULT 0,
+    active_key VARCHAR(255) NULL UNIQUE,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),
