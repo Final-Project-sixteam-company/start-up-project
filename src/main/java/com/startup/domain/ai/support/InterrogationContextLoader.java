@@ -45,7 +45,8 @@ public class InterrogationContextLoader {
             throw new BusinessException(CommonErrorCode.ACCESS_DENIED);
         }
 
-        SuspectProfile suspect = suspectReader.findById(suspectId);
+        Long scenarioId = playSessionReader.getScenarioId(sessionId);
+        SuspectProfile suspect = suspectReader.findByIdAndScenarioId(suspectId, scenarioId);
 
         List<Long> unlockedEvidenceIds = evidenceReader.getUnlockedEvidenceIds(sessionId);
         List<EvidenceInfo> revealedEvidences = evidenceReader.getUnlockedEvidences(sessionId);

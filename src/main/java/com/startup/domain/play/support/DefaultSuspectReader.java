@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 public class DefaultSuspectReader implements SuspectReader {
 
     private final SuspectRepository suspectRepository;
+
     @Override
     public SuspectProfile findById(Long suspectId) {
         return suspectRepository.findById(suspectId)
@@ -29,4 +30,21 @@ public class DefaultSuspectReader implements SuspectReader {
                 ))
                 .orElseThrow(() -> new AiException(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
     }
+
+    @Override
+    public SuspectProfile findByIdAndScenarioId(Long suspectId, Long scenarioId) {
+        return suspectRepository.findByIdAndScenarioId(suspectId, scenarioId)
+                .map(suspect -> new SuspectProfile(
+                        suspect.getId(),
+                        suspect.getName(),
+                        suspect.getRole(),
+                        suspect.getRelationToVictim(),
+                        suspect.getPublicProfile(),
+                        suspect.getPublicStatement(),
+                        suspect.getAlibi()
+                ))
+                .orElseThrow(() -> new AiException(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
+    }
+
+
 }
