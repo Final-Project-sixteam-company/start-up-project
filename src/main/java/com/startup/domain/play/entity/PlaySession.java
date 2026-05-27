@@ -113,4 +113,13 @@ public class PlaySession extends BaseEntity {
     public boolean isPlaying() {
         return this.status == PlaySessionStatus.PLAYING;
     }
+
+    // PlaySessionCompleter 인터페이스가 score/grade를 받지 않으므로, 세션 상태 전환과 active_key 해제만 처리하는 전용 메서드.
+    // 실제 score/grade는 FinalDeduction 테이블에 저장된다.
+    public void markCompleted() {
+        this.currentElapsedSeconds = (int) Duration.between(this.startedAt, LocalDateTime.now()).getSeconds();
+        this.status = PlaySessionStatus.COMPLETED;
+        this.endedAt = LocalDateTime.now();
+        this.activeKey = null; // UNIQUE 제약 해제 → 재플레이 허용
+    }
 }
