@@ -1,9 +1,10 @@
-package com.startup.domain.play.service;
+package com.startup.domain.play.support;
 
 import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.support.PlaySessionCompleter;
 import com.startup.domain.play.repository.PlaySessionRepository;
+import com.startup.domain.play.service.PlaySessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
