@@ -2,6 +2,7 @@ package com.startup.domain.play.service;
 
 import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
+import com.startup.domain.scenario.enums.EvidenceUnlockType;
 import com.startup.domain.scenario.repository.EvidenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,8 +27,10 @@ public class TimeEvidenceUnlockSyncer {
             int elapsedMinutes = (int) Duration.between(session.getStartedAt(), LocalDateTime.now()).toMinutes();
             evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
                     .stream()
-                    .filter(e -> e.getUnlockAfterMinutes() != null
-                            && elapsedMinutes >= e.getUnlockAfterMinutes())
+                    .filter(e -> !e.getIsInitialPublic())
+                    .filter(e -> EvidenceUnlockType.TIME == e.getUnlockType())
+                    .filter(e -> e.getUnlockAfterMinutes() != null)
+                    .filter(e -> elapsedMinutes >= e.getUnlockAfterMinutes())
                     .forEach(e -> unlockedEvidenceRepository
                             .insertIgnoreUnlockedEvidence(sessionId, e.getId(), "TIME"));
         });
