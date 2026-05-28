@@ -344,7 +344,8 @@ CD 성공 후에는 아래를 실행한다.
 3. active가 app-green이면 app-blue만 stop
 4. stop 전 외부 health check
 5. stop 후 외부 health check
-6. 이상이 있으면 경고와 복구 명령 출력
+6. 이상이 있으면 방금 stop한 service를 다시 start
+7. 복구 후 외부 health check
 ```
 
 ### 수동으로 standby를 끄지 않는 이유

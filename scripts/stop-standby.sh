@@ -68,8 +68,22 @@ echo ""
 echo "[3/3] Check external health after stopping standby"
 if ! curl -fsS --max-time 10 "$HEALTH_URL" > /dev/null; then
   echo "ERROR: external health failed after stopping standby."
-  echo "Try starting standby again:"
-  echo "$BG_COMPOSE start $STANDBY_SERVICE"
+  echo "Starting stopped service again for automatic recovery: $STANDBY_SERVICE"
+  "$BG_COMPOSE" start "$STANDBY_SERVICE"
+
+  echo "Waiting for external health after recovery start"
+  for attempt in 1 2 3 4 5 6; do
+    if curl -fsS --max-time 10 "$HEALTH_URL" > /dev/null; then
+      echo "Recovery health OK. The standby cleanup was not completed."
+      exit 1
+    fi
+    echo "Recovery health not ready yet ($attempt/6)."
+    sleep 5
+  done
+
+  echo "ERROR: recovery start did not restore external health."
+  echo "Check services manually:"
+  echo "$BG_COMPOSE ps"
   exit 1
 fi
 
