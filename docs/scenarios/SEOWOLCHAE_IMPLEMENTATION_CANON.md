@@ -46,7 +46,7 @@ P1 반영:
 7. 케어매니저 오답 피드백 문구 추가
 8. Doctor Variant의 수정된 야간 처방 메모 playerText 보강
 9. Wearable Vital Log 해금 조건의 MVP 단순화 정책 추가
-10. AI Prompt Spec에서 RAG식 evidenceReactionPolicy 주입 권장
+10. NPC Policy Source에서 evidenceReactionPolicy를 Resolver 입력으로만 사용하고, 프롬프트에는 allowedFacts만 주입하도록 정리
 ```
 
 ---
@@ -839,36 +839,51 @@ evidenceRoleByVariant 전체
 다른 NPC의 hiddenAction 전체
 ```
 
-### 10-2. AI에게 줄 수 있는 것
+### 10-2. 프롬프트 전달 정보와 백엔드 내부 정보 분리
+
+AI NPC 심문 프롬프트에 직접 전달 가능한 정보는 `docs/AI_NPC_PROMPT_POLICY.md` 6~7장을 따른다.
 
 ```text
-characterProfile
-publicAlibi
-hiddenSelfAction
-directKnowledge
-inferredKnowledge
-forbiddenKnowledge
-evidenceReactionPolicy
-stageResponsePolicy
-```
-
-#### AI 프롬프트 토큰 최적화 정책
-
-AI 심문 프롬프트에는 25개 증거의 모든 반응 정책을 한 번에 넣지 않는다.
-
-```text
-기본 프롬프트:
-- characterProfile
+AI 프롬프트에 전달 가능:
+- characterPublicProfile
 - publicAlibi
+- 현재 해금된 증거 중 질문/제시 증거와 관련된 요약
+- 사용자가 제시한 증거 요약
+- ResponsePolicyResolver가 결정한 policyText / allowedFacts / tone
+- 사용자 질문
+
+백엔드 내부 판정용이며 프롬프트 직접 전달 금지:
 - hiddenSelfAction
 - directKnowledge
 - inferredKnowledge
 - forbiddenKnowledge
-- stageResponsePolicy
+- evidenceReactionPolicy 전체
+- stageResponsePolicy 전체
+```
+
+`hiddenSelfAction`은 해당 NPC 자신의 숨은 행동이더라도 프롬프트에 넣지 않는다.  
+`directKnowledge`와 `inferredKnowledge`는 ResponsePolicyResolver가 답변 가능 여부를 판정하기 위한 내부 원천 데이터다. 이 중 현재 공개/해금 상태와 답변 정책상 말해도 되는 사실만 `allowedFacts`로 변환해 전달한다.
+
+`forbiddenKnowledge`는 프롬프트 입력값이 아니라 금칙어/정답 누설 검증과 policy 선택에만 사용한다. AI에게 "이 비밀을 말하지 마라"라고 구체적 비밀을 넣지 않는다.
+
+#### AI 프롬프트 토큰 최적화 정책
+
+AI 심문 프롬프트에는 25개 증거의 모든 반응 정책을 한 번에 넣지 않는다. 프롬프트 조립은 항상 ResponsePolicyResolver를 통과한 뒤 수행한다.
+
+```text
+기본 프롬프트:
+- characterPublicProfile
+- publicAlibi
+- 현재 해금 증거 요약
+- 사용자 질문
+- resolved policyText
+- resolved allowedFacts
+- resolved tone
 
 증거 제시 시 동적 주입:
 - 플레이어가 특정 evidenceCode를 제시한 경우에만
-  해당 evidenceCode에 연결된 evidenceReactionPolicy를 추가한다.
+  해당 evidenceCode와 현재 해금 상태를 ResponsePolicyResolver에 넘긴다.
+- Resolver가 선택한 증거 반응 정책 중 공개 가능한 allowedFacts만 프롬프트에 추가한다.
 ```
 
 즉, RAG 또는 동적 프롬프트 조립 방식으로 구현한다.
@@ -880,10 +895,13 @@ AI 심문 프롬프트에는 25개 증거의 모든 반응 정책을 한 번에 
 
 권장:
 - NPC 기본 성격 + 현재 질문 + 제시된 증거 관련 반응 정책만 주입
+- raw policy가 아니라 Resolver가 산출한 policyText / allowedFacts / tone만 주입
 - 응답 후 금칙어/정답 누설 검증
 ```
 
 ### 10-3. DIRECT / INFERRED 규칙
+
+아래 구분은 백엔드 내부 지식 분류다. AI 프롬프트에는 `DIRECT`, `INFERRED` 라벨이나 원본 secret fact를 그대로 넣지 않고, Resolver가 허용한 공개 가능 문장만 넣는다.
 
 ```yaml
 DIRECT:
@@ -1251,7 +1269,7 @@ Fallback MVP Plan:
 [ ] DOCTOR의 NIGHT_MEDICATION_SNOOZE_LOG / CARE_CALL_PANEL_LOG가 SUPPORT_PROOF 보조 증거로 처리되는가?
 [ ] AI 프롬프트에서 activeVariant와 culpritCode가 빠져 있는가?
 [ ] NPC 지식은 DIRECT/INFERRED/FORBIDDEN으로 나뉘는가?
-[ ] evidenceReactionPolicy가 RAG/동적 주입 방식으로 들어가는가?
+[ ] evidenceReactionPolicy 원본이 아니라 Resolver가 산출한 allowedFacts / policyText / tone만 프롬프트에 들어가는가?
 [ ] 최종 추리 채점이 proof dimension 기반으로 작동하는가?
 [ ] Android 증거 UI에 카테고리/장소/최근 해금 필터가 있는가?
 [ ] Phase 내부명 대신 자연어 UI명이 사용되는가?
@@ -1283,24 +1301,24 @@ fileName: SEOWOLCHAE_SEED_SPEC_v1.md
 - unlock policies seed
 ```
 
-### 16-2. NPC Prompt Spec
+### 16-2. NPC Policy Source Spec
 
 ```text
-fileName: SEOWOLCHAE_NPC_PROMPT_SPEC_v1.md
+fileName: SEOWOLCHAE_NPC_POLICY_SOURCE_SPEC_v1.md
 
 구성:
-- 공통 시스템 프롬프트
 - NPC별 characterProfile
 - NPC별 publicAlibi
-- NPC별 hiddenSelfAction
-- NPC별 directKnowledge
-- NPC별 inferredKnowledge
-- NPC별 forbiddenKnowledge
-- stageResponsePolicy
-- evidenceReactionPolicy
+- NPC별 hiddenSelfAction (백엔드 내부 판정용, 프롬프트 직접 전달 금지)
+- NPC별 directKnowledge (백엔드 내부 판정용, Resolver가 allowedFacts로 변환할 때만 사용)
+- NPC별 inferredKnowledge (백엔드 내부 판정용, Resolver가 allowedFacts로 변환할 때만 사용)
+- NPC별 forbiddenKnowledge (금칙어/누설 검증용, 프롬프트 직접 전달 금지)
+- stageResponsePolicy (Resolver 입력)
+- evidenceReactionPolicy (Resolver 입력)
+- resolved policyText / allowedFacts / tone 생성 규칙
 - output JSON format
 - 정답 누설 검증 규칙
-- RAG/동적 evidenceReactionPolicy 주입 규칙
+- RAG/동적 evidence context 조회 후 Resolver를 거쳐 공개 가능한 allowedFacts만 주입하는 규칙
 ```
 
 ### 16-3. Scoring Criteria JSON
