@@ -1,5 +1,7 @@
 package com.startup.domain.play.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 힌트 목록 조회 응답 DTO
  * @param content : 힌트를 실제 사용(/hints/{hintId}/use) 후에만 반환
@@ -9,10 +11,14 @@ package com.startup.domain.play.dto;
 public record PlayHintResponse(
         Long hintId,
         Integer hintLevel,
-        String content,           // isAvailable && isUsed 일 때만 값이 있고, 나머지는 null
-        Boolean isAvailable,      // 현재 경과 시간 기준으로 해금 가능 여부
-        Boolean isUsed,           // 이 세션에서 실제로 사용(열람)했는지 여부
-        Integer unlockAfterMinutes, // 미해금 상태일 때 잠금 해제까지 남은 시간(분)
+        @Schema(description = "힌트 내용 (사용 완료 시에만 노출)")
+        String content,
+        @Schema(description = "현재 경과 시간 기준으로 해금 가능 여부")
+        Boolean isAvailable,
+        @Schema(description = "이 세션에서 실제로 사용(열람)했는지 여부")
+        Boolean isUsed,
+        @Schema(description = "미해금 상태일 때 잠금 해제까지 남은 시간(분). 해금 가능 상태변 null")
+        Integer remainingMinutes,
         Integer penaltyScore
 ) {
 }
