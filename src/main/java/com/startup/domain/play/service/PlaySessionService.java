@@ -309,6 +309,10 @@ public class PlaySessionService {
     public void abandonSession(Long userId, Long sessionId) {
         PlaySession session = getSessionOrThrow(sessionId);
         validateSessionOwner(session, userId);
+
+        if (!session.isPlaying()) {
+            throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
+        }
         session.abandon(); // active_key도 null로 초기화됨
         log.info("세션 포기 처리: sessionId={}", sessionId);
     }

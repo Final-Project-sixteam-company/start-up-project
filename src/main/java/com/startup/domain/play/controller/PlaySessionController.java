@@ -73,5 +73,15 @@ public class PlaySessionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Operation(summary = "게임 포기/중단")
+    @PostMapping("/{sessionId}/abandon")
+    public ResponseEntity<ApiResponse<Void>> abandonSession(
+            @PathVariable Long sessionId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        playSessionService.abandonSession(userId, sessionId);
+        return ResponseEntity.ok(ApiResponse.empty());
+    }
+
     // TODO: 힌트 사용 /hints/{hintId}/use는 후속 구현 예정
 }
