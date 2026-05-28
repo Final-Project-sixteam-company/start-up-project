@@ -1,6 +1,7 @@
 # ClueRoom - Run and Deploy Guide
 
 > 문서 목적: 로컬 실행, Docker Compose 실행, Android 연결, 운영 서버 배포 명령, 문제 해결을 간단히 정리한다.  
+> 상세 운영 명령어, Blue-Green rollback, 장애 대응은 `infra/OPS_RUNBOOK.md`를 기준으로 한다.  
 > 인프라 선택 이유, 확장 계획, PoC 계획, ADR 후보는 별도 문서 `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`에서 관리한다.
 
 ---
@@ -268,6 +269,8 @@ FCM service account JSON은 Git에 커밋하지 않는다.
 
 Prometheus / Grafana는 2GB 운영 서버에서는 상시 운영하지 않을 수 있다.
 
+운영 서버의 Spring Boot App은 Blue-Green overlay로 `app-blue:8081` 또는 `app-green:8082`가 active가 된다. 현재 active slot은 `/opt/clueroom/bg-status.sh` 또는 health check 응답의 `X-ClueRoom-Upstream` 헤더로 확인한다.
+
 ### 7.1 상태 확인
 
 ```bash
@@ -286,7 +289,7 @@ docker stats
 
 ---
 
-## 8. 운영 서버 수동 배포
+## 8. 운영 서버 배포
 
 현재 운영 서버:
 
@@ -294,14 +297,28 @@ docker stats
 https://api.clueroom.xyz
 ```
 
-수동 배포 순서:
+기본 배포는 GitHub Actions CD의 수동 실행(`workflow_dispatch`)을 사용한다.
+
+```text
+GitHub
+→ Actions
+→ Backend CD
+→ Run workflow
+→ develop
+```
+
+CD는 운영 서버에 SSH 접속해 아래 스크립트를 실행한다.
+
+```bash
+/opt/clueroom/deploy.sh
+```
+
+서버에서 직접 실행해야 할 때도 같은 스크립트를 사용한다.
 
 ```bash
 ssh clueroom
-cd /opt/clueroom/app
-git pull origin develop
-./gradlew clean bootJar
-docker compose up -d --build app
+/opt/clueroom/deploy.sh
+/opt/clueroom/bg-status.sh
 curl -f https://api.clueroom.xyz/actuator/health
 ```
 
@@ -312,8 +329,10 @@ git pull origin develop
 = 서버의 소스코드만 최신화
 
 실제 앱 반영
-= bootJar + docker compose up -d --build app 필요
+= /opt/clueroom/deploy.sh 또는 GitHub Actions CD 필요
 ```
+
+CD 성공 후 바로 standby를 끄지 말고 `/opt/clueroom/bg-status.sh`로 상태를 확인한다. 정상이고 잠시 확인 후 문제가 없으면 `/opt/clueroom/stop-standby.sh`로 active가 아닌 slot만 중지한다. 문제가 있으면 `/opt/clueroom/rollback-bluegreen.sh`를 사용한다.
 
 ---
 
@@ -332,6 +351,7 @@ Nginx 설정 파일:
 
 ```text
 /etc/nginx/sites-available/clueroom-api
+/etc/nginx/conf.d/clueroom-upstream.conf
 ```
 
 로그:
@@ -382,7 +402,7 @@ ping
 
 ## 10. Blue-Green 배포
 
-운영 서버의 `/opt/clueroom/deploy.sh`는 Blue-Green 배포를 수행한다.
+운영 서버의 `/opt/clueroom/deploy.sh`는 Blue-Green 배포를 수행한다. 일반 배포는 GitHub Actions CD로 실행하고, 서버에서 직접 실행하는 방식은 비상/확인용으로 사용한다.
 
 레포 원본 스크립트를 서버 실행 위치로 배치한다.
 
@@ -416,13 +436,15 @@ ssh clueroom
 
 ```text
 1. /etc/nginx/conf.d/clueroom-upstream.conf에서 현재 active port 확인
-2. active가 8081이면 app-green/8082를 target으로 선택
-3. active가 8082이면 app-blue/8081을 target으로 선택
-4. develop 최신화
-5. ./gradlew clean bootJar
-6. docker compose blue-green overlay로 target 컨테이너 빌드/기동
-7. target health check 성공 시 Nginx upstream 전환
-8. 외부 health check 성공 시 완료
+2. develop 최신화
+3. ./gradlew clean bootJar
+4. 현재 active 반대편 slot을 target으로 선택
+5. target app-blue 또는 app-green 재빌드/실행
+6. target health check
+7. Nginx upstream 전환
+8. 외부 health check
+9. 실패 시 기존 upstream으로 rollback
+10. 성공 시 이전 active slot은 rollback용으로 유지
 ```
 
 현재 active / standby 확인:
@@ -437,6 +459,8 @@ ssh clueroom
 /opt/clueroom/stop-standby.sh
 ```
 
+`stop-standby.sh`는 active slot을 자동 감지하고 active가 아닌 slot만 중지한다. 사람이 `app-blue` 또는 `app-green`을 직접 판단해 stop하지 않는다.
+
 새 배포에 문제가 있을 때 이전 slot으로 rollback:
 
 ```bash
@@ -445,7 +469,6 @@ ssh clueroom
 
 주의사항:
 
-- `stop-standby.sh`는 active slot을 자동 감지하고 active가 아닌 slot만 중지한다.
 - `rollback-bluegreen.sh`는 반대편 slot container가 기존에 존재할 때만 rollback한다.
 - rollback script는 target slot을 새로 build하지 않는다.
 - blue/green을 사람이 직접 판단해 stop하지 말고 helper script를 사용한다.
@@ -486,6 +509,25 @@ LIGHTSAIL_SSH_KEY
 ```
 
 runtime secret인 AI/PortOne/OAuth/Firebase/DB 값은 GitHub Actions Secrets에 넣지 않고 서버 `.env`와 `/opt/clueroom/secrets`에서 관리한다.
+
+CD 성공 후 운영 서버에서 확인한다.
+
+```bash
+/opt/clueroom/bg-status.sh
+curl -I https://api.clueroom.xyz/actuator/health
+```
+
+정상이고 잠시 확인 후 문제가 없으면 standby를 자동 정리한다.
+
+```bash
+/opt/clueroom/stop-standby.sh
+```
+
+새 배포에 문제가 있으면 이전 slot으로 rollback한다.
+
+```bash
+/opt/clueroom/rollback-bluegreen.sh
+```
 
 ---
 
@@ -664,23 +706,25 @@ OPENAI_API_KEY=실제_키
 
 ## 16. 운영 장애 대응 Runbook
 
+상세 절차와 자주 발생하는 문제별 대응은 `infra/OPS_RUNBOOK.md`를 기준으로 한다. 이 문서에는 현재 운영 구조 기준의 1차 확인 순서만 둔다.
+
 ### 16.1 API가 안 열릴 때
 
 ```bash
-docker compose ps
-docker compose logs app
-sudo nginx -t
-sudo systemctl status nginx
-curl http://localhost:8080/actuator/health
-curl https://api.clueroom.xyz/actuator/health
+/opt/clueroom/bg-status.sh
+curl -I https://api.clueroom.xyz/actuator/health
+cat /etc/nginx/conf.d/clueroom-upstream.conf
+docker ps
+curl http://127.0.0.1:8081/actuator/health
+curl http://127.0.0.1:8082/actuator/health
 ```
 
 확인할 것:
 
 ```text
-앱 컨테이너 실행 여부
-8080 포트 바인딩 여부
-Nginx proxy_pass 대상
+현재 active upstream이 app-blue인지 app-green인지
+active slot의 health check 통과 여부
+Nginx upstream 설정
 DNS가 서버 IP를 가리키는지
 HTTPS 인증서 상태
 ```
@@ -688,8 +732,10 @@ HTTPS 인증서 상태
 ### 16.2 Spring Boot 컨테이너가 죽었을 때
 
 ```bash
-docker compose logs app --tail=200
-docker compose restart app
+docker logs --tail=250 start-up-app-blue
+docker logs --tail=250 start-up-app-green
+docker inspect start-up-app-blue --format='RestartCount={{.RestartCount}} OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}'
+docker inspect start-up-app-green --format='RestartCount={{.RestartCount}} OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}'
 ```
 
 원인 후보:
@@ -702,9 +748,16 @@ AI Provider 설정 오류
 메모리 부족
 ```
 
+새 배포 후 오류라면 먼저 rollback을 검토한다.
+
+```bash
+/opt/clueroom/rollback-bluegreen.sh
+```
+
 ### 16.3 DB 연결 실패
 
 ```bash
+cd /opt/clueroom/app
 docker compose logs mysql
 docker compose exec mysql mysql -uroot -p
 ```
@@ -722,6 +775,7 @@ sudo systemctl reload nginx
 ```bash
 df -h
 docker system df
+du -sh /opt/clueroom/backups/mysql
 docker image prune
 ```
 
@@ -736,7 +790,7 @@ docker image prune
 - [ ] AWS Access Key를 Android 앱에 넣지 않는다.
 - [ ] FCM service account JSON을 Git 또는 Android 앱에 넣지 않는다.
 - [ ] DB/Redis 포트는 외부에 직접 공개하지 않는다.
-- [ ] Spring Boot 8080은 외부에 직접 공개하지 않는다.
+- [ ] Spring Boot 8080/8081/8082는 외부에 직접 공개하지 않는다.
 - [ ] Nginx는 HTTPS로 외부 공개한다.
 - [ ] 백업 파일 접근 권한을 제한한다.
 - [ ] 서버 시간대는 `Asia/Seoul` 기준으로 맞춘다.

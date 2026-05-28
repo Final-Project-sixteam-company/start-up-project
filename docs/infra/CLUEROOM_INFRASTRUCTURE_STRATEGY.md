@@ -248,7 +248,7 @@ Nginx는 서버 OS에 직접 설치한다.
 - 80/443 외부 요청 수신
 - HTTP → HTTPS 리다이렉트
 - TLS 인증서 처리
-- 내부 Spring Boot 8080 포트로 Reverse Proxy
+- 내부 Blue-Green active upstream으로 Reverse Proxy
 ```
 
 개념:
@@ -257,12 +257,14 @@ Nginx는 서버 OS에 직접 설치한다.
 외부 사용자
   ↓ HTTPS 443
 Nginx
-  ↓ HTTP 127.0.0.1:8080
-Spring Boot App
+  ↓ clueroom_backend upstream
+app-blue  127.0.0.1:8081
+app-green 127.0.0.1:8082
 ```
 
 Spring Boot는 직접 HTTPS를 처리하지 않는다.
 SSL termination은 Nginx에서 수행한다.
+현재 active slot은 `/etc/nginx/conf.d/clueroom-upstream.conf`와 health check 응답의 `X-ClueRoom-Upstream` 헤더로 확인한다.
 
 ### 4.4 Docker Compose
 
@@ -416,7 +418,9 @@ Lightsail 방화벽에서 외부에 공개하는 포트:
 외부 공개하지 않는 포트:
 
 ```text
-8080 Spring Boot
+8080 Spring Boot local/single app
+8081 Spring Boot app-blue
+8082 Spring Boot app-green
 3306 MySQL
 6379 Redis
 ```
@@ -469,14 +473,21 @@ S3는 Public Access Block을 유지한다.
 
 ### 6.1 현재 서버 배포
 
-현재 운영 배포는 서버의 `/opt/clueroom/deploy.sh`로 수행한다.
+현재 운영 배포는 GitHub Actions CD를 기본 경로로 사용한다. CD workflow는 운영 서버에 SSH 접속한 뒤 `/opt/clueroom/deploy.sh`를 실행한다.
+
+```bash
+/opt/clueroom/deploy.sh
+```
+
+서버에서 직접 실행해야 하는 경우에도 동일한 스크립트를 사용한다.
 
 ```bash
 ssh clueroom
 /opt/clueroom/deploy.sh
+/opt/clueroom/bg-status.sh
 ```
 
-배포 스크립트는 현재 Nginx active upstream을 읽고 반대편 Blue/Green 컨테이너를 target으로 선택한다. target 컨테이너 health check가 성공한 뒤에만 Nginx upstream을 전환한다.
+배포 스크립트는 현재 Nginx active upstream을 읽고 반대편 Blue/Green 컨테이너를 target으로 선택한다. target 컨테이너 health check가 성공한 뒤에만 Nginx upstream을 전환하고, 실패하면 기존 upstream으로 rollback한다.
 
 ### 6.2 deploy.sh
 
@@ -485,6 +496,10 @@ ssh clueroom
 ```text
 scripts/deploy-bluegreen.sh
 scripts/bg-compose.sh
+scripts/bg-status.sh
+scripts/stop-standby.sh
+scripts/rollback-bluegreen.sh
+scripts/backup-mysql.sh
 docker-compose.bluegreen.yml
 ```
 
@@ -493,9 +508,13 @@ docker-compose.bluegreen.yml
 ```text
 /opt/clueroom/deploy.sh
 /opt/clueroom/bg-compose
+/opt/clueroom/bg-status.sh
+/opt/clueroom/stop-standby.sh
+/opt/clueroom/rollback-bluegreen.sh
+/opt/clueroom/backup-mysql.sh
 ```
 
-이전 active service는 rollback용으로 남기며, 안정화 후 수동으로 중지한다.
+이전 active service는 rollback용으로 남긴다. 정상 확인 후에는 사람이 blue/green을 직접 판단해 중지하지 않고 `/opt/clueroom/stop-standby.sh`가 active가 아닌 slot만 자동 중지한다.
 
 ### 6.3 CI/CD
 
@@ -520,6 +539,10 @@ GitHub Actions
 Lightsail Server
   ↓
 deploy.sh 실행
+  ↓
+bg-status.sh로 active/standby 확인
+  ↓
+정상 확인 후 stop-standby.sh 또는 문제 시 rollback-bluegreen.sh
 ```
 
 CD workflow에는 서버 접속 secret만 둔다. runtime secret은 서버의 `.env`와 `/opt/clueroom/secrets`에서 읽는다. 이후 안정화되면 develop merge 시 자동 배포로 전환할 수 있다.
@@ -552,7 +575,7 @@ Green = 새 배포 버전
 
 ### 7.2 ClueRoom에서의 적용 계획
 
-MVP 운영은 단일 Lightsail 서버를 유지한다. Blue-Green은 실제 멀티 서버 고가용성이 아니라, 같은 서버 안에서 무중단 배포 전환을 검증하는 PoC로 적용한다.
+MVP 운영은 단일 Lightsail 서버를 유지한다. 운영 배포 전환에는 단일 서버 Blue-Green을 사용하지만, 실제 멀티 서버 고가용성은 아니며 같은 서버 안에서 무중단 전환과 rollback 절차를 검증하는 PoC 성격으로 본다.
 
 단일 서버 PoC 구조:
 
@@ -575,6 +598,19 @@ active upstream 8082 -> target app-blue/8081
 ```
 
 target health check가 성공한 뒤에만 Nginx upstream을 바꾸고, 이전 active service는 rollback용으로 유지한다.
+
+운영 명령어는 helper script를 기준으로 한다.
+
+```text
+/opt/clueroom/bg-status.sh
+→ 현재 active / standby 확인
+
+/opt/clueroom/stop-standby.sh
+→ active가 아닌 slot만 자동 중지
+
+/opt/clueroom/rollback-bluegreen.sh
+→ 이전 slot으로 rollback
+```
 
 ### 7.3 인증샷 포인트
 
@@ -984,14 +1020,14 @@ AWS 생태계 관리 편의성
 신규 리소스인 S3부터 IaC 적용
 ```
 
-### ADR-006. Blue-Green을 운영 적용이 아닌 PoC로 분리한 이유
+### ADR-006. 단일 서버 Blue-Green을 고가용성 구조가 아닌 배포 PoC로 보는 이유
 
 핵심:
 
 ```text
-현재 MVP 트래픽에는 과설계
-무중단 배포 개념 검증 목적
-운영은 단일 서버 유지
+현재 운영 배포 전환에는 사용
+단일 서버이므로 서버 장애 고가용성은 제공하지 않음
+무중단 배포와 rollback 절차 검증 목적
 ```
 
 ### ADR-007. 멀티 인스턴스를 운영 적용하지 않고 확장 계획/PoC로 둔 이유
@@ -1011,7 +1047,7 @@ AWS 생태계 관리 편의성
 ```text
 ClueRoom은 초기 MVP 단계이므로 단일 Lightsail 서버에 Docker Compose 기반으로 Spring Boot, MySQL, Redis를 배포했다.
 
-Nginx를 Reverse Proxy로 사용해 HTTPS와 내부 8080 포트 프록시를 처리했고, api.clueroom.xyz 도메인으로 외부 접근을 제공한다.
+Nginx를 Reverse Proxy로 사용해 HTTPS와 내부 Blue-Green upstream(app-blue 8081 / app-green 8082) 프록시를 처리했고, api.clueroom.xyz 도메인으로 외부 접근을 제공한다.
 
 파일 저장은 서버 로컬이 아니라 S3로 분리해 추후 멀티 인스턴스 확장에 대비했다.
 
@@ -1019,5 +1055,5 @@ Nginx를 Reverse Proxy로 사용해 HTTPS와 내부 8080 포트 프록시를 처
 
 대신 트래픽 증가 단계별로 DB/Redis 분리, App 서버 수평 확장, Nginx Load Balancer, RDS/ElastiCache/ALB 전환 계획을 문서화했다.
 
-또한 시간이 허용되면 단일 서버 Blue-Green 또는 별도 PoC 환경에서 Nginx 수동 로드밸런싱을 구성해 확장 가능성을 검증할 계획이다.
+또한 현재 단일 서버 Blue-Green으로 배포 전환과 rollback 절차를 검증하고, 별도 PoC 환경에서는 Nginx 수동 로드밸런싱과 멀티 인스턴스 확장 가능성을 검증할 수 있다.
 ```
