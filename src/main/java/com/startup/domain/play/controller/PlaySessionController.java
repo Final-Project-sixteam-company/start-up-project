@@ -83,5 +83,14 @@ public class PlaySessionController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    // TODO: 힌트 사용 /hints/{hintId}/use는 후속 구현 예정
+    @Operation(summary = "힌트 사용 및 열람")
+    @PostMapping("/{sessionId}/hints/{hintId}/use")
+    public ResponseEntity<ApiResponse<HintUseResponse>> useHint(
+            @PathVariable Long sessionId,
+            @PathVariable Long hintId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        HintUseResponse response = playSessionService.useHint(userId, sessionId, hintId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }

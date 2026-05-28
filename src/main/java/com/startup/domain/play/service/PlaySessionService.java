@@ -257,6 +257,48 @@ public class PlaySessionService {
                 .toList();
     }
 
+    //힌트 사용
+    @Transactional
+    public HintUseResponse useHint(Long userId, Long sessionId, Long hintId){
+        PlaySession session = getSessionOrThrow(sessionId);
+        validateSessionOwner(session, userId);
+
+        if(!session.isPlaying()){
+            throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
+        }
+
+        //이미 사용한 힌트인지 확인
+        if(usedHintRepository.existsByPlaySessionIdAndHintId(sessionId, hintId)){
+            Hint hint = hintRepository.findById(hintId).orElseThrow(() ->
+                    new PlayException(PlayErrorCode.HINT_NOT_FOUND));
+            return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore());
+        }
+
+        Hint hint = hintRepository.findById(hintId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.HINT_NOT_FOUND));
+        // 시나리오 소속 검증
+        if (!hint.getScenarioId().equals(session.getScenarioId())) {
+            throw new PlayException(PlayErrorCode.HINT_NOT_FOUND);
+        }
+
+        // 해금 가능 여부 (시간) 검증
+        int elapsedMinutes = calculateElapsedSeconds(session) / 60;
+        if (hint.getUnlockAfterMinutes() != null && elapsedMinutes < hint.getUnlockAfterMinutes()) {
+            throw new PlayException(PlayErrorCode.HINT_NOT_AVAILABLE);
+        }
+
+        // 힌트 사용 처리
+        UsedHint usedHint = UsedHint.builder()
+                .playSessionId(sessionId)
+                .hintId(hintId)
+                .build();
+        usedHintRepository.save(usedHint);
+
+        // 세션에 힌트 사용 카운트 증가
+        session.incrementHintCount();
+        return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore());
+    }
+
     //용의자 목록 조회
     @Transactional(readOnly = true)
     public List<PlaySuspectResponse> getSuspects(Long userId, Long sessionId) {
