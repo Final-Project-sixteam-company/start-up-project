@@ -51,6 +51,13 @@ CLAUDE.local.md
 scripts/review-snapshot.sh
 docs/REVIEW_SNAPSHOT_GUIDE.md
 
+# Internal scenario spoiler docs
+docs/scenarios/*IMPLEMENTATION_CANON*.md
+docs/scenarios/*WORKING_BRIEF*.md
+docs/scenarios/*SOLUTION*.md
+docs/scenarios/*TRUTH*.md
+!docs/scenarios/README.md
+
 # Runtime env / secrets
 *.pem
 *.key

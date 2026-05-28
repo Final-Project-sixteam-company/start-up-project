@@ -101,7 +101,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
     ports:
-      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
+      - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - start-up-prometheus-data:/prometheus
@@ -114,10 +114,15 @@ services:
     image: grafana/grafana:10.4.2
     container_name: start-up-grafana
     ports:
-      - "${GRAFANA_HOST_PORT:-3000}:3000"
+      - "127.0.0.1:${GRAFANA_HOST_PORT:-3000}:3000"
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SERVER_DOMAIN: ${GRAFANA_SERVER_DOMAIN:-localhost}
+      GF_SERVER_ROOT_URL: ${GRAFANA_SERVER_ROOT_URL:-http://localhost:3000}
+      GF_SERVER_ENFORCE_DOMAIN: ${GRAFANA_SERVER_ENFORCE_DOMAIN:-false}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
     volumes:
       - start-up-grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning/datasources/prometheus.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
