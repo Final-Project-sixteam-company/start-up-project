@@ -77,4 +77,8 @@ public class Scenario extends BaseEntity {
         this.averageRating = 0.0;
         this.ratingCount = 0;
     }
+
+    public void incrementPlayCount(){
+        this.playCount++;
+    }
 }

@@ -13,4 +13,6 @@ import com.startup.domain.ai.dto.SuspectProfile;
 public interface SuspectReader {
 
     SuspectProfile findById(Long suspectId);
+
+    SuspectProfile findByIdAndScenarioId(Long suspectId, Long scenarioId);
 }
