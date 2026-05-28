@@ -296,7 +296,20 @@ Docker Compose + Blue-Green overlay
 ```
 
 Prometheus / Grafana는 actuator metric 확인용으로 구성했다.
-운영 서버에서는 외부에 직접 공개하지 않고 SSH 터널로 접근한다. 2GB 서버에서 상시 운영할지는 메모리 사용량을 기준으로 판단한다.
+Prometheus는 외부에 직접 공개하지 않고 Grafana datasource가 Docker 내부 URL(`http://prometheus:9090`)로 조회한다. Grafana는 팀원이 운영 메트릭을 함께 볼 수 있도록 Nginx HTTPS reverse proxy 뒤에서 `https://monitor.clueroom.xyz`로 공개한다.
+
+운영 원칙:
+
+```text
+- 3000/9090 포트는 Lightsail 방화벽에 직접 열지 않음
+- docker-compose.yml의 Prometheus/Grafana host binding은 127.0.0.1 유지
+- Grafana는 팀원별 Viewer 계정 발급
+- Grafana admin 계정 공유 금지
+- 서버 로그 접근은 인프라 담당자 중심으로 제한
+- 로그 공유가 필요해지면 Loki/Promtail 도입
+```
+
+2GB 서버에서 Prometheus / Grafana를 상시 운영할지는 메모리 사용량을 기준으로 판단한다.
 
 ### 4.5 데이터베이스
 

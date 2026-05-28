@@ -841,6 +841,26 @@ sudo certbot renew --dry-run
 
 ## 15. Prometheus / Grafana 확인
 
+운영 정책:
+
+```text
+Grafana:
+https://monitor.clueroom.xyz 로 팀원 공유
+Nginx HTTPS reverse proxy 뒤에서만 접근
+팀원별 Viewer 계정 발급
+Admin 계정 공유 금지
+
+Prometheus:
+외부 직접 공개 금지
+Grafana가 Docker 내부 URL http://prometheus:9090 으로 조회
+
+서버 로그:
+인프라 담당자가 SSH로 확인
+추후 필요 시 Loki/Promtail 도입
+```
+
+3000/9090 포트는 운영 서버 방화벽에 열지 않는다. Compose host binding도 `127.0.0.1` 기준으로 유지한다.
+
 ### Prometheus health
 
 ```bash
@@ -859,18 +879,24 @@ Prometheus Server is Healthy.
 curl -s http://localhost:3000/api/health | jq
 ```
 
+외부 HTTPS 확인:
+
+```bash
+curl -I https://monitor.clueroom.xyz
+```
+
 ### Prometheus target 확인
 
 ```bash
 curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {job:.labels.job, scrapeUrl:.scrapeUrl, health:.health, lastError:.lastError}'
 ```
 
-### 로컬 PC에서 SSH 터널로 접속
+### 로컬 PC에서 Prometheus SSH 터널로 접속
 
 로컬 Git Bash 새 창에서 실행한다.
 
 ```bash
-ssh -N -L 3000:localhost:3000 -L 9090:localhost:9090 clueroom
+ssh -N -L 9090:localhost:9090 clueroom
 ```
 
 이 창은 닫지 않는다.
@@ -880,9 +906,6 @@ ssh -N -L 3000:localhost:3000 -L 9090:localhost:9090 clueroom
 ```text
 Prometheus:
 http://localhost:9090
-
-Grafana:
-http://localhost:3000
 ```
 
 ---

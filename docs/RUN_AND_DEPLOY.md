@@ -131,6 +131,11 @@ cp .env.example .env
 | `FCM_PROJECT_ID` | Firebase project ID |
 | `FCM_SERVICE_ACCOUNT_PATH` | 서버 내부 Firebase service account JSON 경로 |
 | `SECRETS_HOST_DIR` | secret mount용 host 디렉터리 |
+| `PROMETHEUS_HOST_PORT` | Prometheus localhost bind port |
+| `GRAFANA_HOST_PORT` | Grafana localhost bind port |
+| `GRAFANA_SERVER_DOMAIN` | Grafana public domain |
+| `GRAFANA_SERVER_ROOT_URL` | Grafana public root URL |
+| `GRAFANA_SERVER_ENFORCE_DOMAIN` | Grafana Host header domain enforcement |
 | `CORS_ALLOWED_ORIGIN_PATTERNS` | 브라우저/WebView 테스트용 CORS |
 
 ### 3.2 Docker 내부 연결
@@ -563,6 +568,8 @@ scripts/backup-mysql.sh
 
 ## 13. Prometheus / Grafana 접속
 
+Prometheus와 Grafana의 원본 포트는 `docker-compose.yml`에서 `127.0.0.1`에만 바인딩한다. 운영 서버 방화벽에서 3000/9090을 직접 열지 않는다.
+
 로컬:
 
 ```text
@@ -570,17 +577,46 @@ Prometheus: http://localhost:9090
 Grafana: http://localhost:3000
 ```
 
-운영 서버에서는 외부에 직접 공개하지 않고 SSH 터널로 접근한다.
+운영 Grafana는 팀원이 함께 볼 수 있도록 Nginx HTTPS reverse proxy 뒤의 별도 도메인으로 공개한다.
+
+```text
+https://monitor.clueroom.xyz
+```
+
+운영 `.env` 예시:
+
+```properties
+GRAFANA_SERVER_DOMAIN=monitor.clueroom.xyz
+GRAFANA_SERVER_ROOT_URL=https://monitor.clueroom.xyz
+GRAFANA_SERVER_ENFORCE_DOMAIN=true
+```
+
+Prometheus는 외부에 직접 공개하지 않고 Grafana가 Docker 내부 URL로 읽는다.
+
+```text
+Grafana datasource URL: http://prometheus:9090
+```
+
+운영 원칙:
+
+```text
+Grafana: Nginx HTTPS reverse proxy로 팀원 공유
+Prometheus: 외부 비공개
+Grafana admin 계정: 공유 금지
+팀원 계정: Viewer부터 시작
+서버 로그: 인프라 담당자 중심으로 확인
+```
+
+Prometheus를 직접 확인해야 하는 운영자는 SSH 터널로 접근한다.
 
 ```bash
-ssh -N -L 3000:localhost:3000 -L 9090:localhost:9090 clueroom
+ssh -N -L 9090:localhost:9090 clueroom
 ```
 
 터널 연결 후 로컬 브라우저에서 접속한다.
 
 ```text
 http://localhost:9090
-http://localhost:3000
 ```
 
 Blue-Green target:
