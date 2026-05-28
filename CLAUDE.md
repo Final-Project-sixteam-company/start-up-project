@@ -190,7 +190,8 @@ bash scripts/compose-down.sh
 ./gradlew bootJar
 ```
 
-로컬 실행, Android 연결, Docker Compose, 배포 명령/장애 대응은 `docs/RUN_AND_DEPLOY.md`를 따른다.
+로컬 실행, Android 연결, Docker Compose, 배포 명령 요약은 `docs/RUN_AND_DEPLOY.md`를 따른다.
+상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응은 `docs/infra/OPS_RUNBOOK.md`를 따른다.
 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보는 `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`를 따른다.
 
 ---
@@ -219,8 +220,10 @@ bash scripts/compose-down.sh
 | `docs/CaseLab_AI_ERDCloud.sql` | ERDCloud import SQL |
 | `docs/AI_NPC_PROMPT_POLICY.md` | AI NPC 프롬프트 정책 정본 |
 | `docs/BACKEND_IMPLEMENTATION_GUIDE.md` | 백엔드 구현 규칙 정본 |
-| `docs/RUN_AND_DEPLOY.md` | 로컬 실행, Android 연결, Docker Compose, 배포 명령/장애 대응 |
+| `docs/RUN_AND_DEPLOY.md` | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 |
+| `docs/infra/OPS_RUNBOOK.md` | 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 |
 | `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
+| `docs/scenarios/README.md` | 시나리오 문서 공개 범위, 내부 스포일러 문서 관리 기준 |
 | `docs/OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 데모 시나리오 seed 정본 |
 
 권장 읽기 순서:
@@ -234,5 +237,7 @@ CLAUDE.md
 → AI_NPC_PROMPT_POLICY.md
 → BACKEND_IMPLEMENTATION_GUIDE.md
 → RUN_AND_DEPLOY.md
+→ OPS_RUNBOOK.md
 → CLUEROOM_INFRASTRUCTURE_STRATEGY.md
+→ docs/scenarios/README.md
 ```

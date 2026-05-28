@@ -40,9 +40,11 @@ AI: Spring AI 기반 LLM 연동
 | 7 | [docs/CaseLab_AI_ERDCloud.sql](docs/CaseLab_AI_ERDCloud.sql) | ERDCloud import SQL |
 | 8 | [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) | AI NPC 프롬프트 정책과 정답 누설 방지 |
 | 9 | [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 구현 규칙, MockUser, 접근 권한, 인증/거래 확장 |
-| 10 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 로컬 실행, Android 연결, Docker Compose, 배포 명령/장애 대응 |
-| 11 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
-| 12 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 시나리오 seed 기준 |
+| 10 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 |
+| 11 | [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) | 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 |
+| 12 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
+| 13 | [docs/scenarios/README.md](docs/scenarios/README.md) | 시나리오 문서 공개 범위와 스포일러 문서 관리 기준 |
+| 14 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
 
 ### 문서 수정 기준
 
@@ -57,11 +59,13 @@ AI: Spring AI 기반 LLM 연동
 | ERDCloud import SQL | [docs/CaseLab_AI_ERDCloud.sql](docs/CaseLab_AI_ERDCloud.sql) |
 | AI 프롬프트, 답변 정책, 정답 누설 방지 | [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) |
 | 백엔드 구현 규칙, MockUser, 접근 권한, 인증/거래 확장 | [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md) |
-| 로컬 실행, Android 연결, Docker Compose, 배포 명령/장애 대응 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) |
+| 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) |
+| 상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 | [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) |
 | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) |
+| 시나리오 문서 공개 범위, 내부 스포일러 문서 관리 기준 | [docs/scenarios/README.md](docs/scenarios/README.md) |
 | 공식 시나리오 seed data | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) |
 
-현재 `docs` 기준 문서는 위 10개입니다.
+현재 주요 문서는 위 표를 기준으로 관리합니다.
 
 ## 빠른 실행
 
@@ -84,6 +88,7 @@ Gradle task:
 ```
 
 실행과 배포 명령은 [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md)를 따릅니다.
+상세 운영 명령어와 장애 대응은 [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md)를 따릅니다.
 인프라 선택 이유와 확장 계획은 [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md)를 따릅니다.
 
 ---
