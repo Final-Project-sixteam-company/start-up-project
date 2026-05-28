@@ -174,7 +174,7 @@ docs/CaseLab_AI_ERD_Design.md               ERD 설계 / 비판적 리뷰
 docs/RUN_AND_DEPLOY.md                      실행 / Android 연결 / Docker Compose / 배포 명령 요약
 docs/infra/OPS_RUNBOOK.md                   운영 명령어 / Blue-Green rollback / 백업 / 장애 대응
 docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md    인프라 선택 이유 / 운영 구조 / 확장 계획
-docs/scenarios/SEOWOLCHAE_IMPLEMENTATION_CANON.md  서월채 구현 정본 / Variant / 증거 코드 / 채점 기준
+docs/scenarios/README.md                    시나리오 문서 공개 범위 / 내부 스포일러 문서 관리 기준
 ```
 
 리뷰 요청 시 **리뷰 지시서**가 함께 전달된다. 지시서에는 작업 목표, 변경 범위, 핵심 결정, 리뷰 초점, 참조 문서가 포함된다.

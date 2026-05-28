@@ -43,7 +43,7 @@ AI: Spring AI 기반 LLM 연동
 | 10 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 |
 | 11 | [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) | 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 |
 | 12 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
-| 13 | [docs/scenarios/SEOWOLCHAE_IMPLEMENTATION_CANON.md](docs/scenarios/SEOWOLCHAE_IMPLEMENTATION_CANON.md) | 서월채 구현 정본, Variant, 증거 코드, 채점 기준 |
+| 13 | [docs/scenarios/README.md](docs/scenarios/README.md) | 시나리오 문서 공개 범위와 스포일러 문서 관리 기준 |
 | 14 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
 
 ### 문서 수정 기준
@@ -62,7 +62,7 @@ AI: Spring AI 기반 LLM 연동
 | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) |
 | 상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 | [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) |
 | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) |
-| 서월채 구현 정본, Variant, 증거 코드, 채점 기준 | [docs/scenarios/SEOWOLCHAE_IMPLEMENTATION_CANON.md](docs/scenarios/SEOWOLCHAE_IMPLEMENTATION_CANON.md) |
+| 시나리오 문서 공개 범위, 내부 스포일러 문서 관리 기준 | [docs/scenarios/README.md](docs/scenarios/README.md) |
 | 공식 시나리오 seed data | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) |
 
 현재 주요 문서는 위 표를 기준으로 관리합니다.
