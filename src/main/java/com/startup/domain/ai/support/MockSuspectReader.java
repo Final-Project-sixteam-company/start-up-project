@@ -41,4 +41,9 @@ public class MockSuspectReader implements SuspectReader {
         }
         return profile;
     }
+
+    @Override
+    public SuspectProfile findByIdAndScenarioId(Long suspectId, Long scenarioId) {
+        return findById(suspectId);
+    }
 }

@@ -739,6 +739,7 @@ solution_id + evidence_id unique 제약 필요.
 | grade | 등급 | nullable |
 | hint_count | 사용 힌트 수 | 동시 증가 가능 |
 | interrogation_count | 심문 횟수 | 동시 증가 가능 |
+| activeKey | PLAYING 상태일 때 "userId_scenarioId" 값 저장 | nullable |
 | created_at, updated_at | 생성/수정 시각 | Auditing |
 
 동시성 메모:

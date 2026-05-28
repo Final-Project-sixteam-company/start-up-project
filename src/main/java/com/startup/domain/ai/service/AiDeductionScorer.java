@@ -65,6 +65,12 @@ public class AiDeductionScorer {
     public FinalDeductionResponse submitAndScore(Long sessionId, FinalDeductionRequest request) {
         boolean locked = false;
         try {
+            //세션 소유자 검증
+            Long ownerUserId = playSessionReader.getOwnerUserId(sessionId);
+            if (!Objects.equals(mockUserProvider.currentUserId(), ownerUserId)) {
+                throw new BusinessException(CommonErrorCode.ACCESS_DENIED);
+            }
+
             // 1. 중복 제출 확인 + 잠금 (트랜잭션 1) — 세션을 COMPLETED로 변경하지 않음
             contextLoader.ensureNotSubmitted(sessionId);
             locked = true;
@@ -115,7 +121,7 @@ public class AiDeductionScorer {
                     true,
                     submittedAt
             );
-        } catch (AiException e) {
+        } catch (BusinessException e) {
             if (locked) {
                 releaseLockQuietly(sessionId);
             }

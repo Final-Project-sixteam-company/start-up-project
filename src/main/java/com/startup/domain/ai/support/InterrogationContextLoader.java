@@ -1,5 +1,8 @@
 package com.startup.domain.ai.support;
 
+import com.startup.common.auth.MockUserProvider;
+import com.startup.common.error.BusinessException;
+import com.startup.common.error.CommonErrorCode;
 import com.startup.domain.ai.dto.ChatTurn;
 import com.startup.domain.ai.dto.EvidenceInfo;
 import com.startup.domain.ai.dto.InterrogationContext;
@@ -13,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -23,6 +27,7 @@ public class InterrogationContextLoader {
     private final EvidenceReader evidenceReader;
     private final ResponsePolicyResolver policyResolver;
     private final InterrogationHistoryProvider historyProvider;
+    private final MockUserProvider mockUserProvider;
 
     @Value("${caselab.ai.interrogation.max-history-turns:5}")
     private int maxHistoryTurns;
@@ -34,7 +39,14 @@ public class InterrogationContextLoader {
             throw new AiException(AiErrorCode.INTERROGATION_SESSION_NOT_PLAYING);
         }
 
-        SuspectProfile suspect = suspectReader.findById(suspectId);
+        // 세션 소유자 검증
+        Long ownerUserId = playSessionReader.getOwnerUserId(sessionId);
+        if (!Objects.equals(mockUserProvider.currentUserId(), ownerUserId)) {
+            throw new BusinessException(CommonErrorCode.ACCESS_DENIED);
+        }
+
+        Long scenarioId = playSessionReader.getScenarioId(sessionId);
+        SuspectProfile suspect = suspectReader.findByIdAndScenarioId(suspectId, scenarioId);
 
         List<Long> unlockedEvidenceIds = evidenceReader.getUnlockedEvidenceIds(sessionId);
         List<EvidenceInfo> revealedEvidences = evidenceReader.getUnlockedEvidences(sessionId);
