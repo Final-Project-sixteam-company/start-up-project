@@ -78,7 +78,9 @@ public class AiDeductionScorer {
             // 2. 채점 수행 (트랜잭션 밖)
             Long scenarioId = playSessionReader.getScenarioId(sessionId);
             SolutionInfo solution = solutionReader.findByScenarioId(scenarioId);
-            ScoringCriteria criteria = buildCriteriaFromSolution(solution, scenarioId);
+            // DB solution 기준으로 범인/증거 ID만 교체
+            // method / motive / coverUp 키워드는 파일(demo_day_criteria.json) 기준 유지
+            ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
 
             ScoringResult scoringResult = ruleBasedScorer.score(request, criteria);
 
@@ -151,8 +153,10 @@ public class AiDeductionScorer {
 
         Long scenarioId = playSessionReader.getScenarioId(sessionId);
         SolutionInfo solution = solutionReader.findByScenarioId(scenarioId);
-        ScoringCriteria criteria = buildCriteriaFromSolution(solution, scenarioId);
-
+        // NOTE: demo_day_criteria.json의 채점 키워드는 시나리오 ID 1의 active VariantSolution과
+        // 동일한 기준으로 작성되었으므로, 현재 단일 시나리오 데모 환경에서는 정합성이 유지됩니다.
+        // 복수 Variant를 지원할 때는 Variant별 scoring criteria 테이블을 도입해야 합니다.
+        ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
         warnIfKeyEvidenceSourcesDiverge(criteria, solution);
 
         List<FinalDeductionEvidence> evidences =
