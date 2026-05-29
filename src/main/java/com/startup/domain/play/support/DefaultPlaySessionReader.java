@@ -31,6 +31,11 @@ public class DefaultPlaySessionReader implements PlaySessionReader {
         return getSessionOrThrow(sessionId).getUserId();
     }
 
+    @Override
+    public Long getScenarioVariantId(Long sessionId) {
+        return getSessionOrThrow(sessionId).getScenarioVariantId();
+    }
+
     private PlaySession getSessionOrThrow(Long sessionId) {
         return playSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));

@@ -34,14 +34,28 @@ public class DefaultSolutionReader implements SolutionReader {
 
     @Override
     public SolutionInfo findByScenarioId(Long scenarioId) {
-        // MVP: is_active=true인 variant 1개를 조회 (SECRETARY 고정)
-        ScenarioVariant variant = variantRepository
-                .findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
-                .orElse(null);
+        return findByScenarioIdAndVariantId(scenarioId, null);
+    }
+
+    @Override
+    public SolutionInfo findByScenarioIdAndVariantId(Long scenarioId, Long variantId) {
+        ScenarioVariant variant = null;
+
+        // 1. 세션에 고정된 variantId가 있으면 그걸 우선 조회
+        if (variantId != null) {
+            variant = variantRepository.findById(variantId).orElse(null);
+        }
+
+        // 2. 세션에 고정된 게 없으면 (과거 세션 등) 현재 active=true인 variant 조회
+        if (variant == null) {
+            variant = variantRepository
+                    .findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
+                    .orElse(null);
+        }
 
         if (variant == null) {
-            log.warn("[SolutionReader] scenario_variants에 데이터 없음. scenarioId={} -> MockSolutionReader로 fallback", scenarioId);
-            return mockSolutionReader.findByScenarioId(scenarioId);
+            log.warn("[SolutionReader] variant 찾을 수 없음. scenarioId={}, variantId={} -> Mock으로 fallback", scenarioId, variantId);
+            return mockSolutionReader.findByScenarioIdAndVariantId(scenarioId, variantId);
         }
 
         VariantSolution solution = variantSolutionRepository
@@ -50,7 +64,7 @@ public class DefaultSolutionReader implements SolutionReader {
 
         if (solution == null) {
             log.warn("[SolutionReader] variant_solutions에 데이터 없음. variantId={} -> MockSolutionReader로 fallback", variant.getId());
-            return mockSolutionReader.findByScenarioId(scenarioId);
+            return mockSolutionReader.findByScenarioIdAndVariantId(scenarioId, variantId);
         }
 
         List<Long> keyEvidenceIds = solution.parseKeyEvidenceIds();

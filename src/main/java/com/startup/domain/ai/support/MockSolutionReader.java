@@ -30,6 +30,11 @@ public class MockSolutionReader implements SolutionReader {
 
     @Override
     public SolutionInfo findByScenarioId(Long scenarioId) {
+        return findByScenarioIdAndVariantId(scenarioId, null);
+    }
+
+    @Override
+    public SolutionInfo findByScenarioIdAndVariantId(Long scenarioId, Long variantId) {
         if (scenarioId != 1L) {
             throw new AiException(AiErrorCode.SOLUTION_NOT_FOUND);
         }
