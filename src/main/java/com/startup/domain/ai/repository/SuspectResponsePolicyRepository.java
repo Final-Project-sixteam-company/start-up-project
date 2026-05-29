@@ -8,4 +8,6 @@ import java.util.List;
 public interface SuspectResponsePolicyRepository extends JpaRepository<SuspectResponsePolicy, Long> {
 
     List<SuspectResponsePolicy> findAllBySuspectId(Long suspectId);
+
+    List<SuspectResponsePolicy> findAllBySuspectIdIn(List<Long> suspectIds);
 }
