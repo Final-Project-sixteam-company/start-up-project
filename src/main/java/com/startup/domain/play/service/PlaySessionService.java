@@ -277,7 +277,7 @@ public class PlaySessionService {
         if(usedHintRepository.existsByPlaySessionIdAndHintId(sessionId, hintId)){
             Hint hint = hintRepository.findById(hintId).orElseThrow(() ->
                     new PlayException(PlayErrorCode.HINT_NOT_FOUND));
-            return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore());
+            return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore(), LocalDateTime.now());
         }
 
         Hint hint = hintRepository.findById(hintId)
@@ -303,7 +303,7 @@ public class PlaySessionService {
             log.warn("[useHint] 중복 힌트 사용 감지(동시 요청 무시). sessionId={}, hintId={}", sessionId, hintId);
         }
 
-        return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore());
+        return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore(), LocalDateTime.now());
     }
 
     //용의자 목록 조회
