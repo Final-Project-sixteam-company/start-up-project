@@ -21,6 +21,6 @@ public interface UsedHintRepository extends JpaRepository<UsedHint, Long> {
     int countByPlaySessionId(Long playSessionId);
 
     @Modifying
-    @Query(value = "INSERT IGNORE INTO used_hints (play_session_id, hint_id, used_at) VALUES (:sessionId, :hintId, :used_at)", nativeQuery = true)
+    @Query(value = "INSERT IGNORE INTO used_hints (play_session_id, hint_id, used_at) VALUES (:sessionId, :hintId, :usedAt)", nativeQuery = true)
     int insertIgnoreUsedHint(@Param("sessionId") Long sessionId, @Param("hintId") Long hintId, @Param("usedAt") LocalDateTime usedAt);
 }
