@@ -1,5 +1,6 @@
 package com.startup.domain.play.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -11,14 +12,20 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record PlayHintResponse(
         Long hintId,
         Integer hintLevel,
+
         @Schema(description = "힌트 내용 (사용 완료 시에만 노출)")
         String content,
+
         @Schema(description = "현재 경과 시간 기준으로 해금 가능 여부")
         Boolean isAvailable,
+
         @Schema(description = "이 세션에서 실제로 사용(열람)했는지 여부")
         Boolean isUsed,
+
         @Schema(description = "미해금 상태일 때 잠금 해제까지 남은 시간(분). 해금 가능 상태변 null")
+        @JsonProperty("unlockAfterMinutes")
         Integer remainingMinutes,
+
         Integer penaltyScore
 ) {
 }
