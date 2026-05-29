@@ -73,16 +73,6 @@ public class PlaySessionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @Operation(summary = "게임 세션 포기")
-    @PostMapping("/{sessionId}/abandon")
-    public ResponseEntity<ApiResponse<Void>> abandonSession(
-            @PathVariable Long sessionId
-    ) {
-        Long userId = mockUserProvider.currentUserId();
-        playSessionService.abandonSession(userId, sessionId);
-        return ResponseEntity.ok(ApiResponse.success(null));
-    }
-
     @Operation(summary = "힌트 사용 및 열람")
     @PostMapping("/{sessionId}/hints/{hintId}/use")
     public ResponseEntity<ApiResponse<HintUseResponse>> useHint(
@@ -92,5 +82,15 @@ public class PlaySessionController {
         Long userId = mockUserProvider.currentUserId();
         HintUseResponse response = playSessionService.useHint(userId, sessionId, hintId);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "게임 포기/중단")
+    @PostMapping("/{sessionId}/abandon")
+    public ResponseEntity<ApiResponse<Void>> abandonSession(
+            @PathVariable Long sessionId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        playSessionService.abandonSession(userId, sessionId);
+        return ResponseEntity.ok(ApiResponse.empty());
     }
 }
