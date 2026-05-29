@@ -265,46 +265,49 @@ public class PlaySessionService {
 
     //힌트 사용
     @Transactional
-    public HintUseResponse useHint(Long userId, Long sessionId, Long hintId){
+    public HintUseResponse useHint(Long userId, Long sessionId, Long hintId) {
         PlaySession session = getSessionOrThrow(sessionId);
         validateSessionOwner(session, userId);
 
-        if(!session.isPlaying()){
-            throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
-        }
-
-        //이미 사용한 힌트인지 확인
-        if(usedHintRepository.existsByPlaySessionIdAndHintId(sessionId, hintId)){
-            Hint hint = hintRepository.findById(hintId).orElseThrow(() ->
-                    new PlayException(PlayErrorCode.HINT_NOT_FOUND));
-            return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore(), LocalDateTime.now());
+        if (!session.isPlaying()) {
+            throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
         }
 
         Hint hint = hintRepository.findById(hintId)
                 .orElseThrow(() -> new PlayException(PlayErrorCode.HINT_NOT_FOUND));
-        // 시나리오 소속 검증
-        if (!hint.getScenarioId().equals(session.getScenarioId())) {
-            throw new PlayException(PlayErrorCode.HINT_NOT_FOUND);
+
+        // 1. 이미 사용된 힌트인지 확인 (exists 대신 findBy 사용!)
+        var existingUsedHint = usedHintRepository.findByPlaySessionIdAndHintId(sessionId, hintId);
+        if (existingUsedHint.isPresent()) {
+            // 이미 까본 힌트면 DB에 적혀있는 "최초 사용 시각"을 그대로 반환! (시간 갱신 방지)
+            return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore(), existingUsedHint.get().getUsedAt());
         }
 
-        // 해금 가능 여부 (시간) 검증
+        // 2. 해금 가능 여부 (시간) 검증
         int elapsedMinutes = calculateElapsedSeconds(session) / 60;
         if (hint.getUnlockAfterMinutes() != null && elapsedMinutes < hint.getUnlockAfterMinutes()) {
             throw new PlayException(PlayErrorCode.HINT_NOT_AVAILABLE);
         }
 
+        // 3. 처음 사용하는 경우 DB에 INSERT IGNORE (동시성 방어)
         int insertedRow = usedHintRepository.insertIgnoreUsedHint(sessionId, hintId);
 
+        java.time.LocalDateTime usedAt;
         if (insertedRow > 0) {
-            // 실제로 처음 들어갔을 때만 힌트 카운트 증가
+            // 성공적으로 인서트 했으면 힌트 카운트 증가 + 현재 시간 부여
             session.incrementHintCount();
+            usedAt = java.time.LocalDateTime.now();
         } else {
-            // 중복 요청이라 무시됨
+            // 0.001초 차이로 동시 클릭해서 실패한 거면, 방금 들어간 최초 시간 다시 꺼내옴
             log.warn("[useHint] 중복 힌트 사용 감지(동시 요청 무시). sessionId={}, hintId={}", sessionId, hintId);
+            usedAt = usedHintRepository.findByPlaySessionIdAndHintId(sessionId, hintId)
+                    .map(com.startup.domain.play.entity.UsedHint::getUsedAt)
+                    .orElseGet(java.time.LocalDateTime::now);
         }
 
-        return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore(), LocalDateTime.now());
+        return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore(), usedAt);
     }
+
 
     //용의자 목록 조회
     @Transactional(readOnly = true)
