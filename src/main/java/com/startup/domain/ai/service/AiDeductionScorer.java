@@ -295,17 +295,34 @@ public class AiDeductionScorer {
      * culpritSuspectId, keyEvidenceIds는 DB variant 기준으로 교체하고
      * 키워드·점수 배분은 파일 기준을 유지한다.
      */
-    private ScoringCriteria buildCriteriaFromSolution(SolutionInfo solution, Long scenarioId){
-        ScoringCriteria fileCreteria = scoringCriteriaProvider.getByCriteria(scenarioId);
+    private ScoringCriteria buildCriteriaFromSolution(SolutionInfo solution, Long scenarioId) {
+        ScoringCriteria fileCriteria = scoringCriteriaProvider.getByCriteria(scenarioId);
         return new ScoringCriteria(
                 scenarioId,
                 solution.culpritSuspectId(),
-                fileCreteria.method(),
-                fileCreteria.motive(),
-                fileCreteria.coverUp(),
+                extractKeywords(solution.method(), fileCriteria.method()),
+                extractKeywords(solution.motive(), fileCriteria.motive()),
+                extractKeywords(solution.coverUp(), fileCriteria.coverUp()),
                 solution.keyEvidenceIds(),
-                fileCreteria.evidenceMaxScore(),
-                fileCreteria.culpritMaxScore()
+                fileCriteria.evidenceMaxScore(),
+                fileCriteria.culpritMaxScore()
         );
+    }
+
+    private ScoringCriteria.KeywordCriteria extractKeywords(String text, ScoringCriteria.KeywordCriteria fallback) {
+        if (text == null || text.isBlank()) {
+            return fallback;
+        }
+        
+        List<String> words = java.util.Arrays.stream(text.split("[\\s\\p{Punct}]+"))
+                .filter(w -> w.length() >= 2)
+                .toList();
+
+        if (words.isEmpty()) {
+            return fallback;
+        }
+
+        int minMatch = Math.max(1, words.size() / 2);
+        return new ScoringCriteria.KeywordCriteria(words, minMatch, fallback.maxScore());
     }
 }
