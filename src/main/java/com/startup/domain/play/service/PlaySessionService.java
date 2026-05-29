@@ -294,20 +294,22 @@ public class PlaySessionService {
             throw new PlayException(PlayErrorCode.HINT_NOT_AVAILABLE);
         }
 
-        // 3. 처음 사용하는 경우 DB에 INSERT IGNORE (동시성 방어)
-        int insertedRow = usedHintRepository.insertIgnoreUsedHint(sessionId, hintId);
+        LocalDateTime nowTime = LocalDateTime.now();
 
-        java.time.LocalDateTime usedAt;
+        // 3. 처음 사용하는 경우 DB에 INSERT IGNORE (동시성 방어)
+        int insertedRow = usedHintRepository.insertIgnoreUsedHint(sessionId, hintId, nowTime);
+
+        LocalDateTime usedAt;
         if (insertedRow > 0) {
             // 성공적으로 인서트 했으면 힌트 카운트 증가 + 현재 시간 부여
             session.incrementHintCount();
-            usedAt = java.time.LocalDateTime.now();
+            usedAt = nowTime;
         } else {
             // 0.001초 차이로 동시 클릭해서 실패한 거면, 방금 들어간 최초 시간 다시 꺼내옴
             log.warn("[useHint] 중복 힌트 사용 감지(동시 요청 무시). sessionId={}, hintId={}", sessionId, hintId);
             usedAt = usedHintRepository.findByPlaySessionIdAndHintId(sessionId, hintId)
                     .map(com.startup.domain.play.entity.UsedHint::getUsedAt)
-                    .orElseGet(java.time.LocalDateTime::now);
+                    .orElse(nowTime);
         }
 
         return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore(), usedAt);

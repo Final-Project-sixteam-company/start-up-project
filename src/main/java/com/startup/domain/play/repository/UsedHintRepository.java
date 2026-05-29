@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +21,6 @@ public interface UsedHintRepository extends JpaRepository<UsedHint, Long> {
     int countByPlaySessionId(Long playSessionId);
 
     @Modifying
-    @Query(value = "INSERT IGNORE INTO used_hints (play_session_id, hint_id, used_at) VALUES (:sessionId, :hintId, NOW())", nativeQuery = true)
-    int insertIgnoreUsedHint(@Param("sessionId") Long sessionId, @Param("hintId") Long hintId);
+    @Query(value = "INSERT IGNORE INTO used_hints (play_session_id, hint_id, used_at) VALUES (:sessionId, :hintId, :used_at)", nativeQuery = true)
+    int insertIgnoreUsedHint(@Param("sessionId") Long sessionId, @Param("hintId") Long hintId, @Param("usedAt") LocalDateTime usedAt);
 }
