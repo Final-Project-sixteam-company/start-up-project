@@ -78,7 +78,7 @@ public class AiDeductionScorer {
             // 2. 채점 수행 (트랜잭션 밖)
             Long scenarioId = playSessionReader.getScenarioId(sessionId);
             SolutionInfo solution = solutionReader.findByScenarioId(scenarioId);
-            ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
+            ScoringCriteria criteria = buildCriteriaFromSolution(solution, scenarioId);
 
             ScoringResult scoringResult = ruleBasedScorer.score(request, criteria);
 
@@ -151,7 +151,7 @@ public class AiDeductionScorer {
 
         Long scenarioId = playSessionReader.getScenarioId(sessionId);
         SolutionInfo solution = solutionReader.findByScenarioId(scenarioId);
-        ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
+        ScoringCriteria criteria = buildCriteriaFromSolution(solution, scenarioId);
 
         warnIfKeyEvidenceSourcesDiverge(criteria, solution);
 
@@ -288,5 +288,24 @@ public class AiDeductionScorer {
         } catch (Exception releaseException) {
             log.warn("최종 추리 in-flight lock 해제 실패. sessionId={}", sessionId, releaseException);
         }
+    }
+
+    /**
+     * DB의 SolutionInfo를 우선으로 채점 기준을 조립한다.
+     * culpritSuspectId, keyEvidenceIds는 DB variant 기준으로 교체하고
+     * 키워드·점수 배분은 파일 기준을 유지한다.
+     */
+    private ScoringCriteria buildCriteriaFromSolution(SolutionInfo solution, Long scenarioId){
+        ScoringCriteria fileCreteria = scoringCriteriaProvider.getByCriteria(scenarioId);
+        return new ScoringCriteria(
+                scenarioId,
+                solution.culpritSuspectId(),
+                fileCreteria.method(),
+                fileCreteria.motive(),
+                fileCreteria.coverUp(),
+                solution.keyEvidenceIds(),
+                fileCreteria.evidenceMaxScore(),
+                fileCreteria.culpritMaxScore()
+        );
     }
 }
