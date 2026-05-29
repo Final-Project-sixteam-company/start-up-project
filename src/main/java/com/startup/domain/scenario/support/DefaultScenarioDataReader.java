@@ -5,6 +5,7 @@ import com.startup.domain.ai.entity.SuspectResponsePolicy;
 import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
+import com.startup.domain.ai.support.MockSolutionReader;
 import com.startup.domain.ai.support.ScenarioDataReader;
 import com.startup.domain.scenario.entity.Evidence;
 import com.startup.domain.scenario.entity.EvidenceSuspect;
@@ -49,6 +50,7 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
     private final ScenarioVariantRepository variantRepository;
     private final VariantSolutionRepository variantSolutionRepository;
     private final SuspectResponsePolicyRepository policyRepository;
+    private final MockSolutionReader mockSolutionReader;
 
     @Override
     @Transactional(readOnly = true)
@@ -194,18 +196,27 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
 
     /**
      * 활성 variant의 범인 suspectId를 조회한다.
-     * variant 데이터가 없으면 null을 반환한다 (검증 시 범인 판별 불가 허용).
+     * variant 데이터가 없으면 MockSolutionReader로 fallback한다.
      */
     private Long resolveCulpritSuspectId(Long scenarioId) {
-        return variantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
+        Long culpritId = variantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
                 .flatMap(variant -> variantSolutionRepository.findByVariantId(variant.getId()))
                 .map(VariantSolution::getCulpritSuspectId)
                 .orElse(null);
+
+        if (culpritId == null) {
+            try {
+                return mockSolutionReader.findByScenarioId(scenarioId).culpritSuspectId();
+            } catch (AiException e) {
+                return null;
+            }
+        }
+        return culpritId;
     }
 
     /**
      * 활성 variant의 정답 정보를 SolutionValidationInfo로 조립한다.
-     * variant 또는 solution 데이터가 없으면 null을 반환한다.
+     * variant 또는 solution 데이터가 없으면 MockSolutionReader로 fallback한다.
      */
     private ScenarioValidationData.SolutionValidationInfo buildSolutionInfo(Long scenarioId) {
         return variantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
@@ -221,26 +232,54 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
                         solution.parseKeyEvidenceIds()
                 ))
                 .orElseGet(() -> {
-                    log.warn("[ScenarioDataReader] 활성 variant/solution 없음. scenarioId={}", scenarioId);
-                    return null;
+                    log.warn("[ScenarioDataReader] 활성 variant/solution 없음. scenarioId={} -> Mock으로 fallback", scenarioId);
+                    try {
+                        var mock = mockSolutionReader.findByScenarioId(scenarioId);
+                        return new ScenarioValidationData.SolutionValidationInfo(
+                                mock.culpritSuspectId(),
+                                mock.culpritName(),
+                                mock.culpritRole(),
+                                mock.motive(),
+                                mock.method(),
+                                mock.coverUp(),
+                                mock.fullExplanation(),
+                                mock.keyEvidenceIds()
+                        );
+                    } catch (AiException e) {
+                        return null;
+                    }
                 });
     }
 
     /**
      * 핵심 증거 ID 목록으로 SolutionEvidenceInfo를 조립한다.
-     * 증거별 reason은 DB에 별도 저장되지 않으므로 제목을 대신 사용한다.
+     * 증거가 해당 시나리오 소속인지 확인하고, 요청된 갯수와 다르면 데이터 불일치 예외를 던진다.
      */
     private List<ScenarioValidationData.SolutionEvidenceInfo> buildSolutionEvidences(
             Long scenarioId, List<Long> keyEvidenceIds) {
         if (keyEvidenceIds.isEmpty()) {
             return List.of();
         }
-        return evidenceRepository.findAllById(keyEvidenceIds)
-                .stream()
+
+        List<Evidence> evidences = evidenceRepository.findAllById(keyEvidenceIds);
+
+        // 1. 해당 시나리오 소속인지 검증
+        List<Evidence> validEvidences = evidences.stream()
+                .filter(e -> e.getScenarioId().equals(scenarioId))
+                .toList();
+
+        // 2. 요청된 ID 개수와 조회된 유효 증거 개수가 다르면 데이터 불일치 예외 발생
+        if (validEvidences.size() != keyEvidenceIds.size()) {
+            log.error("[ScenarioDataReader] 핵심 증거 ID 불일치. 요청={}, 유효={}", keyEvidenceIds.size(), validEvidences.size());
+            throw new AiException(AiErrorCode.SCENARIO_DATA_INCOMPLETE);
+        }
+
+        return validEvidences.stream()
                 .map(e -> new ScenarioValidationData.SolutionEvidenceInfo(
                         e.getId(),
                         e.getTitle() // reason 컬럼이 없으므로 제목으로 대체
                 ))
                 .toList();
     }
+
 }
