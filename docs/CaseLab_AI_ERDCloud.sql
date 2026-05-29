@@ -272,6 +272,7 @@ CREATE TABLE play_sessions (
     id BIGINT NOT NULL AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
     scenario_id BIGINT NOT NULL,
+    scenario_variant_id BIGINT NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'PLAYING',
     started_at DATETIME NOT NULL,
     ended_at DATETIME NULL,
@@ -291,7 +292,9 @@ CREATE TABLE play_sessions (
     CONSTRAINT fk_play_sessions_user
         FOREIGN KEY (user_id) REFERENCES users (id),
     CONSTRAINT fk_play_sessions_scenario
-        FOREIGN KEY (scenario_id) REFERENCES scenarios (id)
+        FOREIGN KEY (scenario_id) REFERENCES scenarios (id),
+    CONSTRAINT fk_play_sessions_variant
+        FOREIGN KEY (scenario_variant_id) REFERENCES scenario_variants (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE unlocked_evidences (

@@ -48,6 +48,7 @@ public class PlaySessionService {
     private final HintRepository hintRepository;
     private final UsedHintRepository usedHintRepository;
     private final InterrogationLogRepository interrogationLogRepository;
+    private final ScenarioVariantRepository scenarioVariantRepository;
 
     //게임 시작 세션
     @Transactional
@@ -67,10 +68,15 @@ public class PlaySessionService {
                     throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
                 });
 
+        Long variantId = scenarioVariantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
+                .map(ScenarioVariant::getId)
+                .orElse(null);
+
         // 플레이 세션 생성
         PlaySession session = PlaySession.builder()
                 .userId(userId)
                 .scenarioId(scenarioId)
+                .scenarioVariantId(variantId)
                 .build();
 
         try {

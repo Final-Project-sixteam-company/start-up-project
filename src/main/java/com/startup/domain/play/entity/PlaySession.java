@@ -68,10 +68,14 @@ public class PlaySession extends BaseEntity {
     @Column(name = "active_key", unique = true)
     private String activeKey;
 
+    @Column(name = "scenario_variant_id")
+    private Long scenarioVariantId; //세션 시작 시점의 variant를 고정
+
     @Builder
-    private PlaySession(Long userId, Long scenarioId) {
+    private PlaySession(Long userId, Long scenarioId, Long scenarioVariantId) {
         this.userId = userId;
         this.scenarioId = scenarioId;
+        this.scenarioVariantId = scenarioVariantId;
         this.status = PlaySessionStatus.PLAYING;
         this.startedAt = LocalDateTime.now();
         this.currentElapsedSeconds = 0;
