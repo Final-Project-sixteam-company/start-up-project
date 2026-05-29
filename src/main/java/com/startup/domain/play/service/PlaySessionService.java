@@ -293,18 +293,14 @@ public class PlaySessionService {
             throw new PlayException(PlayErrorCode.HINT_NOT_AVAILABLE);
         }
 
-        // 힌트 사용 처리
-        UsedHint usedHint = UsedHint.builder()
-                .playSessionId(sessionId)
-                .hintId(hintId)
-                .build();
+        int insertedRow = usedHintRepository.insertIgnoreUsedHint(sessionId, hintId);
 
-        try {
-            usedHintRepository.saveAndFlush(usedHint);
-            // 세션에 힌트 사용 카운트 증가
+        if (insertedRow > 0) {
+            // 실제로 처음 들어갔을 때만 힌트 카운트 증가
             session.incrementHintCount();
-        } catch (DataIntegrityViolationException e) {
-            log.warn("[useHint] 중복 힌트 사용 감지(동시 요청). sessionId={}, hintId={}", sessionId, hintId);
+        } else {
+            // 중복 요청이라 무시됨
+            log.warn("[useHint] 중복 힌트 사용 감지(동시 요청 무시). sessionId={}, hintId={}", sessionId, hintId);
         }
 
         return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore());
