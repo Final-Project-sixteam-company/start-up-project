@@ -294,12 +294,10 @@ public class PlaySessionService {
                 .build();
 
         try {
-            usedHintRepository.save(usedHint);
+            usedHintRepository.saveAndFlush(usedHint);
             // 세션에 힌트 사용 카운트 증가
             session.incrementHintCount();
         } catch (DataIntegrityViolationException e) {
-            // 동시 요청으로 unique 제약에 걸린 경우 (double-tap 등)
-            // 이미 정상 저장된 것이므로 멱등 응답을 반환한다.
             log.warn("[useHint] 중복 힌트 사용 감지(동시 요청). sessionId={}, hintId={}", sessionId, hintId);
         }
 
