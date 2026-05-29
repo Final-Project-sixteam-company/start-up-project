@@ -160,7 +160,7 @@ CREATE TABLE evidences (
     location_id BIGINT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    evidence_type VARCHAR(50) NOT NULL DEFAULT 'GENERAL',
+    evidence_type VARCHAR(50) NOT NULL DEFAULT 'SCENE',
     importance VARCHAR(30) NOT NULL DEFAULT 'NORMAL',
     image_url VARCHAR(500) NULL,
     is_initial_public TINYINT(1) NOT NULL DEFAULT 0,
