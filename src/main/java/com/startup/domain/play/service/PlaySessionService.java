@@ -276,6 +276,11 @@ public class PlaySessionService {
         Hint hint = hintRepository.findById(hintId)
                 .orElseThrow(() -> new PlayException(PlayErrorCode.HINT_NOT_FOUND));
 
+        // 이 힌트가 현재 플레이 중인 시나리오의 힌트인지 검증 (스포일러/타 시나리오 접근 방어)
+        if (!hint.getScenarioId().equals(session.getScenarioId())) {
+            throw new PlayException(PlayErrorCode.HINT_NOT_FOUND);
+        }
+
         // 1. 이미 사용된 힌트인지 확인 (exists 대신 findBy 사용!)
         var existingUsedHint = usedHintRepository.findByPlaySessionIdAndHintId(sessionId, hintId);
         if (existingUsedHint.isPresent()) {
