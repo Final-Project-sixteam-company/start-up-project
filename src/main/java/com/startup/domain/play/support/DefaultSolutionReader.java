@@ -3,6 +3,7 @@ package com.startup.domain.play.support;
 import com.startup.domain.ai.dto.SolutionInfo;
 import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
+import com.startup.domain.ai.support.MockSolutionReader;
 import com.startup.domain.ai.support.SolutionReader;
 import com.startup.domain.scenario.entity.ScenarioVariant;
 import com.startup.domain.scenario.entity.VariantSolution;
@@ -10,6 +11,7 @@ import com.startup.domain.scenario.repository.EvidenceRepository;
 import com.startup.domain.scenario.repository.ScenarioVariantRepository;
 import com.startup.domain.scenario.repository.VariantSolutionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Primary
 @Component
 @RequiredArgsConstructor
@@ -25,17 +28,30 @@ public class DefaultSolutionReader implements SolutionReader {
     private final ScenarioVariantRepository variantRepository;
     private final VariantSolutionRepository variantSolutionRepository;
     private final EvidenceRepository evidenceRepository;
+    // seed 데이터가 없는 환경(개발/데모)에서 SOLUTION_NOT_FOUND를 방지하기 위한 fallback.
+    // scenario_variants / variant_solutions 테이블에 행이 채워지면 이 경로는 사용되지 않는다.
+    private final MockSolutionReader mockSolutionReader;
 
     @Override
     public SolutionInfo findByScenarioId(Long scenarioId) {
         // MVP: is_active=true인 variant 1개를 조회 (SECRETARY 고정)
         ScenarioVariant variant = variantRepository
                 .findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
-                .orElseThrow(() -> new AiException(AiErrorCode.SOLUTION_NOT_FOUND));
+                .orElse(null);
+
+        if (variant == null) {
+            log.warn("[SolutionReader] scenario_variants에 데이터 없음. scenarioId={} -> MockSolutionReader로 fallback", scenarioId);
+            return mockSolutionReader.findByScenarioId(scenarioId);
+        }
 
         VariantSolution solution = variantSolutionRepository
                 .findByVariantId(variant.getId())
-                .orElseThrow(() -> new AiException(AiErrorCode.SOLUTION_NOT_FOUND));
+                .orElse(null);
+
+        if (solution == null) {
+            log.warn("[SolutionReader] variant_solutions에 데이터 없음. variantId={} -> MockSolutionReader로 fallback", variant.getId());
+            return mockSolutionReader.findByScenarioId(scenarioId);
+        }
 
         List<Long> keyEvidenceIds = solution.parseKeyEvidenceIds();
 
