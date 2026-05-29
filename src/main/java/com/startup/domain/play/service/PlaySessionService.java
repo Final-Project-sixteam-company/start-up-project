@@ -293,11 +293,11 @@ public class PlaySessionService {
     //score/grade는 FinalDeduction 테이블에 저장되므로 여기서는 상태 전환과 active_key 해제만 처리
     @Transactional
     public void completeSession(Long sessionId) {
-        PlaySession session = getSessionOrThrow(sessionId);
+        PlaySession session = getSessionForUpdateOrThrow(sessionId);
 
         if(!session.isPlaying()){
             log.warn("이미 종료된 세션에 대한 완료 요청: sessionId={}", sessionId);
-            return;
+            throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
         }
 
         session.markCompleted();
@@ -307,7 +307,7 @@ public class PlaySessionService {
     // 유저가 게임을 포기할 때 (임시)
     @Transactional
     public void abandonSession(Long userId, Long sessionId) {
-        PlaySession session = getSessionOrThrow(sessionId);
+        PlaySession session = getSessionForUpdateOrThrow(sessionId);
         validateSessionOwner(session, userId);
 
         if (!session.isPlaying()) {
@@ -323,6 +323,11 @@ public class PlaySessionService {
 
     private PlaySession getSessionOrThrow(Long sessionId) {
         return playSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
+    }
+
+    private PlaySession getSessionForUpdateOrThrow(Long sessionId) {
+        return playSessionRepository.findByIdForUpdate(sessionId)
                 .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
     }
 

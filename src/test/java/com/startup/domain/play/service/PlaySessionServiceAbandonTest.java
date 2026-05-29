@@ -111,6 +111,23 @@ class PlaySessionServiceAbandonTest {
     }
 
     @Test
+    void completeSession_withAbandonedSession_throwsNotPlayingAndKeepsAbandonedStatus() {
+        Scenario scenario = saveScenario();
+        PlaySession session = savePlayingSession(USER_ID, scenario.getId());
+        playSessionService.abandonSession(USER_ID, session.getId());
+        flushAndClear();
+
+        assertPlayError(
+                () -> playSessionService.completeSession(session.getId()),
+                PlayErrorCode.SESSION_NOT_PLAYING
+        );
+
+        PlaySession found = playSessionRepository.findById(session.getId()).orElseThrow();
+        assertThat(found.getStatus()).isEqualTo(PlaySessionStatus.ABANDONED);
+        assertThat(found.getActiveKey()).isNull();
+    }
+
+    @Test
     void abandonSession_withDifferentOwner_throwsAccessDenied() {
         Scenario scenario = saveScenario();
         PlaySession session = savePlayingSession(OTHER_USER_ID, scenario.getId());
