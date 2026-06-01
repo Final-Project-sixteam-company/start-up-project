@@ -9,8 +9,10 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ScenarioErrorCode implements ErrorCode {
 
-    SCENARIO_NOT_FOUND(HttpStatus.NOT_FOUND, "SCENARIO_001", "시나리오를 찾을 수 없습니다."),
-    SCENARIO_CANNOT_PUBLISH(HttpStatus.BAD_REQUEST, "SCENARIO_002", "현재 상태에서는 시나리오를 공개할 수 없습니다.");
+    SCENARIO_NOT_FOUND(HttpStatus.NOT_FOUND, "S001", "시나리오를 찾을 수 없습니다."),
+    SCENARIO_CANNOT_PUBLISH(HttpStatus.BAD_REQUEST, "S002", "현재 상태에서는 시나리오를 공개할 수 없습니다."),
+    VARIANT_NOT_FOUND(HttpStatus.NOT_FOUND, "S003", "시나리오 변형(Variant)을 찾을 수 없습니다."),
+    VARIANT_SCENARIO_MISMATCH(HttpStatus.BAD_REQUEST, "S004", "해당 Variant는 요청한 시나리오에 속하지 않습니다.");
 
     private final HttpStatus status;
     private final String code;
