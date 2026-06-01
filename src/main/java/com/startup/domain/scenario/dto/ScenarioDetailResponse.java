@@ -34,7 +34,9 @@ public record ScenarioDetailResponse(
             String nickname
     ) {}
 
-    public static ScenarioDetailResponse from(Scenario scenario, String creatorNickname, Boolean isBookmarked, Boolean canPlay) {
+    public static ScenarioDetailResponse from(
+            Scenario scenario, String creatorNickname,int suspectCount, int evidenceCount, int hintCount,
+            Boolean isBookmarked, Boolean canPlay) {
         return new ScenarioDetailResponse(
                 scenario.getId(),
                 scenario.getTitle(),
@@ -49,9 +51,9 @@ public record ScenarioDetailResponse(
                 scenario.getPlayCount(),
                 scenario.getAverageRating(),
                 scenario.getRatingCount(),
-                0, // TODO: 나중에 용의자 수 계산 로직 추가하기
-                0, // TODO: 나중에 증거 수 계산 로직 추가하기
-                0, // TODO: 나중에 힌트 수 계산 로직 추가하기
+                suspectCount,
+                evidenceCount,
+                hintCount,
                 java.util.Collections.emptyList(), // TODO: 나중에 태그 목록 반환 로직 추가하기
                 new CreatorDto(scenario.getCreatorId(), creatorNickname),
                 isBookmarked,
