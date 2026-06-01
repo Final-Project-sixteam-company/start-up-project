@@ -1,27 +1,53 @@
 package com.startup.domain.play.support;
 
 import com.startup.domain.scenario.entity.Evidence;
+import com.startup.domain.scenario.entity.EvidenceUnlockRule;
 import com.startup.domain.scenario.enums.EvidenceUnlockType;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class EvidenceUnlockPolicy {
 
     private static final int PHASE_INTERVAL_MINUTES = 5;
+    private static final TypeReference<Map<String, Object>> CONDITION_TYPE = new TypeReference<>() {};
+
+    private final JsonMapper jsonMapper;
 
     public boolean canAutoUnlock(Evidence evidence, int elapsedMinutes) {
+        return canAutoUnlock(evidence, null, elapsedMinutes, Set.of());
+    }
+
+    public boolean canAutoUnlock(Evidence evidence,
+                                 EvidenceUnlockRule unlockRule,
+                                 int elapsedMinutes,
+                                 Set<String> unlockedEvidenceCodes) {
         if (evidence == null || Boolean.TRUE.equals(evidence.getIsInitialPublic())) {
             return false;
         }
+        boolean timingSatisfied = false;
         if (EvidenceUnlockType.TIME == evidence.getUnlockType()) {
-            return evidence.getUnlockAfterMinutes() != null
+            timingSatisfied = evidence.getUnlockAfterMinutes() != null
                     && elapsedMinutes >= evidence.getUnlockAfterMinutes();
         }
         if (EvidenceUnlockType.PHASE == evidence.getUnlockType()) {
-            Integer requiredMinutes = requiredElapsedMinutesForPhase(evidence.getUnlockPhase());
-            return requiredMinutes != null && elapsedMinutes >= requiredMinutes;
+            Integer requiredMinutes = requiredElapsedMinutesForPhase(firstNonBlank(
+                    evidence.getUnlockPhase(),
+                    unlockRule == null ? null : unlockRule.getRequiredPhase()
+            ));
+            timingSatisfied = requiredMinutes != null && elapsedMinutes >= requiredMinutes;
         }
-        return false;
+        return timingSatisfied && prerequisiteEvidenceSatisfied(unlockRule, unlockedEvidenceCodes);
     }
 
     public String buildUnlockHint(Evidence evidence) {
@@ -71,5 +97,46 @@ public class EvidenceUnlockPolicy {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private boolean prerequisiteEvidenceSatisfied(EvidenceUnlockRule unlockRule, Set<String> unlockedEvidenceCodes) {
+        List<String> requiredEvidenceCodes = requiredEvidenceCodes(unlockRule);
+        if (requiredEvidenceCodes.isEmpty()) {
+            return true;
+        }
+        return unlockedEvidenceCodes != null && unlockedEvidenceCodes.containsAll(requiredEvidenceCodes);
+    }
+
+    private List<String> requiredEvidenceCodes(EvidenceUnlockRule unlockRule) {
+        if (unlockRule == null || unlockRule.getConditionJson() == null || unlockRule.getConditionJson().isBlank()) {
+            return List.of();
+        }
+        try {
+            Map<String, Object> condition = jsonMapper.readValue(unlockRule.getConditionJson(), CONDITION_TYPE);
+            Object value = condition.get("requiredEvidenceCodes");
+            if (value instanceof Collection<?> collection) {
+                return collection.stream()
+                        .map(String::valueOf)
+                        .filter(item -> !item.isBlank())
+                        .toList();
+            }
+            if (value instanceof String stringValue && !stringValue.isBlank()) {
+                return List.of(stringValue);
+            }
+            return List.of();
+        } catch (Exception e) {
+            log.warn("unlockRule conditionJson 파싱 실패. evidenceId={}, conditionJson={}",
+                    unlockRule.getEvidenceId(), unlockRule.getConditionJson(), e);
+            return List.of("__INVALID_UNLOCK_CONDITION__");
+        }
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 }

@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -48,6 +49,7 @@ public class PlaySessionService {
     private final VictimRepository victimRepository;
     private final ScenarioLocationRepository scenarioLocationRepository;
     private final EvidenceSuspectRepository evidenceSuspectRepository;
+    private final EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
     private final HintRepository hintRepository;
     private final UsedHintRepository usedHintRepository;
     private final InterrogationLogRepository interrogationLogRepository;
@@ -510,11 +512,30 @@ public class PlaySessionService {
                 .map(UnlockedEvidence::getEvidenceId)
                 .collect(Collectors.toSet());
 
-        List<Evidence> autoUnlockEvidences = evidenceRepository
+        List<Evidence> scenarioEvidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
+        Map<Long, EvidenceUnlockRule> unlockRulesByEvidenceId = evidenceUnlockRuleRepository
                 .findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
                 .stream()
-                .filter(e -> evidenceUnlockPolicy.canAutoUnlock(e, elapsedMinutes))
+                .collect(Collectors.toMap(
+                        EvidenceUnlockRule::getEvidenceId,
+                        Function.identity(),
+                        (left, right) -> left
+                ));
+        Set<String> unlockedEvidenceCodes = scenarioEvidences.stream()
+                .filter(evidence -> alreadyUnlockedIds.contains(evidence.getId()))
+                .map(Evidence::getCode)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        List<Evidence> autoUnlockEvidences = scenarioEvidences
+                .stream()
                 .filter(e -> !alreadyUnlockedIds.contains(e.getId())) //이미 해금된건 제외
+                .filter(e -> evidenceUnlockPolicy.canAutoUnlock(
+                        e,
+                        unlockRulesByEvidenceId.get(e.getId()),
+                        elapsedMinutes,
+                        unlockedEvidenceCodes
+                ))
                 .toList();
 
         for (Evidence evidence : autoUnlockEvidences) {
