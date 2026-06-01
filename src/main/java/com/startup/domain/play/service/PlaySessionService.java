@@ -13,6 +13,7 @@ import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
 import com.startup.domain.play.repository.UsedHintRepository;
 import com.startup.domain.play.entity.UsedHint;
+import com.startup.domain.play.support.DefaultPlaySessionCompleter;
 import com.startup.domain.scenario.entity.*;
 import com.startup.domain.scenario.enums.EvidenceUnlockType;
 import com.startup.domain.scenario.repository.HintRepository;
@@ -49,6 +50,7 @@ public class PlaySessionService {
     private final UsedHintRepository usedHintRepository;
     private final InterrogationLogRepository interrogationLogRepository;
     private final ScenarioVariantRepository scenarioVariantRepository;
+    private final DefaultPlaySessionCompleter playSessionCompleter;
 
     //게임 시작 세션
     @Transactional
@@ -270,6 +272,11 @@ public class PlaySessionService {
         validateSessionOwner(session, userId);
 
         if (!session.isPlaying()) {
+            throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
+        }
+
+        // AI 채점이 진행 중(in-flight lock)이면 힌트 사용 차단
+        if (playSessionCompleter.isLockedForFinalDeduction(sessionId)) {
             throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
         }
 
