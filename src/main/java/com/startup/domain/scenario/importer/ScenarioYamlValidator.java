@@ -43,6 +43,7 @@ public class ScenarioYamlValidator {
         validateVictim(yaml, locationCodes, violations);
         validateEvidenceReferences(yaml, locationCodes, characterCodes, violations);
         validateVariantReferences(yaml, charactersByCode, evidenceCodes, violations);
+        validatePublishedVariants(yaml, violations);
         validateEvidenceVariantStates(yaml, evidenceCodes, variantCodes, violations);
         validateUnlockRules(yaml, evidenceCodes, characterCodes, violations);
         validateNpcPolicies(yaml, evidenceCodes, characterCodes, violations);
@@ -165,6 +166,44 @@ public class ScenarioYamlValidator {
                 if (!evidenceCodes.contains(evidenceCode)) {
                     violations.add("variant " + variant.code() + " misleadingEvidenceCodes references missing evidence: " + evidenceCode);
                 }
+            }
+        }
+    }
+
+    private void validatePublishedVariants(ScenarioYaml yaml, List<String> violations) {
+        if (!isPublished(yaml)) {
+            return;
+        }
+
+        boolean hasEnabledVariant = listOf(yaml.variants()).stream()
+                .anyMatch(variant -> Boolean.TRUE.equals(variant.enabled()));
+        if (!hasEnabledVariant) {
+            violations.add("PUBLISHED requires at least one enabled variant.");
+        }
+
+        for (ScenarioYaml.VariantYaml variant : listOf(yaml.variants())) {
+            if (!Boolean.TRUE.equals(variant.enabled())) {
+                continue;
+            }
+
+            Map<String, Object> solution = variant.solution();
+            if (solution == null || solution.isEmpty()) {
+                violations.add("enabled variant " + variant.code() + " requires non-empty solution.");
+                continue;
+            }
+
+            requireObjectText(solution.get("motiveSummary"),
+                    "variants[" + variant.code() + "].solution.motiveSummary", violations);
+            requireObjectText(solution.get("methodSummary"),
+                    "variants[" + variant.code() + "].solution.methodSummary", violations);
+            requireObjectText(solution.get("coverUpSummary"),
+                    "variants[" + variant.code() + "].solution.coverUpSummary", violations);
+            requireObjectText(solution.get("solutionText"),
+                    "variants[" + variant.code() + "].solution.solutionText", violations);
+
+            Object proofDimensions = solution.get("proofDimensions");
+            if (!(proofDimensions instanceof Map<?, ?> proofDimensionMap) || proofDimensionMap.isEmpty()) {
+                violations.add("variants[" + variant.code() + "].solution.proofDimensions is required.");
             }
         }
     }
@@ -354,6 +393,12 @@ public class ScenarioYamlValidator {
 
     private void requireText(String value, String field, List<String> violations) {
         if (!hasText(value)) {
+            violations.add(field + " is required.");
+        }
+    }
+
+    private void requireObjectText(Object value, String field, List<String> violations) {
+        if (value == null || String.valueOf(value).isBlank()) {
             violations.add(field + " is required.");
         }
     }

@@ -256,6 +256,15 @@ variants:
 ```
 
 This section must never be exposed to AI NPC prompts or public APIs.
+The importer derives the culprit display name and role from `characters[]`
+using `culpritCode`; official YAML should not duplicate them as required
+variant fields.
+
+For `PUBLISHED` official YAML, every `enabled: true` variant must provide a
+non-empty `solution` with `motiveSummary`, `methodSummary`, `coverUpSummary`,
+`solutionText`, and `proofDimensions`. `solution.methodSummary` is the primary
+source for the persisted `VariantSolution.method`; legacy top-level method
+layer fields are optional fallback only.
 
 ## Unlock Rules
 
@@ -368,6 +377,9 @@ For `PUBLISHED` content, the validator must enforce:
 - `evidences[].relatedCharacterCodes` exist in `characters`
 - `variants[].culpritCode` exists in `characters`
 - `variants[].culpritCode` has `culpritEligible=true`
+- `PUBLISHED` content has at least one `enabled: true` variant
+- enabled variants include required solution fields:
+  `motiveSummary`, `methodSummary`, `coverUpSummary`, `solutionText`, `proofDimensions`
 - `evidenceVariantStates[].variantCode` exists in `variants`
 - `evidenceVariantStates[].evidenceCode` exists in `evidences`
 - `unlockRules[].evidenceCode` exists in `evidences`

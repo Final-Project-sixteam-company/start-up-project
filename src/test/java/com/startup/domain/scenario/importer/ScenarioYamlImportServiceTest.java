@@ -85,6 +85,15 @@ class ScenarioYamlImportServiceTest {
         assertThat(npcKnowledgeProfileRepository.count()).isEqualTo(1);
         assertThat(policyRepository.count()).isEqualTo(1);
         assertThat(assetRepository.count()).isEqualTo(1);
+
+        var variant = variantRepository
+                .findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(imported.scenarioId())
+                .orElseThrow();
+        var solution = solutionRepository.findByVariantId(variant.getId()).orElseThrow();
+        assertThat(variant.getVariantName()).isEqualTo("용의자 Variant");
+        assertThat(solution.getCulpritName()).isEqualTo("용의자");
+        assertThat(solution.getCulpritRole()).isEqualTo("비서");
+        assertThat(solution.getMethod()).isEqualTo("방법");
     }
 
     @Test
@@ -221,14 +230,15 @@ class ScenarioYamlImportServiceTest {
                         true,
                         1,
                         "SUSPECT_SECRETARY",
-                        "용의자",
-                        "비서",
-                        "물병 조작",
+                        null,
+                        null,
+                        null,
                         null,
                         null,
                         Map.of("time", "21:00"),
                         Map.of(
                                 "motiveSummary", "동기",
+                                "methodSummary", "방법",
                                 "coverUpSummary", "은폐",
                                 "solutionText", "정답 설명",
                                 "proofDimensions", Map.of(

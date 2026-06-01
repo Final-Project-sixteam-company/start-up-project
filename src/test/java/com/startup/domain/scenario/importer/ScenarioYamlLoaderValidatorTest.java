@@ -88,6 +88,30 @@ class ScenarioYamlLoaderValidatorTest {
     }
 
     @Test
+    void publishedYamlRequiresEnabledVariant() throws IOException {
+        String invalidYaml = SAMPLE_YAML
+                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
+                .replace("status: DRAFT", "status: PUBLISHED")
+                .replace("enabled: true", "enabled: false");
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains("at least one enabled variant"));
+    }
+
+    @Test
+    void publishedEnabledVariantRequiresSolutionMethodSummary() throws IOException {
+        String invalidYaml = SAMPLE_YAML
+                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
+                .replace("status: DRAFT", "status: PUBLISHED")
+                .replace("      methodSummary: \"방법\"\n", "");
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains("solution.methodSummary is required"));
+    }
+
+    @Test
     void nonCulpritEligibleCharacterAsCulprit_failsValidation() throws IOException {
         String invalidYaml = SAMPLE_YAML.replace(
                 "culpritCode: SUSPECT_TEST",
@@ -210,6 +234,7 @@ class ScenarioYamlLoaderValidatorTest {
                 solution:
                   motiveSummary: "동기"
                   methodSummary: "방법"
+                  coverUpSummary: "은폐"
                   solutionText: "해설"
                   proofDimensions:
                     METHOD_PROOF:

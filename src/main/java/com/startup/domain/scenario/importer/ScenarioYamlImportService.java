@@ -263,13 +263,21 @@ public class ScenarioYamlImportService {
                                                                   Map<String, Evidence> evidencesByCode) {
         Map<String, ScenarioVariant> result = new LinkedHashMap<>();
         for (ScenarioYaml.VariantYaml variantYaml : listOf(yaml.variants())) {
+            Suspect culprit = suspectsByCode.get(variantYaml.culpritCode());
+            if (culprit == null) {
+                throw new ScenarioImportException("variant culprit not found: " + variantYaml.culpritCode());
+            }
+
+            Map<String, Object> solution = mapOf(variantYaml.solution());
+            String method = firstNonBlank(stringValue(solution.get("methodSummary")),
+                    variantYaml.mainMethodLayer(), variantYaml.fatalLayerSummary(), variantYaml.directCause());
             ScenarioVariant variant = variantRepository.save(ScenarioVariant.builder()
                     .scenarioId(scenarioId)
                     .code(variantYaml.code())
                     .variantType(toVariantType(variantYaml.code()))
-                    .variantName(variantYaml.culpritName() + " Variant")
+                    .variantName(culprit.getName() + " Variant")
                     .description(firstNonBlank(variantYaml.mainMethodLayer(),
-                            variantYaml.fatalLayerSummary(), variantYaml.directCause()))
+                            variantYaml.fatalLayerSummary(), variantYaml.directCause(), method))
                     .culpritCode(variantYaml.culpritCode())
                     .weight(variantYaml.weight())
                     .isActive(Boolean.TRUE.equals(variantYaml.enabled()))
@@ -277,21 +285,14 @@ public class ScenarioYamlImportService {
                     .build());
             result.put(variantYaml.code(), variant);
 
-            Suspect culprit = suspectsByCode.get(variantYaml.culpritCode());
-            if (culprit == null) {
-                throw new ScenarioImportException("variant culprit not found: " + variantYaml.culpritCode());
-            }
-
-            Map<String, Object> solution = mapOf(variantYaml.solution());
             solutionRepository.save(VariantSolution.builder()
                     .variantId(variant.getId())
                     .culpritSuspectId(culprit.getId())
                     .culpritCode(variantYaml.culpritCode())
-                    .culpritName(variantYaml.culpritName())
-                    .culpritRole(variantYaml.culpritRole())
+                    .culpritName(culprit.getName())
+                    .culpritRole(culprit.getRole())
                     .motive(stringValue(solution.get("motiveSummary")))
-                    .method(firstNonBlank(variantYaml.mainMethodLayer(),
-                            variantYaml.fatalLayerSummary(), variantYaml.directCause()))
+                    .method(method)
                     .coverUp(stringValue(solution.get("coverUpSummary")))
                     .fullExplanation(stringValue(solution.get("solutionText")))
                     .keyEvidenceIds(toEvidenceIdCsv(collectEvidenceCodes(solution), evidencesByCode))
