@@ -19,8 +19,7 @@ public class DefaultPlaySessionCompleter implements PlaySessionCompleter {
 
     private final PlaySessionService playSessionService;
     private final PlaySessionRepository playSessionRepository;
-
-    private final Set<Long> lockedSessions = ConcurrentHashMap.newKeySet();
+    private final FinalDeductionLockManager lockManager;
 
     @Override
     public void lockForFinalDeduction(Long sessionId) {
@@ -32,7 +31,7 @@ public class DefaultPlaySessionCompleter implements PlaySessionCompleter {
         });
 
         // 채점 중복 요청 방지 (In-memory Lock)
-        if (!lockedSessions.add(sessionId)) {
+        if (!lockManager.tryLock(sessionId)) {
             throw new AiException(AiErrorCode.SCORING_IN_PROGRESS);
         }
     }
@@ -43,17 +42,13 @@ public class DefaultPlaySessionCompleter implements PlaySessionCompleter {
             // 실제 우리 DB의 세션을 COMPLETED로 변경
             playSessionService.completeSession(sessionId);
         } finally {
-            lockedSessions.remove(sessionId);
+            lockManager.release(sessionId);
         }
     }
 
     @Override
     public void releaseFinalDeductionLock(Long sessionId) {
-        lockedSessions.remove(sessionId);
+        lockManager.release(sessionId);
     }
 
-    // 외부에서 채점 중 여부를 확인할 수 있는 메서드
-    public boolean isLockedForFinalDeduction(Long sessionId) {
-        return lockedSessions.contains(sessionId);
-    }
 }
