@@ -50,6 +50,8 @@ CLAUDE.local.md
 .review/
 scripts/review-snapshot.sh
 docs/REVIEW_SNAPSHOT_GUIDE.md
+.private/
+.private.zip
 
 # Internal scenario spoiler docs
 docs/scenarios/*IMPLEMENTATION_CANON*.md
@@ -72,6 +74,7 @@ firebase-service-account*.json
 # Database backups
 *.sql
 *.sql.gz
+!docs/db/migrations/*.sql
 
 # Terraform local state
 *.tfstate

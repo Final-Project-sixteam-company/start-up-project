@@ -13,4 +13,6 @@ public interface SuspectRepository extends JpaRepository<Suspect, Long> {
     int countByScenarioId(Long scenarioId);
 
     Optional<Suspect> findByIdAndScenarioId(Long id, Long scenarioId);
+
+    Optional<Suspect> findByScenarioIdAndCode(Long scenarioId, String code);
 }

@@ -26,6 +26,9 @@ public class VariantSolution extends BaseEntity {
     @Column(name = "culprit_suspect_id", nullable = false)
     private Long culpritSuspectId;
 
+    @Column(name = "culprit_code", length = 100)
+    private String culpritCode;
+
     @Column(name = "culprit_name", nullable = false, length = 100)
     private String culpritName;
 
@@ -48,12 +51,20 @@ public class VariantSolution extends BaseEntity {
     @Column(name = "key_evidence_ids", columnDefinition = "TEXT")
     private String keyEvidenceIds;
 
+    @Column(name = "proof_dimension_json", columnDefinition = "TEXT")
+    private String proofDimensionJson;
+
+    @Column(name = "final_feedback_json", columnDefinition = "TEXT")
+    private String finalFeedbackJson;
+
     @Builder
-    private VariantSolution(Long variantId, Long culpritSuspectId, String culpritName,
+    private VariantSolution(Long variantId, Long culpritSuspectId, String culpritCode, String culpritName,
                             String culpritRole, String motive, String method,
-                            String coverUp, String fullExplanation, String keyEvidenceIds) {
+                            String coverUp, String fullExplanation, String keyEvidenceIds,
+                            String proofDimensionJson, String finalFeedbackJson) {
         this.variantId = variantId;
         this.culpritSuspectId = culpritSuspectId;
+        this.culpritCode = culpritCode;
         this.culpritName = culpritName;
         this.culpritRole = culpritRole;
         this.motive = motive;
@@ -61,6 +72,8 @@ public class VariantSolution extends BaseEntity {
         this.coverUp = coverUp;
         this.fullExplanation = fullExplanation;
         this.keyEvidenceIds = keyEvidenceIds;
+        this.proofDimensionJson = proofDimensionJson;
+        this.finalFeedbackJson = finalFeedbackJson;
     }
 
     // "2,6,7,8" 형태의 문자열을 List<Long>으로 파싱

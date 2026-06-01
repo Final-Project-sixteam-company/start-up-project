@@ -35,6 +35,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'tools.jackson.dataformat:jackson-dataformat-yaml'
 
     // 기본값은 AI model을 none으로 두고, 기능을 붙일 때 OpenAI provider를 켠다.
     implementation platform('org.springframework.ai:spring-ai-bom:2.0.0-M6')

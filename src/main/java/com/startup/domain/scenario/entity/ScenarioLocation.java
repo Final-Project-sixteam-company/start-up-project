@@ -25,11 +25,20 @@ public class ScenarioLocation {
     @Column(name = "scenario_id", nullable = false)
     private Long scenarioId;
 
+    @Column(length = 100)
+    private String code;
+
     @Column(nullable = false, length = 100)
     private String name; //장소명
 
+    @Column(length = 30)
+    private String floor;
+
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "image_asset_key", length = 500)
+    private String imageAssetKey;
 
     @Column(name = "map_x")
     private Integer mapX;
@@ -45,11 +54,15 @@ public class ScenarioLocation {
     private LocalDateTime createdAt;
 
     @Builder
-    private ScenarioLocation(Long scenarioId, String name, String description,
+    private ScenarioLocation(Long scenarioId, String code, String name, String floor,
+                             String description, String imageAssetKey,
                              Integer mapX, Integer mapY, Integer sortOrder) {
         this.scenarioId = scenarioId;
+        this.code = code;
         this.name = name;
+        this.floor = floor;
         this.description = description;
+        this.imageAssetKey = imageAssetKey;
         this.mapX = mapX;
         this.mapY = mapY;
         this.sortOrder = sortOrder;

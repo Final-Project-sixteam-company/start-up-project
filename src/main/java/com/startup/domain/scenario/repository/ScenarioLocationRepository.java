@@ -11,4 +11,6 @@ public interface ScenarioLocationRepository extends JpaRepository<ScenarioLocati
     Optional<ScenarioLocation> findById(Long id);
 
     List<ScenarioLocation> findAllByScenarioIdOrderBySortOrder(Long scenarioId);
+
+    Optional<ScenarioLocation> findByScenarioIdAndCode(Long scenarioId, String code);
 }
