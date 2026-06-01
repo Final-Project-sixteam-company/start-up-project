@@ -4,5 +4,9 @@ public enum VariantType {
     SECRETARY,
     SECURITY,
     SPOUSE,
-    DOCTOR
+    DOCTOR,
+    ACTOR,
+    WRITER,
+    LIGHTING_DP,
+    STUNT
 }

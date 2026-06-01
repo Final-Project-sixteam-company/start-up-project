@@ -20,4 +20,8 @@ public interface EvidenceReader {
     List<EvidenceInfo> getUnlockedEvidences(Long sessionId);
 
     EvidenceInfo findById(Long evidenceId);
+
+    default EvidenceInfo findById(Long sessionId, Long evidenceId) {
+        return findById(evidenceId);
+    }
 }

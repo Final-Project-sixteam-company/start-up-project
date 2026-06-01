@@ -13,9 +13,10 @@ import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
 import com.startup.domain.play.repository.UsedHintRepository;
 import com.startup.domain.play.entity.UsedHint;
+import com.startup.domain.play.support.EvidenceVariantDescriptionResolver;
+import com.startup.domain.play.support.EvidenceUnlockPolicy;
 import com.startup.domain.play.support.FinalDeductionLockManager;
 import com.startup.domain.scenario.entity.*;
-import com.startup.domain.scenario.enums.EvidenceUnlockType;
 import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
@@ -30,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -46,11 +49,14 @@ public class PlaySessionService {
     private final VictimRepository victimRepository;
     private final ScenarioLocationRepository scenarioLocationRepository;
     private final EvidenceSuspectRepository evidenceSuspectRepository;
+    private final EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
     private final HintRepository hintRepository;
     private final UsedHintRepository usedHintRepository;
     private final InterrogationLogRepository interrogationLogRepository;
     private final ScenarioVariantRepository scenarioVariantRepository;
     private final FinalDeductionLockManager finalDeductionLockManager;
+    private final EvidenceVariantDescriptionResolver evidenceVariantDescriptionResolver;
+    private final EvidenceUnlockPolicy evidenceUnlockPolicy;
 
     //게임 시작 세션
     @Transactional
@@ -70,9 +76,7 @@ public class PlaySessionService {
                     throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
                 });
 
-        Long variantId = scenarioVariantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
-                .map(ScenarioVariant::getId)
-                .orElse(null);
+        Long variantId = selectVariantId(scenarioId);
 
         // 플레이 세션 생성
         PlaySession session = PlaySession.builder()
@@ -118,8 +122,8 @@ public class PlaySessionService {
         Scenario scenario = scenarioRepository.findById(session.getScenarioId())
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        //카운트 조회 전에 시간 기반 해금을 먼저 동기화
-        processTimeBasedUnlocks(session);
+        //카운트 조회 전에 자동 해금 조건을 먼저 동기화
+        processAutomaticUnlocks(session);
 
         // 해금 증거 수
         int unlockedCount = unlockedEvidenceRepository.countByPlaySessionId(sessionId);
@@ -145,7 +149,7 @@ public class PlaySessionService {
         );
     }
 
-    // 증거 목록 조회 - 조회 시점에 시간 기반 자동 해금 처리후 반환
+    // 증거 목록 조회 - 조회 시점에 자동 해금 조건 처리 후 반환
     @Transactional
     public List<PlayEvidenceResponse> getEvidences(Long userId, Long sessionId, Boolean includeLocked, String status) {
 
@@ -160,8 +164,8 @@ public class PlaySessionService {
         PlaySession session = getSessionOrThrow(sessionId);
         validateSessionOwner(session, userId);
 
-        // 조회 시점에 시간 기반으로 자동 해금 처리 (Lazy Evaluation)
-        processTimeBasedUnlocks(session);
+        // 조회 시점에 자동 해금 조건 처리 (Lazy Evaluation)
+        processAutomaticUnlocks(session);
 
         // 시나리오의 전체 증거 조회
         List<Evidence> allEvidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
@@ -202,16 +206,24 @@ public class PlaySessionService {
                 }
             }
 
-            // 미해금 증거는 description, locationName 마스킹
-            String description = isUnlocked ? evidence.getDescription() : null;
-            String locationName = isUnlocked ? locationNameMap.get(evidence.getLocationId()) : null;
+            // 미해금 증거는 상세/이미지/장소를 마스킹한다.
+            String description = isUnlocked
+                    ? evidenceVariantDescriptionResolver.resolve(evidence, session.getScenarioVariantId())
+                    : null;
+            String oneLine = isUnlocked ? evidence.getOneLine() : null;
+            String imageAssetKey = isUnlocked ? evidence.getImageAssetKey() : null;
+            String locationName = isUnlocked && evidence.getLocationId() != null
+                    ? locationNameMap.get(evidence.getLocationId())
+                    : null;
             String unlockHint = isUnlocked ? null : buildUnlockHint(evidence);
             String imageUrl = isUnlocked ? evidence.getImageUrl() : null;
 
             result.add(new PlayEvidenceResponse(
                     evidence.getId(),
                     evidence.getTitle(),
+                    oneLine,
                     description,
+                    imageAssetKey,
                     locationName,
                     evidence.getImportance(),
                     isUnlocked,
@@ -222,6 +234,34 @@ public class PlaySessionService {
         }
 
         return result;
+    }
+
+    private Long selectVariantId(Long scenarioId) {
+        List<ScenarioVariant> activeVariants =
+                scenarioVariantRepository.findAllByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId);
+        if (activeVariants.isEmpty()) {
+            return null;
+        }
+
+        int totalWeight = activeVariants.stream()
+                .map(ScenarioVariant::getWeight)
+                .filter(Objects::nonNull)
+                .mapToInt(weight -> Math.max(weight, 0))
+                .sum();
+
+        if (totalWeight <= 0) {
+            return activeVariants.getFirst().getId();
+        }
+
+        int ticket = ThreadLocalRandom.current().nextInt(totalWeight);
+        int cursor = 0;
+        for (ScenarioVariant variant : activeVariants) {
+            cursor += Math.max(variant.getWeight() == null ? 0 : variant.getWeight(), 0);
+            if (ticket < cursor) {
+                return variant.getId();
+            }
+        }
+        return activeVariants.getLast().getId();
     }
 
     //힌트 목록 조회
@@ -460,9 +500,9 @@ public class PlaySessionService {
                 .collect(Collectors.toMap(ScenarioLocation::getId, ScenarioLocation::getName));
     }
 
-    // 경과 시간에 따라 자동 해금 조건이 충족된 증거를 DB에 기록한다.
+    // 경과 시간/phase에 따라 자동 해금 조건이 충족된 증거를 DB에 기록한다.
     // 이미 해금된 증거 id를 먼저 조회해 중복 저장을 시도하지 않는다
-    private void processTimeBasedUnlocks(PlaySession session) {
+    private void processAutomaticUnlocks(PlaySession session) {
         if (!session.isPlaying()) return;
 
         int elapsedMinutes = calculateElapsedSeconds(session) / 60;
@@ -474,36 +514,42 @@ public class PlaySessionService {
                 .map(UnlockedEvidence::getEvidenceId)
                 .collect(Collectors.toSet());
 
-        List<Evidence> timeBasedEvidences = evidenceRepository
+        List<Evidence> scenarioEvidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
+        Map<Long, EvidenceUnlockRule> unlockRulesByEvidenceId = evidenceUnlockRuleRepository
                 .findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
                 .stream()
-                .filter(e -> !e.getIsInitialPublic())
-                .filter(e -> EvidenceUnlockType.TIME == e.getUnlockType())
-                .filter(e -> e.getUnlockAfterMinutes() != null)
-                .filter(e -> elapsedMinutes >= e.getUnlockAfterMinutes())
+                .collect(Collectors.toMap(
+                        EvidenceUnlockRule::getEvidenceId,
+                        Function.identity(),
+                        (left, right) -> left
+                ));
+        Set<String> unlockedEvidenceCodes = scenarioEvidences.stream()
+                .filter(evidence -> alreadyUnlockedIds.contains(evidence.getId()))
+                .map(Evidence::getCode)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        List<Evidence> autoUnlockEvidences = scenarioEvidences
+                .stream()
                 .filter(e -> !alreadyUnlockedIds.contains(e.getId())) //이미 해금된건 제외
+                .filter(e -> evidenceUnlockPolicy.canAutoUnlock(
+                        e,
+                        unlockRulesByEvidenceId.get(e.getId()),
+                        elapsedMinutes,
+                        unlockedEvidenceCodes
+                ))
                 .toList();
 
-        for (Evidence evidence : timeBasedEvidences) {
+        for (Evidence evidence : autoUnlockEvidences) {
             unlockedEvidenceRepository.insertIgnoreUnlockedEvidence(
-                    session.getId(), evidence.getId(), "TIME_BASED");
+                    session.getId(), evidence.getId(), evidence.getUnlockType().name() + "_AUTO");
 
-            log.info("시간 기반 증거 자동 해금 시도: sessionId={}, evidenceId={}, elapsedMinutes={}",
-                    session.getId(), evidence.getId(), elapsedMinutes);
+            log.info("증거 자동 해금 시도: sessionId={}, evidenceId={}, unlockType={}, elapsedMinutes={}",
+                    session.getId(), evidence.getId(), evidence.getUnlockType(), elapsedMinutes);
         }
     }
 
     private String buildUnlockHint(Evidence evidence) {
-        if (EvidenceUnlockType.TIME == evidence.getUnlockType() &&
-                evidence.getUnlockAfterMinutes() != null) {
-            return evidence.getUnlockAfterMinutes() + "분 후 공개";
-        }
-        if (EvidenceUnlockType.INTERROGATION == evidence.getUnlockType()) {
-            return "심문을 통해 해금";
-        }
-        if (EvidenceUnlockType.EVIDENCE_PRESENTED == evidence.getUnlockType()) {
-            return "증거 제시로 해금";
-        }
-        return "조건 충족 시 해금";
+        return evidenceUnlockPolicy.buildUnlockHint(evidence);
     }
 }

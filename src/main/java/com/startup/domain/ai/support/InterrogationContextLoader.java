@@ -56,7 +56,7 @@ public class InterrogationContextLoader {
         }
 
         EvidenceInfo presentedEvidence = presentedEvidenceId != null
-                ? evidenceReader.findById(presentedEvidenceId)
+                ? evidenceReader.findById(sessionId, presentedEvidenceId)
                 : null;
 
         ResponsePolicyResult policy = policyResolver.resolve(

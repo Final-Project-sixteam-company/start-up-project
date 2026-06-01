@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
+
+    Optional<Scenario> findByCodeAndVersion(String code, String version);
     
     // PUBLISHED 시나리오 중, 누구나 볼 수 있는 권한(PUBLIC, OFFICIAL)인 목록만 조회
     Page<Scenario> findAllByStatusAndVisibilityIn(ScenarioStatus status, List<ScenarioVisibility> visibilities, Pageable pageable);

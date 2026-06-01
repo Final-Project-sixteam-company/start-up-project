@@ -3,6 +3,7 @@ package com.startup.domain.scenario.entity;
 import com.startup.domain.scenario.enums.RelationType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -35,4 +36,11 @@ public class EvidenceSuspect {
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt;
+
+    @Builder
+    private EvidenceSuspect(Long evidenceId, Long suspectId, RelationType relationType) {
+        this.evidenceId = evidenceId;
+        this.suspectId = suspectId;
+        this.relationType = relationType != null ? relationType : RelationType.RELATED;
+    }
 }

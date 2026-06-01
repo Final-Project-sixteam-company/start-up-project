@@ -24,6 +24,9 @@ public class ScenarioVariant extends BaseEntity {
     @Column(name = "scenario_id", nullable = false)
     private Long scenarioId;
 
+    @Column(length = 100)
+    private String code;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "variant_type", nullable = false, length = 30)
     private VariantType variantType;
@@ -34,6 +37,12 @@ public class ScenarioVariant extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "culprit_code", length = 100)
+    private String culpritCode;
+
+    @Column(nullable = false)
+    private Integer weight = 1;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = false; // MVP: SECRETARY만 true
 
@@ -41,13 +50,16 @@ public class ScenarioVariant extends BaseEntity {
     private Integer sortOrder = 0;
 
     @Builder
-    private ScenarioVariant(Long scenarioId, VariantType variantType,
-                            String variantName, String description,
-                            Boolean isActive, Integer sortOrder) {
+    private ScenarioVariant(Long scenarioId, String code, VariantType variantType,
+                            String variantName, String description, String culpritCode,
+                            Integer weight, Boolean isActive, Integer sortOrder) {
         this.scenarioId = scenarioId;
+        this.code = code;
         this.variantType = variantType;
         this.variantName = variantName;
         this.description = description;
+        this.culpritCode = culpritCode;
+        this.weight = weight != null ? weight : 1;
         this.isActive = isActive != null ? isActive : false;
         this.sortOrder = sortOrder != null ? sortOrder : 0;
     }

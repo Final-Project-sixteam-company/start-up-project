@@ -8,7 +8,9 @@ import java.util.List;
 public record PlayEvidenceResponse(
         Long evidenceId,
         String title,
+        String oneLine,
         String description,
+        String imageAssetKey,
         String locationName,
         EvidenceImportance importance,
         Boolean isUnlocked,

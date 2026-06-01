@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -62,4 +63,23 @@ public class SuspectResponsePolicy {
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt;
+
+    @Builder
+    private SuspectResponsePolicy(Long suspectId, String conditionKey, String userIntent,
+                                  String requiredEvidenceIds, String excludedEvidenceIds,
+                                  Long presentedEvidenceId, String policyText,
+                                  String allowedFacts, String forbiddenFacts,
+                                  String tone, Integer priority) {
+        this.suspectId = suspectId;
+        this.conditionKey = conditionKey;
+        this.userIntent = userIntent;
+        this.requiredEvidenceIds = requiredEvidenceIds;
+        this.excludedEvidenceIds = excludedEvidenceIds;
+        this.presentedEvidenceId = presentedEvidenceId;
+        this.policyText = policyText;
+        this.allowedFacts = allowedFacts;
+        this.forbiddenFacts = forbiddenFacts;
+        this.tone = tone;
+        this.priority = priority != null ? priority : 0;
+    }
 }
