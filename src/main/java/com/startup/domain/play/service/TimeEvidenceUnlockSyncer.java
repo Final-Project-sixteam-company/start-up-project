@@ -2,7 +2,7 @@ package com.startup.domain.play.service;
 
 import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
-import com.startup.domain.scenario.enums.EvidenceUnlockType;
+import com.startup.domain.play.support.EvidenceUnlockPolicy;
 import com.startup.domain.scenario.repository.EvidenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +19,7 @@ public class TimeEvidenceUnlockSyncer {
     private final PlaySessionRepository playSessionRepository;
     private final EvidenceRepository evidenceRepository;
     private final UnlockedEvidenceRepository unlockedEvidenceRepository;
+    private final EvidenceUnlockPolicy evidenceUnlockPolicy;
 
     // REQUIRES_NEW: 외부 readOnly 트랜잭션과 분리된 쓰기 트랜잭션으로 실행
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -31,12 +32,9 @@ public class TimeEvidenceUnlockSyncer {
             int elapsedMinutes = (int) Duration.between(session.getStartedAt(), LocalDateTime.now()).toMinutes();
             evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
                     .stream()
-                    .filter(e -> !e.getIsInitialPublic())
-                    .filter(e -> EvidenceUnlockType.TIME == e.getUnlockType())
-                    .filter(e -> e.getUnlockAfterMinutes() != null)
-                    .filter(e -> elapsedMinutes >= e.getUnlockAfterMinutes())
+                    .filter(e -> evidenceUnlockPolicy.canAutoUnlock(e, elapsedMinutes))
                     .forEach(e -> unlockedEvidenceRepository
-                            .insertIgnoreUnlockedEvidence(sessionId, e.getId(), "TIME"));
+                            .insertIgnoreUnlockedEvidence(sessionId, e.getId(), e.getUnlockType().name() + "_AUTO"));
         });
     }
 }

@@ -51,6 +51,7 @@ CLAUDE.local.md
 scripts/review-snapshot.sh
 docs/REVIEW_SNAPSHOT_GUIDE.md
 .private/
+.private.zip
 
 # Internal scenario spoiler docs
 docs/scenarios/*IMPLEMENTATION_CANON*.md
