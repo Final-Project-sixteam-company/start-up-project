@@ -206,6 +206,7 @@ public class PlaySessionService {
             String description = isUnlocked ? evidence.getDescription() : null;
             String locationName = isUnlocked ? locationNameMap.get(evidence.getLocationId()) : null;
             String unlockHint = isUnlocked ? null : buildUnlockHint(evidence);
+            String imageUrl = isUnlocked ? evidence.getImageUrl() : null;
 
             result.add(new PlayEvidenceResponse(
                     evidence.getId(),
@@ -215,6 +216,7 @@ public class PlaySessionService {
                     evidence.getImportance(),
                     isUnlocked,
                     unlockHint,
+                    imageUrl,
                     relatedSuspects.isEmpty() ? null : relatedSuspects
             ));
         }
