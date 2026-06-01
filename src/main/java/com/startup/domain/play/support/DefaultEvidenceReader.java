@@ -28,6 +28,11 @@ public class DefaultEvidenceReader implements EvidenceReader {
     private final EvidenceVariantDescriptionResolver evidenceVariantDescriptionResolver;
 
     @Override
+    public void syncTimeUnlocks(Long sessionId, Long userId) {
+        timeEvidenceUnlockSyncer.sync(sessionId, userId);
+    }
+
+    @Override
     public List<Long> getUnlockedEvidenceIds(Long sessionId) {
         return unlockedEvidenceRepository.findAllByPlaySessionId(sessionId)
                 .stream()

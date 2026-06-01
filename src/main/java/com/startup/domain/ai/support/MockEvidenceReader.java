@@ -18,6 +18,11 @@ public class MockEvidenceReader implements EvidenceReader {
     );
 
     @Override
+    public void syncTimeUnlocks(Long sessionId, Long userId) {
+        // Mock mode keeps evidence availability static.
+    }
+
+    @Override
     public List<Long> getUnlockedEvidenceIds(Long sessionId) {
         return List.of(1L, 2L);
     }
