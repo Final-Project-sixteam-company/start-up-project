@@ -13,6 +13,7 @@ import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
 import com.startup.domain.play.repository.UsedHintRepository;
 import com.startup.domain.play.entity.UsedHint;
+import com.startup.domain.play.support.EvidenceVariantDescriptionResolver;
 import com.startup.domain.play.support.FinalDeductionLockManager;
 import com.startup.domain.scenario.entity.*;
 import com.startup.domain.scenario.enums.EvidenceUnlockType;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -51,6 +53,7 @@ public class PlaySessionService {
     private final InterrogationLogRepository interrogationLogRepository;
     private final ScenarioVariantRepository scenarioVariantRepository;
     private final FinalDeductionLockManager finalDeductionLockManager;
+    private final EvidenceVariantDescriptionResolver evidenceVariantDescriptionResolver;
 
     //게임 시작 세션
     @Transactional
@@ -70,9 +73,7 @@ public class PlaySessionService {
                     throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
                 });
 
-        Long variantId = scenarioVariantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
-                .map(ScenarioVariant::getId)
-                .orElse(null);
+        Long variantId = selectVariantId(scenarioId);
 
         // 플레이 세션 생성
         PlaySession session = PlaySession.builder()
@@ -202,15 +203,21 @@ public class PlaySessionService {
                 }
             }
 
-            // 미해금 증거는 description, locationName 마스킹
-            String description = isUnlocked ? evidence.getDescription() : null;
+            // 미해금 증거는 상세/이미지/장소를 마스킹한다.
+            String description = isUnlocked
+                    ? evidenceVariantDescriptionResolver.resolve(evidence, session.getScenarioVariantId())
+                    : null;
+            String oneLine = isUnlocked ? evidence.getOneLine() : null;
+            String imageAssetKey = isUnlocked ? evidence.getImageAssetKey() : null;
             String locationName = isUnlocked ? locationNameMap.get(evidence.getLocationId()) : null;
             String unlockHint = isUnlocked ? null : buildUnlockHint(evidence);
 
             result.add(new PlayEvidenceResponse(
                     evidence.getId(),
                     evidence.getTitle(),
+                    oneLine,
                     description,
+                    imageAssetKey,
                     locationName,
                     evidence.getImportance(),
                     isUnlocked,
@@ -220,6 +227,34 @@ public class PlaySessionService {
         }
 
         return result;
+    }
+
+    private Long selectVariantId(Long scenarioId) {
+        List<ScenarioVariant> activeVariants =
+                scenarioVariantRepository.findAllByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId);
+        if (activeVariants.isEmpty()) {
+            return null;
+        }
+
+        int totalWeight = activeVariants.stream()
+                .map(ScenarioVariant::getWeight)
+                .filter(Objects::nonNull)
+                .mapToInt(weight -> Math.max(weight, 0))
+                .sum();
+
+        if (totalWeight <= 0) {
+            return activeVariants.getFirst().getId();
+        }
+
+        int ticket = ThreadLocalRandom.current().nextInt(totalWeight);
+        int cursor = 0;
+        for (ScenarioVariant variant : activeVariants) {
+            cursor += Math.max(variant.getWeight() == null ? 0 : variant.getWeight(), 0);
+            if (ticket < cursor) {
+                return variant.getId();
+            }
+        }
+        return activeVariants.getLast().getId();
     }
 
     //힌트 목록 조회

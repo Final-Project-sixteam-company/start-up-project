@@ -19,3 +19,7 @@ public repository에 둘 수 있는 문서는 아래 범위로 제한한다.
 - AI NPC prompt boundary policy
 - Backend implementation guidance
 - Non-answer content pipeline notes
+
+## Public Scenario Docs
+
+- `SCENARIO_YAML_SCHEMA.md`: 공식 시나리오 YAML의 spoiler-free 구조, 검증 규칙, 런타임 연결 계약.

@@ -28,6 +28,9 @@ public class Evidence {
     @Column(name = "scenario_id", nullable = false)
     private Long scenarioId;
 
+    @Column(length = 100)
+    private String code;
+
     @Column(name = "location_id")
     private Long locationId;
 
@@ -36,6 +39,9 @@ public class Evidence {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "one_line", length = 500)
+    private String oneLine;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "evidence_type", nullable = false, length = 50)
@@ -47,6 +53,12 @@ public class Evidence {
 
     @Column(name = "image_url", length = 500)
     private String imageUrl;
+
+    @Column(name = "image_asset_key", length = 500)
+    private String imageAssetKey;
+
+    @Column(name = "unlock_phase", length = 50)
+    private String unlockPhase;
 
     @Column(name = "is_initial_public", nullable = false)
     private Boolean isInitialPublic = false;
@@ -69,17 +81,22 @@ public class Evidence {
     private LocalDateTime createdAt;
 
     @Builder
-    private Evidence(Long scenarioId, Long locationId, String title, String description,
-                     EvidenceType evidenceType, EvidenceImportance importance, String imageUrl,
+    private Evidence(Long scenarioId, String code, Long locationId, String title, String description,
+                     String oneLine, EvidenceType evidenceType, EvidenceImportance importance,
+                     String imageUrl, String imageAssetKey, String unlockPhase,
                      Boolean isInitialPublic, EvidenceUnlockType unlockType, String unlockConditionJson,
                      Integer unlockAfterMinutes, Integer sortOrder) {
         this.scenarioId = scenarioId;
+        this.code = code;
         this.locationId = locationId;
         this.title = title;
         this.description = description;
+        this.oneLine = oneLine;
         this.evidenceType = evidenceType != null ? evidenceType : EvidenceType.SCENE;
         this.importance = importance != null ? importance : EvidenceImportance.NORMAL;
         this.imageUrl = imageUrl;
+        this.imageAssetKey = imageAssetKey;
+        this.unlockPhase = unlockPhase;
         this.isInitialPublic = isInitialPublic != null ? isInitialPublic : false;
         this.unlockType = unlockType != null ? unlockType : EvidenceUnlockType.NONE;
         this.unlockConditionJson = unlockConditionJson;

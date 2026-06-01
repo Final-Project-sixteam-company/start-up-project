@@ -22,11 +22,20 @@ public class Suspect extends BaseEntity {
     @Column(name = "scenario_id", nullable = false)
     private Long scenarioId;
 
+    @Column(length = 100)
+    private String code;
+
     @Column(nullable = false, length = 100)
     private String name;
 
     @Column(length = 100)
     private String role;
+
+    @Column(name = "character_type", length = 50)
+    private String characterType;
+
+    @Column(name = "culprit_eligible", nullable = false)
+    private Boolean culpritEligible = true;
 
     @Column(name = "relation_to_victim", length = 255)
     private String relationToVictim;
@@ -46,6 +55,9 @@ public class Suspect extends BaseEntity {
     @Column(name = "response_policy_json", columnDefinition = "TEXT")
     private String responsePolicyJson; //응답 정책 json
 
+    @Column(name = "portrait_asset_key", length = 500)
+    private String portraitAssetKey;
+
     @Column(name = "suspicion_level", nullable = false)
     private Integer suspicionLevel = 0; //의심도
 
@@ -53,19 +65,24 @@ public class Suspect extends BaseEntity {
     private Integer sortOrder; //표시 순서
 
     @Builder
-    private Suspect(Long scenarioId, String name, String role, String relationToVictim,
+    private Suspect(Long scenarioId, String code, String name, String role, String characterType,
+                    Boolean culpritEligible, String relationToVictim,
                     String publicProfile, String publicStatement, String alibi,
-                    String personalityPrompt, String responsePolicyJson,
+                    String personalityPrompt, String responsePolicyJson, String portraitAssetKey,
                     Integer suspicionLevel, Integer sortOrder) {
         this.scenarioId = scenarioId;
+        this.code = code;
         this.name = name;
         this.role = role;
+        this.characterType = characterType;
+        this.culpritEligible = culpritEligible != null ? culpritEligible : true;
         this.relationToVictim = relationToVictim;
         this.publicProfile = publicProfile;
         this.publicStatement = publicStatement;
         this.alibi = alibi;
         this.personalityPrompt = personalityPrompt;
         this.responsePolicyJson = responsePolicyJson;
+        this.portraitAssetKey = portraitAssetKey;
         this.suspicionLevel = suspicionLevel != null ? suspicionLevel : 0;
         this.sortOrder = sortOrder;
     }
