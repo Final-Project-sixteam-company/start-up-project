@@ -23,7 +23,6 @@ public record PlayHintResponse(
         Boolean isUsed,
 
         @Schema(description = "미해금 상태일 때 잠금 해제까지 남은 시간(분). 해금 가능 상태변 null")
-        @JsonProperty("unlockAfterMinutes")
         Integer remainingMinutes,
 
         Integer penaltyScore
