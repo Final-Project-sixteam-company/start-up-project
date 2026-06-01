@@ -74,6 +74,7 @@ firebase-service-account*.json
 # Database backups
 *.sql
 *.sql.gz
+!docs/db/migrations/*.sql
 
 # Terraform local state
 *.tfstate
