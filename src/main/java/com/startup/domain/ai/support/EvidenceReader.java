@@ -15,6 +15,19 @@ import java.util.List;
  */
 public interface EvidenceReader {
 
+    /**
+     * Synchronizes time-based unlocked evidence before final deduction validation.
+     *
+     * Contract:
+     * - Call after the final-deduction in-flight lock is acquired.
+     * - Call before reading unlocked evidence for selectedEvidenceIds validation.
+     * - Implementations may write newly unlocked time-based evidence records.
+     * - Implementations own authorization and play-state checks.
+     * - Owner mismatch or non-playing sessions may be treated as a silent no-op.
+     * - Read-only query paths should not call this method.
+     */
+    void syncTimeUnlocks(Long sessionId, Long userId);
+
     List<Long> getUnlockedEvidenceIds(Long sessionId);
 
     List<EvidenceInfo> getUnlockedEvidences(Long sessionId);

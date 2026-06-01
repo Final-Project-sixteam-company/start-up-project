@@ -27,7 +27,8 @@ public enum AiErrorCode implements ErrorCode {
     SCENARIO_VALIDATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AI017", "시나리오 검증 처리 중 오류가 발생했습니다"),
     SCENARIO_VALIDATION_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "AI018", "시나리오 검증 결과를 찾을 수 없습니다"),
     SCENARIO_NOT_FOUND(HttpStatus.NOT_FOUND, "AI019", "시나리오를 찾을 수 없습니다"),
-    SCENARIO_DATA_INCOMPLETE(HttpStatus.BAD_REQUEST, "AI020", "시나리오 데이터가 불완전합니다");
+    SCENARIO_DATA_INCOMPLETE(HttpStatus.BAD_REQUEST, "AI020", "시나리오 데이터가 불완전합니다"),
+    FINAL_DEDUCTION_EVIDENCE_NOT_UNLOCKED(HttpStatus.BAD_REQUEST, "AI021", "최종 추리에 사용할 수 없는 증거입니다.");
 
     private final HttpStatus status;
     private final String code;
