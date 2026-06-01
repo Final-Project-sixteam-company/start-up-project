@@ -3,6 +3,7 @@ package com.startup.domain.scenario.importer;
 import com.startup.domain.ai.entity.SuspectResponsePolicy;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
 import com.startup.domain.scenario.entity.Evidence;
+import com.startup.domain.scenario.entity.EvidenceSuspect;
 import com.startup.domain.scenario.entity.EvidenceUnlockRule;
 import com.startup.domain.scenario.entity.EvidenceVariantState;
 import com.startup.domain.scenario.entity.NpcKnowledgeProfile;
@@ -17,12 +18,14 @@ import com.startup.domain.scenario.enums.Difficulty;
 import com.startup.domain.scenario.enums.EvidenceImportance;
 import com.startup.domain.scenario.enums.EvidenceType;
 import com.startup.domain.scenario.enums.EvidenceUnlockType;
+import com.startup.domain.scenario.enums.RelationType;
 import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.enums.ScenarioType;
 import com.startup.domain.scenario.enums.ScenarioVisibility;
 import com.startup.domain.scenario.enums.VariantType;
 import com.startup.domain.scenario.importer.yaml.ScenarioYaml;
 import com.startup.domain.scenario.repository.EvidenceRepository;
+import com.startup.domain.scenario.repository.EvidenceSuspectRepository;
 import com.startup.domain.scenario.repository.EvidenceUnlockRuleRepository;
 import com.startup.domain.scenario.repository.EvidenceVariantStateRepository;
 import com.startup.domain.scenario.repository.NpcKnowledgeProfileRepository;
@@ -58,6 +61,7 @@ public class ScenarioYamlImportService {
     private final VictimRepository victimRepository;
     private final SuspectRepository suspectRepository;
     private final EvidenceRepository evidenceRepository;
+    private final EvidenceSuspectRepository evidenceSuspectRepository;
     private final ScenarioVariantRepository variantRepository;
     private final VariantSolutionRepository solutionRepository;
     private final EvidenceVariantStateRepository evidenceVariantStateRepository;
@@ -92,6 +96,7 @@ public class ScenarioYamlImportService {
         Map<String, Suspect> suspectsByCode = saveCharacters(yaml, scenario.getId());
         Map<String, Evidence> evidencesByCode = saveEvidences(
                 yaml, scenario.getId(), locationsByCode, unlockRulesByEvidenceCode);
+        saveEvidenceSuspects(yaml, suspectsByCode, evidencesByCode);
         Map<String, ScenarioVariant> variantsByCode = saveVariantsAndSolutions(
                 yaml, scenario.getId(), suspectsByCode, evidencesByCode);
         saveEvidenceVariantStates(yaml, scenario.getId(), variantsByCode, evidencesByCode);
@@ -219,6 +224,8 @@ public class ScenarioYamlImportService {
                     .evidenceType(enumValue(EvidenceType.class, evidenceYaml.category(), "evidences[].category"))
                     .importance(toImportance(evidenceYaml.baseRole()))
                     .imageAssetKey(evidenceYaml.imageAssetKey())
+                    .thumbnailAssetKey(evidenceYaml.thumbnailAssetKey())
+                    .tagsJson(toJson(evidenceYaml.tags()))
                     .unlockPhase(evidenceYaml.unlockPhase())
                     .isInitialPublic(isOpeningPhase(evidenceYaml.unlockPhase()))
                     .unlockType(toUnlockType(unlockRule))
@@ -228,6 +235,26 @@ public class ScenarioYamlImportService {
             result.put(evidenceYaml.code(), evidence);
         }
         return result;
+    }
+
+    private void saveEvidenceSuspects(ScenarioYaml yaml,
+                                      Map<String, Suspect> suspectsByCode,
+                                      Map<String, Evidence> evidencesByCode) {
+        for (ScenarioYaml.EvidenceYaml evidenceYaml : listOf(yaml.evidences())) {
+            Evidence evidence = evidencesByCode.get(evidenceYaml.code());
+            for (String characterCode : listOf(evidenceYaml.relatedCharacterCodes())) {
+                Suspect suspect = suspectsByCode.get(characterCode);
+                if (evidence == null || suspect == null) {
+                    throw new ScenarioImportException("evidence relatedCharacterCodes reference not found: "
+                            + evidenceYaml.code() + "/" + characterCode);
+                }
+                evidenceSuspectRepository.save(EvidenceSuspect.builder()
+                        .evidenceId(evidence.getId())
+                        .suspectId(suspect.getId())
+                        .relationType(RelationType.RELATED)
+                        .build());
+            }
+        }
     }
 
     private Map<String, ScenarioVariant> saveVariantsAndSolutions(ScenarioYaml yaml,

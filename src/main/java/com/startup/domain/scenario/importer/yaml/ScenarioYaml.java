@@ -98,6 +98,9 @@ public record ScenarioYaml(
             String oneLine,
             String baseDetail,
             String imageAssetKey,
+            String thumbnailAssetKey,
+            List<String> relatedCharacterCodes,
+            List<String> tags,
             Integer sortOrder
     ) {
     }

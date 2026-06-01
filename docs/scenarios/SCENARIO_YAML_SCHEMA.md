@@ -107,7 +107,6 @@ scenario:
   code: SCENARIO_SAMPLE
   version: "1.0.0"
   title: "Sample Scenario"
-  subtitle: "Optional subtitle"
   description: "Short public description"
   synopsis: "Public setup text"
   genre: "closed-room mystery"
@@ -147,9 +146,8 @@ locations:
   - code: LOC_PRIMARY_SCENE
     name: "Primary Scene"
     floor: "2F"
-    zone: "main"
     description: "Player-facing location description"
-    mapAssetKey: official/sample/v1/maps/LOC_PRIMARY_SCENE.png
+    imageAssetKey: official/sample/v1/maps/LOC_PRIMARY_SCENE.png
     sortOrder: 10
 ```
 
@@ -348,6 +346,7 @@ describe the scoring shape, but official mappings are private.
 assets:
   - assetKey: official/sample/v1/evidence/EVIDENCE_SAMPLE.png
     type: EVIDENCE_IMAGE
+    targetKind: EVIDENCE
     targetCode: EVIDENCE_SAMPLE
     s3ObjectKey: official/sample/v1/evidence/EVIDENCE_SAMPLE.png
     contentType: image/png
@@ -375,7 +374,8 @@ For `PUBLISHED` content, the validator must enforce:
 - `unlockRules[].condition.requiredEvidenceCodes` exist in `evidences`
 - `npcPolicies[].characterCode` exists in `characters`
 - `npcPolicies[].evidenceReactionPolicies[].evidenceCode` exists in `evidences`
-- `assets[].targetCode` references an existing scenario object
+- `assets[].type`, `assets[].targetKind`, and `assets[].targetCode` are present
+- `assets[].targetKind + targetCode` references an existing scenario object
 - `assetKey` and `s3ObjectKey` do not contain local filesystem paths
 - same `scenario.code + scenario.version` with different content hash fails import
 
@@ -389,13 +389,14 @@ Recommended persistence order:
 3. Locations
 4. Characters
 5. Evidences
-6. Variants
-7. VariantSolutions
-8. EvidenceVariantStates
-9. UnlockRules
-10. NpcPolicies
-11. Scoring
-12. Assets
+6. EvidenceSuspects
+7. Variants
+8. VariantSolutions
+9. EvidenceVariantStates
+10. UnlockRules
+11. NpcPolicies
+12. Scoring
+13. Assets
 ```
 
 ## Runtime Contract

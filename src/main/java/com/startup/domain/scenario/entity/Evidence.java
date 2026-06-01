@@ -57,6 +57,12 @@ public class Evidence {
     @Column(name = "image_asset_key", length = 500)
     private String imageAssetKey;
 
+    @Column(name = "thumbnail_asset_key", length = 500)
+    private String thumbnailAssetKey;
+
+    @Column(name = "tags_json", columnDefinition = "TEXT")
+    private String tagsJson;
+
     @Column(name = "unlock_phase", length = 50)
     private String unlockPhase;
 
@@ -83,7 +89,8 @@ public class Evidence {
     @Builder
     private Evidence(Long scenarioId, String code, Long locationId, String title, String description,
                      String oneLine, EvidenceType evidenceType, EvidenceImportance importance,
-                     String imageUrl, String imageAssetKey, String unlockPhase,
+                     String imageUrl, String imageAssetKey, String thumbnailAssetKey, String tagsJson,
+                     String unlockPhase,
                      Boolean isInitialPublic, EvidenceUnlockType unlockType, String unlockConditionJson,
                      Integer unlockAfterMinutes, Integer sortOrder) {
         this.scenarioId = scenarioId;
@@ -96,6 +103,8 @@ public class Evidence {
         this.importance = importance != null ? importance : EvidenceImportance.NORMAL;
         this.imageUrl = imageUrl;
         this.imageAssetKey = imageAssetKey;
+        this.thumbnailAssetKey = thumbnailAssetKey;
+        this.tagsJson = tagsJson;
         this.unlockPhase = unlockPhase;
         this.isInitialPublic = isInitialPublic != null ? isInitialPublic : false;
         this.unlockType = unlockType != null ? unlockType : EvidenceUnlockType.NONE;

@@ -3,6 +3,7 @@ package com.startup.domain.scenario.importer;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
 import com.startup.domain.scenario.importer.yaml.ScenarioYaml;
 import com.startup.domain.scenario.repository.EvidenceRepository;
+import com.startup.domain.scenario.repository.EvidenceSuspectRepository;
 import com.startup.domain.scenario.repository.EvidenceUnlockRuleRepository;
 import com.startup.domain.scenario.repository.EvidenceVariantStateRepository;
 import com.startup.domain.scenario.repository.NpcKnowledgeProfileRepository;
@@ -41,6 +42,9 @@ class ScenarioYamlImportServiceTest {
     private EvidenceRepository evidenceRepository;
 
     @Autowired
+    private EvidenceSuspectRepository evidenceSuspectRepository;
+
+    @Autowired
     private ScenarioVariantRepository variantRepository;
 
     @Autowired
@@ -73,6 +77,7 @@ class ScenarioYamlImportServiceTest {
         assertThat(scenarioRepository.count()).isEqualTo(1);
         assertThat(suspectRepository.count()).isEqualTo(2);
         assertThat(evidenceRepository.count()).isEqualTo(2);
+        assertThat(evidenceSuspectRepository.count()).isEqualTo(2);
         assertThat(variantRepository.count()).isEqualTo(1);
         assertThat(solutionRepository.count()).isEqualTo(1);
         assertThat(stateRepository.count()).isEqualTo(1);
@@ -180,6 +185,9 @@ class ScenarioYamlImportServiceTest {
                                 "초기 공개",
                                 "초기 공개 상세",
                                 "official/test/v1/evidence/EVIDENCE_OPENING.png",
+                                null,
+                                List.of("SUSPECT_SECRETARY"),
+                                List.of("opening"),
                                 10
                         ),
                         new ScenarioYaml.EvidenceYaml(
@@ -192,6 +200,9 @@ class ScenarioYamlImportServiceTest {
                                 "핵심 단서",
                                 "핵심 단서 상세",
                                 "official/test/v1/evidence/EVIDENCE_KEY.png",
+                                "official/test/v1/evidence/EVIDENCE_KEY.thumb.png",
+                                List.of("SUSPECT_SECRETARY"),
+                                List.of("method"),
                                 20
                         )
                 ),

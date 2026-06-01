@@ -24,6 +24,7 @@ class ScenarioYamlLoaderValidatorTest {
 
         assertThat(yaml.scenario().code()).isEqualTo("SCENARIO_TEST");
         assertThat(yaml.evidences()).hasSize(2);
+        assertThat(yaml.evidences().getFirst().relatedCharacterCodes()).containsExactly("SUSPECT_TEST");
         assertThat(violations).isEmpty();
     }
 
@@ -49,6 +50,41 @@ class ScenarioYamlLoaderValidatorTest {
         List<String> violations = validator.validate(load(invalidYaml));
 
         assertThat(violations).anyMatch(message -> message.contains("references missing location: LOC_MISSING"));
+    }
+
+    @Test
+    void missingRelatedCharacter_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "relatedCharacterCodes:\n      - SUSPECT_TEST",
+                "relatedCharacterCodes:\n      - SUSPECT_MISSING"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "relatedCharacterCodes references missing character: SUSPECT_MISSING"));
+    }
+
+    @Test
+    void missingAssetTargetKind_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace("    targetKind: EVIDENCE\n", "");
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains("targetKind is required"));
+    }
+
+    @Test
+    void publishedYamlRequiresNonEmptyRootSections() throws IOException {
+        String invalidYaml = SAMPLE_YAML
+                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
+                .replace("status: DRAFT", "status: PUBLISHED");
+        invalidYaml = invalidYaml.substring(0, invalidYaml.indexOf("assets:"))
+                + "assets: []\n";
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains("PUBLISHED requires non-empty assets"));
     }
 
     @Test
@@ -136,6 +172,11 @@ class ScenarioYamlLoaderValidatorTest {
                 oneLine: "핵심 증거"
                 baseDetail: "핵심 증거 상세"
                 imageAssetKey: official/sample/v1/evidence/EVIDENCE_KEY.png
+                thumbnailAssetKey: official/sample/v1/evidence/EVIDENCE_KEY.thumb.png
+                relatedCharacterCodes:
+                  - SUSPECT_TEST
+                tags:
+                  - method
                 sortOrder: 10
               - code: EVIDENCE_SUPPORT
                 title: "보조 증거"
@@ -145,6 +186,10 @@ class ScenarioYamlLoaderValidatorTest {
                 oneLine: "보조 증거"
                 baseDetail: "보조 증거 상세"
                 imageAssetKey: official/sample/v1/evidence/EVIDENCE_SUPPORT.png
+                relatedCharacterCodes:
+                  - WITNESS_TEST
+                tags:
+                  - support
                 sortOrder: 20
 
             evidenceVariantStates:

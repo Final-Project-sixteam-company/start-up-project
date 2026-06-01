@@ -27,7 +27,9 @@ public class ScenarioYamlValidator {
             return List.of("YAML content is empty.");
         }
 
+        validateMetadata(yaml, violations);
         validateScenario(yaml, violations);
+        validatePublishedRootSections(yaml, violations);
 
         Set<String> locationCodes = collectCodes(yaml.locations(), ScenarioYaml.LocationYaml::code, "locations", violations);
         Map<String, ScenarioYaml.CharacterYaml> charactersByCode = collectCodeMap(
@@ -35,14 +37,17 @@ public class ScenarioYamlValidator {
         Set<String> characterCodes = charactersByCode.keySet();
         Set<String> evidenceCodes = collectCodes(yaml.evidences(), ScenarioYaml.EvidenceYaml::code, "evidences", violations);
         Set<String> variantCodes = collectCodes(yaml.variants(), ScenarioYaml.VariantYaml::code, "variants", violations);
+        String scenarioCode = yaml.scenario() == null ? null : yaml.scenario().code();
+        String victimCode = yaml.victim() == null ? null : yaml.victim().code();
 
         validateVictim(yaml, locationCodes, violations);
-        validateEvidenceReferences(yaml, locationCodes, violations);
+        validateEvidenceReferences(yaml, locationCodes, characterCodes, violations);
         validateVariantReferences(yaml, charactersByCode, evidenceCodes, violations);
         validateEvidenceVariantStates(yaml, evidenceCodes, variantCodes, violations);
         validateUnlockRules(yaml, evidenceCodes, characterCodes, violations);
         validateNpcPolicies(yaml, evidenceCodes, characterCodes, violations);
-        validateAssets(yaml, violations);
+        validateAssets(yaml, scenarioCode, victimCode, locationCodes, characterCodes,
+                evidenceCodes, variantCodes, violations);
 
         return violations;
     }
@@ -80,7 +85,44 @@ public class ScenarioYamlValidator {
         }
     }
 
-    private void validateEvidenceReferences(ScenarioYaml yaml, Set<String> locationCodes, List<String> violations) {
+    private void validateMetadata(ScenarioYaml yaml, List<String> violations) {
+        if (yaml.metadata() == null) {
+            violations.add("metadata section is required.");
+            return;
+        }
+        requireText(yaml.metadata().contentStatus(), "metadata.contentStatus", violations);
+        requireText(yaml.metadata().locale(), "metadata.locale", violations);
+    }
+
+    private void validatePublishedRootSections(ScenarioYaml yaml, List<String> violations) {
+        if (!isPublished(yaml)) {
+            return;
+        }
+        if (yaml.metadata() == null) {
+            violations.add("PUBLISHED requires metadata section.");
+        }
+        if (yaml.scenario() == null) {
+            violations.add("PUBLISHED requires scenario section.");
+        }
+        if (yaml.victim() == null) {
+            violations.add("PUBLISHED requires victim section.");
+        }
+        requireNonEmpty(yaml.locations(), "locations", violations);
+        requireNonEmpty(yaml.characters(), "characters", violations);
+        requireNonEmpty(yaml.evidences(), "evidences", violations);
+        requireNonEmpty(yaml.variants(), "variants", violations);
+        requireNonEmpty(yaml.unlockRules(), "unlockRules", violations);
+        requireNonEmpty(yaml.npcPolicies(), "npcPolicies", violations);
+        if (yaml.scoring() == null || yaml.scoring().isEmpty()) {
+            violations.add("PUBLISHED requires non-empty scoring.");
+        }
+        requireNonEmpty(yaml.assets(), "assets", violations);
+    }
+
+    private void validateEvidenceReferences(ScenarioYaml yaml,
+                                            Set<String> locationCodes,
+                                            Set<String> characterCodes,
+                                            List<String> violations) {
         for (ScenarioYaml.EvidenceYaml evidence : listOf(yaml.evidences())) {
             requireText(evidence.code(), "evidences[].code", violations);
             requireText(evidence.title(), "evidences[" + evidence.code() + "].title", violations);
@@ -89,7 +131,14 @@ public class ScenarioYamlValidator {
             if (hasText(evidence.locationCode()) && !locationCodes.contains(evidence.locationCode())) {
                 violations.add("evidence " + evidence.code() + " references missing location: " + evidence.locationCode());
             }
+            for (String characterCode : listOf(evidence.relatedCharacterCodes())) {
+                if (!characterCodes.contains(characterCode)) {
+                    violations.add("evidence " + evidence.code()
+                            + " relatedCharacterCodes references missing character: " + characterCode);
+                }
+            }
             validateAssetKey(evidence.imageAssetKey(), "evidences[" + evidence.code() + "].imageAssetKey", violations);
+            validateAssetKey(evidence.thumbnailAssetKey(), "evidences[" + evidence.code() + "].thumbnailAssetKey", violations);
         }
     }
 
@@ -187,18 +236,61 @@ public class ScenarioYamlValidator {
         }
     }
 
-    private void validateAssets(ScenarioYaml yaml, List<String> violations) {
+    private void validateAssets(ScenarioYaml yaml,
+                                String scenarioCode,
+                                String victimCode,
+                                Set<String> locationCodes,
+                                Set<String> characterCodes,
+                                Set<String> evidenceCodes,
+                                Set<String> variantCodes,
+                                List<String> violations) {
         Set<String> assetKeys = new HashSet<>();
         for (ScenarioYaml.AssetYaml asset : listOf(yaml.assets())) {
             requireText(asset.assetKey(), "assets[].assetKey", violations);
+            requireText(asset.type(), "assets[" + asset.assetKey() + "].type", violations);
+            requireText(asset.targetKind(), "assets[" + asset.assetKey() + "].targetKind", violations);
+            requireText(asset.targetCode(), "assets[" + asset.assetKey() + "].targetCode", violations);
             if (hasText(asset.assetKey()) && !assetKeys.add(asset.assetKey())) {
                 violations.add("duplicate assetKey: " + asset.assetKey());
             }
             validateAssetKey(asset.assetKey(), "assets[].assetKey", violations);
             validateAssetKey(asset.s3ObjectKey(), "assets[" + asset.assetKey() + "].s3ObjectKey", violations);
+            validateAssetTarget(asset, scenarioCode, victimCode, locationCodes, characterCodes,
+                    evidenceCodes, variantCodes, violations);
             if (hasText(asset.sourceLocalFile()) && LOCAL_PATH_PATTERN.matcher(asset.sourceLocalFile()).matches()) {
                 violations.add("asset sourceLocalFile must be relative, not a local absolute path: " + asset.sourceLocalFile());
             }
+        }
+    }
+
+    private void validateAssetTarget(ScenarioYaml.AssetYaml asset,
+                                     String scenarioCode,
+                                     String victimCode,
+                                     Set<String> locationCodes,
+                                     Set<String> characterCodes,
+                                     Set<String> evidenceCodes,
+                                     Set<String> variantCodes,
+                                     List<String> violations) {
+        if (!hasText(asset.targetKind()) || !hasText(asset.targetCode())) {
+            return;
+        }
+
+        String targetKind = asset.targetKind().toUpperCase();
+        boolean exists = switch (targetKind) {
+            case "SCENARIO" -> Objects.equals(asset.targetCode(), scenarioCode);
+            case "VICTIM" -> Objects.equals(asset.targetCode(), victimCode);
+            case "LOCATION" -> locationCodes.contains(asset.targetCode());
+            case "CHARACTER", "SUSPECT", "WITNESS", "NPC" -> characterCodes.contains(asset.targetCode());
+            case "EVIDENCE" -> evidenceCodes.contains(asset.targetCode());
+            case "VARIANT" -> variantCodes.contains(asset.targetCode());
+            default -> {
+                violations.add("asset " + asset.assetKey() + " has unsupported targetKind: " + asset.targetKind());
+                yield true;
+            }
+        };
+        if (!exists) {
+            violations.add("asset " + asset.assetKey() + " targetCode references missing "
+                    + asset.targetKind() + ": " + asset.targetCode());
         }
     }
 
@@ -264,6 +356,21 @@ public class ScenarioYamlValidator {
         if (!hasText(value)) {
             violations.add(field + " is required.");
         }
+    }
+
+    private <T> void requireNonEmpty(List<T> value, String section, List<String> violations) {
+        if (value == null || value.isEmpty()) {
+            violations.add("PUBLISHED requires non-empty " + section + ".");
+        }
+    }
+
+    private boolean isPublished(ScenarioYaml yaml) {
+        return isPublishedValue(yaml.metadata() == null ? null : yaml.metadata().contentStatus())
+                || isPublishedValue(yaml.scenario() == null ? null : yaml.scenario().status());
+    }
+
+    private boolean isPublishedValue(String value) {
+        return hasText(value) && "PUBLISHED".equalsIgnoreCase(value);
     }
 
     private boolean hasText(String value) {
