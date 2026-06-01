@@ -77,7 +77,7 @@ public class Evidence {
         this.locationId = locationId;
         this.title = title;
         this.description = description;
-        this.evidenceType = evidenceType != null ? evidenceType : EvidenceType.GENERAL;
+        this.evidenceType = evidenceType != null ? evidenceType : EvidenceType.SCENE;
         this.importance = importance != null ? importance : EvidenceImportance.NORMAL;
         this.imageUrl = imageUrl;
         this.isInitialPublic = isInitialPublic != null ? isInitialPublic : false;

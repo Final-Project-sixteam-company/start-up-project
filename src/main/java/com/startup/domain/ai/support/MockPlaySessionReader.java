@@ -24,4 +24,9 @@ public class MockPlaySessionReader implements PlaySessionReader {
     public Long getOwnerUserId(Long sessionId) {
         return mockUserProvider.currentUserId();
     }
+
+    @Override
+    public Long getScenarioVariantId(Long sessionId) {
+        return null; // Mock 환경에서는 null 반환
+    }
 }

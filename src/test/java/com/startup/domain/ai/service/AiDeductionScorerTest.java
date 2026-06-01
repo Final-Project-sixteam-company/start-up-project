@@ -201,11 +201,13 @@ class AiDeductionScorerTest {
 
         when(contextLoader.findBySessionId(SESSION_ID)).thenReturn(deduction);
         when(playSessionReader.getScenarioId(SESSION_ID)).thenReturn(SCENARIO_ID);
-        when(solutionReader.findByScenarioId(SCENARIO_ID)).thenReturn(solution);
+        when(playSessionReader.getScenarioVariantId(SESSION_ID)).thenReturn(1L);
+        //when(solutionReader.findByScenarioId(SCENARIO_ID)).thenReturn(solution);
+        when(solutionReader.findByScenarioIdAndVariantId(eq(SCENARIO_ID), any())).thenReturn(solution);
         when(scoringCriteriaProvider.getByCriteria(SCENARIO_ID)).thenReturn(criteria);
         when(finalDeductionEvidenceRepository.findAllByFinalDeductionId(any()))
                 .thenReturn(List.of());
-        when(ruleBasedScorer.score(any(FinalDeductionRequest.class), eq(criteria)))
+        when(ruleBasedScorer.score(any(FinalDeductionRequest.class), any(ScoringCriteria.class)))
                 .thenReturn(new ScoringResult(85, 30, true, 25, 20, 10, 0, 0));
     }
 

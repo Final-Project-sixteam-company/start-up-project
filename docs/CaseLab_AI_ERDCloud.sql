@@ -160,7 +160,7 @@ CREATE TABLE evidences (
     location_id BIGINT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    evidence_type VARCHAR(50) NOT NULL DEFAULT 'GENERAL',
+    evidence_type VARCHAR(50) NOT NULL DEFAULT 'SCENE',
     importance VARCHAR(30) NOT NULL DEFAULT 'NORMAL',
     image_url VARCHAR(500) NULL,
     is_initial_public TINYINT(1) NOT NULL DEFAULT 0,
@@ -268,10 +268,47 @@ CREATE TABLE solution_evidences (
         FOREIGN KEY (evidence_id) REFERENCES evidences (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE scenario_variants (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    scenario_id BIGINT NOT NULL,
+    variant_type VARCHAR(30) NOT NULL,
+    variant_name VARCHAR(100) NOT NULL,
+    description TEXT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    sort_order INT NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_variant_scenario
+        FOREIGN KEY (scenario_id) REFERENCES scenarios (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE variant_solutions (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    variant_id BIGINT NOT NULL,
+    culprit_suspect_id BIGINT NOT NULL,
+    culprit_name VARCHAR(100) NOT NULL,
+    culprit_role VARCHAR(100) NULL,
+    motive TEXT NULL,
+    method TEXT NULL,
+    cover_up TEXT NULL,
+    full_explanation TEXT NULL,
+    key_evidence_ids TEXT NULL,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_variant_solutions_variant (variant_id),
+    CONSTRAINT fk_variant_solution_variant
+        FOREIGN KEY (variant_id) REFERENCES scenario_variants (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE play_sessions (
     id BIGINT NOT NULL AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
     scenario_id BIGINT NOT NULL,
+    scenario_variant_id BIGINT NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'PLAYING',
     started_at DATETIME NOT NULL,
     ended_at DATETIME NULL,
@@ -291,7 +328,9 @@ CREATE TABLE play_sessions (
     CONSTRAINT fk_play_sessions_user
         FOREIGN KEY (user_id) REFERENCES users (id),
     CONSTRAINT fk_play_sessions_scenario
-        FOREIGN KEY (scenario_id) REFERENCES scenarios (id)
+        FOREIGN KEY (scenario_id) REFERENCES scenarios (id),
+    CONSTRAINT fk_play_sessions_variant
+        FOREIGN KEY (scenario_variant_id) REFERENCES scenario_variants (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE unlocked_evidences (
@@ -563,3 +602,4 @@ CREATE TABLE scenario_accesses (
     CONSTRAINT fk_scenario_accesses_purchase
         FOREIGN KEY (purchase_id) REFERENCES scenario_purchases (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

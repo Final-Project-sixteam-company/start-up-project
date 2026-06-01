@@ -13,6 +13,7 @@ import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
 import com.startup.domain.play.repository.UsedHintRepository;
 import com.startup.domain.play.entity.UsedHint;
+import com.startup.domain.play.support.FinalDeductionLockManager;
 import com.startup.domain.scenario.entity.*;
 import com.startup.domain.scenario.enums.EvidenceUnlockType;
 import com.startup.domain.scenario.repository.HintRepository;
@@ -48,6 +49,8 @@ public class PlaySessionService {
     private final HintRepository hintRepository;
     private final UsedHintRepository usedHintRepository;
     private final InterrogationLogRepository interrogationLogRepository;
+    private final ScenarioVariantRepository scenarioVariantRepository;
+    private final FinalDeductionLockManager finalDeductionLockManager;
 
     //게임 시작 세션
     @Transactional
@@ -67,10 +70,15 @@ public class PlaySessionService {
                     throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
                 });
 
+        Long variantId = scenarioVariantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
+                .map(ScenarioVariant::getId)
+                .orElse(null);
+
         // 플레이 세션 생성
         PlaySession session = PlaySession.builder()
                 .userId(userId)
                 .scenarioId(scenarioId)
+                .scenarioVariantId(variantId)
                 .build();
 
         try {
@@ -257,6 +265,64 @@ public class PlaySessionService {
                 .toList();
     }
 
+    //힌트 사용
+    @Transactional
+    public HintUseResponse useHint(Long userId, Long sessionId, Long hintId) {
+        PlaySession session = getSessionOrThrow(sessionId);
+        validateSessionOwner(session, userId);
+
+        if (!session.isPlaying()) {
+            throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
+        }
+
+        // AI 채점이 진행 중(in-flight lock)이면 힌트 사용 차단
+        if (finalDeductionLockManager.isLocked(sessionId)) {
+            throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
+        }
+
+        Hint hint = hintRepository.findById(hintId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.HINT_NOT_FOUND));
+
+        // 이 힌트가 현재 플레이 중인 시나리오의 힌트인지 검증 (스포일러/타 시나리오 접근 방어)
+        if (!hint.getScenarioId().equals(session.getScenarioId())) {
+            throw new PlayException(PlayErrorCode.HINT_NOT_FOUND);
+        }
+
+        // 1. 이미 사용된 힌트인지 확인 (exists 대신 findBy 사용!)
+        var existingUsedHint = usedHintRepository.findByPlaySessionIdAndHintId(sessionId, hintId);
+        if (existingUsedHint.isPresent()) {
+            // 이미 까본 힌트면 DB에 적혀있는 "최초 사용 시각"을 그대로 반환! (시간 갱신 방지)
+            return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore(), existingUsedHint.get().getUsedAt());
+        }
+
+        // 2. 해금 가능 여부 (시간) 검증
+        int elapsedMinutes = calculateElapsedSeconds(session) / 60;
+        if (hint.getUnlockAfterMinutes() != null && elapsedMinutes < hint.getUnlockAfterMinutes()) {
+            throw new PlayException(PlayErrorCode.HINT_NOT_AVAILABLE);
+        }
+
+        LocalDateTime nowTime = LocalDateTime.now();
+
+        // 3. 처음 사용하는 경우 DB에 INSERT IGNORE (동시성 방어)
+        int insertedRow = usedHintRepository.insertIgnoreUsedHint(sessionId, hintId, nowTime);
+
+        LocalDateTime usedAt;
+        if (insertedRow > 0) {
+            // 성공적으로 인서트 했으면 힌트 카운트 증가 + 현재 시간 부여
+            session.incrementHintCount();
+            usedAt = nowTime;
+        } else {
+            // 0.001초 차이로 동시 클릭해서 실패한 거면, 방금 들어간 최초 시간 다시 꺼내옴
+            log.warn("[useHint] 중복 힌트 사용 감지(동시 요청 무시). sessionId={}, hintId={}", sessionId, hintId);
+            usedAt = usedHintRepository.findByPlaySessionIdAndHintId(sessionId, hintId)
+                    .map(com.startup.domain.play.entity.UsedHint::getUsedAt)
+                    .orElse(nowTime);
+        }
+
+        return new HintUseResponse(hint.getId(), hint.getContent(), hint.getPenaltyScore(), usedAt);
+    }
+
+
     //용의자 목록 조회
     @Transactional(readOnly = true)
     public List<PlaySuspectResponse> getSuspects(Long userId, Long sessionId) {
@@ -289,7 +355,7 @@ public class PlaySessionService {
                 .toList();
     }
 
-    // 최종 추리 완료 시 세션 상태 전환 (임시)
+    // 최종 추리 완료 시 세션 상태 전환
     //score/grade는 FinalDeduction 테이블에 저장되므로 여기서는 상태 전환과 active_key 해제만 처리
     @Transactional
     public void completeSession(Long sessionId) {
@@ -304,7 +370,7 @@ public class PlaySessionService {
         log.info("세션 완료 처리: sessionId={}", sessionId);
     }
 
-    // 유저가 게임을 포기할 때 (임시)
+    // 유저가 게임을 포기할 때
     @Transactional
     public void abandonSession(Long userId, Long sessionId) {
         PlaySession session = getSessionForUpdateOrThrow(sessionId);
@@ -313,6 +379,7 @@ public class PlaySessionService {
         if (!session.isPlaying()) {
             throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
         }
+
         session.abandon(); // active_key도 null로 초기화됨
         log.info("세션 포기 처리: sessionId={}", sessionId);
     }

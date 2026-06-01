@@ -22,4 +22,6 @@ public interface PlaySessionReader {
      * - MVP Mock 단계에서는 app.mock-user-id와 동일한 ID를 반환할 수 있다.
      */
     Long getOwnerUserId(Long sessionId);
+
+    Long getScenarioVariantId(Long sessionId);
 }

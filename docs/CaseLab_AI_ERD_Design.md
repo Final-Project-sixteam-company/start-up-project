@@ -1311,6 +1311,7 @@ erDiagram
         bigint id PK
         bigint user_id FK
         bigint scenario_id FK
+        bigint scenario_variant_id FK
         varchar status
         datetime started_at
         datetime ended_at

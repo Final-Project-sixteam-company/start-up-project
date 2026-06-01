@@ -12,4 +12,6 @@ import com.startup.domain.ai.dto.SolutionInfo;
 public interface SolutionReader {
 
     SolutionInfo findByScenarioId(Long scenarioId);
+
+    SolutionInfo findByScenarioIdAndVariantId(Long scenarioId, Long variantId);
 }

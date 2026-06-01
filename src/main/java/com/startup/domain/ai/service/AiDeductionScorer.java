@@ -77,8 +77,9 @@ public class AiDeductionScorer {
 
             // 2. 채점 수행 (트랜잭션 밖)
             Long scenarioId = playSessionReader.getScenarioId(sessionId);
-            SolutionInfo solution = solutionReader.findByScenarioId(scenarioId);
-            ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
+            Long variantId = playSessionReader.getScenarioVariantId(sessionId);
+            SolutionInfo solution = solutionReader.findByScenarioIdAndVariantId(scenarioId, variantId);
+            ScoringCriteria criteria = buildCriteriaFromSolution(solution, scenarioId);
 
             ScoringResult scoringResult = ruleBasedScorer.score(request, criteria);
 
@@ -150,9 +151,9 @@ public class AiDeductionScorer {
         }
 
         Long scenarioId = playSessionReader.getScenarioId(sessionId);
-        SolutionInfo solution = solutionReader.findByScenarioId(scenarioId);
-        ScoringCriteria criteria = scoringCriteriaProvider.getByCriteria(scenarioId);
-
+        Long variantId = playSessionReader.getScenarioVariantId(sessionId);
+        SolutionInfo solution = solutionReader.findByScenarioIdAndVariantId(scenarioId, variantId);
+        ScoringCriteria criteria = buildCriteriaFromSolution(solution, scenarioId);
         warnIfKeyEvidenceSourcesDiverge(criteria, solution);
 
         List<FinalDeductionEvidence> evidences =
@@ -288,5 +289,41 @@ public class AiDeductionScorer {
         } catch (Exception releaseException) {
             log.warn("최종 추리 in-flight lock 해제 실패. sessionId={}", sessionId, releaseException);
         }
+    }
+
+    /**
+     * DB의 SolutionInfo를 우선으로 채점 기준을 조립한다.
+     * culpritSuspectId, keyEvidenceIds는 DB variant 기준으로 교체하고
+     * 키워드·점수 배분은 파일 기준을 유지한다.
+     */
+    private ScoringCriteria buildCriteriaFromSolution(SolutionInfo solution, Long scenarioId) {
+        ScoringCriteria fileCriteria = scoringCriteriaProvider.getByCriteria(scenarioId);
+        return new ScoringCriteria(
+                scenarioId,
+                solution.culpritSuspectId(),
+                extractKeywords(solution.method(), fileCriteria.method()),
+                extractKeywords(solution.motive(), fileCriteria.motive()),
+                extractKeywords(solution.coverUp(), fileCriteria.coverUp()),
+                solution.keyEvidenceIds(),
+                fileCriteria.evidenceMaxScore(),
+                fileCriteria.culpritMaxScore()
+        );
+    }
+
+    private ScoringCriteria.KeywordCriteria extractKeywords(String text, ScoringCriteria.KeywordCriteria fallback) {
+        if (text == null || text.isBlank()) {
+            return fallback;
+        }
+        
+        List<String> words = java.util.Arrays.stream(text.split("[\\s\\p{Punct}]+"))
+                .filter(w -> w.length() >= 2)
+                .toList();
+
+        if (words.isEmpty()) {
+            return fallback;
+        }
+
+        int minMatch = Math.max(1, words.size() / 2);
+        return new ScoringCriteria.KeywordCriteria(words, minMatch, fallback.maxScore());
     }
 }
