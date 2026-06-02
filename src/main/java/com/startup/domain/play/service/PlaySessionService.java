@@ -253,7 +253,7 @@ public class PlaySessionService {
         return result;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PlayLocationResponse> getLocations(Long userId, Long sessionId) {
         // 세션 존재 확인 및 소유권 검증 (보안)
         PlaySession session = playSessionRepository.findById(sessionId)
@@ -263,13 +263,26 @@ public class PlaySessionService {
             throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
         }
 
+        // 장소 목록 조회 전 자동 해금 증거 최신화
+        processAutomaticUnlocks(session);
+
+        // 해금된 증거 ID 목록
+        java.util.Set<Long> unlockedEvidenceIds = unlockedEvidenceRepository.findAllByPlaySessionId(sessionId).stream()
+                .map(unlocked -> unlocked.getEvidenceId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        // 시나리오의 전체 증거를 가져와서 해금된 것만 필터링 후 장소별로 카운팅 (스포일러 방어)
+        java.util.List<Evidence> allEvidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
+        java.util.Map<Long, Integer> evidenceCountMap = new java.util.HashMap<>();
+        for (Evidence e : allEvidences) {
+            if (e.getLocationId() != null && unlockedEvidenceIds.contains(e.getId())) {
+                evidenceCountMap.merge(e.getLocationId(), 1, Integer::sum);
+            }
+        }
+
         // 현재 시나리오의 모든 장소 조회
         Long scenarioId = session.getScenarioId();
         List<ScenarioLocation> locations = scenarioLocationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
-
-        // 장소별 증거 총 개수를 맵으로 한 번에 가져옴 (N+1 성능 방어)
-        java.util.Map<Long, Integer> evidenceCountMap = evidenceRepository.countByLocationIdForScenario(scenarioId).stream()
-                .collect(java.util.stream.Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
 
         // 장소 리스트와 카운트 맵을 조합하여 응답 DTO 생성
         return locations.stream()
