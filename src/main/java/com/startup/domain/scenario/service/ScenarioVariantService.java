@@ -26,9 +26,10 @@ public class ScenarioVariantService {
             throw new ScenarioException(ScenarioErrorCode.VARIANT_SCENARIO_MISMATCH);
         }
 
-        // 기존에 켜져 있던 같은 시나리오의 모든 Variant를 강제로 끈다
-        scenarioVariantRepository.deactivateAllByScenarioId(scenarioId);
+        // 내가 선택한 variant를 제외한 나머지 모두 끈다
+        scenarioVariantRepository.deactivateAllByScenarioId(scenarioId, variantId);
 
+        //요청한 variant를 켠다
         variant.activate();
     }
 
