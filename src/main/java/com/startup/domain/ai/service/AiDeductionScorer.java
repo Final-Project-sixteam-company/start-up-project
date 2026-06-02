@@ -19,12 +19,14 @@ import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.prompt.AiPromptBuilder;
 import com.startup.domain.ai.repository.FinalDeductionEvidenceRepository;
 import com.startup.domain.ai.support.DeductionContextLoader;
+import com.startup.domain.ai.support.EvidenceReader;
 import com.startup.domain.ai.support.FallbackFeedbackGenerator;
 import com.startup.domain.ai.support.HintPenaltyReader;
 import com.startup.domain.ai.support.PlaySessionReader;
 import com.startup.domain.ai.support.RuleBasedScorer;
 import com.startup.domain.ai.support.ScoringCriteriaProvider;
 import com.startup.domain.ai.support.SolutionReader;
+import com.startup.domain.ai.support.SuspectReader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,9 +36,11 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -46,6 +50,8 @@ public class AiDeductionScorer {
     private final MockUserProvider mockUserProvider;
     private final DeductionContextLoader contextLoader;
     private final PlaySessionReader playSessionReader;
+    private final EvidenceReader evidenceReader;
+    private final SuspectReader suspectReader;
     private final SolutionReader solutionReader;
     private final HintPenaltyReader hintPenaltyReader;
     private final ScoringCriteriaProvider scoringCriteriaProvider;
@@ -66,8 +72,9 @@ public class AiDeductionScorer {
         boolean locked = false;
         try {
             //세션 소유자 검증
+            Long currentUserId = mockUserProvider.currentUserId();
             Long ownerUserId = playSessionReader.getOwnerUserId(sessionId);
-            if (!Objects.equals(mockUserProvider.currentUserId(), ownerUserId)) {
+            if (!Objects.equals(currentUserId, ownerUserId)) {
                 throw new BusinessException(CommonErrorCode.ACCESS_DENIED);
             }
 
@@ -77,6 +84,10 @@ public class AiDeductionScorer {
 
             // 2. 채점 수행 (트랜잭션 밖)
             Long scenarioId = playSessionReader.getScenarioId(sessionId);
+            evidenceReader.syncTimeUnlocks(sessionId, currentUserId);
+            suspectReader.findByIdAndScenarioId(request.selectedCulpritId(), scenarioId);
+            validateSelectedEvidenceUnlocked(sessionId, request.selectedEvidenceIds());
+
             Long variantId = playSessionReader.getScenarioVariantId(sessionId);
             SolutionInfo solution = solutionReader.findByScenarioIdAndVariantId(scenarioId, variantId);
             ScoringCriteria criteria = buildCriteriaFromSolution(solution, scenarioId);
@@ -139,6 +150,14 @@ public class AiDeductionScorer {
             }
             log.error("최종 추리 채점 처리 실패. sessionId={}", sessionId, e);
             throw new AiException(AiErrorCode.SCORING_FAILED);
+        }
+    }
+
+    private void validateSelectedEvidenceUnlocked(Long sessionId, List<Long> selectedEvidenceIds) {
+        Set<Long> unlockedEvidenceIds = new HashSet<>(evidenceReader.getUnlockedEvidenceIds(sessionId));
+        boolean allUnlocked = selectedEvidenceIds.stream().allMatch(unlockedEvidenceIds::contains);
+        if (!allUnlocked) {
+            throw new AiException(AiErrorCode.FINAL_DEDUCTION_EVIDENCE_NOT_UNLOCKED);
         }
     }
 

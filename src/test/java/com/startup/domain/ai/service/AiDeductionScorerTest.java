@@ -4,25 +4,33 @@ import com.startup.common.auth.MockUserProvider;
 import com.startup.common.error.BusinessException;
 import com.startup.common.error.CommonErrorCode;
 import com.startup.domain.ai.client.AiClient;
+import com.startup.domain.ai.dto.AiFeedbackResult;
 import com.startup.domain.ai.dto.DeductionResultResponse;
 import com.startup.domain.ai.dto.FinalDeductionRequest;
+import com.startup.domain.ai.dto.FinalDeductionResponse;
 import com.startup.domain.ai.dto.ScoringCriteria;
 import com.startup.domain.ai.dto.ScoringCriteria.KeywordCriteria;
 import com.startup.domain.ai.dto.ScoringResult;
 import com.startup.domain.ai.dto.SolutionInfo;
 import com.startup.domain.ai.entity.FinalDeduction;
+import com.startup.domain.ai.error.AiErrorCode;
+import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.prompt.AiPromptBuilder;
 import com.startup.domain.ai.repository.FinalDeductionEvidenceRepository;
 import com.startup.domain.ai.support.DeductionContextLoader;
+import com.startup.domain.ai.support.EvidenceReader;
 import com.startup.domain.ai.support.FallbackFeedbackGenerator;
 import com.startup.domain.ai.support.HintPenaltyReader;
 import com.startup.domain.ai.support.PlaySessionReader;
 import com.startup.domain.ai.support.RuleBasedScorer;
 import com.startup.domain.ai.support.ScoringCriteriaProvider;
 import com.startup.domain.ai.support.SolutionReader;
+import com.startup.domain.ai.support.SuspectReader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
@@ -33,7 +41,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AiDeductionScorerTest {
@@ -41,6 +53,8 @@ class AiDeductionScorerTest {
     private MockUserProvider mockUserProvider;
     private DeductionContextLoader contextLoader;
     private PlaySessionReader playSessionReader;
+    private EvidenceReader evidenceReader;
+    private SuspectReader suspectReader;
     private SolutionReader solutionReader;
     private HintPenaltyReader hintPenaltyReader;
     private ScoringCriteriaProvider scoringCriteriaProvider;
@@ -63,6 +77,8 @@ class AiDeductionScorerTest {
         mockUserProvider = mock(MockUserProvider.class);
         contextLoader = mock(DeductionContextLoader.class);
         playSessionReader = mock(PlaySessionReader.class);
+        evidenceReader = mock(EvidenceReader.class);
+        suspectReader = mock(SuspectReader.class);
         solutionReader = mock(SolutionReader.class);
         hintPenaltyReader = mock(HintPenaltyReader.class);
         scoringCriteriaProvider = mock(ScoringCriteriaProvider.class);
@@ -77,6 +93,8 @@ class AiDeductionScorerTest {
                 mockUserProvider,
                 contextLoader,
                 playSessionReader,
+                evidenceReader,
+                suspectReader,
                 solutionReader,
                 hintPenaltyReader,
                 scoringCriteriaProvider,
@@ -171,9 +189,187 @@ class AiDeductionScorerTest {
         });
     }
 
+    @Test
+    @DisplayName("submitAndScore rejects selected evidence that is not unlocked")
+    void submitAndScore_withLockedKeyEvidence_rejected() {
+        stubSuccessfulSubmitChain(List.of(2L), new ScoringResult(85, 30, true, 25, 20, 10, 0, 0));
+        FinalDeductionRequest request = buildSubmitRequest(1L, List.of(2L, 6L));
+
+        assertThatThrownBy(() -> scorer.submitAndScore(SESSION_ID, request))
+                .isInstanceOf(AiException.class)
+                .satisfies(ex -> assertThat(((AiException) ex).getErrorCode())
+                        .isEqualTo(AiErrorCode.FINAL_DEDUCTION_EVIDENCE_NOT_UNLOCKED));
+
+        verify(ruleBasedScorer, never()).score(any(FinalDeductionRequest.class), any(ScoringCriteria.class));
+    }
+
+    @Test
+    @DisplayName("submitAndScore rejects culprit outside current scenario")
+    void submitAndScore_withCulpritFromOtherScenario_rejected() {
+        stubOwnerMatch();
+        when(playSessionReader.getScenarioId(SESSION_ID)).thenReturn(SCENARIO_ID);
+        when(suspectReader.findByIdAndScenarioId(999L, SCENARIO_ID))
+                .thenThrow(new AiException(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
+
+        FinalDeductionRequest request = buildSubmitRequest(999L, List.of(2L));
+
+        assertThatThrownBy(() -> scorer.submitAndScore(SESSION_ID, request))
+                .isInstanceOf(AiException.class)
+                .satisfies(ex -> assertThat(((AiException) ex).getErrorCode())
+                        .isEqualTo(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
+
+        verify(evidenceReader, never()).getUnlockedEvidenceIds(SESSION_ID);
+        verify(ruleBasedScorer, never()).score(any(FinalDeductionRequest.class), any(ScoringCriteria.class));
+    }
+
+    @Test
+    @DisplayName("submitAndScore accepts initial public unlocked evidence")
+    void submitAndScore_withInitialPublicEvidence_accepted() {
+        stubSuccessfulSubmitChain(List.of(2L), new ScoringResult(85, 30, true, 25, 20, 10, 0, 0));
+        FinalDeductionRequest request = buildSubmitRequest(1L, List.of(2L));
+
+        FinalDeductionResponse response = scorer.submitAndScore(SESSION_ID, request);
+
+        assertThat(response.resultAvailable()).isTrue();
+        assertThat(response.score()).isEqualTo(85);
+        verify(ruleBasedScorer, times(1)).score(any(FinalDeductionRequest.class), any(ScoringCriteria.class));
+    }
+
+    @Test
+    @DisplayName("submitAndScore syncs time unlocks before validation")
+    void submitAndScore_callsSyncTimeUnlocks_beforeValidation() {
+        stubSuccessfulSubmitChain(List.of(2L), new ScoringResult(85, 30, true, 25, 20, 10, 0, 0));
+        FinalDeductionRequest request = buildSubmitRequest(1L, List.of(2L));
+
+        scorer.submitAndScore(SESSION_ID, request);
+
+        InOrder inOrder = inOrder(contextLoader, evidenceReader, suspectReader, ruleBasedScorer);
+        inOrder.verify(contextLoader).ensureNotSubmitted(SESSION_ID);
+        inOrder.verify(evidenceReader).syncTimeUnlocks(SESSION_ID, OWNER_USER_ID);
+        inOrder.verify(suspectReader).findByIdAndScenarioId(1L, SCENARIO_ID);
+        inOrder.verify(evidenceReader).getUnlockedEvidenceIds(SESSION_ID);
+        inOrder.verify(ruleBasedScorer).score(any(FinalDeductionRequest.class), any(ScoringCriteria.class));
+    }
+
+    @Test
+    @DisplayName("submitAndScore scores normally when all selected evidence is unlocked")
+    void submitAndScore_withAllUnlockedEvidence_scoresNormally() {
+        stubSuccessfulSubmitChain(List.of(2L, 6L), new ScoringResult(90, 30, true, 25, 20, 10, 5, 1));
+        FinalDeductionRequest request = buildSubmitRequest(1L, List.of(2L, 6L));
+
+        FinalDeductionResponse response = scorer.submitAndScore(SESSION_ID, request);
+
+        assertThat(response.score()).isEqualTo(90);
+        verify(contextLoader).saveResultAndComplete(eq(SESSION_ID), any(FinalDeduction.class), eq(List.of(2L, 6L)));
+    }
+
+    @Test
+    @DisplayName("submitAndScore releases final deduction lock when evidence validation fails")
+    void submitAndScore_withLockedEvidence_releasesFinalDeductionLock() {
+        stubSuccessfulSubmitChain(List.of(2L), new ScoringResult(85, 30, true, 25, 20, 10, 0, 0));
+        FinalDeductionRequest request = buildSubmitRequest(1L, List.of(2L, 6L));
+
+        assertThatThrownBy(() -> scorer.submitAndScore(SESSION_ID, request))
+                .isInstanceOf(AiException.class);
+
+        verify(contextLoader).releaseFinalDeductionLock(SESSION_ID);
+        verify(ruleBasedScorer, never()).score(any(FinalDeductionRequest.class), any(ScoringCriteria.class));
+    }
+
+    @Test
+    @DisplayName("submitAndScore releases final deduction lock when culprit validation fails")
+    void submitAndScore_withInvalidCulprit_releasesFinalDeductionLock() {
+        stubOwnerMatch();
+        when(playSessionReader.getScenarioId(SESSION_ID)).thenReturn(SCENARIO_ID);
+        when(suspectReader.findByIdAndScenarioId(999L, SCENARIO_ID))
+                .thenThrow(new AiException(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
+
+        FinalDeductionRequest request = buildSubmitRequest(999L, List.of(2L));
+
+        assertThatThrownBy(() -> scorer.submitAndScore(SESSION_ID, request))
+                .isInstanceOf(AiException.class)
+                .satisfies(ex -> assertThat(((AiException) ex).getErrorCode())
+                        .isEqualTo(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
+
+        verify(contextLoader).releaseFinalDeductionLock(SESSION_ID);
+        verify(evidenceReader, never()).getUnlockedEvidenceIds(SESSION_ID);
+        verify(ruleBasedScorer, never()).score(any(FinalDeductionRequest.class), any(ScoringCriteria.class));
+    }
+
+    @Test
+    @DisplayName("submitAndScore stores distinct evidence and duplicate ids do not increase evidence score")
+    void submitAndScore_withDuplicateUnlockedEvidence_doesNotIncreaseEvidenceScore() {
+        scorer = newScorer(new RuleBasedScorer());
+        stubSuccessfulSubmitChain(List.of(2L), new ScoringResult(0, 0, false, 0, 0, 0, 0, 0));
+        FinalDeductionRequest request = buildSubmitRequest(1L, List.of(2L, 2L, 2L));
+
+        FinalDeductionResponse response = scorer.submitAndScore(SESSION_ID, request);
+
+        assertThat(response.score()).isEqualTo(35);
+
+        ArgumentCaptor<FinalDeduction> deductionCaptor = ArgumentCaptor.forClass(FinalDeduction.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Long>> evidenceIdsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(contextLoader).saveResultAndComplete(eq(SESSION_ID), deductionCaptor.capture(), evidenceIdsCaptor.capture());
+        assertThat(deductionCaptor.getValue().getScore()).isEqualTo(35);
+        assertThat(evidenceIdsCaptor.getValue()).containsExactly(2L);
+    }
+
     private void stubOwnerMatch() {
         when(mockUserProvider.currentUserId()).thenReturn(OWNER_USER_ID);
         when(playSessionReader.getOwnerUserId(SESSION_ID)).thenReturn(OWNER_USER_ID);
+    }
+
+    private AiDeductionScorer newScorer(RuleBasedScorer ruleBasedScorer) {
+        return new AiDeductionScorer(
+                mockUserProvider,
+                contextLoader,
+                playSessionReader,
+                evidenceReader,
+                suspectReader,
+                solutionReader,
+                hintPenaltyReader,
+                scoringCriteriaProvider,
+                ruleBasedScorer,
+                fallbackFeedbackGenerator,
+                promptBuilder,
+                aiClient,
+                jsonMapper,
+                finalDeductionEvidenceRepository
+        );
+    }
+
+    private void stubSuccessfulSubmitChain(List<Long> unlockedEvidenceIds, ScoringResult scoringResult) {
+        stubOwnerMatch();
+
+        List<Long> keys = List.of(2L, 6L, 7L);
+        Map<Long, String> titles = Map.of(2L, "증거A", 6L, "증거B", 7L, "증거C");
+        ScoringCriteria criteria = buildCriteria(keys);
+        SolutionInfo solution = buildSolution(keys, titles);
+
+        when(playSessionReader.getScenarioId(SESSION_ID)).thenReturn(SCENARIO_ID);
+        when(playSessionReader.getScenarioVariantId(SESSION_ID)).thenReturn(1L);
+        when(evidenceReader.getUnlockedEvidenceIds(SESSION_ID)).thenReturn(unlockedEvidenceIds);
+        when(solutionReader.findByScenarioIdAndVariantId(eq(SCENARIO_ID), any())).thenReturn(solution);
+        when(scoringCriteriaProvider.getByCriteria(SCENARIO_ID)).thenReturn(criteria);
+        when(ruleBasedScorer.score(any(FinalDeductionRequest.class), any(ScoringCriteria.class)))
+                .thenReturn(scoringResult);
+        when(hintPenaltyReader.getTotalPenalty(SESSION_ID)).thenReturn(0);
+        when(aiClient.isMockMode()).thenReturn(true);
+        when(fallbackFeedbackGenerator.generate(any(ScoringResult.class), any(ScoringCriteria.class)))
+                .thenReturn(new AiFeedbackResult(List.of(), List.of(), "feedback"));
+        when(contextLoader.saveResultAndComplete(eq(SESSION_ID), any(FinalDeduction.class), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+    }
+
+    private FinalDeductionRequest buildSubmitRequest(Long selectedCulpritId, List<Long> selectedEvidenceIds) {
+        return new FinalDeductionRequest(
+                selectedCulpritId,
+                "wrong motive",
+                "wrong method",
+                "wrong cover up",
+                selectedEvidenceIds
+        );
     }
 
     private void stubFullResultChain() {
