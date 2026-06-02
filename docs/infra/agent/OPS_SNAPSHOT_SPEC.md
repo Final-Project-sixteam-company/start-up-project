@@ -261,6 +261,8 @@ Use one of these commands based on the active slot.
 /opt/clueroom/bg-compose logs --tail=120 app-green
 ```
 
+Plain `docker compose logs --tail=120 app` is only for legacy single-app or local compose mode, not production Blue-Green mode.
+
 Do not capture unbounded logs.
 
 ### 5.13 Nginx Error Logs

@@ -290,6 +290,8 @@ Next read-only checks:
 - /opt/clueroom/bg-compose logs --tail=120 app-blue
 ```
 
+Plain `docker compose logs --tail=120 app` is only for legacy single-app or local compose mode, not production Blue-Green mode.
+
 Do not send secrets or raw `.env` output to Discord/Slack.
 
 ---

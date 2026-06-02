@@ -231,6 +231,8 @@ sudo tail -n 100 /var/log/nginx/error.log
 sudo tail -n 100 /var/log/nginx/access.log
 ```
 
+Plain `docker compose logs --tail=120 app` is only for legacy single-app or local compose mode, not production Blue-Green mode.
+
 Database checks should avoid sensitive row data.
 
 Allowed examples:
