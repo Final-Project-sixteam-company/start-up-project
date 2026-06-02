@@ -1102,23 +1102,27 @@ GET /api/play-sessions/{sessionId}/locations
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "locationId": 1,
-      "name": "데모룸",
-      "description": "피해자가 발견된 장소",
-      "mapX": 120,
-      "mapY": 80,
-      "evidenceCount": 3,
-      "evidences": [
-        {
-          "evidenceId": 1,
-          "title": "찢긴 컵 라벨",
-          "isUnlocked": true
-        }
-      ]
-    }
-  ],
+  "data": {
+    "sessionId": 1,
+    "scenarioId": 1,
+    "scenarioTitle": "서월채",
+    "mapImageUrl": "https://assets.example.com/official/seowolchae/v1/scenario/SCENARIO_SEOWOLCHAE_LAST_PRESCRIPTION.map.png",
+    "locations": [
+      {
+        "locationId": 1,
+        "locationCode": "LOC_DINING_ROOM",
+        "name": "다이닝룸",
+        "floor": "1F",
+        "description": "만찬이 진행된 장소",
+        "imageAssetKey": "official/seowolchae/v1/locations/LOC_DINING_ROOM.png",
+        "imageUrl": "https://assets.example.com/official/seowolchae/v1/locations/LOC_DINING_ROOM.png",
+        "mapX": 120,
+        "mapY": 80,
+        "totalEvidenceCount": 3,
+        "unlockedEvidenceCount": 1
+      }
+    ]
+  },
   "error": null
 }
 ```
