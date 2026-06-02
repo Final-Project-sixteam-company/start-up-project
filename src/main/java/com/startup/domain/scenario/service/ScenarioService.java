@@ -9,7 +9,10 @@ import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.enums.ScenarioVisibility;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
+import com.startup.domain.scenario.repository.EvidenceRepository;
+import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
+import com.startup.domain.scenario.repository.SuspectRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,6 +31,9 @@ public class ScenarioService {
 
     private final ScenarioRepository scenarioRepository;
     private final ScenarioAccessService scenarioAccessService;
+    private final SuspectRepository suspectRepository;
+    private final EvidenceRepository evidenceRepository;
+    private final HintRepository hintRepository;
 
     @Transactional(readOnly = true)
     public PageResponse<ScenarioSummaryResponse> getScenarios(Long userId, ScenarioSearchCondition condition, Pageable pageable) {
@@ -43,9 +49,11 @@ public class ScenarioService {
                 mappedPageable
         );
         
-        Page<ScenarioSummaryResponse> responsePage = scenarios.map(scenario -> 
-            ScenarioSummaryResponse.from(scenario, false) // TODO: 실제 북마크 여부 확인 로직 추가하기
-        );
+        Page<ScenarioSummaryResponse> responsePage = scenarios.map(scenario -> {
+            int suspectCount = suspectRepository.countByScenarioId(scenario.getId());
+            int evidenceCount = evidenceRepository.countByScenarioId(scenario.getId());
+            return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, false);
+        });
         
         return PageResponse.from(responsePage);
     }
@@ -72,11 +80,16 @@ public class ScenarioService {
         scenarioAccessService.validateViewable(userId, scenarioId);
 
         // TODO: 실제 작성자 닉네임 조회 및 북마크 여부 확인 로직 구현하기
-        String mockCreatorNickname = "운영자"; 
+        String mockCreatorNickname = "운영자";
         Boolean isBookmarked = false;
         Boolean canPlay = scenarioAccessService.canPlay(userId, scenarioId);
 
-        return ScenarioDetailResponse.from(scenario, mockCreatorNickname, isBookmarked, canPlay);
+        int suspectCount = suspectRepository.countByScenarioId(scenarioId);
+        int evidenceCount = evidenceRepository.countByScenarioId(scenarioId);
+        int hintCount = hintRepository.countByScenarioId(scenarioId);
+
+        return ScenarioDetailResponse.from(scenario, mockCreatorNickname, suspectCount, evidenceCount, hintCount, isBookmarked, canPlay);
+
     }
 
     private Pageable mapPageableSort(Pageable pageable) {

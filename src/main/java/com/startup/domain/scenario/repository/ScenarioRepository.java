@@ -22,6 +22,10 @@ public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
     // PUBLISHED 시나리오 중, 누구나 볼 수 있는 권한(PUBLIC, OFFICIAL)인 목록만 조회
     Page<Scenario> findAllByStatusAndVisibilityIn(ScenarioStatus status, List<ScenarioVisibility> visibilities, Pageable pageable);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Scenario s WHERE s.id = :id")
+    Optional<Scenario> findByIdForUpdate(@Param("id") Long id);
+
     //db에서 직접 원자적으로 플레이 카운트를 1 증가시키는 쿼리
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Scenario s SET s.playCount = s.playCount + 1 WHERE s.id = :id")

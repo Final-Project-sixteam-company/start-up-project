@@ -63,4 +63,12 @@ public class ScenarioVariant extends BaseEntity {
         this.isActive = isActive != null ? isActive : false;
         this.sortOrder = sortOrder != null ? sortOrder : 0;
     }
+
+    //활성화 상태 변경
+    public void activate() {
+        this.isActive = true;
+    }
+    public void deactivate() {
+        this.isActive = false;
+    }
 }

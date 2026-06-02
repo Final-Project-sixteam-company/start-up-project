@@ -20,7 +20,7 @@ public record ScenarioSummaryResponse(
         Double averageRating,
         Boolean isBookmarked
 ) {
-    public static ScenarioSummaryResponse from(Scenario scenario, Boolean isBookmarked) {
+    public static ScenarioSummaryResponse from(Scenario scenario, int suspectCount, int evidenceCount, Boolean isBookmarked) {
         return new ScenarioSummaryResponse(
                 scenario.getId(),
                 scenario.getTitle(),
@@ -31,8 +31,8 @@ public record ScenarioSummaryResponse(
                 scenario.getEstimatedPlayTimeMinutes(),
                 scenario.getPlayerCountMin(),
                 scenario.getPlayerCountMax(),
-                0, // TODO: 나중에 용의자 수 계산 로직 추가하기
-                0, // TODO: 나중에 증거 수 계산 로직 추가하기
+                suspectCount,
+                evidenceCount,
                 scenario.getPlayCount(),
                 scenario.getAverageRating(),
                 isBookmarked

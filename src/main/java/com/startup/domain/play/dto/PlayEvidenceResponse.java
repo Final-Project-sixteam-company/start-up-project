@@ -15,6 +15,7 @@ public record PlayEvidenceResponse(
         EvidenceImportance importance,
         Boolean isUnlocked,
         String unlockHint,
+        String imageUrl,
         List<RelatedSuspectDto> relatedSuspects
 ) {
     // 증거와 관련된 용의자 간략 정보
