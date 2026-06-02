@@ -123,8 +123,8 @@ JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
 | Query | `keyword`, `type`, `difficulty`, `visibility`, `minPlayers`, `maxPlayers`, `maxPlayTime`, `sort`, `page`, `size` |
 | 응답 핵심 | `data.content[].scenarioId`, `title`, `description`, `thumbnailUrl`, `scenarioType`, `difficulty`, `estimatedPlayTimeMinutes`, `suspectCount`, `evidenceCount`, `playCount`, `averageRating`, `isBookmarked` |
 
-현재 `thumbnailUrl`은 백엔드 TODO 상태라 `null`일 수 있다.
-이미지 표시는 후속 S3 URL 변환 로직이 붙기 전까지 placeholder를 사용한다.
+`thumbnailUrl`은 시나리오 `coverAssetKey`와 서버의 `AWS_S3_PUBLIC_BASE_URL` 설정으로 생성된다.
+서버에 이미지 base URL이 설정되지 않았거나 asset key가 없으면 `null`일 수 있으므로, 프론트는 placeholder를 준비한다.
 
 ### 3.2 시나리오 상세
 
@@ -134,7 +134,7 @@ JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
 | Path | `/api/scenarios/{scenarioId}` |
 | 사용 화면 | 사건 상세, 사건 브리핑 |
 | 호출 시점 | 라이브러리 카드 선택 후 상세 진입 |
-| 응답 핵심 | `scenarioId`, `title`, `description`, `synopsis`, `difficulty`, `estimatedPlayTimeMinutes`, `suspectCount`, `evidenceCount`, `hintCount`, `canPlay` |
+| 응답 핵심 | `scenarioId`, `title`, `description`, `synopsis`, `coverImageUrl`, `mapImageUrl`, `difficulty`, `estimatedPlayTimeMinutes`, `suspectCount`, `evidenceCount`, `hintCount`, `canPlay` |
 
 표시 기준은 아래처럼 나눈다.
 
@@ -143,6 +143,8 @@ JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
 | `title` | 카드, 상세, 브리핑 제목 |
 | `description` | 카드/상세의 짧은 사건 설명 |
 | `synopsis` | 사건 상세 또는 브리핑의 오프닝 본문 |
+| `coverImageUrl` | 사건 상세/브리핑 대표 이미지 |
+| `mapImageUrl` | 게임 진입 전후 전체 지도/평면도 이미지 |
 
 공식 시나리오의 오프닝은 `synopsis`를 우선 사용한다.
 
@@ -192,7 +194,7 @@ JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
 | 필드 | 현재 처리 |
 |---|---|
 | `imageAssetKey` | YAML/S3 기준 asset key. 현재 응답 가능 |
-| `imageUrl` | S3 공개/서명 URL 변환 로직 후 사용. 현재 `null`일 수 있음 |
+| `imageUrl` | 해금 증거의 표시 이미지 URL. `AWS_S3_PUBLIC_BASE_URL` 미설정 또는 asset key 없음이면 `null` |
 
 ### 3.6 용의자 목록
 
@@ -202,7 +204,7 @@ JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
 | Path | `/api/play-sessions/{sessionId}/suspects` |
 | 사용 화면 | 용의자 목록, 용의자 상세, 심문 진입 |
 | 호출 시점 | 용의자 탭 진입, 심문 후 interrogation count 갱신 |
-| 응답 핵심 | `suspectId`, `name`, `role`, `relationToVictim`, `publicStatement`, `alibi`, `suspicionLevel`, `interrogationCount` |
+| 응답 핵심 | `suspectId`, `name`, `role`, `relationToVictim`, `publicStatement`, `alibi`, `portraitImageUrl`, `suspicionLevel`, `interrogationCount` |
 
 현재 별도 용의자 상세 API는 없다.
 용의자 상세 화면은 목록 응답의 선택된 suspect item을 그대로 사용한다.
@@ -625,8 +627,8 @@ POST /api/play-sessions
 용의자 탭으로 이동하는 CTA
 ```
 
-시나리오 맵 이미지와 장소 이미지는 S3에 올라가 있어도, 현재 API에서 바로 쓸 수 있는 URL 변환 로직은 아직 완성되지 않았다.
-현장 탭에서 이미지를 보여주려면 후속으로 `scenario map imageUrl` 응답이 필요하다.
+시나리오 전체 지도/평면도는 `GET /api/scenarios/{scenarioId}`의 `mapImageUrl`을 우선 사용한다.
+개별 장소 이미지 목록 API는 아직 없으므로, 방별 이미지는 후속 locations API가 생기기 전까지 placeholder 또는 맵 이미지 중심으로 처리한다.
 
 ### 7.3 증거 탭
 
@@ -678,9 +680,9 @@ GET /api/play-sessions/{sessionId}/evidences?includeLocked=true
 | 이미지 클릭 | `imageUrl`이 있으면 이미지 확대, 없으면 placeholder |
 | 관련 용의자 클릭 | 해당 `suspectId`로 용의자 상세 화면 이동 |
 
-증거 이미지는 현재 `imageUrl`이 `null`일 수 있다.
-이 경우 `imageAssetKey`만으로 S3 URL을 프론트가 임의 조립하지 않는다.
-S3 공개 URL 또는 signed URL 응답 로직이 붙은 뒤 이미지 표시를 완성한다.
+해금 증거는 서버가 `imageAssetKey`를 `imageUrl`로 변환해서 내려준다.
+그래도 `AWS_S3_PUBLIC_BASE_URL` 미설정, asset 누락, 잠긴 증거 마스킹 때문에 `imageUrl`이 `null`일 수 있다.
+이 경우 프론트는 S3 URL을 임의 조립하지 않고 placeholder를 표시한다.
 
 ### 7.5 용의자 탭
 
@@ -688,7 +690,7 @@ S3 공개 URL 또는 signed URL 응답 로직이 붙은 뒤 이미지 표시를 
 |---|---|
 | 화면 목적 | 심문 가능한 인물 목록 확인 |
 | 호출 API | `GET /api/play-sessions/{sessionId}/suspects` |
-| 사용 필드 | `suspectId`, `name`, `role`, `relationToVictim`, `publicStatement`, `alibi`, `suspicionLevel`, `interrogationCount` |
+| 사용 필드 | `suspectId`, `name`, `role`, `relationToVictim`, `publicStatement`, `alibi`, `portraitImageUrl`, `suspicionLevel`, `interrogationCount` |
 
 용의자 목록은 공개 정보만 보여준다.
 범인 여부나 정답 정보는 절대 표시하지 않는다.
@@ -713,6 +715,7 @@ S3 공개 URL 또는 signed URL 응답 로직이 붙은 뒤 이미지 표시를 
 | 피해자와의 관계 | `relationToVictim` |
 | 공개 진술 | `publicStatement` |
 | 공개 알리바이 | `alibi` |
+| 초상 이미지 | `portraitImageUrl` |
 | 의심도 UI | `suspicionLevel` |
 | 심문 횟수 | `interrogationCount` |
 
@@ -1436,7 +1439,7 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 | 기능 | 현재 처리 |
 |---|---|
 | 현장 locations API | `dashboard` + placeholder |
-| 시나리오/장소/캐릭터 이미지 URL | `thumbnailUrl`/`imageUrl`이 null이면 placeholder |
+| 개별 장소 이미지 API | `mapImageUrl` 또는 placeholder |
 | S3 assetKey 직접 변환 | 프론트에서 임의 조립하지 않음 |
 | 증거 상세 API | 목록 item으로 상세 표시 |
 | 용의자 상세 API | 목록 item으로 상세 표시 |
@@ -1457,18 +1460,30 @@ placeholder는 "아직 구현 전"이라는 내부 표현보다 유저 관점의
 
 ### 10.7 이미지 처리 기준
 
-현재 공식 이미지 asset은 S3에 올라가 있지만, 모든 화면에서 바로 사용할 수 있는 URL 응답 로직은 아직 완성되지 않을 수 있다.
+현재 백엔드는 공식 S3 asset key를 응답용 이미지 URL로 변환한다.
+프론트는 응답에 내려온 URL만 사용하고, S3 object key를 직접 조합하지 않는다.
+
+현재 URL 응답이 붙은 범위는 아래와 같다.
+
+| API | 이미지 필드 |
+|---|---|
+| `GET /api/scenarios` | `thumbnailUrl` |
+| `GET /api/scenarios/{scenarioId}` | `coverImageUrl`, `mapImageUrl` |
+| `GET /api/play-sessions/{sessionId}/evidences` | `imageUrl` |
+| `GET /api/play-sessions/{sessionId}/suspects` | `portraitImageUrl` |
+
+개별 장소 이미지 API, 이미지 업로드 API, signed URL API는 아직 후속 범위다.
 
 프론트 기준은 아래와 같다.
 
 | 응답 상태 | 처리 |
 |---|---|
-| `imageUrl` 존재 | 해당 URL 표시 |
-| `imageUrl=null`, `imageAssetKey` 존재 | placeholder 표시. 프론트에서 S3 URL 임의 조립 금지 |
+| 이미지 URL 필드 존재 | 해당 URL 표시 |
+| 이미지 URL 필드 `null`, asset key 존재 | placeholder 표시. 프론트에서 S3 URL 임의 조립 금지 |
 | 둘 다 null | placeholder 표시 |
 | 이미지 로드 실패 | placeholder와 재시도 또는 기본 이미지 |
 
-이미지를 클릭해 확대하는 UX는 `imageUrl`이 있을 때만 활성화한다.
+이미지를 클릭해 확대하는 UX는 해당 화면의 이미지 URL 필드가 있을 때만 활성화한다.
 
 ### 10.8 화면별 최초 연동 체크리스트
 

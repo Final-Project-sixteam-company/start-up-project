@@ -8,6 +8,7 @@ public record PlaySuspectResponse(
         String relationToVictim,
         String publicStatement,
         String alibi,
+        String portraitImageUrl,
         Integer suspicionLevel,
         Integer interrogationCount
 ) {
