@@ -313,6 +313,55 @@ public class PlaySessionService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public PlayEvidenceDetailResponse getEvidenceDetail(Long userId, Long sessionId, Long evidenceId) {
+        // 소유권 및 세션 검증
+        PlaySession session = playSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
+
+        if (!session.getUserId().equals(userId)) {
+            throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
+        }
+
+        // 증거 존재 확인 및 타 시나리오 증거 찌르기 방어
+        Evidence evidence = evidenceRepository.findById(evidenceId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.EVIDENCE_NOT_FOUND));
+
+        if (!evidence.getScenarioId().equals(session.getScenarioId())) {
+            // 다른 시나리오의 증거 ID를 입력한 경우 못 찾은 척(404) 튕겨냄
+            throw new PlayException(PlayErrorCode.EVIDENCE_NOT_FOUND);
+        }
+
+        // 해금 여부 검증 (스포일러 완벽 방어)
+        // 기본 제공 증거(isInitialPublic)가 아니라면, 반드시 UnlockedEvidence에 기록이 있어야 함
+        if (!evidence.getIsInitialPublic()) {
+            boolean isUnlocked = unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, evidenceId);
+            if (!isUnlocked) {
+                // 아직 못 얻은 증거라면 마스킹할 필요 없이 단호하게 403 Forbidden 에러 반환!
+                throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED, "아직 해금되지 않은 증거입니다.");
+            }
+        }
+
+        // 연관 데이터 조회 (Location, Suspects, TimelineEvents)
+        // 장소 정보
+        ScenarioLocation location = null;
+        if (evidence.getLocationId() != null) {
+            location = scenarioLocationRepository.findById(evidence.getLocationId()).orElse(null);
+        }
+
+        // 연관 용의자 정보
+        java.util.List<Long> suspectIds = evidenceSuspectRepository.findAllByEvidenceIdIn(java.util.List.of(evidenceId)).stream()
+                .map(es -> es.getSuspectId())
+                .toList();
+        java.util.List<Suspect> relatedSuspects = suspectIds.isEmpty() ? java.util.List.of() : suspectRepository.findAllById(suspectIds);
+
+        // 연관 타임라인 사건 정보
+        java.util.List<TimelineEvent> relatedTimelines = timelineEventRepository.findAllByRelatedEvidenceIdOrderByEventOrder(evidenceId);
+
+        // 모든 정보를 조립하여 반환
+        return PlayEvidenceDetailResponse.of(evidence, location, relatedSuspects, relatedTimelines);
+    }
+
 
     private Long selectVariantId(Long scenarioId) {
         List<ScenarioVariant> activeVariants =

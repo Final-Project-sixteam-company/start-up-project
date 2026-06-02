@@ -94,6 +94,17 @@ public class PlaySessionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Operation(summary = "증거 단건 상세 조회 (스포일러 방지 적용)")
+    @GetMapping("/{sessionId}/evidences/{evidenceId}")
+    public ResponseEntity<ApiResponse<PlayEvidenceDetailResponse>> getEvidenceDetail(
+            @PathVariable Long sessionId,
+            @PathVariable Long evidenceId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        PlayEvidenceDetailResponse response = playSessionService.getEvidenceDetail(userId, sessionId, evidenceId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
 
     @Operation(summary = "사용 가능 힌트 목록 조회")
     @GetMapping("/{sessionId}/hints")
