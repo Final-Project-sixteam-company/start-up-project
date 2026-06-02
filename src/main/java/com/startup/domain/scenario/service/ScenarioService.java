@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -49,9 +51,17 @@ public class ScenarioService {
                 mappedPageable
         );
         
+        List<Long> scenarioIds = scenarios.getContent().stream().map(Scenario::getId).toList();
+        
+        // IN 절로 한 번에 카운트 맵 인출 (N+1 최적화)
+        Map<Long, Integer> suspectCountMap = suspectRepository.countByScenarioIdIn(scenarioIds).stream()
+                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+        Map<Long, Integer> evidenceCountMap = evidenceRepository.countByScenarioIdIn(scenarioIds).stream()
+                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+                
         Page<ScenarioSummaryResponse> responsePage = scenarios.map(scenario -> {
-            int suspectCount = suspectRepository.countByScenarioId(scenario.getId());
-            int evidenceCount = evidenceRepository.countByScenarioId(scenario.getId());
+            int suspectCount = suspectCountMap.getOrDefault(scenario.getId(), 0);
+            int evidenceCount = evidenceCountMap.getOrDefault(scenario.getId(), 0);
             return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, false);
         });
         
