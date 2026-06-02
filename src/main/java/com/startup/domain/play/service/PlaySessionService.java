@@ -113,6 +113,22 @@ public class PlaySessionService {
         return PlaySessionCreateResponse.from(session);
     }
 
+    @Transactional(readOnly = true)
+    public PlaySessionDetailResponse getSessionDetail(Long userId, Long sessionId) {
+        // 세션 존재 여부 확인
+        PlaySession session = playSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
+
+        // 소유권 검증: 남의 게임 세션을 URL ID 추측으로 훔쳐보지 못하도록 차단
+        if (!session.getUserId().equals(userId)) {
+            throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
+        }
+
+        // 3. DTO 변환 및 반환
+        return PlaySessionDetailResponse.from(session);
+    }
+
+
     //대시보드 조회
     @Transactional
     public DashboardResponse getDashboard(Long userId, Long sessionId) {
