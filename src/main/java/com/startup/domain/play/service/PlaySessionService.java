@@ -280,7 +280,7 @@ public class PlaySessionService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public java.util.List<PlayTimelineResponse> getTimeline(Long userId, Long sessionId) {
         PlaySession session = playSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
@@ -322,7 +322,7 @@ public class PlaySessionService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PlayEvidenceDetailResponse getEvidenceDetail(Long userId, Long sessionId, Long evidenceId) {
         // 소유권 및 세션 검증
         PlaySession session = playSessionRepository.findById(sessionId)
