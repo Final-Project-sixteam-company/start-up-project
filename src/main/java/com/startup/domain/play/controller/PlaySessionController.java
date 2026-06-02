@@ -74,6 +74,17 @@ public class PlaySessionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Operation(summary = "현장(장소) 정보 및 증거 개수 조회")
+    @GetMapping("/{sessionId}/locations")
+    public ResponseEntity<ApiResponse<List<PlayLocationResponse>>> getLocations(
+            @PathVariable Long sessionId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        List<PlayLocationResponse> response = playSessionService.getLocations(userId, sessionId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+
     @Operation(summary = "사용 가능 힌트 목록 조회")
     @GetMapping("/{sessionId}/hints")
     public ResponseEntity<ApiResponse<List<PlayHintResponse>>> getHints(

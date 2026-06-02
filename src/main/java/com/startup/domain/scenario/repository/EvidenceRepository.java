@@ -21,4 +21,9 @@ public interface EvidenceRepository extends JpaRepository<Evidence, Long> {
     //여러 시나리오의 증거 수를 한번에 조회
     @Query("SELECT e.scenarioId, COUNT(e) FROM Evidence e WHERE e.scenarioId IN :scenarioIds GROUP BY e.scenarioId")
     List<Object[]> countByScenarioIdIn(@Param("scenarioIds") List<Long> scenarioIds);
+
+    // 시나리오 내 장소별 전체 증거 개수를 한 번에 조회합니다. (N+1 방지)
+    @Query("SELECT e.locationId, COUNT(e) FROM Evidence e WHERE e.scenarioId = :scenarioId AND e.locationId IS NOT NULL GROUP BY e.locationId")
+    List<Object[]> countByLocationIdForScenario(@Param("scenarioId") Long scenarioId);
+
 }

@@ -252,6 +252,34 @@ public class PlaySessionService {
         return result;
     }
 
+    @Transactional(readOnly = true)
+    public List<PlayLocationResponse> getLocations(Long userId, Long sessionId) {
+        // 세션 존재 확인 및 소유권 검증 (보안)
+        PlaySession session = playSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
+
+        if (!session.getUserId().equals(userId)) {
+            throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
+        }
+
+        // 현재 시나리오의 모든 장소 조회
+        Long scenarioId = session.getScenarioId();
+        List<ScenarioLocation> locations = scenarioLocationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+
+        // 장소별 증거 총 개수를 맵으로 한 번에 가져옴 (N+1 성능 방어)
+        java.util.Map<Long, Integer> evidenceCountMap = evidenceRepository.countByLocationIdForScenario(scenarioId).stream()
+                .collect(java.util.stream.Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+
+        // 장소 리스트와 카운트 맵을 조합하여 응답 DTO 생성
+        return locations.stream()
+                .map(location -> {
+                    int count = evidenceCountMap.getOrDefault(location.getId(), 0);
+                    return PlayLocationResponse.from(location, count);
+                })
+                .toList();
+    }
+
+
     private Long selectVariantId(Long scenarioId) {
         List<ScenarioVariant> activeVariants =
                 scenarioVariantRepository.findAllByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId);
