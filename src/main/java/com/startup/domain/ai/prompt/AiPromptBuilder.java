@@ -135,6 +135,7 @@ public class AiPromptBuilder {
                                        String question) {
         String template = loadTemplate(userPromptResource);
         return template
+                .replace("{allowedFacts}", formatFacts(policy.allowedFacts()))
                 .replace("{suspectName}", nullSafe(suspect.name()))
                 .replace("{suspectRole}", nullSafe(suspect.role()))
                 .replace("{relationToVictim}", nullSafe(suspect.relationToVictim()))
@@ -157,6 +158,7 @@ public class AiPromptBuilder {
                                            String question) {
         String template = loadTemplate(evidenceUserPromptResource);
         return template
+                .replace("{allowedFacts}", formatFacts(policy.allowedFacts()))
                 .replace("{suspectName}", nullSafe(suspect.name()))
                 .replace("{suspectRole}", nullSafe(suspect.role()))
                 .replace("{publicAlibi}", nullSafe(suspect.alibi()))
@@ -166,6 +168,33 @@ public class AiPromptBuilder {
                 .replace("{history}", formatHistory(history))
                 .replace("{responsePolicy}", nullSafe(policy.policyText()))
                 .replace("{question}", nullSafe(question));
+    }
+
+    private String formatFacts(List<String> facts) {
+        if (facts == null || facts.isEmpty()) {
+            return "없음";
+        }
+        List<String> lines = facts.stream()
+                .filter(Objects::nonNull)
+                .map(String::strip)
+                .filter(fact -> !fact.isBlank())
+                .map(this::sanitizeFact)
+                .toList();
+        if (lines.isEmpty()) {
+            return "없음";
+        }
+        return lines.stream()
+                .map(fact -> "- " + fact)
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String sanitizeFact(String fact) {
+        return fact
+                .replace('\r', ' ')
+                .replace('\n', ' ')
+                .replace("{", "｛")
+                .replace("}", "｝")
+                .strip();
     }
 
     private String formatEvidences(List<EvidenceInfo> evidences) {
