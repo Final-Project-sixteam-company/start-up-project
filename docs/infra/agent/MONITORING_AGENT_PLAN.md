@@ -287,7 +287,7 @@ Evidence:
 
 Next read-only checks:
 - /opt/clueroom/bg-status.sh
-- docker compose logs --tail=120 app-blue
+- /opt/clueroom/bg-compose logs --tail=120 app-blue
 ```
 
 Do not send secrets or raw `.env` output to Discord/Slack.

@@ -249,8 +249,8 @@ sudo systemctl reload nginx
 sudo systemctl restart nginx
 docker compose restart app
 docker compose up -d app
-docker compose start app-blue
-docker compose start app-green
+/opt/clueroom/bg-compose start app-blue
+/opt/clueroom/bg-compose start app-green
 /opt/clueroom/deploy.sh
 /opt/clueroom/rollback-bluegreen.sh
 /opt/clueroom/stop-standby.sh

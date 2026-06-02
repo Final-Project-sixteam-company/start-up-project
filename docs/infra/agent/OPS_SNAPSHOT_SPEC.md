@@ -254,8 +254,8 @@ docker compose logs --tail=120 app
 If the active slot is app-blue or app-green, the operator may capture the active service log instead.
 
 ```bash
-docker compose logs --tail=120 app-blue
-docker compose logs --tail=120 app-green
+/opt/clueroom/bg-compose logs --tail=120 app-blue
+/opt/clueroom/bg-compose logs --tail=120 app-green
 ```
 
 Do not capture unbounded logs.
