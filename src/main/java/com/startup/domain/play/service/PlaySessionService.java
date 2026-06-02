@@ -306,8 +306,8 @@ public class PlaySessionService {
                         // 유저가 그 증거를 찾았을 때만 타임라인에 보여준다! (못 찾았으면 숨김 처리)
                         return unlockedEvidenceIds.contains(event.getRelatedEvidenceId());
                     }
-                    // 관련 증거가 없는 뼈대 사건(ex: "피해자가 출근했다")은 무조건 보여줌
-                    return true;
+                    // 관련 증거가 없는 사건 중, 대외 공개(PUBLIC) 설정된 사건만 노출 (스포일러 방어)
+                    return "PUBLIC".equalsIgnoreCase(event.getVisibility());
                 })
                 .map(PlayTimelineResponse::from)
                 .toList();
