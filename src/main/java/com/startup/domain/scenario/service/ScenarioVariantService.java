@@ -3,6 +3,7 @@ package com.startup.domain.scenario.service;
 import com.startup.domain.scenario.entity.ScenarioVariant;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
+import com.startup.domain.scenario.repository.ScenarioRepository;
 import com.startup.domain.scenario.repository.ScenarioVariantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,10 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class ScenarioVariantService {
 
     private final ScenarioVariantRepository scenarioVariantRepository;
+    private final ScenarioRepository scenarioRepository;
 
     // 특정 시나리오의 변형(Variant)을 활성화하는 서비스 로직
     @Transactional
     public void activateVariant(Long scenarioId, Long variantId) {
+        //부모인 시나리오에 배타적 락을 걸어 동시 접근 차단
+        scenarioRepository.findByIdForUpdate(scenarioId).orElseThrow(() ->
+                new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
         // Variant 조회
         ScenarioVariant variant = scenarioVariantRepository.findById(variantId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.VARIANT_NOT_FOUND));
