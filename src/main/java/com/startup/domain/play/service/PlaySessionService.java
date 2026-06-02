@@ -57,6 +57,7 @@ public class PlaySessionService {
     private final FinalDeductionLockManager finalDeductionLockManager;
     private final EvidenceVariantDescriptionResolver evidenceVariantDescriptionResolver;
     private final EvidenceUnlockPolicy evidenceUnlockPolicy;
+    private final TimelineEventRepository timelineEventRepository;
 
     //게임 시작 세션
     @Transactional
@@ -276,6 +277,39 @@ public class PlaySessionService {
                     int count = evidenceCountMap.getOrDefault(location.getId(), 0);
                     return PlayLocationResponse.from(location, count);
                 })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<PlayTimelineResponse> getTimeline(Long userId, Long sessionId) {
+        PlaySession session = playSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
+
+        // 소유권 검증 (동시성/보안 방어)
+        if (!session.getUserId().equals(userId)) {
+            throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
+        }
+
+        // 해당 시나리오의 전체 타임라인 사건을 순서대로 모두 가져옴
+        java.util.List<TimelineEvent> allEvents = timelineEventRepository.findAllByScenarioIdOrderByEventOrder(session.getScenarioId());
+
+        // 현재 유저가 지금까지 게임하면서 '해금한(찾은) 증거 ID' 목록을 Set으로 변환 (O(1) 조회를 위해 Set 사용)
+        java.util.Set<Long> unlockedEvidenceIds = unlockedEvidenceRepository.findAllByPlaySessionId(sessionId).stream()
+                .map(unlocked -> unlocked.getEvidenceId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        // 필터링 로직 (스포일러 방지)
+        return allEvents.stream()
+                .filter(event -> {
+                    // 특정 타임라인 사건이 어떤 증거(관련 증거 ID)와 연결되어 있다면?
+                    if (event.getRelatedEvidenceId() != null) {
+                        // 유저가 그 증거를 찾았을 때만 타임라인에 보여준다! (못 찾았으면 숨김 처리)
+                        return unlockedEvidenceIds.contains(event.getRelatedEvidenceId());
+                    }
+                    // 관련 증거가 없는 뼈대 사건(ex: "피해자가 출근했다")은 무조건 보여줌
+                    return true;
+                })
+                .map(PlayTimelineResponse::from)
                 .toList();
     }
 

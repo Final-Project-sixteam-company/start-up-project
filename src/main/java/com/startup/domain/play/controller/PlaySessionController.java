@@ -84,6 +84,16 @@ public class PlaySessionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Operation(summary = "타임라인 조회")
+    @GetMapping("/{sessionId}/timeline")
+    public ResponseEntity<ApiResponse<java.util.List<PlayTimelineResponse>>> getTimeline(
+            @PathVariable Long sessionId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        java.util.List<PlayTimelineResponse> response = playSessionService.getTimeline(userId, sessionId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
 
     @Operation(summary = "사용 가능 힌트 목록 조회")
     @GetMapping("/{sessionId}/hints")
