@@ -40,10 +40,14 @@ Android 문서에 API 응답 JSON을 복사하지 않는다.
 
 | 문서 | 용도 |
 |---|---|
+| `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | 현재 백엔드 구현 기준의 화면 흐름/API 호출/상태 처리 가이드 |
 | `CaseLab_AI_PRD.md` | 화면 목적, MVP 범위, 기능 우선순위 |
 | `CaseLab_AI_API_Spec.md` | API 경로, Request/Response, DTO 필드명 정본 |
 | `AI_NPC_PROMPT_POLICY.md` | AI 심문/답변 정책 |
 | `OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 시나리오 seed data |
+
+현재 백엔드 구현 기준으로 프론트 화면을 연동할 때는 `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md`를 우선 확인한다.
+이 문서에는 계획 API가 포함되어 있을 수 있다.
 
 ---
 
