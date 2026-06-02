@@ -293,6 +293,9 @@ public class PlaySessionService {
         // 해당 시나리오의 전체 타임라인 사건을 순서대로 모두 가져옴
         java.util.List<TimelineEvent> allEvents = timelineEventRepository.findAllByScenarioIdOrderByEventOrder(session.getScenarioId());
 
+        // 🚨 타임라인 조회 전, 시간 경과에 따른 자동 해금 증거 최신화 (P2 이슈 방어)
+        processAutomaticUnlocks(session);
+
         // 현재 유저가 지금까지 게임하면서 '해금한(찾은) 증거 ID' 목록을 Set으로 변환 (O(1) 조회를 위해 Set 사용)
         java.util.Set<Long> unlockedEvidenceIds = unlockedEvidenceRepository.findAllByPlaySessionId(sessionId).stream()
                 .map(unlocked -> unlocked.getEvidenceId())
@@ -301,13 +304,19 @@ public class PlaySessionService {
         // 필터링 로직 (스포일러 방지)
         return allEvents.stream()
                 .filter(event -> {
-                    // 특정 타임라인 사건이 어떤 증거(관련 증거 ID)와 연결되어 있다면?
+                    // 🚨 1. PUBLIC 상태가 아닌 시스템/정답용 타임라인은 무조건 숨김 (P1 이슈 방어)
+                    if (!"PUBLIC".equalsIgnoreCase(event.getVisibility())) {
+                        return false;
+                    }
+                    
+                    // 🚨 2. 특정 타임라인 사건이 어떤 증거(관련 증거 ID)와 연결되어 있다면?
                     if (event.getRelatedEvidenceId() != null) {
                         // 유저가 그 증거를 찾았을 때만 타임라인에 보여준다! (못 찾았으면 숨김 처리)
                         return unlockedEvidenceIds.contains(event.getRelatedEvidenceId());
                     }
-                    // 관련 증거가 없는 사건 중, 대외 공개(PUBLIC) 설정된 사건만 노출 (스포일러 방어)
-                    return "PUBLIC".equalsIgnoreCase(event.getVisibility());
+                    
+                    // 3. 증거와 연결되지 않은 PUBLIC 사건(뼈대 사건)은 노출
+                    return true;
                 })
                 .map(PlayTimelineResponse::from)
                 .toList();
@@ -358,8 +367,10 @@ public class PlaySessionService {
                 .toList();
         java.util.List<Suspect> relatedSuspects = suspectIds.isEmpty() ? java.util.List.of() : suspectRepository.findAllById(suspectIds);
 
-        // 연관 타임라인 사건 정보
-        java.util.List<TimelineEvent> relatedTimelines = timelineEventRepository.findAllByRelatedEvidenceIdOrderByEventOrder(evidenceId);
+        // 연관 타임라인 사건 정보 (스포일러 방어: 비공개 사건은 단건 상세에서도 숨김 처리)
+        java.util.List<TimelineEvent> relatedTimelines = timelineEventRepository.findAllByRelatedEvidenceIdOrderByEventOrder(evidenceId).stream()
+                .filter(event -> "PUBLIC".equalsIgnoreCase(event.getVisibility()))
+                .toList();
 
         // 변이(Variant) 전용 설명 해석 (단건 조회 시에도 선택된 변이 경로에 맞는 단서를 보여줌)
         String resolvedDescription = evidenceVariantDescriptionResolver.resolve(evidence, session.getScenarioVariantId());
