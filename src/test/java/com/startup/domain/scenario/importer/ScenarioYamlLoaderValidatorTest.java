@@ -25,6 +25,8 @@ class ScenarioYamlLoaderValidatorTest {
         assertThat(yaml.scenario().code()).isEqualTo("SCENARIO_TEST");
         assertThat(yaml.evidences()).hasSize(2);
         assertThat(yaml.evidences().getFirst().relatedCharacterCodes()).containsExactly("SUSPECT_TEST");
+        assertThat(yaml.locations().getFirst().mapX()).isEqualTo(120);
+        assertThat(yaml.locations().getFirst().mapY()).isEqualTo(80);
         assertThat(violations).isEmpty();
     }
 
@@ -112,6 +114,19 @@ class ScenarioYamlLoaderValidatorTest {
     }
 
     @Test
+    void publishedYamlRequiresLocationCoordinates() throws IOException {
+        String invalidYaml = SAMPLE_YAML
+                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
+                .replace("status: DRAFT", "status: PUBLISHED")
+                .replace("    mapX: 120\n    mapY: 80\n", "");
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains("locations[LOC_TEST].mapX is required"));
+        assertThat(violations).anyMatch(message -> message.contains("locations[LOC_TEST].mapY is required"));
+    }
+
+    @Test
     void nonCulpritEligibleCharacterAsCulprit_failsValidation() throws IOException {
         String invalidYaml = SAMPLE_YAML.replace(
                 "culpritCode: SUSPECT_TEST",
@@ -167,6 +182,8 @@ class ScenarioYamlLoaderValidatorTest {
               - code: LOC_TEST
                 name: "테스트 장소"
                 description: "테스트 장소 설명"
+                mapX: 120
+                mapY: 80
                 sortOrder: 10
 
             characters:

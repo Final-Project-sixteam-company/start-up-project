@@ -158,6 +158,8 @@ public class ScenarioYamlImportService {
                     .floor(locationYaml.floor())
                     .description(locationYaml.description())
                     .imageAssetKey(locationYaml.imageAssetKey())
+                    .mapX(locationYaml.mapX())
+                    .mapY(locationYaml.mapY())
                     .sortOrder(locationYaml.sortOrder())
                     .build());
             result.put(locationYaml.code(), location);

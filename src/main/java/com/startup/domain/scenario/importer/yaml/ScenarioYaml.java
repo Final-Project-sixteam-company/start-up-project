@@ -70,6 +70,8 @@ public record ScenarioYaml(
             String floor,
             String description,
             String imageAssetKey,
+            Integer mapX,
+            Integer mapY,
             Integer sortOrder
     ) {
     }
