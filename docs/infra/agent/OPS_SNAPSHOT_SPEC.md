@@ -53,7 +53,7 @@ The snapshot should collect these categories.
 | Grafana health | verify dashboard stack health |
 | app log tail | inspect recent application errors |
 | Nginx error tail | inspect recent proxy errors |
-| deploy log tail | inspect recent deployment failure context |
+| deploy run summary | inspect recent GitHub Actions CD failure context |
 
 The snapshot should prefer summaries over raw dumps.
 
@@ -271,14 +271,38 @@ Do not capture unbounded logs.
 sudo tail -n 100 /var/log/nginx/error.log
 ```
 
-### 5.14 Recent Deploy Logs
+### 5.14 Recent Deploy Context
 
-```bash
-ls -lt /opt/clueroom/logs | head
-tail -n 120 /opt/clueroom/logs/deploy.log
+The normal production deploy path is the GitHub Actions `Backend CD` workflow.
+That workflow SSHs to `/opt/clueroom/deploy.sh` directly and does not currently
+write `/opt/clueroom/logs/deploy.log` on the server.
+
+For normal CD failures, collect a secret-reviewed summary from the latest
+GitHub Actions run instead of tailing a non-guaranteed server file.
+
+```text
+GitHub -> Actions -> Backend CD -> latest workflow_dispatch run
 ```
 
-If the deploy log filename is timestamped, the operator should tail the latest deploy log.
+Capture only bounded, secret-safe facts:
+
+```text
+- run status
+- selected branch/commit
+- failed step name
+- final 50-120 lines around the failure, after human secret review
+- whether the SSH command reached /opt/clueroom/deploy.sh
+```
+
+If a human intentionally ran a manual server deploy and wrote a timestamped
+local log, the operator may tail that explicit file.
+
+```bash
+latest_deploy_log="$(ls -t /opt/clueroom/logs/deploy-*.log 2>/dev/null | head -1)"
+test -n "$latest_deploy_log" && tail -n 120 "$latest_deploy_log"
+```
+
+Do not assume `/opt/clueroom/logs/deploy.log` exists.
 
 ---
 

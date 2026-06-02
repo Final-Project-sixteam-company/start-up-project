@@ -58,7 +58,7 @@ Recommended input categories:
 - Grafana health
 - bounded app log tail
 - bounded Nginx error log tail
-- recent deploy log summary
+- recent GitHub Actions CD run summary
 ```
 
 Forbidden input:
