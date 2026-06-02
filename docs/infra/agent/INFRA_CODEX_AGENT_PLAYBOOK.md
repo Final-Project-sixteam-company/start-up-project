@@ -191,8 +191,14 @@ curl -s http://localhost:3000/api/health
 
 Bounded logs:
 
+For production Blue-Green app logs, identify the active slot first and read that slot through the compose helper.
+
 ```bash
-docker compose logs --tail=120 app
+/opt/clueroom/bg-status.sh
+# If active slot is app-blue:
+/opt/clueroom/bg-compose logs --tail=120 app-blue
+# If active slot is app-green:
+/opt/clueroom/bg-compose logs --tail=120 app-green
 sudo tail -n 100 /var/log/nginx/error.log
 sudo tail -n 100 /var/log/nginx/access.log
 ```

@@ -246,15 +246,18 @@ curl -s --max-time 10 http://localhost:3000/api/health
 
 ### 5.12 App Logs
 
+Identify the active Blue-Green slot first, then capture only the active app service log.
+
 ```bash
-cd /opt/clueroom/app
-docker compose logs --tail=120 app
+/opt/clueroom/bg-status.sh
 ```
 
-If the active slot is app-blue or app-green, the operator may capture the active service log instead.
+Use one of these commands based on the active slot.
 
 ```bash
+# If active slot is app-blue:
 /opt/clueroom/bg-compose logs --tail=120 app-blue
+# If active slot is app-green:
 /opt/clueroom/bg-compose logs --tail=120 app-green
 ```
 
