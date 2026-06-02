@@ -136,7 +136,6 @@ public class AiPromptBuilder {
         String template = loadTemplate(userPromptResource);
         return template
                 .replace("{allowedFacts}", formatFacts(policy.allowedFacts()))
-                .replace("{forbiddenFacts}", formatFacts(policy.forbiddenFacts()))
                 .replace("{suspectName}", nullSafe(suspect.name()))
                 .replace("{suspectRole}", nullSafe(suspect.role()))
                 .replace("{relationToVictim}", nullSafe(suspect.relationToVictim()))
@@ -160,7 +159,6 @@ public class AiPromptBuilder {
         String template = loadTemplate(evidenceUserPromptResource);
         return template
                 .replace("{allowedFacts}", formatFacts(policy.allowedFacts()))
-                .replace("{forbiddenFacts}", formatFacts(policy.forbiddenFacts()))
                 .replace("{suspectName}", nullSafe(suspect.name()))
                 .replace("{suspectRole}", nullSafe(suspect.role()))
                 .replace("{publicAlibi}", nullSafe(suspect.alibi()))
