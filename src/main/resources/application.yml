@@ -82,6 +82,12 @@ fcm:
 caselab:
   scoring:
     criteria-path: ${SCORING_CRITERIA_PATH:classpath:scoring/demo_day_criteria.json}
+    defaults:
+      culprit-max-score: ${SCORING_CULPRIT_MAX_SCORE:30}
+      evidence-max-score: ${SCORING_EVIDENCE_MAX_SCORE:15}
+      method-max-score: ${SCORING_METHOD_MAX_SCORE:25}
+      motive-max-score: ${SCORING_MOTIVE_MAX_SCORE:20}
+      cover-up-max-score: ${SCORING_COVER_UP_MAX_SCORE:10}
   ai:
     interrogation:
       max-history-turns: ${AI_INTERROGATION_MAX_HISTORY_TURNS:5}

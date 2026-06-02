@@ -9,7 +9,6 @@ import com.startup.domain.ai.dto.DeductionResultResponse;
 import com.startup.domain.ai.dto.FinalDeductionRequest;
 import com.startup.domain.ai.dto.FinalDeductionResponse;
 import com.startup.domain.ai.dto.ScoringCriteria;
-import com.startup.domain.ai.dto.ScoringCriteria.KeywordCriteria;
 import com.startup.domain.ai.dto.ScoringResult;
 import com.startup.domain.ai.dto.SolutionInfo;
 import com.startup.domain.ai.entity.FinalDeduction;
@@ -17,13 +16,13 @@ import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.prompt.AiPromptBuilder;
 import com.startup.domain.ai.repository.FinalDeductionEvidenceRepository;
+import com.startup.domain.ai.support.DeductionScoringDefaults;
 import com.startup.domain.ai.support.DeductionContextLoader;
 import com.startup.domain.ai.support.EvidenceReader;
 import com.startup.domain.ai.support.FallbackFeedbackGenerator;
 import com.startup.domain.ai.support.HintPenaltyReader;
 import com.startup.domain.ai.support.PlaySessionReader;
 import com.startup.domain.ai.support.RuleBasedScorer;
-import com.startup.domain.ai.support.ScoringCriteriaProvider;
 import com.startup.domain.ai.support.SolutionReader;
 import com.startup.domain.ai.support.SuspectReader;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,7 +56,7 @@ class AiDeductionScorerTest {
     private SuspectReader suspectReader;
     private SolutionReader solutionReader;
     private HintPenaltyReader hintPenaltyReader;
-    private ScoringCriteriaProvider scoringCriteriaProvider;
+    private DeductionScoringDefaults scoringDefaults;
     private RuleBasedScorer ruleBasedScorer;
     private FallbackFeedbackGenerator fallbackFeedbackGenerator;
     private AiPromptBuilder promptBuilder;
@@ -81,7 +80,7 @@ class AiDeductionScorerTest {
         suspectReader = mock(SuspectReader.class);
         solutionReader = mock(SolutionReader.class);
         hintPenaltyReader = mock(HintPenaltyReader.class);
-        scoringCriteriaProvider = mock(ScoringCriteriaProvider.class);
+        scoringDefaults = new DeductionScoringDefaults(30, 15, 25, 20, 10);
         ruleBasedScorer = mock(RuleBasedScorer.class);
         fallbackFeedbackGenerator = mock(FallbackFeedbackGenerator.class);
         promptBuilder = mock(AiPromptBuilder.class);
@@ -97,7 +96,7 @@ class AiDeductionScorerTest {
                 suspectReader,
                 solutionReader,
                 hintPenaltyReader,
-                scoringCriteriaProvider,
+                scoringDefaults,
                 ruleBasedScorer,
                 fallbackFeedbackGenerator,
                 promptBuilder,
@@ -139,16 +138,14 @@ class AiDeductionScorerTest {
     void getResult_keyEvidences_useSolutionKeyEvidenceIds() {
         stubOwnerMatch();
 
-        List<Long> criteriaKeys = List.of(2L, 6L, 7L);
         List<Long> solutionKeys = List.of(2L, 6L, 7L, 8L, 11L);
         Map<Long, String> titles = Map.of(
                 2L, "증거A", 6L, "증거B", 7L, "증거C", 8L, "증거D", 11L, "증거E"
         );
 
-        ScoringCriteria criteria = buildCriteria(criteriaKeys);
         SolutionInfo solution = buildSolution(solutionKeys, titles);
 
-        stubResultChainWith(criteria, solution);
+        stubResultChainWith(solution);
 
         DeductionResultResponse result = scorer.getResult(SESSION_ID);
 
@@ -176,10 +173,9 @@ class AiDeductionScorerTest {
                 14L, "피해자 사후 발송된 메시지 로그"
         );
 
-        ScoringCriteria criteria = buildCriteria(keys);
         SolutionInfo solution = buildSolution(keys, titles);
 
-        stubResultChainWith(criteria, solution);
+        stubResultChainWith(solution);
 
         DeductionResultResponse result = scorer.getResult(SESSION_ID);
 
@@ -315,6 +311,104 @@ class AiDeductionScorerTest {
         assertThat(evidenceIdsCaptor.getValue()).containsExactly(2L);
     }
 
+    @Test
+    @DisplayName("submitAndScore builds criteria from SolutionInfo when scenarioId differs from demo criteria")
+    void submitAndScore_withSyntheticScenarioId_usesSolutionInfoAndDefaultScores() {
+        Long syntheticScenarioId = 2L;
+        Long culpritId = 9L;
+        List<Long> keyEvidenceIds = List.of(42L, 43L, 44L);
+        stubOwnerMatch();
+        when(playSessionReader.getScenarioId(SESSION_ID)).thenReturn(syntheticScenarioId);
+        when(playSessionReader.getScenarioVariantId(SESSION_ID)).thenReturn(7L);
+        when(evidenceReader.getUnlockedEvidenceIds(SESSION_ID)).thenReturn(List.of(42L, 43L));
+        when(solutionReader.findByScenarioIdAndVariantId(syntheticScenarioId, 7L))
+                .thenReturn(buildSolution(culpritId, keyEvidenceIds, Map.of(
+                        42L, "증거A", 43L, "증거B", 44L, "증거C"
+                )));
+        when(ruleBasedScorer.score(any(FinalDeductionRequest.class), any(ScoringCriteria.class)))
+                .thenReturn(new ScoringResult(80, 30, true, 25, 20, 0, 5, 1));
+        when(hintPenaltyReader.getTotalPenalty(SESSION_ID)).thenReturn(0);
+        when(aiClient.isMockMode()).thenReturn(true);
+        when(fallbackFeedbackGenerator.generate(any(ScoringResult.class), any(ScoringCriteria.class)))
+                .thenReturn(new AiFeedbackResult(List.of(), List.of(), "feedback"));
+        when(contextLoader.saveResultAndComplete(eq(SESSION_ID), any(FinalDeduction.class), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+        FinalDeductionRequest request = buildSubmitRequest(culpritId, List.of(42L, 43L));
+
+        scorer.submitAndScore(SESSION_ID, request);
+
+        ArgumentCaptor<ScoringCriteria> criteriaCaptor = ArgumentCaptor.forClass(ScoringCriteria.class);
+        verify(ruleBasedScorer).score(any(FinalDeductionRequest.class), criteriaCaptor.capture());
+        ScoringCriteria criteria = criteriaCaptor.getValue();
+        assertThat(criteria.scenarioId()).isEqualTo(syntheticScenarioId);
+        assertThat(criteria.culpritSuspectId()).isEqualTo(culpritId);
+        assertThat(criteria.keyEvidenceIds()).containsExactlyElementsOf(keyEvidenceIds);
+        assertThat(criteria.culpritMaxScore()).isEqualTo(30);
+        assertThat(criteria.evidenceMaxScore()).isEqualTo(15);
+        assertThat(criteria.method().maxScore()).isEqualTo(25);
+        assertThat(criteria.motive().maxScore()).isEqualTo(20);
+        assertThat(criteria.coverUp().maxScore()).isEqualTo(10);
+        assertThat(criteria.method().minMatch()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("getResult recalculates with SolutionInfo criteria when scenarioId differs from demo criteria")
+    void getResult_withSyntheticScenarioId_usesSolutionInfoAndDefaultScores() {
+        Long syntheticScenarioId = 2L;
+        Long culpritId = 9L;
+        List<Long> keyEvidenceIds = List.of(42L, 43L, 44L);
+        stubOwnerMatch();
+        when(playSessionReader.getScenarioId(SESSION_ID)).thenReturn(syntheticScenarioId);
+        when(playSessionReader.getScenarioVariantId(SESSION_ID)).thenReturn(7L);
+        when(solutionReader.findByScenarioIdAndVariantId(syntheticScenarioId, 7L))
+                .thenReturn(buildSolution(culpritId, keyEvidenceIds, Map.of(
+                        42L, "증거A", 43L, "증거B", 44L, "증거C"
+                )));
+        when(contextLoader.findBySessionId(SESSION_ID)).thenReturn(buildSavedDeduction(culpritId));
+        when(finalDeductionEvidenceRepository.findAllByFinalDeductionId(any()))
+                .thenReturn(List.of());
+        when(ruleBasedScorer.score(any(FinalDeductionRequest.class), any(ScoringCriteria.class)))
+                .thenReturn(new ScoringResult(80, 30, true, 25, 20, 0, 0, 0));
+
+        DeductionResultResponse result = scorer.getResult(SESSION_ID);
+
+        assertThat(result.sessionId()).isEqualTo(SESSION_ID);
+        ArgumentCaptor<ScoringCriteria> criteriaCaptor = ArgumentCaptor.forClass(ScoringCriteria.class);
+        verify(ruleBasedScorer).score(any(FinalDeductionRequest.class), criteriaCaptor.capture());
+        ScoringCriteria criteria = criteriaCaptor.getValue();
+        assertThat(criteria.scenarioId()).isEqualTo(syntheticScenarioId);
+        assertThat(criteria.culpritSuspectId()).isEqualTo(culpritId);
+        assertThat(criteria.keyEvidenceIds()).containsExactlyElementsOf(keyEvidenceIds);
+    }
+
+    @Test
+    @DisplayName("submitAndScore rejects incomplete SolutionInfo instead of silently scoring")
+    void submitAndScore_withMissingCoverUp_rejectedAsSolutionNotFound() {
+        stubOwnerMatch();
+        when(playSessionReader.getScenarioId(SESSION_ID)).thenReturn(SCENARIO_ID);
+        when(playSessionReader.getScenarioVariantId(SESSION_ID)).thenReturn(1L);
+        when(evidenceReader.getUnlockedEvidenceIds(SESSION_ID)).thenReturn(List.of(2L));
+        when(solutionReader.findByScenarioIdAndVariantId(SCENARIO_ID, 1L))
+                .thenReturn(new SolutionInfo(
+                        1L, "박재민", "CFO",
+                        "회사 자금 유용 폭로 방지",
+                        "견과류 알레르기 이용 + 에피펜 은닉",
+                        "",
+                        "박재민 CFO가 범인입니다.",
+                        List.of(2L),
+                        Map.of(2L, "증거A")
+                ));
+        FinalDeductionRequest request = buildSubmitRequest(1L, List.of(2L));
+
+        assertThatThrownBy(() -> scorer.submitAndScore(SESSION_ID, request))
+                .isInstanceOf(AiException.class)
+                .satisfies(ex -> assertThat(((AiException) ex).getErrorCode())
+                        .isEqualTo(AiErrorCode.SOLUTION_NOT_FOUND));
+
+        verify(contextLoader).releaseFinalDeductionLock(SESSION_ID);
+        verify(ruleBasedScorer, never()).score(any(FinalDeductionRequest.class), any(ScoringCriteria.class));
+    }
+
     private void stubOwnerMatch() {
         when(mockUserProvider.currentUserId()).thenReturn(OWNER_USER_ID);
         when(playSessionReader.getOwnerUserId(SESSION_ID)).thenReturn(OWNER_USER_ID);
@@ -329,7 +423,7 @@ class AiDeductionScorerTest {
                 suspectReader,
                 solutionReader,
                 hintPenaltyReader,
-                scoringCriteriaProvider,
+                scoringDefaults,
                 ruleBasedScorer,
                 fallbackFeedbackGenerator,
                 promptBuilder,
@@ -344,14 +438,12 @@ class AiDeductionScorerTest {
 
         List<Long> keys = List.of(2L, 6L, 7L);
         Map<Long, String> titles = Map.of(2L, "증거A", 6L, "증거B", 7L, "증거C");
-        ScoringCriteria criteria = buildCriteria(keys);
         SolutionInfo solution = buildSolution(keys, titles);
 
         when(playSessionReader.getScenarioId(SESSION_ID)).thenReturn(SCENARIO_ID);
         when(playSessionReader.getScenarioVariantId(SESSION_ID)).thenReturn(1L);
         when(evidenceReader.getUnlockedEvidenceIds(SESSION_ID)).thenReturn(unlockedEvidenceIds);
         when(solutionReader.findByScenarioIdAndVariantId(eq(SCENARIO_ID), any())).thenReturn(solution);
-        when(scoringCriteriaProvider.getByCriteria(SCENARIO_ID)).thenReturn(criteria);
         when(ruleBasedScorer.score(any(FinalDeductionRequest.class), any(ScoringCriteria.class)))
                 .thenReturn(scoringResult);
         when(hintPenaltyReader.getTotalPenalty(SESSION_ID)).thenReturn(0);
@@ -375,15 +467,25 @@ class AiDeductionScorerTest {
     private void stubFullResultChain() {
         List<Long> keys = List.of(2L, 6L, 7L);
         Map<Long, String> titles = Map.of(2L, "증거A", 6L, "증거B", 7L, "증거C");
-        ScoringCriteria criteria = buildCriteria(keys);
         SolutionInfo solution = buildSolution(keys, titles);
-        stubResultChainWith(criteria, solution);
+        stubResultChainWith(solution);
     }
 
-    private void stubResultChainWith(ScoringCriteria criteria, SolutionInfo solution) {
-        FinalDeduction deduction = FinalDeduction.builder()
+    private void stubResultChainWith(SolutionInfo solution) {
+        when(contextLoader.findBySessionId(SESSION_ID)).thenReturn(buildSavedDeduction(1L));
+        when(playSessionReader.getScenarioId(SESSION_ID)).thenReturn(SCENARIO_ID);
+        when(playSessionReader.getScenarioVariantId(SESSION_ID)).thenReturn(1L);
+        when(solutionReader.findByScenarioIdAndVariantId(eq(SCENARIO_ID), any())).thenReturn(solution);
+        when(finalDeductionEvidenceRepository.findAllByFinalDeductionId(any()))
+                .thenReturn(List.of());
+        when(ruleBasedScorer.score(any(FinalDeductionRequest.class), any(ScoringCriteria.class)))
+                .thenReturn(new ScoringResult(85, 30, true, 25, 20, 10, 0, 0));
+    }
+
+    private FinalDeduction buildSavedDeduction(Long selectedCulpritId) {
+        return FinalDeduction.builder()
                 .playSessionId(SESSION_ID)
-                .selectedCulpritId(1L)
+                .selectedCulpritId(selectedCulpritId)
                 .motiveText("자금 유용")
                 .methodText("아몬드 에피펜")
                 .coverUpText("메시지 위장")
@@ -394,33 +496,15 @@ class AiDeductionScorerTest {
                 .missedParts("[\"은폐\"]")
                 .submittedAt(LocalDateTime.now())
                 .build();
-
-        when(contextLoader.findBySessionId(SESSION_ID)).thenReturn(deduction);
-        when(playSessionReader.getScenarioId(SESSION_ID)).thenReturn(SCENARIO_ID);
-        when(playSessionReader.getScenarioVariantId(SESSION_ID)).thenReturn(1L);
-        //when(solutionReader.findByScenarioId(SCENARIO_ID)).thenReturn(solution);
-        when(solutionReader.findByScenarioIdAndVariantId(eq(SCENARIO_ID), any())).thenReturn(solution);
-        when(scoringCriteriaProvider.getByCriteria(SCENARIO_ID)).thenReturn(criteria);
-        when(finalDeductionEvidenceRepository.findAllByFinalDeductionId(any()))
-                .thenReturn(List.of());
-        when(ruleBasedScorer.score(any(FinalDeductionRequest.class), any(ScoringCriteria.class)))
-                .thenReturn(new ScoringResult(85, 30, true, 25, 20, 10, 0, 0));
-    }
-
-    private ScoringCriteria buildCriteria(List<Long> keyEvidenceIds) {
-        return new ScoringCriteria(
-                SCENARIO_ID, 1L,
-                new KeywordCriteria(List.of("아몬드", "에피펜"), 2, 25),
-                new KeywordCriteria(List.of("자금", "유용"), 2, 20),
-                new KeywordCriteria(List.of("메시지", "위장"), 2, 10),
-                keyEvidenceIds,
-                15, 30
-        );
     }
 
     private SolutionInfo buildSolution(List<Long> keyEvidenceIds, Map<Long, String> titles) {
+        return buildSolution(1L, keyEvidenceIds, titles);
+    }
+
+    private SolutionInfo buildSolution(Long culpritSuspectId, List<Long> keyEvidenceIds, Map<Long, String> titles) {
         return new SolutionInfo(
-                1L, "박재민", "CFO",
+                culpritSuspectId, "박재민", "CFO",
                 "회사 자금 유용 폭로 방지",
                 "견과류 알레르기 이용 + 에피펜 은닉",
                 "피해자 휴대폰으로 메시지 위장",
