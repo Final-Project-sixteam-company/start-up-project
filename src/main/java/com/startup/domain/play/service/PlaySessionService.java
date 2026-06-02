@@ -332,6 +332,9 @@ public class PlaySessionService {
             throw new PlayException(PlayErrorCode.EVIDENCE_NOT_FOUND);
         }
 
+        // 조회 시점에 자동 해금 조건 동기화 처리 (단건 상세 조회 시점의 최신 상태 반영)
+        processAutomaticUnlocks(session);
+
         // 해금 여부 검증 (스포일러 완벽 방어)
         // 기본 제공 증거(isInitialPublic)가 아니라면, 반드시 UnlockedEvidence에 기록이 있어야 함
         if (!evidence.getIsInitialPublic()) {
@@ -358,8 +361,11 @@ public class PlaySessionService {
         // 연관 타임라인 사건 정보
         java.util.List<TimelineEvent> relatedTimelines = timelineEventRepository.findAllByRelatedEvidenceIdOrderByEventOrder(evidenceId);
 
+        // 변이(Variant) 전용 설명 해석 (단건 조회 시에도 선택된 변이 경로에 맞는 단서를 보여줌)
+        String resolvedDescription = evidenceVariantDescriptionResolver.resolve(evidence, session.getScenarioVariantId());
+
         // 모든 정보를 조립하여 반환
-        return PlayEvidenceDetailResponse.of(evidence, location, relatedSuspects, relatedTimelines);
+        return PlayEvidenceDetailResponse.of(evidence, resolvedDescription, location, relatedSuspects, relatedTimelines);
     }
 
 

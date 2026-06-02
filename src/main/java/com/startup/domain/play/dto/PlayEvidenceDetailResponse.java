@@ -27,6 +27,7 @@ public record PlayEvidenceDetailResponse(
 
     public static PlayEvidenceDetailResponse of(
             Evidence evidence,
+            String resolvedDescription,
             ScenarioLocation location,
             List<Suspect> relatedSuspects,
             List<TimelineEvent> timelineEvents
@@ -45,7 +46,7 @@ public record PlayEvidenceDetailResponse(
         return PlayEvidenceDetailResponse.builder()
                 .evidenceId(evidence.getId())
                 .title(evidence.getTitle())
-                .description(evidence.getDescription())
+                .description(resolvedDescription)
                 .imageUrl(evidence.getImageUrl()) // 요청하신 원본 이미지 URL 포함
                 .location(locationInfo)
                 .importance(evidence.getImportance())
