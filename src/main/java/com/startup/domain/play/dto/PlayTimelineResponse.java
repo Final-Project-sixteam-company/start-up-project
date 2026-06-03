@@ -7,7 +7,6 @@ public record PlayTimelineResponse(
         String title,
         String description,
         String eventType,
-        Boolean isTrueEvent,
         Long relatedEvidenceId
 ) {
     public static PlayTimelineResponse from(TimelineEvent event) {
@@ -16,7 +15,6 @@ public record PlayTimelineResponse(
                 event.getTitle(),
                 event.getDescription(),
                 event.getEventType(),
-                event.getIsTrueEvent(),
                 event.getRelatedEvidenceId()
         );
     }
