@@ -271,12 +271,14 @@ public class PlaySessionService {
                 .map(unlocked -> unlocked.getEvidenceId())
                 .collect(java.util.stream.Collectors.toSet());
 
-        // 시나리오의 전체 증거를 가져와서 해금된 것만 필터링 후 장소별로 카운팅 (스포일러 방어)
-        java.util.List<Evidence> allEvidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
-        java.util.Map<Long, Integer> evidenceCountMap = new java.util.HashMap<>();
+        // 시나리오의 전체 증거를 가져와서 해금된 것만 필터링 후 장소별로 리스트화 (스포일러 방어)
+        List<Evidence> allEvidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
+        Map<Long, List<PlayLocationResponse.EvidenceSummary>> evidenceListMap = new HashMap<>();
+        
         for (Evidence e : allEvidences) {
             if (e.getLocationId() != null && unlockedEvidenceIds.contains(e.getId())) {
-                evidenceCountMap.merge(e.getLocationId(), 1, Integer::sum);
+                evidenceListMap.computeIfAbsent(e.getLocationId(), k -> new ArrayList<>())
+                        .add(new PlayLocationResponse.EvidenceSummary(e.getId(), e.getTitle()));
             }
         }
 
@@ -284,11 +286,11 @@ public class PlaySessionService {
         Long scenarioId = session.getScenarioId();
         List<ScenarioLocation> locations = scenarioLocationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
 
-        // 장소 리스트와 카운트 맵을 조합하여 응답 DTO 생성
+        // 장소 리스트와 증거 리스트 맵을 조합하여 응답 DTO 생성
         return locations.stream()
                 .map(location -> {
-                    int count = evidenceCountMap.getOrDefault(location.getId(), 0);
-                    return PlayLocationResponse.from(location, count);
+                    List<PlayLocationResponse.EvidenceSummary> evidences = evidenceListMap.getOrDefault(location.getId(), List.of());
+                    return PlayLocationResponse.from(location, evidences);
                 })
                 .toList();
     }

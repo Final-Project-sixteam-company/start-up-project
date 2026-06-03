@@ -1,6 +1,7 @@
 package com.startup.domain.play.dto;
 
 import com.startup.domain.scenario.entity.ScenarioLocation;
+import java.util.List;
 
 public record PlayLocationResponse(
         Long locationId,
@@ -8,16 +9,20 @@ public record PlayLocationResponse(
         String description,
         Integer mapX,
         Integer mapY,
-        int evidenceCount
+        int evidenceCount,
+        List<EvidenceSummary> evidences
 ) {
-    public static PlayLocationResponse from(ScenarioLocation location, int evidenceCount) {
+    public record EvidenceSummary(Long evidenceId, String title) {}
+
+    public static PlayLocationResponse from(ScenarioLocation location, List<EvidenceSummary> evidences) {
         return new PlayLocationResponse(
                 location.getId(),
                 location.getName(),
                 location.getDescription(),
                 location.getMapX(),
                 location.getMapY(),
-                evidenceCount
+                evidences.size(),
+                evidences
         );
     }
 }
