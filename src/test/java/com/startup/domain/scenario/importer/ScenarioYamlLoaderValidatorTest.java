@@ -24,6 +24,8 @@ class ScenarioYamlLoaderValidatorTest {
 
         assertThat(yaml.scenario().code()).isEqualTo("SCENARIO_TEST");
         assertThat(yaml.evidences()).hasSize(2);
+        assertThat(yaml.timelineEvents()).hasSize(1);
+        assertThat(yaml.timelineEvents().getFirst().relatedEvidenceCode()).isEqualTo("EVIDENCE_KEY");
         assertThat(yaml.evidences().getFirst().relatedCharacterCodes()).containsExactly("SUSPECT_TEST");
         assertThat(yaml.locations().getFirst().mapX()).isEqualTo(120);
         assertThat(yaml.locations().getFirst().mapY()).isEqualTo(80);
@@ -65,6 +67,44 @@ class ScenarioYamlLoaderValidatorTest {
 
         assertThat(violations).anyMatch(message -> message.contains(
                 "relatedCharacterCodes references missing character: SUSPECT_MISSING"));
+    }
+
+    @Test
+    void missingTimelineEvidence_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "relatedEvidenceCode: EVIDENCE_KEY",
+                "relatedEvidenceCode: EVIDENCE_MISSING"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "timelineEvent TIMELINE_TEST references missing related evidence: EVIDENCE_MISSING"));
+    }
+
+    @Test
+    void duplicateTimelineOrder_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "timelineEvents:\n" +
+                        "  - code: TIMELINE_TEST",
+                "timelineEvents:\n" +
+                        "  - code: TIMELINE_DUPLICATE\n" +
+                        "    eventOrder: 10\n" +
+                        "    eventTime: \"20:55\"\n" +
+                        "    title: \"중복 순서\"\n" +
+                        "    description: \"중복 순서\"\n" +
+                        "    eventType: FACT\n" +
+                        "    visibility: PUBLIC\n" +
+                        "    isTrueEvent: true\n" +
+                        "    locationCode: LOC_TEST\n" +
+                        "    relatedEvidenceCode: null\n" +
+                        "    relatedCharacterCode: null\n\n" +
+                        "  - code: TIMELINE_TEST"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains("duplicate timelineEvent eventOrder: 10"));
     }
 
     @Test
@@ -232,6 +272,19 @@ class ScenarioYamlLoaderValidatorTest {
                 tags:
                   - support
                 sortOrder: 20
+
+            timelineEvents:
+              - code: TIMELINE_TEST
+                eventOrder: 10
+                eventTime: "21:00"
+                title: "테스트 타임라인"
+                description: "테스트 타임라인 설명"
+                eventType: FACT
+                visibility: PUBLIC
+                isTrueEvent: true
+                locationCode: LOC_TEST
+                relatedEvidenceCode: EVIDENCE_KEY
+                relatedCharacterCode: SUSPECT_TEST
 
             evidenceVariantStates:
               - variantCode: VARIANT_TEST

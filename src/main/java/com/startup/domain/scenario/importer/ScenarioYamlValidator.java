@@ -43,6 +43,7 @@ public class ScenarioYamlValidator {
         validateLocations(yaml, violations);
         validateVictim(yaml, locationCodes, violations);
         validateEvidenceReferences(yaml, locationCodes, characterCodes, violations);
+        validateTimelineEvents(yaml, locationCodes, evidenceCodes, characterCodes, violations);
         validateVariantReferences(yaml, charactersByCode, evidenceCodes, violations);
         validatePublishedVariants(yaml, violations);
         validateEvidenceVariantStates(yaml, evidenceCodes, variantCodes, violations);
@@ -183,6 +184,52 @@ public class ScenarioYamlValidator {
                 if (!evidenceCodes.contains(evidenceCode)) {
                     violations.add("variant " + variant.code() + " misleadingEvidenceCodes references missing evidence: " + evidenceCode);
                 }
+            }
+        }
+    }
+
+    private void validateTimelineEvents(ScenarioYaml yaml,
+                                        Set<String> locationCodes,
+                                        Set<String> evidenceCodes,
+                                        Set<String> characterCodes,
+                                        List<String> violations) {
+        Set<String> eventCodes = new HashSet<>();
+        Set<Integer> eventOrders = new HashSet<>();
+        for (ScenarioYaml.TimelineEventYaml event : listOf(yaml.timelineEvents())) {
+            if (event == null) {
+                violations.add("timelineEvents[] item is required.");
+                continue;
+            }
+
+            requireText(event.code(), "timelineEvents[].code", violations);
+            if (hasText(event.code()) && !eventCodes.add(event.code())) {
+                violations.add("duplicate timelineEvent code: " + event.code());
+            }
+
+            requireNumber(event.eventOrder(), "timelineEvents[" + event.code() + "].eventOrder", violations);
+            if (event.eventOrder() != null && !eventOrders.add(event.eventOrder())) {
+                violations.add("duplicate timelineEvent eventOrder: " + event.eventOrder());
+            }
+
+            requireText(event.eventTime(), "timelineEvents[" + event.code() + "].eventTime", violations);
+            requireText(event.title(), "timelineEvents[" + event.code() + "].title", violations);
+            requireText(event.eventType(), "timelineEvents[" + event.code() + "].eventType", violations);
+            requireText(event.visibility(), "timelineEvents[" + event.code() + "].visibility", violations);
+            if (event.isTrueEvent() == null) {
+                violations.add("timelineEvents[" + event.code() + "].isTrueEvent is required.");
+            }
+
+            if (hasText(event.locationCode()) && !locationCodes.contains(event.locationCode())) {
+                violations.add("timelineEvent " + event.code()
+                        + " references missing location: " + event.locationCode());
+            }
+            if (hasText(event.relatedEvidenceCode()) && !evidenceCodes.contains(event.relatedEvidenceCode())) {
+                violations.add("timelineEvent " + event.code()
+                        + " references missing related evidence: " + event.relatedEvidenceCode());
+            }
+            if (hasText(event.relatedCharacterCode()) && !characterCodes.contains(event.relatedCharacterCode())) {
+                violations.add("timelineEvent " + event.code()
+                        + " references missing related character: " + event.relatedCharacterCode());
             }
         }
     }

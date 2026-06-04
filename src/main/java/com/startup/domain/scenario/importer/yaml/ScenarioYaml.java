@@ -10,6 +10,7 @@ public record ScenarioYaml(
         List<LocationYaml> locations,
         List<CharacterYaml> characters,
         List<EvidenceYaml> evidences,
+        List<TimelineEventYaml> timelineEvents,
         List<EvidenceVariantStateYaml> evidenceVariantStates,
         List<VariantYaml> variants,
         List<UnlockRuleYaml> unlockRules,
@@ -104,6 +105,21 @@ public record ScenarioYaml(
             List<String> relatedCharacterCodes,
             List<String> tags,
             Integer sortOrder
+    ) {
+    }
+
+    public record TimelineEventYaml(
+            String code,
+            Integer eventOrder,
+            String eventTime,
+            String title,
+            String description,
+            String eventType,
+            String visibility,
+            Boolean isTrueEvent,
+            String locationCode,
+            String relatedEvidenceCode,
+            String relatedCharacterCode
     ) {
     }
 

@@ -12,6 +12,7 @@ public record ScenarioImportResult(
         int evidenceVariantStateCount,
         int unlockRuleCount,
         int npcPolicyCount,
+        int timelineEventCount,
         int assetCount
 ) {
 
@@ -26,6 +27,7 @@ public record ScenarioImportResult(
                 scenarioId,
                 scenarioCode,
                 version,
+                0,
                 0,
                 0,
                 0,
