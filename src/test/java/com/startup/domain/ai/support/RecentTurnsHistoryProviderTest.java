@@ -32,9 +32,11 @@ class RecentTurnsHistoryProviderTest {
         interrogationLogRepository.deleteAllInBatch();
     }
 
+    // createdAt(@CreatedDate, updatable=false)이 저장마다 명확히 구분되도록 짧은 간격을 둔다.
+    // 이래야 "최근 N턴" 선택과 시간순(오래된→최신) 정렬을 결정적으로 검증할 수 있다.
     private void saveLogs(int count) {
         for (int i = 1; i <= count; i++) {
-            interrogationLogRepository.save(InterrogationLog.builder()
+            interrogationLogRepository.saveAndFlush(InterrogationLog.builder()
                     .playSessionId(SESSION_ID)
                     .suspectId(SUSPECT_ID)
                     .questionType(QuestionType.FREE)
@@ -42,29 +44,40 @@ class RecentTurnsHistoryProviderTest {
                     .answer("a" + i)
                     .aiModel("test")
                     .build());
+            sleepMillis(2);
+        }
+    }
+
+    private void sleepMillis(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
     @Test
-    @DisplayName("7턴 저장 + maxTurns=10 -> 7턴 모두 반환 (과거 findTop5 캡이면 5였음)")
+    @DisplayName("7턴 저장 + maxTurns=10 -> 7턴 모두, 오래된→최신 순서로 반환 (과거 findTop5 캡이면 5였음)")
     void returnsMoreThanFiveWhenMaxTurnsLarger() {
         saveLogs(7);
 
         List<ChatTurn> history = provider.getHistory(SESSION_ID, SUSPECT_ID, 10);
 
-        assertThat(history).hasSize(7);
+        // 캡 제거 검증(7 > 과거 5) + 시간순(reversed) 검증
         assertThat(history).extracting(ChatTurn::question)
-                .containsExactlyInAnyOrder("q1", "q2", "q3", "q4", "q5", "q6", "q7");
+                .containsExactly("q1", "q2", "q3", "q4", "q5", "q6", "q7");
     }
 
     @Test
-    @DisplayName("7턴 저장 + maxTurns=3 -> 최근 3턴만 반환")
+    @DisplayName("7턴 저장 + maxTurns=3 -> 가장 최근 3턴만, 오래된→최신 순서로 반환")
     void capsToMaxTurns() {
         saveLogs(7);
 
         List<ChatTurn> history = provider.getHistory(SESSION_ID, SUSPECT_ID, 3);
 
-        assertThat(history).hasSize(3);
+        // 오래된 3턴(q1,q2,q3)이 아니라 최근 3턴(q5,q6,q7)이어야 한다.
+        assertThat(history).extracting(ChatTurn::question)
+                .containsExactly("q5", "q6", "q7");
     }
 
     @Test
