@@ -390,13 +390,13 @@ public class PlaySessionService {
             throw new PlayException(PlayErrorCode.EVIDENCE_NOT_UNLOCKABLE);
         }
 
-        unlockedEvidenceRepository.insertIgnoreUnlockedEvidence(
+        int insertedRows = unlockedEvidenceRepository.insertIgnoreUnlockedEvidence(
                 sessionId,
                 evidenceId,
                 unlockReasonFor(evidence, request)
         );
 
-        return unlockedEvidenceRepository.findByPlaySessionIdAndEvidenceId(sessionId, evidenceId)
+        return findUnlockedEvidenceAfterInsert(sessionId, evidenceId, insertedRows)
                 .map(this::toEvidenceUnlockResponse)
                 .orElseThrow(() -> new PlayException(PlayErrorCode.EVIDENCE_NOT_UNLOCKABLE));
     }
@@ -880,5 +880,15 @@ public class PlaySessionService {
                 true,
                 unlockedEvidence.getUnlockedAt()
         );
+    }
+
+    private Optional<UnlockedEvidence> findUnlockedEvidenceAfterInsert(Long sessionId, Long evidenceId, int insertedRows) {
+        if (insertedRows > 0) {
+            return unlockedEvidenceRepository.findByPlaySessionIdAndEvidenceId(sessionId, evidenceId);
+        }
+
+        // MySQL REPEATABLE_READ keeps the earlier snapshot for normal reads.
+        // If INSERT IGNORE lost to a concurrent request, use a locking read so retries remain idempotent.
+        return unlockedEvidenceRepository.findByPlaySessionIdAndEvidenceIdForUpdate(sessionId, evidenceId);
     }
 }

@@ -19,6 +19,13 @@ public interface UnlockedEvidenceRepository extends JpaRepository<UnlockedEviden
 
     Optional<UnlockedEvidence> findByPlaySessionIdAndEvidenceId(Long playSessionId, Long evidenceId);
 
+    @Query(value = "SELECT * FROM unlocked_evidences " +
+            "WHERE play_session_id = :sessionId AND evidence_id = :evidenceId FOR UPDATE", nativeQuery = true)
+    Optional<UnlockedEvidence> findByPlaySessionIdAndEvidenceIdForUpdate(
+            @Param("sessionId") Long sessionId,
+            @Param("evidenceId") Long evidenceId
+    );
+
     @Modifying
     @Query(value = "INSERT IGNORE INTO unlocked_evidences (play_session_id, evidence_id, unlocked_reason, unlocked_at) " +
             "VALUES (:sessionId, :evidenceId, :reason, NOW())", nativeQuery = true)
