@@ -8,6 +8,7 @@ import com.startup.domain.ai.dto.InterrogationCompletedEvent;
 import com.startup.domain.ai.dto.InterrogationContext;
 import com.startup.domain.ai.dto.InterrogationRequest;
 import com.startup.domain.ai.dto.InterrogationResponse;
+import com.startup.domain.ai.enums.QuestionType;
 import com.startup.domain.ai.entity.InterrogationLog;
 import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.prompt.AiPromptBuilder;
@@ -88,7 +89,9 @@ public class AiInterrogationService {
 
     private List<InterrogationResponse.UnlockedEvidenceDto> resolveUnlockedEvidences(
             Long sessionId, InterrogationRequest request) {
-        if (request.presentedEvidenceId() == null) {
+        // 이중 방어: @AssertTrue가 우회되더라도 증거 제시 심문 + 제시 증거가 있을 때만 해금을 시도한다.
+        if (request.questionType() != QuestionType.EVIDENCE_PRESENTED
+                || request.presentedEvidenceId() == null) {
             return List.of();
         }
         // 세션 소유자/PLAYING 검증은 contextLoader.load 단계에서 이미 끝났다.
