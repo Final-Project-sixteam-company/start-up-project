@@ -18,7 +18,9 @@ public enum PlayErrorCode implements ErrorCode {
     EVIDENCE_ALREADY_UNLOCKED(HttpStatus.CONFLICT, "P006", "이미 해금된 증거입니다."),
     SCENARIO_NOT_PLAYABLE(HttpStatus.BAD_REQUEST, "P007", "플레이할 수 없는 시나리오입니다."),
     HINT_NOT_FOUND(HttpStatus.NOT_FOUND, "P008", "힌트를 찾을 수 없습니다."),
-    HINT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "P009", "아직 해금되지 않은 힌트입니다.");
+    HINT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "P009", "아직 해금되지 않은 힌트입니다."),
+    EVIDENCE_NOT_UNLOCKABLE(HttpStatus.FORBIDDEN, "P010", "아직 해금할 수 없는 증거입니다."),
+    SUSPECT_NOT_FOUND(HttpStatus.NOT_FOUND, "P011", "용의자를 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

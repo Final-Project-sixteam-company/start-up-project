@@ -1,8 +1,9 @@
 # ClueRoom - Run and Deploy Guide
 
-> 문서 목적: 로컬 실행, Docker Compose 실행, Android 연결, 운영 서버 배포 명령, 문제 해결을 간단히 정리한다.  
-> 상세 운영 명령어, Blue-Green rollback, 장애 대응은 `infra/OPS_RUNBOOK.md`를 기준으로 한다.  
+> 문서 목적: 로컬 실행, Docker Compose 실행, Android 연결, 운영 서버 배포 명령, 문제 해결을 간단히 정리한다.
+> 상세 운영 명령어, Blue-Green rollback, 장애 대응은 `infra/OPS_RUNBOOK.md`를 기준으로 한다.
 > 인프라 선택 이유, 확장 계획, PoC 계획, ADR 후보는 별도 문서 `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`에서 관리한다.
+> 운영 Agent / Monitoring / LLMOps / 고도화 로드맵은 `infra/agent/`와 `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md`를 참고한다.
 
 ---
 
@@ -15,7 +16,7 @@
 기존 기획명: CaseLab AI
 ```
 
-레포 내부의 일부 파일명, Docker 이름, DB 이름에는 기존 기획명 또는 `start-up/startup` 레거시 명칭이 남아 있을 수 있다.  
+레포 내부의 일부 파일명, Docker 이름, DB 이름에는 기존 기획명 또는 `start-up/startup` 레거시 명칭이 남아 있을 수 있다.
 작동 중인 설정은 무리하게 일괄 변경하지 않고, 운영 도메인과 문서에서 ClueRoom 기준을 사용한다.
 
 ---
@@ -90,7 +91,7 @@ docker compose down -v
 | Docker 내부 MySQL | `mysql:3306 / startup` |
 | Docker 내부 Redis | `redis:6379` |
 
-Grafana 로컬 기본 계정은 `.env.example` 기준 `admin / admin`이다.  
+Grafana 로컬 기본 계정은 `.env.example` 기준 `admin / admin`이다.
 외부 공개 환경에서는 반드시 변경한다.
 
 ---
@@ -160,7 +161,7 @@ Redis: localhost:16379
 
 ## 4. Android 앱 연결
 
-Android 앱은 Spring Boot를 REST API 서버로 호출한다.  
+Android 앱은 Spring Boot를 REST API 서버로 호출한다.
 Android 앱 안에 OpenAI API Key, AWS Key, Firebase service account를 넣지 않는다.
 
 ### 4.1 Android Emulator
@@ -195,19 +196,19 @@ Windows 방화벽이 8080 포트를 막으면 실제 기기에서 접속되지 �
 https://api.clueroom.xyz
 ```
 
-Base URL에는 `/api`를 넣지 않는다.  
+Base URL에는 `/api`를 넣지 않는다.
 실제 API 경로는 `/api/...` prefix를 포함한다.
 
 ### 4.4 CORS
 
-Native Android 앱의 Retrofit, OkHttp는 브라우저가 아니므로 CORS 제한을 받지 않는다.  
+Native Android 앱의 Retrofit, OkHttp는 브라우저가 아니므로 CORS 제한을 받지 않는다.
 Android WebView, 웹 프론트, API 테스트 페이지에는 CORS 설정이 필요할 수 있다.
 
 ---
 
 ## 5. Spring AI / OpenAI
 
-Spring AI는 서버 기능이다.  
+Spring AI는 서버 기능이다.
 Android 앱은 백엔드 API만 호출한다.
 
 ### 5.1 AI 비활성 기본값

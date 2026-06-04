@@ -74,6 +74,17 @@ public class PlaySessionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Operation(summary = "용의자 상세 조회")
+    @GetMapping("/{sessionId}/suspects/{suspectId}")
+    public ResponseEntity<ApiResponse<PlaySuspectDetailResponse>> getSuspectDetail(
+            @PathVariable Long sessionId,
+            @PathVariable Long suspectId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        PlaySuspectDetailResponse response = playSessionService.getSuspectDetail(userId, sessionId, suspectId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @Operation(summary = "타임라인 조회")
     @GetMapping("/{sessionId}/timeline")
     public ResponseEntity<ApiResponse<java.util.List<PlayTimelineResponse>>> getTimeline(
@@ -92,6 +103,18 @@ public class PlaySessionController {
     ) {
         Long userId = mockUserProvider.currentUserId();
         PlayEvidenceDetailResponse response = playSessionService.getEvidenceDetail(userId, sessionId, evidenceId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "증거 수동/조건 해금")
+    @PostMapping("/{sessionId}/evidences/{evidenceId}/unlock")
+    public ResponseEntity<ApiResponse<EvidenceUnlockResponse>> unlockEvidence(
+            @PathVariable Long sessionId,
+            @PathVariable Long evidenceId,
+            @RequestBody(required = false) EvidenceUnlockRequest request
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        EvidenceUnlockResponse response = playSessionService.unlockEvidence(userId, sessionId, evidenceId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
