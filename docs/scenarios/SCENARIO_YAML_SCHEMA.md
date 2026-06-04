@@ -42,6 +42,7 @@ victim: {}
 locations: []
 characters: []
 evidences: []
+timelineEvents: []
 evidenceVariantStates: []
 variants: []
 unlockRules: []
@@ -60,6 +61,7 @@ Required root sections for a published official scenario:
 | `locations` | yes | yes | no |
 | `characters` | yes | yes | usually no |
 | `evidences` | yes | yes | some detail can be spoiler-like |
+| `timelineEvents` | no | yes | no, if limited to public events |
 | `evidenceVariantStates` | variant scenarios only | shape only | yes |
 | `variants` | variant scenarios only | shape only | yes |
 | `unlockRules` | yes | mostly | can reveal progression |
@@ -205,6 +207,35 @@ evidences:
 
 `baseDetail` is the default text shown with image evidence in the UI. If a
 specific variant needs different wording, use `evidenceVariantStates`.
+
+## Timeline Events
+
+```yaml
+timelineEvents:
+  - code: TIMELINE_SAMPLE_2100_DISCOVERY
+    eventOrder: 10
+    eventTime: "21:00"
+    title: "Public Timeline Title"
+    description: "Player-facing event description"
+    eventType: FACT
+    visibility: PUBLIC
+    isTrueEvent: true
+    locationCode: LOC_PRIMARY_SCENE
+    relatedEvidenceCode: EVIDENCE_SAMPLE
+    relatedCharacterCode: SUSPECT_SAMPLE
+```
+
+`timelineEvents` are imported into `timeline_events` for
+`GET /api/play-sessions/{sessionId}/timeline`.
+
+Official YAML should put only player-safe public timeline items here.
+`visibility` currently allows only `PUBLIC`; typos such as `PULBIC`
+must fail import validation instead of silently hiding the event from
+every player.
+Variant truth timelines, culprit-only actions, hidden cover-up steps, and final
+solution timelines must remain under backend-only variant/solution data or
+private design documents. If `relatedEvidenceCode` is present, runtime can
+withhold the event until that evidence is unlocked.
 
 ## Evidence Variant States
 
@@ -378,6 +409,10 @@ For `PUBLISHED` content, the validator must enforce:
 - `victim.deathLocationCode` exists in `locations`
 - `evidences[].locationCode` exists in `locations`
 - `evidences[].relatedCharacterCodes` exist in `characters`
+- `timelineEvents[].eventOrder` values are unique
+- `timelineEvents[].locationCode` exists in `locations`
+- `timelineEvents[].relatedEvidenceCode` exists in `evidences`
+- `timelineEvents[].relatedCharacterCode` exists in `characters`
 - `variants[].culpritCode` exists in `characters`
 - `variants[].culpritCode` has `culpritEligible=true`
 - `PUBLISHED` content has at least one `enabled: true` variant
@@ -400,18 +435,19 @@ Recommended persistence order:
 
 ```text
 1. Scenario
-2. Victim
-3. Locations
+2. Locations
+3. Victim
 4. Characters
 5. Evidences
 6. EvidenceSuspects
-7. Variants
-8. VariantSolutions
-9. EvidenceVariantStates
-10. UnlockRules
-11. NpcPolicies
-12. Scoring
-13. Assets
+7. TimelineEvents
+8. Variants
+9. VariantSolutions
+10. EvidenceVariantStates
+11. UnlockRules
+12. NpcPolicies
+13. Scoring
+14. Assets
 ```
 
 ## Runtime Contract

@@ -12,6 +12,7 @@ import com.startup.domain.scenario.repository.ScenarioLocationRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import com.startup.domain.scenario.repository.ScenarioVariantRepository;
 import com.startup.domain.scenario.repository.SuspectRepository;
+import com.startup.domain.scenario.repository.TimelineEventRepository;
 import com.startup.domain.scenario.repository.VariantSolutionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +70,9 @@ class ScenarioYamlImportServiceTest {
     @Autowired
     private ScenarioLocationRepository locationRepository;
 
+    @Autowired
+    private TimelineEventRepository timelineEventRepository;
+
     @Test
     void importYaml_savesScenarioGraphAndSkipsSameHash() {
         ScenarioYaml yaml = sampleYaml();
@@ -89,6 +93,8 @@ class ScenarioYamlImportServiceTest {
         assertThat(npcKnowledgeProfileRepository.count()).isEqualTo(1);
         assertThat(policyRepository.count()).isEqualTo(1);
         assertThat(assetRepository.count()).isEqualTo(1);
+        assertThat(timelineEventRepository.count()).isEqualTo(1);
+        assertThat(imported.timelineEventCount()).isEqualTo(1);
 
         var variant = variantRepository
                 .findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(imported.scenarioId())
@@ -102,6 +108,13 @@ class ScenarioYamlImportServiceTest {
         var location = locationRepository.findByScenarioIdAndCode(imported.scenarioId(), "LOC_ROOM").orElseThrow();
         assertThat(location.getMapX()).isEqualTo(120);
         assertThat(location.getMapY()).isEqualTo(80);
+
+        var timelineEvent = timelineEventRepository.findAllByScenarioIdOrderByEventOrder(imported.scenarioId()).getFirst();
+        var relatedEvidence = evidenceRepository.findByScenarioIdAndCode(imported.scenarioId(), "EVIDENCE_KEY").orElseThrow();
+        var relatedSuspect = suspectRepository.findByScenarioIdAndCode(imported.scenarioId(), "SUSPECT_SECRETARY").orElseThrow();
+        assertThat(timelineEvent.getEventTime()).isEqualTo("21:00");
+        assertThat(timelineEvent.getRelatedEvidenceId()).isEqualTo(relatedEvidence.getId());
+        assertThat(timelineEvent.getRelatedSuspectId()).isEqualTo(relatedSuspect.getId());
     }
 
     @Test
@@ -225,6 +238,19 @@ class ScenarioYamlImportServiceTest {
                                 20
                         )
                 ),
+                List.of(new ScenarioYaml.TimelineEventYaml(
+                        "TIMELINE_TEST",
+                        10,
+                        "21:00",
+                        "테스트 타임라인",
+                        "테스트 타임라인 설명",
+                        "FACT",
+                        "PUBLIC",
+                        true,
+                        "LOC_ROOM",
+                        "EVIDENCE_KEY",
+                        "SUSPECT_SECRETARY"
+                )),
                 List.of(new ScenarioYaml.EvidenceVariantStateYaml(
                         "VARIANT_SECRETARY",
                         "EVIDENCE_KEY",

@@ -12,6 +12,7 @@ import com.startup.domain.scenario.entity.ScenarioAsset;
 import com.startup.domain.scenario.entity.ScenarioLocation;
 import com.startup.domain.scenario.entity.ScenarioVariant;
 import com.startup.domain.scenario.entity.Suspect;
+import com.startup.domain.scenario.entity.TimelineEvent;
 import com.startup.domain.scenario.entity.VariantSolution;
 import com.startup.domain.scenario.entity.Victim;
 import com.startup.domain.scenario.enums.Difficulty;
@@ -34,6 +35,7 @@ import com.startup.domain.scenario.repository.ScenarioLocationRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import com.startup.domain.scenario.repository.ScenarioVariantRepository;
 import com.startup.domain.scenario.repository.SuspectRepository;
+import com.startup.domain.scenario.repository.TimelineEventRepository;
 import com.startup.domain.scenario.repository.VariantSolutionRepository;
 import com.startup.domain.scenario.repository.VictimRepository;
 import lombok.RequiredArgsConstructor;
@@ -69,6 +71,7 @@ public class ScenarioYamlImportService {
     private final NpcKnowledgeProfileRepository npcKnowledgeProfileRepository;
     private final ScenarioAssetRepository scenarioAssetRepository;
     private final SuspectResponsePolicyRepository suspectResponsePolicyRepository;
+    private final TimelineEventRepository timelineEventRepository;
     private final JsonMapper jsonMapper;
 
     @Transactional
@@ -97,6 +100,7 @@ public class ScenarioYamlImportService {
         Map<String, Evidence> evidencesByCode = saveEvidences(
                 yaml, scenario.getId(), locationsByCode, unlockRulesByEvidenceCode);
         saveEvidenceSuspects(yaml, suspectsByCode, evidencesByCode);
+        saveTimelineEvents(yaml, scenario.getId(), suspectsByCode, evidencesByCode);
         Map<String, ScenarioVariant> variantsByCode = saveVariantsAndSolutions(
                 yaml, scenario.getId(), suspectsByCode, evidencesByCode);
         saveEvidenceVariantStates(yaml, scenario.getId(), variantsByCode, evidencesByCode);
@@ -116,6 +120,7 @@ public class ScenarioYamlImportService {
                 listOf(yaml.evidenceVariantStates()).size(),
                 listOf(yaml.unlockRules()).size(),
                 listOf(yaml.npcPolicies()).size(),
+                listOf(yaml.timelineEvents()).size(),
                 listOf(yaml.assets()).size()
         );
     }
@@ -256,6 +261,33 @@ public class ScenarioYamlImportService {
                         .relationType(RelationType.RELATED)
                         .build());
             }
+        }
+    }
+
+    private void saveTimelineEvents(ScenarioYaml yaml,
+                                    Long scenarioId,
+                                    Map<String, Suspect> suspectsByCode,
+                                    Map<String, Evidence> evidencesByCode) {
+        for (ScenarioYaml.TimelineEventYaml eventYaml : listOf(yaml.timelineEvents())) {
+            Suspect relatedSuspect = hasText(eventYaml.relatedCharacterCode())
+                    ? suspectsByCode.get(eventYaml.relatedCharacterCode())
+                    : null;
+            Evidence relatedEvidence = hasText(eventYaml.relatedEvidenceCode())
+                    ? evidencesByCode.get(eventYaml.relatedEvidenceCode())
+                    : null;
+
+            timelineEventRepository.save(TimelineEvent.builder()
+                    .scenarioId(scenarioId)
+                    .relatedSuspectId(relatedSuspect == null ? null : relatedSuspect.getId())
+                    .relatedEvidenceId(relatedEvidence == null ? null : relatedEvidence.getId())
+                    .eventTime(eventYaml.eventTime())
+                    .eventOrder(eventYaml.eventOrder())
+                    .title(eventYaml.title())
+                    .description(eventYaml.description())
+                    .eventType(eventYaml.eventType())
+                    .isTrueEvent(Boolean.TRUE.equals(eventYaml.isTrueEvent()))
+                    .visibility(eventYaml.visibility())
+                    .build());
         }
     }
 
