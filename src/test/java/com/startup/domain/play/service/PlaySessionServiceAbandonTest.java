@@ -1,5 +1,6 @@
 package com.startup.domain.play.service;
 
+import com.startup.domain.play.dto.ActivePlaySessionResponse;
 import com.startup.domain.play.dto.PlaySessionCreateRequest;
 import com.startup.domain.play.dto.PlaySessionCreateResponse;
 import com.startup.domain.play.entity.PlaySession;
@@ -20,8 +21,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -78,6 +82,81 @@ class PlaySessionServiceAbandonTest {
         assertThat(second.sessionId()).isNotEqualTo(first.sessionId());
         assertThat(newSession.getStatus()).isEqualTo(PlaySessionStatus.PLAYING);
         assertThat(newSession.getActiveKey()).isEqualTo(USER_ID + "_" + scenario.getId());
+    }
+
+    @Test
+    void createSession_withExistingPlayingSession_throwsP002WithActiveSessionDetails() {
+        Scenario scenario = saveScenario();
+        PlaySession existing = savePlayingSession(USER_ID, scenario.getId());
+
+        Throwable thrown = catchThrowable(
+                () -> playSessionService.createSession(USER_ID, new PlaySessionCreateRequest(scenario.getId()))
+        );
+
+        assertThat(thrown).isInstanceOfSatisfying(PlayException.class, exception -> {
+            assertThat(exception.getErrorCode()).isEqualTo(PlayErrorCode.SESSION_ALREADY_EXISTS);
+            assertThat(exception.getDetails()).containsOnly(Map.entry("activeSessionId", existing.getId()));
+        });
+    }
+
+    @Test
+    void getActiveSession_withPlayingSession_returnsActiveSession() {
+        Scenario scenario = saveScenario();
+        PlaySession session = savePlayingSession(USER_ID, scenario.getId());
+
+        ActivePlaySessionResponse response = playSessionService.getActiveSession(USER_ID, scenario.getId());
+
+        assertThat(response.hasActiveSession()).isTrue();
+        assertThat(response.activeSessionId()).isEqualTo(session.getId());
+        assertThat(response.scenarioId()).isEqualTo(scenario.getId());
+        assertThat(response.status()).isEqualTo(PlaySessionStatus.PLAYING);
+        assertThat(response.startedAt()).isEqualTo(session.getStartedAt());
+    }
+
+    @Test
+    void getActiveSession_withOtherUserPlayingSession_returnsNone() {
+        Scenario scenario = saveScenario();
+        savePlayingSession(OTHER_USER_ID, scenario.getId());
+
+        ActivePlaySessionResponse response = playSessionService.getActiveSession(USER_ID, scenario.getId());
+
+        assertThat(response.hasActiveSession()).isFalse();
+        assertThat(response.activeSessionId()).isNull();
+        assertThat(response.scenarioId()).isEqualTo(scenario.getId());
+        assertThat(response.status()).isNull();
+        assertThat(response.startedAt()).isNull();
+    }
+
+    @Test
+    void getActiveSession_withoutPlayingSession_returnsNone() {
+        Scenario scenario = saveScenario();
+        PlaySession abandoned = savePlayingSession(USER_ID, scenario.getId());
+        abandoned.abandon();
+        flushAndClear();
+
+        ActivePlaySessionResponse response = playSessionService.getActiveSession(USER_ID, scenario.getId());
+
+        assertThat(response.hasActiveSession()).isFalse();
+        assertThat(response.activeSessionId()).isNull();
+        assertThat(response.scenarioId()).isEqualTo(scenario.getId());
+        assertThat(response.status()).isNull();
+        assertThat(response.startedAt()).isNull();
+    }
+
+    @Test
+    void getActiveSession_withCompletedSession_returnsNone() {
+        Scenario scenario = saveScenario();
+        PlaySession completed = savePlayingSession(USER_ID, scenario.getId());
+        completed.markCompleted();
+        flushAndClear();
+
+        ActivePlaySessionResponse response = playSessionService.getActiveSession(USER_ID, scenario.getId());
+
+        assertThat(response.hasActiveSession()).isFalse();
+        assertThat(response.activeSessionId()).isNull();
+        assertThat(response.scenarioId()).isEqualTo(scenario.getId());
+        assertThat(response.status()).isNull();
+        assertThat(response.startedAt()).isNull();
     }
 
     @Test

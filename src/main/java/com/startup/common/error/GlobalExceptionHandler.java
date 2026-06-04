@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
@@ -35,7 +36,7 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = e.getErrorCode();
         return ResponseEntity
                 .status(errorCode.getStatus())
-                .body(ApiResponse.fail(buildErrorResponse(errorCode, e.getMessage(), request.getRequestURI())));
+                .body(ApiResponse.fail(buildErrorResponse(errorCode, e.getMessage(), request.getRequestURI(), e.getDetails())));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -174,6 +175,10 @@ public class GlobalExceptionHandler {
     }
 
     private ErrorResponse buildErrorResponse(ErrorCode errorCode, String message, String path) {
+        return buildErrorResponse(errorCode, message, path, null);
+    }
+
+    private ErrorResponse buildErrorResponse(ErrorCode errorCode, String message, String path, Map<String, Object> details) {
         return ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(errorCode.getStatus().value())
@@ -181,6 +186,7 @@ public class GlobalExceptionHandler {
                 .code(errorCode.getCode())
                 .message(message)
                 .path(path)
+                .details(details)
                 .build();
     }
 }

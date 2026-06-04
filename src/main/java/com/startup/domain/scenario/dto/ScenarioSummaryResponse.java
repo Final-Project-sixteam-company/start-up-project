@@ -18,7 +18,8 @@ public record ScenarioSummaryResponse(
         Integer evidenceCount,
         Integer playCount,
         Double averageRating,
-        Boolean isBookmarked
+        Boolean isBookmarked,
+        Boolean canPlay
 ) {
     public static ScenarioSummaryResponse from(Scenario scenario, int suspectCount, int evidenceCount,
                                                Boolean isBookmarked) {
@@ -27,6 +28,11 @@ public record ScenarioSummaryResponse(
 
     public static ScenarioSummaryResponse from(Scenario scenario, int suspectCount, int evidenceCount,
                                                Boolean isBookmarked, String thumbnailUrl) {
+        return from(scenario, suspectCount, evidenceCount, isBookmarked, thumbnailUrl, null);
+    }
+
+    public static ScenarioSummaryResponse from(Scenario scenario, int suspectCount, int evidenceCount,
+                                               Boolean isBookmarked, String thumbnailUrl, Boolean canPlay) {
         return new ScenarioSummaryResponse(
                 scenario.getId(),
                 scenario.getTitle(),
@@ -41,7 +47,8 @@ public record ScenarioSummaryResponse(
                 evidenceCount,
                 scenario.getPlayCount(),
                 scenario.getAverageRating(),
-                isBookmarked
+                isBookmarked,
+                canPlay
         );
     }
 }

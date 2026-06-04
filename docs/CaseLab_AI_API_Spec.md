@@ -281,18 +281,19 @@ FAILED
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/play-sessions` | 게임 세션 시작 | O | O |
-| 2 | GET | `/api/play-sessions/{sessionId}` | 게임 세션 기본 정보 조회 | △ | △ |
-| 3 | GET | `/api/play-sessions/{sessionId}/dashboard` | 탐정 대시보드 조회 | O | O |
-| 4 | GET | `/api/play-sessions/{sessionId}/locations` | 현장 정보 조회 | O | O |
-| 5 | GET | `/api/play-sessions/{sessionId}/evidences` | 현재 해금된 증거 조회 | O | O |
-| 6 | GET | `/api/play-sessions/{sessionId}/evidences/{evidenceId}` | 증거 상세 조회 | O | O |
-| 7 | POST | `/api/play-sessions/{sessionId}/evidences/{evidenceId}/unlock` | 증거 수동/조건 해금 | O | O |
-| 8 | GET | `/api/play-sessions/{sessionId}/suspects` | 용의자 목록 조회 | O | O |
-| 9 | GET | `/api/play-sessions/{sessionId}/suspects/{suspectId}` | 용의자 상세 조회 | O | O |
-| 10 | GET | `/api/play-sessions/{sessionId}/timeline` | 타임라인 조회 | O | O |
-| 11 | GET | `/api/play-sessions/{sessionId}/hints` | 사용 가능 힌트 조회 | O | O |
-| 12 | POST | `/api/play-sessions/{sessionId}/hints/{hintId}/use` | 힌트 사용 | O | O |
-| 13 | POST | `/api/play-sessions/{sessionId}/abandon` | 게임 포기/중단 | O | △ |
+| 2 | GET | `/api/play-sessions/active?scenarioId={scenarioId}` | 진행 중 세션 조회 | O | O |
+| 3 | GET | `/api/play-sessions/{sessionId}` | 게임 세션 기본 정보 조회 | △ | △ |
+| 4 | GET | `/api/play-sessions/{sessionId}/dashboard` | 탐정 대시보드 조회 | O | O |
+| 5 | GET | `/api/play-sessions/{sessionId}/locations` | 현장 정보 조회 | O | O |
+| 6 | GET | `/api/play-sessions/{sessionId}/evidences` | 현재 해금된 증거 조회 | O | O |
+| 7 | GET | `/api/play-sessions/{sessionId}/evidences/{evidenceId}` | 증거 상세 조회 | O | O |
+| 8 | POST | `/api/play-sessions/{sessionId}/evidences/{evidenceId}/unlock` | 증거 수동/조건 해금 | O | O |
+| 9 | GET | `/api/play-sessions/{sessionId}/suspects` | 용의자 목록 조회 | O | O |
+| 10 | GET | `/api/play-sessions/{sessionId}/suspects/{suspectId}` | 용의자 상세 조회 | O | O |
+| 11 | GET | `/api/play-sessions/{sessionId}/timeline` | 타임라인 조회 | O | O |
+| 12 | GET | `/api/play-sessions/{sessionId}/hints` | 사용 가능 힌트 조회 | O | O |
+| 13 | POST | `/api/play-sessions/{sessionId}/hints/{hintId}/use` | 힌트 사용 | O | O |
+| 14 | POST | `/api/play-sessions/{sessionId}/abandon` | 게임 포기/중단 | O | △ |
 
 ---
 
@@ -479,7 +480,8 @@ GET /api/scenarios?type=CUSTOM&difficulty=NORMAL&sort=popular&page=0&size=20
         "evidenceCount": 15,
         "playCount": 1234,
         "averageRating": 4.7,
-        "isBookmarked": false
+        "isBookmarked": false,
+        "canPlay": true
       }
     ],
     "page": 0,
@@ -1051,6 +1053,66 @@ POST /api/play-sessions
     "scenarioId": 10,
     "status": "PLAYING",
     "startedAt": "2026-05-15T20:00:00"
+  },
+  "error": null
+}
+```
+
+### Error Response - P002
+
+이미 같은 사용자/시나리오에 `PLAYING` 세션이 있으면 409를 반환한다. `error.details`에는 `activeSessionId`만 포함할 수 있다. unique race 경로에서는 best-effort 재조회 성공 시 `activeSessionId`가 포함될 수 있고, 실패 또는 미발견 시 `details`가 없을 수 있으므로 클라이언트는 `GET /api/play-sessions/active?scenarioId=`로 fallback한다.
+
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "timestamp": "2026-06-04T15:30:00",
+    "status": 409,
+    "error": "CONFLICT",
+    "code": "P002",
+    "message": "이미 진행 중인 플레이 세션이 존재합니다.",
+    "path": "/api/play-sessions",
+    "details": {
+      "activeSessionId": 100
+    }
+  }
+}
+```
+
+## 9.1.1 진행 중인 플레이 세션 조회
+
+```http
+GET /api/play-sessions/active?scenarioId=10
+```
+
+### Response - active exists
+
+```json
+{
+  "success": true,
+  "data": {
+    "hasActiveSession": true,
+    "activeSessionId": 100,
+    "scenarioId": 10,
+    "status": "PLAYING",
+    "startedAt": "2026-05-15T20:00:00"
+  },
+  "error": null
+}
+```
+
+### Response - no active session
+
+```json
+{
+  "success": true,
+  "data": {
+    "hasActiveSession": false,
+    "activeSessionId": null,
+    "scenarioId": 10,
+    "status": null,
+    "startedAt": null
   },
   "error": null
 }
@@ -1891,6 +1953,7 @@ POST /api/scenarios/{scenarioId}/reports
 GET /api/scenarios
 GET /api/scenarios/{scenarioId}
 POST /api/play-sessions
+GET /api/play-sessions/active
 GET /api/play-sessions/{sessionId}/dashboard
 GET /api/play-sessions/{sessionId}/locations
 GET /api/play-sessions/{sessionId}/evidences

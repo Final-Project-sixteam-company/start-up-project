@@ -416,7 +416,7 @@ POST /api/play-sessions/{sessionId}/abandon
 | 화면 목적 | 공식/커스텀 사건 목록 탐색, 검색/필터 |
 | 호출 API | `GET /api/scenarios` |
 | 호출 시점 | 화면 진입, 검색어 변경, 필터 변경, 페이지 추가 로드 |
-| 사용 필드 | `scenarioId`, `title`, `description`, `scenarioType`, `difficulty`, `estimatedPlayTimeMinutes`, `suspectCount`, `evidenceCount`, `averageRating`, `playCount`, `isBookmarked` |
+| 사용 필드 | `scenarioId`, `title`, `description`, `scenarioType`, `difficulty`, `estimatedPlayTimeMinutes`, `suspectCount`, `evidenceCount`, `averageRating`, `playCount`, `isBookmarked`, `canPlay` |
 
 추천 query 예시는 아래와 같다.
 
@@ -429,6 +429,7 @@ GET /api/scenarios?difficulty=NORMAL&page=0&size=20
 
 카드 클릭 시에는 목록 item의 `scenarioId`를 다음 화면으로 넘긴다.
 화면에 보이는 `CL-004`, `CL-005` 같은 표시용 번호가 있더라도 API 호출에는 반드시 `scenarioId`를 사용한다.
+목록 item의 `canPlay=false`는 사건 시작 불가 상태로 표시하고, 프론트 하드코딩 allowlist로 대체하지 않는다.
 
 | 사용자 액션 | 처리 |
 |---|---|
@@ -523,6 +524,15 @@ Content-Type: application/json
     "startedAt": "2026-06-02T16:00:00"
   }
 }
+```
+
+409 `P002`가 내려오면 진행 중 세션 복구 흐름으로 처리한다.
+
+```text
+1. error.details.activeSessionId가 있으면 그 값을 sessionId로 저장한다.
+2. details가 없으면 GET /api/play-sessions/active?scenarioId={scenarioId}를 호출한다.
+3. hasActiveSession=true이면 activeSessionId를 sessionId로 저장한다.
+4. hasActiveSession=false이면 버튼 잠금을 풀고 재시도 가능 상태로 되돌린다.
 ```
 
 세션 생성 성공 후 즉시 대시보드를 조회한다.
@@ -1405,7 +1415,7 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 }
 ```
 
-프론트는 `error.message`를 그대로 노출할 수 있지만, 운영/시드/서버 내부 문제는 사용자 친화 문구로 바꿔도 된다.
+`error.details`는 오류에 따라 없을 수 있다. 프론트는 `error.message`를 그대로 노출할 수 있지만, 운영/시드/서버 내부 문제는 사용자 친화 문구로 바꿔도 된다.
 
 | 오류 성격 | 처리 |
 |---|---|
@@ -1413,7 +1423,7 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 | 400 입력 오류 | 해당 입력 영역 강조 |
 | 403 접근 거부 | 홈 또는 라이브러리로 이동 |
 | 404 리소스 없음 | 목록 재조회 또는 이전 화면 이동 |
-| 409 중복/진행 중 | 버튼 잠금 유지, 결과 조회 또는 잠시 후 재시도 |
+| 409 중복/진행 중 | `P002`이면 `details.activeSessionId` 또는 `GET /api/play-sessions/active?scenarioId=`로 이어가기 |
 | 500 서버 오류 | 일시 오류 안내, 재시도 제공 |
 
 ### 10.5 주요 도메인 오류 코드
@@ -1430,6 +1440,7 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 | `AI014` | 채점 실패 | 재시도 안내 |
 | `AI015` | 채점 진행 중 | 제출 버튼 disabled, 잠시 후 재시도 |
 | `AI021` | 최종 추리 증거 미해금 | evidences 재조회, 선택 초기화 |
+| `P002` | 같은 시나리오의 진행 중 세션 존재 | `details.activeSessionId`가 있으면 이어가기, 없으면 `GET /api/play-sessions/active?scenarioId=` fallback |
 
 서버 오류 코드를 세부적으로 알 수 없으면 기본 오류 모달을 사용한다.
 

@@ -50,6 +50,7 @@ class ScenarioServiceImageUrlTest {
         assertThat(response.content()).hasSize(1);
         assertThat(response.content().getFirst().thumbnailUrl())
                 .isEqualTo("https://assets.example.com/official/seowolchae/v1/scenario/SCENARIO.cover.png");
+        assertThat(response.content().getFirst().canPlay()).isTrue();
     }
 
     @Test
