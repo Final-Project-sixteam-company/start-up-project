@@ -63,12 +63,17 @@ public class InterrogationEvidenceUnlockService {
      * @return 이번 호출로 새로 해금된 증거 목록(없으면 빈 리스트)
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public List<UnlockedEvidenceResult> unlockByPresentedEvidence(Long sessionId, Long suspectId, Long presentedEvidenceId) {
+    public List<UnlockedEvidenceResult> unlockByPresentedEvidence(
+            Long sessionId, Long suspectId, Long presentedEvidenceId, Long currentUserId) {
         if (presentedEvidenceId == null || suspectId == null) {
             return List.of();
         }
         PlaySession session = playSessionRepository.findById(sessionId).orElse(null);
         if (session == null || !session.isPlaying()) {
+            return List.of();
+        }
+        // 호출부에서 이미 소유자/PLAYING을 검증하지만, write-path가 스스로 보호하도록 소유자 이중 확인한다.
+        if (currentUserId != null && !currentUserId.equals(session.getUserId())) {
             return List.of();
         }
         Long scenarioId = session.getScenarioId();

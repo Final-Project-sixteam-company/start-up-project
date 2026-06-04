@@ -104,7 +104,7 @@ class InterrogationEvidenceUnlockServiceTest {
     @DisplayName("케어매니저에게 트리거 증거 제시 -> 타깃 증거 해금 + diff 반환")
     void presentingTriggerToCareManager_unlocksTarget() {
         List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
-                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId);
+                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, USER_ID);
 
         assertThat(unlocked).extracting(InterrogationEvidenceUnlockService.UnlockedEvidenceResult::evidenceId)
                 .containsExactly(targetEvidenceId);
@@ -114,9 +114,9 @@ class InterrogationEvidenceUnlockServiceTest {
     @Test
     @DisplayName("동일 제시 재시도 -> 중복 해금 없음(멱등, diff 비어있음)")
     void repeatedPresentation_isIdempotent() {
-        unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId);
+        unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, USER_ID);
         List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> second =
-                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId);
+                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, USER_ID);
 
         assertThat(second).isEmpty();
         assertThat(unlockedEvidenceRepository.findAllByPlaySessionId(sessionId)).hasSize(1);
@@ -126,7 +126,7 @@ class InterrogationEvidenceUnlockServiceTest {
     @DisplayName("다른 용의자에게 같은 증거 제시 -> 해금 안 됨")
     void presentingToWrongSuspect_doesNotUnlock() {
         List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
-                unlockService.unlockByPresentedEvidence(sessionId, otherSuspectId, triggerEvidenceId);
+                unlockService.unlockByPresentedEvidence(sessionId, otherSuspectId, triggerEvidenceId, USER_ID);
 
         assertThat(unlocked).isEmpty();
         assertThat(unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, targetEvidenceId)).isFalse();
@@ -137,7 +137,7 @@ class InterrogationEvidenceUnlockServiceTest {
     void presentingUnrelatedEvidence_doesNotUnlock() {
         // 타깃 증거 자체를 제시(트리거가 아님) -> 매칭되는 규칙 없음
         List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
-                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, targetEvidenceId);
+                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, targetEvidenceId, USER_ID);
 
         assertThat(unlocked).isEmpty();
     }

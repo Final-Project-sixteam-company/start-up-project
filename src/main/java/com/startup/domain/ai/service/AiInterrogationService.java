@@ -93,7 +93,9 @@ public class AiInterrogationService {
         }
         // 세션 소유자/PLAYING 검증은 contextLoader.load 단계에서 이미 끝났다.
         return interrogationEvidenceUnlockService
-                .unlockByPresentedEvidence(sessionId, request.suspectId(), request.presentedEvidenceId())
+                .unlockByPresentedEvidence(
+                        sessionId, request.suspectId(), request.presentedEvidenceId(),
+                        mockUserProvider.currentUserId())
                 .stream()
                 .map(u -> new InterrogationResponse.UnlockedEvidenceDto(u.evidenceId(), u.title()))
                 .toList();
