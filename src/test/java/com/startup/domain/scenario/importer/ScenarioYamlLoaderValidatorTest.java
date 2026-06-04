@@ -180,6 +180,20 @@ class ScenarioYamlLoaderValidatorTest {
     }
 
     @Test
+    void evidencePresentedUnlockWithoutTrigger_failsValidation() throws IOException {
+        // EVIDENCE_KEY 규칙을 EVIDENCE_PRESENTED로 바꾸되 requiredPresentedEvidenceCode는 비워둔다.
+        String invalidYaml = SAMPLE_YAML.replace(
+                "              - evidenceCode: EVIDENCE_KEY\n                unlockType: PHASE",
+                "              - evidenceCode: EVIDENCE_KEY\n                unlockType: EVIDENCE_PRESENTED"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "is EVIDENCE_PRESENTED but condition.requiredPresentedEvidenceCode is missing"));
+    }
+
+    @Test
     void nonCulpritEligibleCharacterAsCulprit_failsValidation() throws IOException {
         String invalidYaml = SAMPLE_YAML.replace(
                 "culpritCode: SUSPECT_TEST",

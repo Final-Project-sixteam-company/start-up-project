@@ -334,6 +334,13 @@ public class ScenarioYamlValidator {
                 violations.add("unlockRule " + rule.evidenceCode()
                         + " references missing presented evidence: " + condition.requiredPresentedEvidenceCode());
             }
+            // EVIDENCE_PRESENTED 해금은 트리거 증거가 반드시 있어야 한다.
+            // (runtime matcher가 requiredPresentedEvidenceCode를 필수로 보므로, 비면 import는 통과해도 런타임에서 영원히 매칭 실패한다.)
+            if ("EVIDENCE_PRESENTED".equalsIgnoreCase(rule.unlockType())
+                    && !hasText(condition.requiredPresentedEvidenceCode())) {
+                violations.add("unlockRule " + rule.evidenceCode()
+                        + " is EVIDENCE_PRESENTED but condition.requiredPresentedEvidenceCode is missing.");
+            }
         }
     }
 
