@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -76,6 +77,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception e, HttpServletRequest request) {
         log.warn("{}: {}", e.getClass().getSimpleName(), e.getMessage());
         return badRequest(e.getMessage(), request);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException e,
+            HttpServletRequest request
+    ) {
+        // 본문 역직렬화 실패(잘못된 JSON, 타입 불일치, 잘못된 enum 값 등)는 클라이언트 입력 오류이므로 400으로 매핑한다.
+        // 원본 예외 메시지에는 입력값/내부 타입 정보가 섞일 수 있어 노출하지 않고 고정 메시지를 사용한다.
+        log.warn("HttpMessageNotReadableException: {}", e.getMessage());
+        return badRequest("요청 본문을 읽을 수 없습니다. 요청 형식을 확인해 주세요.", request);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
