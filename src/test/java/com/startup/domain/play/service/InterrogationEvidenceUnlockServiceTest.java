@@ -1,6 +1,7 @@
 package com.startup.domain.play.service;
 
 import com.startup.domain.play.entity.PlaySession;
+import com.startup.domain.play.entity.UnlockedEvidence;
 import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
 import com.startup.domain.scenario.entity.Evidence;
@@ -103,6 +104,7 @@ class InterrogationEvidenceUnlockServiceTest {
     @Test
     @DisplayName("케어매니저에게 트리거 증거 제시 -> 타깃 증거 해금 + diff 반환")
     void presentingTriggerToCareManager_unlocksTarget() {
+        markUnlocked(triggerEvidenceId); // SoT: 제시하려면 트리거가 먼저 해금돼 있어야 함
         List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
                 unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, USER_ID);
 
@@ -114,17 +116,20 @@ class InterrogationEvidenceUnlockServiceTest {
     @Test
     @DisplayName("동일 제시 재시도 -> 중복 해금 없음(멱등, diff 비어있음)")
     void repeatedPresentation_isIdempotent() {
+        markUnlocked(triggerEvidenceId);
         unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, USER_ID);
         List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> second =
                 unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, USER_ID);
 
         assertThat(second).isEmpty();
-        assertThat(unlockedEvidenceRepository.findAllByPlaySessionId(sessionId)).hasSize(1);
+        // 트리거(선해금) + 타깃(1회 해금) = 2건, 재시도로 늘지 않음(멱등)
+        assertThat(unlockedEvidenceRepository.findAllByPlaySessionId(sessionId)).hasSize(2);
     }
 
     @Test
     @DisplayName("다른 용의자에게 같은 증거 제시 -> 해금 안 됨")
     void presentingToWrongSuspect_doesNotUnlock() {
+        markUnlocked(triggerEvidenceId);
         List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
                 unlockService.unlockByPresentedEvidence(sessionId, otherSuspectId, triggerEvidenceId, USER_ID);
 
@@ -136,9 +141,27 @@ class InterrogationEvidenceUnlockServiceTest {
     @DisplayName("관계 없는 증거 제시 -> 해금 안 됨")
     void presentingUnrelatedEvidence_doesNotUnlock() {
         // 타깃 증거 자체를 제시(트리거가 아님) -> 매칭되는 규칙 없음
+        markUnlocked(targetEvidenceId); // 게이트가 아니라 규칙 미매칭으로 빈 결과임을 확인
         List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
                 unlockService.unlockByPresentedEvidence(sessionId, careManagerId, targetEvidenceId, USER_ID);
 
         assertThat(unlocked).isEmpty();
+    }
+
+    @Test
+    @DisplayName("제시 증거가 미해금이면 -> 해금 안 됨 (SoT: unlocked_evidences 검증)")
+    void presentingLockedTrigger_doesNotUnlock() {
+        // 트리거를 unlocked_evidences에 넣지 않은 채 제시 -> write-path가 잠긴 증거 제시를 차단
+        List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
+                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, USER_ID);
+
+        assertThat(unlocked).isEmpty();
+        assertThat(unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, targetEvidenceId)).isFalse();
+    }
+
+    private void markUnlocked(Long evidenceId) {
+        // 테스트는 트랜잭션 밖이라 @Modifying insertIgnore 대신 save()로 삽입한다.
+        unlockedEvidenceRepository.save(UnlockedEvidence.builder()
+                .playSessionId(sessionId).evidenceId(evidenceId).unlockedReason("TEST_SETUP").build());
     }
 }

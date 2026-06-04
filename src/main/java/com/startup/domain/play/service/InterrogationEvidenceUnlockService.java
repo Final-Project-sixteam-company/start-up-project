@@ -73,7 +73,8 @@ public class InterrogationEvidenceUnlockService {
             return List.of();
         }
         // 호출부에서 이미 소유자/PLAYING을 검증하지만, write-path가 스스로 보호하도록 소유자 이중 확인한다.
-        if (currentUserId != null && !currentUserId.equals(session.getUserId())) {
+        // null currentUserId도 거부한다(write-path self-protection).
+        if (!Objects.equals(currentUserId, session.getUserId())) {
             return List.of();
         }
         Long scenarioId = session.getScenarioId();
@@ -94,6 +95,11 @@ public class InterrogationEvidenceUnlockService {
                 .stream()
                 .map(UnlockedEvidence::getEvidenceId)
                 .collect(Collectors.toSet());
+        // unlocked_evidences가 SoT: 제시 증거가 실제로 해금돼 있어야 해금 트리거로 인정한다.
+        // 컨트롤러(InterrogationContextLoader)가 AI009로 막지만, write-path가 스스로도 잠긴 증거 제시를 차단한다.
+        if (!alreadyUnlockedIds.contains(presentedEvidenceId)) {
+            return List.of();
+        }
         Set<String> alreadyUnlockedCodes = evidenceRepository.findAllByScenarioIdOrderBySortOrder(scenarioId)
                 .stream()
                 .filter(e -> alreadyUnlockedIds.contains(e.getId()))
