@@ -126,7 +126,7 @@ cp .env.example .env
 | `AWS_ACCESS_KEY_ID` | 서버 전용 AWS access key |
 | `AWS_SECRET_ACCESS_KEY` | 서버 전용 AWS secret key |
 | `AWS_S3_BUCKET` | S3 bucket |
-| `AWS_S3_PUBLIC_BASE_URL` | 이미지 URL base 또는 공란 |
+| `AWS_S3_PUBLIC_BASE_URL` | 이미지 asset key를 응답용 URL로 변환할 public base URL. 공란이면 이미지 URL은 `null` |
 | `FCM_ENABLED` | FCM 활성 여부 |
 | `FCM_PROJECT_ID` | Firebase project ID |
 | `FCM_SERVICE_ACCOUNT_PATH` | 서버 내부 Firebase service account JSON 경로 |

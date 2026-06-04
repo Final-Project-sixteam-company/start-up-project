@@ -13,6 +13,7 @@ import com.startup.domain.scenario.repository.EvidenceRepository;
 import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import com.startup.domain.scenario.repository.SuspectRepository;
+import com.startup.domain.scenario.support.ScenarioAssetUrlResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -23,8 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,6 +35,7 @@ public class ScenarioService {
     private final SuspectRepository suspectRepository;
     private final EvidenceRepository evidenceRepository;
     private final HintRepository hintRepository;
+    private final ScenarioAssetUrlResolver scenarioAssetUrlResolver;
 
     @Transactional(readOnly = true)
     public PageResponse<ScenarioSummaryResponse> getScenarios(Long userId, ScenarioSearchCondition condition, Pageable pageable) {
@@ -46,25 +46,18 @@ public class ScenarioService {
         // TODO: 세부 필터링(condition)은 나중에 QueryDSL 도입 시 추가
         List<ScenarioVisibility> allowedVisibilities = List.of(ScenarioVisibility.PUBLIC, ScenarioVisibility.OFFICIAL);
         Page<Scenario> scenarios = scenarioRepository.findAllByStatusAndVisibilityIn(
-                ScenarioStatus.PUBLISHED, 
-                allowedVisibilities, 
+                ScenarioStatus.PUBLISHED,
+                allowedVisibilities,
                 mappedPageable
         );
-        
-        List<Long> scenarioIds = scenarios.getContent().stream().map(Scenario::getId).toList();
-        
-        // IN 절로 한 번에 카운트 맵 인출 (N+1 최적화)
-        Map<Long, Integer> suspectCountMap = suspectRepository.countByScenarioIdIn(scenarioIds).stream()
-                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
-        Map<Long, Integer> evidenceCountMap = evidenceRepository.countByScenarioIdIn(scenarioIds).stream()
-                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
-                
+
         Page<ScenarioSummaryResponse> responsePage = scenarios.map(scenario -> {
-            int suspectCount = suspectCountMap.getOrDefault(scenario.getId(), 0);
-            int evidenceCount = evidenceCountMap.getOrDefault(scenario.getId(), 0);
-            return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, false);
+            int suspectCount = suspectRepository.countByScenarioId(scenario.getId());
+            int evidenceCount = evidenceRepository.countByScenarioId(scenario.getId());
+            String thumbnailUrl = scenarioAssetUrlResolver.resolve(scenario.getCoverAssetKey());
+            return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, false, thumbnailUrl);
         });
-        
+
         return PageResponse.from(responsePage);
     }
 
@@ -75,11 +68,11 @@ public class ScenarioService {
 
         // 작성자 본인이 아니면서, 대중에게 공개되지 않은 시나리오에 접근하는 것을 차단
         boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
-        boolean isPubliclyVisible = scenario.getStatus() == ScenarioStatus.PUBLISHED && 
-                (scenario.getVisibility() == ScenarioVisibility.PUBLIC || 
+        boolean isPubliclyVisible = scenario.getStatus() == ScenarioStatus.PUBLISHED &&
+                (scenario.getVisibility() == ScenarioVisibility.PUBLIC ||
                  scenario.getVisibility() == ScenarioVisibility.OFFICIAL ||
                  scenario.getVisibility() == ScenarioVisibility.UNLISTED);  // UNLISTED는 링크 기반 접근 허용
-                
+
         if (!isCreator && !isPubliclyVisible) {
             // 작성자가 아니면 에러 반환
             log.warn("인증되지 않은 시나리오 접근 시도: userId={}, scenarioId={}, status={}, visibility={}",
@@ -98,7 +91,11 @@ public class ScenarioService {
         int evidenceCount = evidenceRepository.countByScenarioId(scenarioId);
         int hintCount = hintRepository.countByScenarioId(scenarioId);
 
-        return ScenarioDetailResponse.from(scenario, mockCreatorNickname, suspectCount, evidenceCount, hintCount, isBookmarked, canPlay);
+        String coverImageUrl = scenarioAssetUrlResolver.resolve(scenario.getCoverAssetKey());
+        String mapImageUrl = scenarioAssetUrlResolver.resolve(scenario.getMapAssetKey());
+
+        return ScenarioDetailResponse.from(scenario, mockCreatorNickname, suspectCount, evidenceCount, hintCount,
+                isBookmarked, canPlay, coverImageUrl, mapImageUrl);
 
     }
 
@@ -115,15 +112,15 @@ public class ScenarioService {
                     yield "createdAt";
                 }
             };
-            
+
             // 스프링은 정렬 방향 생략 시 기본값으로 ASC(오름차순)를 주지만,
             // 인기순, 평점순, 최신순은 내림차순(DESC)이 논리적으로 맞으므로 DESC로 엎어칩니다.
             Sort.Direction direction = order.getDirection();
-            if (direction == Sort.Direction.ASC && 
+            if (direction == Sort.Direction.ASC &&
                (property.equals("playCount") || property.equals("averageRating") || property.equals("createdAt"))) {
                 direction = Sort.Direction.DESC;
             }
-            
+
             mappedSort = mappedSort.and(Sort.by(direction, property));
         }
 

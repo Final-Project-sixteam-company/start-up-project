@@ -20,12 +20,18 @@ public record ScenarioSummaryResponse(
         Double averageRating,
         Boolean isBookmarked
 ) {
-    public static ScenarioSummaryResponse from(Scenario scenario, int suspectCount, int evidenceCount, Boolean isBookmarked) {
+    public static ScenarioSummaryResponse from(Scenario scenario, int suspectCount, int evidenceCount,
+                                               Boolean isBookmarked) {
+        return from(scenario, suspectCount, evidenceCount, isBookmarked, null);
+    }
+
+    public static ScenarioSummaryResponse from(Scenario scenario, int suspectCount, int evidenceCount,
+                                               Boolean isBookmarked, String thumbnailUrl) {
         return new ScenarioSummaryResponse(
                 scenario.getId(),
                 scenario.getTitle(),
                 scenario.getDescription(),
-                null, // TODO: 나중에 썸네일 이미지 경로 반환 로직 추가하기
+                thumbnailUrl,
                 scenario.getScenarioType(),
                 scenario.getDifficulty(),
                 scenario.getEstimatedPlayTimeMinutes(),

@@ -82,6 +82,12 @@ fcm:
 caselab:
   scoring:
     criteria-path: ${SCORING_CRITERIA_PATH:classpath:scoring/demo_day_criteria.json}
+    defaults:
+      culprit-max-score: ${SCORING_CULPRIT_MAX_SCORE:30}
+      evidence-max-score: ${SCORING_EVIDENCE_MAX_SCORE:15}
+      method-max-score: ${SCORING_METHOD_MAX_SCORE:25}
+      motive-max-score: ${SCORING_MOTIVE_MAX_SCORE:20}
+      cover-up-max-score: ${SCORING_COVER_UP_MAX_SCORE:10}
   ai:
     interrogation:
       max-history-turns: ${AI_INTERROGATION_MAX_HISTORY_TURNS:5}
@@ -95,6 +101,8 @@ caselab:
       max-tokens: ${AI_VALIDATION_MAX_TOKENS:1500}
 
 clueroom:
+  assets:
+    public-base-url: ${AWS_S3_PUBLIC_BASE_URL:}
   scenario-import:
     # 민감한 공식 시나리오 YAML은 repo에 올리지 않고 서버 로컬 경로 또는 private storage에서 주입한다.
     enabled: ${CLUEROOM_SCENARIO_IMPORT_ENABLED:false}

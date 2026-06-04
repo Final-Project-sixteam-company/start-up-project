@@ -18,13 +18,13 @@ import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.prompt.AiPromptBuilder;
 import com.startup.domain.ai.repository.FinalDeductionEvidenceRepository;
+import com.startup.domain.ai.support.DeductionScoringDefaults;
 import com.startup.domain.ai.support.DeductionContextLoader;
 import com.startup.domain.ai.support.EvidenceReader;
 import com.startup.domain.ai.support.FallbackFeedbackGenerator;
 import com.startup.domain.ai.support.HintPenaltyReader;
 import com.startup.domain.ai.support.PlaySessionReader;
 import com.startup.domain.ai.support.RuleBasedScorer;
-import com.startup.domain.ai.support.ScoringCriteriaProvider;
 import com.startup.domain.ai.support.SolutionReader;
 import com.startup.domain.ai.support.SuspectReader;
 import lombok.RequiredArgsConstructor;
@@ -54,7 +54,7 @@ public class AiDeductionScorer {
     private final SuspectReader suspectReader;
     private final SolutionReader solutionReader;
     private final HintPenaltyReader hintPenaltyReader;
-    private final ScoringCriteriaProvider scoringCriteriaProvider;
+    private final DeductionScoringDefaults scoringDefaults;
     private final RuleBasedScorer ruleBasedScorer;
     private final FallbackFeedbackGenerator fallbackFeedbackGenerator;
     private final AiPromptBuilder promptBuilder;
@@ -311,38 +311,50 @@ public class AiDeductionScorer {
     }
 
     /**
-     * DB의 SolutionInfo를 우선으로 채점 기준을 조립한다.
-     * culpritSuspectId, keyEvidenceIds는 DB variant 기준으로 교체하고
-     * 키워드·점수 배분은 파일 기준을 유지한다.
+     * DB의 SolutionInfo를 기준으로 채점 기준을 조립한다.
+     * 항목별 배점은 기본 배점 spec을 사용하고 proofDimensionJson은 후속 채점 트랙으로 분리한다.
      */
     private ScoringCriteria buildCriteriaFromSolution(SolutionInfo solution, Long scenarioId) {
-        ScoringCriteria fileCriteria = scoringCriteriaProvider.getByCriteria(scenarioId);
+        validateSolutionForScoring(solution);
         return new ScoringCriteria(
                 scenarioId,
                 solution.culpritSuspectId(),
-                extractKeywords(solution.method(), fileCriteria.method()),
-                extractKeywords(solution.motive(), fileCriteria.motive()),
-                extractKeywords(solution.coverUp(), fileCriteria.coverUp()),
+                extractKeywords(solution.method(), scoringDefaults.methodMaxScore()),
+                extractKeywords(solution.motive(), scoringDefaults.motiveMaxScore()),
+                extractKeywords(solution.coverUp(), scoringDefaults.coverUpMaxScore()),
                 solution.keyEvidenceIds(),
-                fileCriteria.evidenceMaxScore(),
-                fileCriteria.culpritMaxScore()
+                scoringDefaults.evidenceMaxScore(),
+                scoringDefaults.culpritMaxScore()
         );
     }
 
-    private ScoringCriteria.KeywordCriteria extractKeywords(String text, ScoringCriteria.KeywordCriteria fallback) {
-        if (text == null || text.isBlank()) {
-            return fallback;
+    private void validateSolutionForScoring(SolutionInfo solution) {
+        if (solution == null
+                || solution.culpritSuspectId() == null
+                || solution.keyEvidenceIds() == null
+                || solution.keyEvidenceIds().isEmpty()
+                || solution.keyEvidenceIds().stream().anyMatch(Objects::isNull)
+                || isBlank(solution.method())
+                || isBlank(solution.motive())
+                || isBlank(solution.coverUp())) {
+            throw new AiException(AiErrorCode.SOLUTION_NOT_FOUND);
         }
-        
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private ScoringCriteria.KeywordCriteria extractKeywords(String text, int maxScore) {
         List<String> words = java.util.Arrays.stream(text.split("[\\s\\p{Punct}]+"))
                 .filter(w -> w.length() >= 2)
                 .toList();
 
         if (words.isEmpty()) {
-            return fallback;
+            throw new AiException(AiErrorCode.SOLUTION_NOT_FOUND);
         }
 
         int minMatch = Math.max(1, words.size() / 2);
-        return new ScoringCriteria.KeywordCriteria(words, minMatch, fallback.maxScore());
+        return new ScoringCriteria.KeywordCriteria(words, minMatch, maxScore);
     }
 }

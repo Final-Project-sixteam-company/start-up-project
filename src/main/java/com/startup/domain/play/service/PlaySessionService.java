@@ -22,6 +22,7 @@ import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.*;
 import com.startup.domain.scenario.service.ScenarioAccessService;
+import com.startup.domain.scenario.support.ScenarioAssetUrlResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -57,6 +58,7 @@ public class PlaySessionService {
     private final FinalDeductionLockManager finalDeductionLockManager;
     private final EvidenceVariantDescriptionResolver evidenceVariantDescriptionResolver;
     private final EvidenceUnlockPolicy evidenceUnlockPolicy;
+    private final ScenarioAssetUrlResolver scenarioAssetUrlResolver;
     private final TimelineEventRepository timelineEventRepository;
 
     //게임 시작 세션
@@ -233,7 +235,9 @@ public class PlaySessionService {
                     ? locationNameMap.get(evidence.getLocationId())
                     : null;
             String unlockHint = isUnlocked ? null : buildUnlockHint(evidence);
-            String imageUrl = isUnlocked ? evidence.getImageUrl() : null;
+            String imageUrl = isUnlocked
+                    ? scenarioAssetUrlResolver.resolve(evidence.getImageUrl(), evidence.getImageAssetKey())
+                    : null;
 
             result.add(new PlayEvidenceResponse(
                     evidence.getId(),
@@ -274,7 +278,7 @@ public class PlaySessionService {
         // 시나리오의 전체 증거를 가져와서 해금된 것만 필터링 후 장소별로 리스트화 (스포일러 방어)
         List<Evidence> allEvidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
         Map<Long, List<PlayLocationResponse.EvidenceSummary>> evidenceListMap = new HashMap<>();
-        
+
         for (Evidence e : allEvidences) {
             if (e.getLocationId() != null && unlockedEvidenceIds.contains(e.getId())) {
                 evidenceListMap.computeIfAbsent(e.getLocationId(), k -> new ArrayList<>())
@@ -323,13 +327,13 @@ public class PlaySessionService {
                     if (!"PUBLIC".equalsIgnoreCase(event.getVisibility())) {
                         return false;
                     }
-                    
+
                     // 특정 타임라인 사건이 어떤 증거(관련 증거 ID)와 연결되어 있다면?
                     if (event.getRelatedEvidenceId() != null) {
                         // 유저가 그 증거를 찾았을 때만 타임라인에 보여준다! (못 찾았으면 숨김 처리)
                         return unlockedEvidenceIds.contains(event.getRelatedEvidenceId());
                     }
-                    
+
                     // 증거와 연결되지 않은 PUBLIC 사건(뼈대 사건)은 노출
                     return true;
                 })
@@ -550,6 +554,7 @@ public class PlaySessionService {
                         suspect.getRelationToVictim(),
                         suspect.getPublicStatement(),
                         suspect.getAlibi(),
+                        scenarioAssetUrlResolver.resolve(suspect.getPortraitAssetKey()),
                         suspect.getSuspicionLevel(),
                         interrogationCountMap.getOrDefault(suspect.getId(), 0) //map에서 가져오고 없으면 0
                 ))
