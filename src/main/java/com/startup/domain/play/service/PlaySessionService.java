@@ -402,6 +402,62 @@ public class PlaySessionService {
                 .toList();
     }
 
+    // 현장/장소 정보 조회
+    @Transactional
+    public PlayLocationsResponse getLocations(Long userId, Long sessionId) {
+        PlaySession session = getSessionOrThrow(sessionId);
+        validateSessionOwner(session, userId);
+
+        Scenario scenario = scenarioRepository.findById(session.getScenarioId())
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        processAutomaticUnlocks(session);
+
+        List<ScenarioLocation> locations =
+                scenarioLocationRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
+        List<Evidence> evidences =
+                evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
+        Set<Long> unlockedEvidenceIds = unlockedEvidenceRepository.findAllByPlaySessionId(sessionId)
+                .stream()
+                .map(UnlockedEvidence::getEvidenceId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Long> totalEvidenceCountByLocationId = evidences.stream()
+                .map(Evidence::getLocationId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+        Map<Long, Long> unlockedEvidenceCountByLocationId = evidences.stream()
+                .filter(evidence -> evidence.getLocationId() != null)
+                .filter(evidence -> unlockedEvidenceIds.contains(evidence.getId()))
+                .map(Evidence::getLocationId)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+        List<PlayLocationsResponse.LocationDto> locationDtos = locations.stream()
+                .map(location -> new PlayLocationsResponse.LocationDto(
+                        location.getId(),
+                        location.getCode(),
+                        location.getName(),
+                        location.getFloor(),
+                        location.getDescription(),
+                        location.getImageAssetKey(),
+                        scenarioAssetUrlResolver.resolve(location.getImageAssetKey()),
+                        location.getMapX(),
+                        location.getMapY(),
+                        countAsInt(totalEvidenceCountByLocationId, location.getId()),
+                        countAsInt(unlockedEvidenceCountByLocationId, location.getId())
+                ))
+                .toList();
+
+        return new PlayLocationsResponse(
+                session.getId(),
+                scenario.getId(),
+                scenario.getTitle(),
+                scenarioAssetUrlResolver.resolve(scenario.getMapAssetKey()),
+                locationDtos
+        );
+    }
+
     // 최종 추리 완료 시 세션 상태 전환
     //score/grade는 FinalDeduction 테이블에 저장되므로 여기서는 상태 전환과 active_key 해제만 처리
     @Transactional
@@ -556,5 +612,9 @@ public class PlaySessionService {
 
     private String buildUnlockHint(Evidence evidence) {
         return evidenceUnlockPolicy.buildUnlockHint(evidence);
+    }
+
+    private int countAsInt(Map<Long, Long> counts, Long id) {
+        return counts.getOrDefault(id, 0L).intValue();
     }
 }

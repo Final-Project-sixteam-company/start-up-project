@@ -325,7 +325,6 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 
 | 예정 API | 현재 대체 방식 |
 |---|---|
-| `GET /api/play-sessions/{sessionId}/locations` | 현장 탭은 `dashboard`, 시나리오 상세 정보, 또는 프론트 placeholder로 구성 |
 | `GET /api/play-sessions/{sessionId}/evidences/{evidenceId}` | `GET /evidences` 목록에서 선택한 item을 상세에 사용 |
 | `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` | `GET /suspects` 목록에서 선택한 item을 상세에 사용 |
 | `GET /api/play-sessions/{sessionId}/timeline` | 타임라인 화면은 임시 empty/placeholder 유지 |
@@ -574,7 +573,7 @@ GET /api/play-sessions/{sessionId}/dashboard
 
 | 탭 | 현재 연동 상태 | 핵심 API |
 |---|---|---|
-| 현장 | 부분 연동/placeholder | `GET /api/play-sessions/{sessionId}/dashboard` |
+| 현장 | 실제 연동 | `GET /api/play-sessions/{sessionId}/locations` |
 | 증거 | 실제 연동 | `GET /api/play-sessions/{sessionId}/evidences` |
 | 용의자 | 실제 연동 | `GET /api/play-sessions/{sessionId}/suspects` |
 | 타임라인 | placeholder | 없음 |
@@ -612,23 +611,25 @@ POST /api/play-sessions
 | 항목 | 내용 |
 |---|---|
 | 화면 목적 | 사건 공간, 발견 장소, 조사 분위기 제공 |
-| 현재 호출 API | `GET /api/play-sessions/{sessionId}/dashboard` |
-| 미구현 API | `GET /api/play-sessions/{sessionId}/locations` |
-| 사용 필드 | `scenarioTitle`, `briefing`, `elapsedSeconds`, 증거 카운트 |
+| 호출 API | `GET /api/play-sessions/{sessionId}/locations` |
+| 보조 API | `GET /api/play-sessions/{sessionId}/dashboard` |
+| 사용 필드 | `scenarioTitle`, `mapImageUrl`, `locations[].name`, `locations[].description`, `locations[].imageUrl`, `locations[].mapX`, `locations[].mapY`, `locations[].totalEvidenceCount`, `locations[].unlockedEvidenceCount` |
 
-현재는 장소/평면도 전용 API가 없다.
-따라서 현장 탭은 아래처럼 구성한다.
+현장 탭은 locations API를 우선 사용한다.
 
 ```text
 사건 제목
-피해자/발견 장소/요약 briefing
-지도 또는 평면도 placeholder
+전체 지도/평면도 mapImageUrl
+장소 카드 locations[]
+방 사진 locations[].imageUrl
+장소별 증거 수 totalEvidenceCount / unlockedEvidenceCount
 증거 탭으로 이동하는 CTA
 용의자 탭으로 이동하는 CTA
 ```
 
-시나리오 전체 지도/평면도는 `GET /api/scenarios/{scenarioId}`의 `mapImageUrl`을 우선 사용한다.
-개별 장소 이미지 목록 API는 아직 없으므로, 방별 이미지는 후속 locations API가 생기기 전까지 placeholder 또는 맵 이미지 중심으로 처리한다.
+`mapImageUrl`과 `locations[].imageUrl`은 서버가 S3 asset key를 변환해서 내려준다.
+프론트는 S3 object key를 직접 조합하지 않고, URL이 `null`이면 placeholder를 사용한다.
+피해자/발견 장소/요약 briefing은 dashboard 응답을 보조로 사용한다.
 
 ### 7.3 증거 탭
 
@@ -788,7 +789,7 @@ GET /api/play-sessions/{sessionId}/dashboard
 | 상황 | 권장 갱신 |
 |---|---|
 | 게임 화면 최초 진입 | `dashboard` |
-| 현장 탭 진입 | `dashboard` |
+| 현장 탭 진입 | `locations`, 필요 시 `dashboard` |
 | 증거 탭 진입 | `evidences?includeLocked=true` |
 | 용의자 탭 진입 | `suspects` |
 | 힌트 탭 진입 | `hints` |
@@ -805,7 +806,7 @@ MVP에서는 30~60초 간격 또는 탭 재진입 시 갱신으로 충분하다.
 
 ```text
 1. 게임 화면 공통 상태는 dashboard를 기준으로 한다.
-2. 현장 탭은 현재 locations API가 없으므로 dashboard + placeholder로 구성한다.
+2. 현장 탭은 locations API를 기본 호출로 사용하고, 피해자/발견 장소 briefing은 dashboard를 보조로 사용한다.
 3. 증거 탭은 evidences?includeLocked=true를 기본 호출로 사용한다.
 4. 증거 상세는 별도 API 없이 목록 item을 사용한다.
 5. 용의자 상세도 별도 API 없이 목록 item을 사용한다.
@@ -1438,8 +1439,6 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 
 | 기능 | 현재 처리 |
 |---|---|
-| 현장 locations API | `dashboard` + placeholder |
-| 개별 장소 이미지 API | `mapImageUrl` 또는 placeholder |
 | S3 assetKey 직접 변환 | 프론트에서 임의 조립하지 않음 |
 | 증거 상세 API | 목록 item으로 상세 표시 |
 | 용의자 상세 API | 목록 item으로 상세 표시 |
@@ -1469,10 +1468,11 @@ placeholder는 "아직 구현 전"이라는 내부 표현보다 유저 관점의
 |---|---|
 | `GET /api/scenarios` | `thumbnailUrl` |
 | `GET /api/scenarios/{scenarioId}` | `coverImageUrl`, `mapImageUrl` |
+| `GET /api/play-sessions/{sessionId}/locations` | `mapImageUrl`, `locations[].imageUrl` |
 | `GET /api/play-sessions/{sessionId}/evidences` | `imageUrl` |
 | `GET /api/play-sessions/{sessionId}/suspects` | `portraitImageUrl` |
 
-개별 장소 이미지 API, 이미지 업로드 API, signed URL API는 아직 후속 범위다.
+이미지 업로드 API, signed URL API는 아직 후속 범위다.
 
 프론트 기준은 아래와 같다.
 

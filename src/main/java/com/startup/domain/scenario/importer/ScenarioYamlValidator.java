@@ -40,6 +40,7 @@ public class ScenarioYamlValidator {
         String scenarioCode = yaml.scenario() == null ? null : yaml.scenario().code();
         String victimCode = yaml.victim() == null ? null : yaml.victim().code();
 
+        validateLocations(yaml, violations);
         validateVictim(yaml, locationCodes, violations);
         validateEvidenceReferences(yaml, locationCodes, characterCodes, violations);
         validateVariantReferences(yaml, charactersByCode, evidenceCodes, violations);
@@ -83,6 +84,22 @@ public class ScenarioYamlValidator {
         requireText(yaml.victim().deathLocationCode(), "victim.deathLocationCode", violations);
         if (hasText(yaml.victim().deathLocationCode()) && !locationCodes.contains(yaml.victim().deathLocationCode())) {
             violations.add("victim.deathLocationCode references missing location: " + yaml.victim().deathLocationCode());
+        }
+    }
+
+    private void validateLocations(ScenarioYaml yaml, List<String> violations) {
+        for (ScenarioYaml.LocationYaml location : listOf(yaml.locations())) {
+            if (location == null) {
+                violations.add("locations[] item is required.");
+                continue;
+            }
+            requireText(location.code(), "locations[].code", violations);
+            requireText(location.name(), "locations[" + location.code() + "].name", violations);
+            validateAssetKey(location.imageAssetKey(), "locations[" + location.code() + "].imageAssetKey", violations);
+            if (isPublished(yaml)) {
+                requireNumber(location.mapX(), "locations[" + location.code() + "].mapX", violations);
+                requireNumber(location.mapY(), "locations[" + location.code() + "].mapY", violations);
+            }
         }
     }
 
@@ -399,6 +416,12 @@ public class ScenarioYamlValidator {
 
     private void requireObjectText(Object value, String field, List<String> violations) {
         if (value == null || String.valueOf(value).isBlank()) {
+            violations.add(field + " is required.");
+        }
+    }
+
+    private void requireNumber(Integer value, String field, List<String> violations) {
+        if (value == null) {
             violations.add(field + " is required.");
         }
     }
