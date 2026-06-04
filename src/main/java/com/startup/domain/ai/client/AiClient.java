@@ -4,6 +4,9 @@ import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
+import org.springframework.ai.chat.metadata.ChatResponseMetadata;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -104,33 +107,27 @@ public class AiClient {
 
         int resultCount = response.getResults() == null ? 0 : response.getResults().size();
         Generation result = response.getResult();
-        String finishReason = result == null || result.getMetadata() == null
-                ? null
-                : result.getMetadata().getFinishReason();
+        ChatGenerationMetadata generationMetadata = result == null ? null : result.getMetadata();
+        ChatResponseMetadata responseMetadata = response.getMetadata();
+        Usage usage = responseMetadata == null ? null : responseMetadata.getUsage();
         String text = output == null ? null : output.getText();
 
         log.info(
-                "AI ChatResponse debug: resultCount={}, finishReason={}, metadata={}, outputClass={}, "
-                        + "outputMetadata={}, textLength={}, textPreview={}, outputPreview={}",
+                "AI ChatResponse debug: resultCount={}, finishReason={}, model={}, "
+                        + "promptTokens={}, completionTokens={}, totalTokens={}, "
+                        + "generationMetadataKeys={}, outputClass={}, outputMetadataKeys={}, "
+                        + "textPresent={}, textLength={}",
                 resultCount,
-                finishReason,
-                response.getMetadata(),
+                generationMetadata == null ? null : generationMetadata.getFinishReason(),
+                responseMetadata == null ? null : responseMetadata.getModel(),
+                usage == null ? null : usage.getPromptTokens(),
+                usage == null ? null : usage.getCompletionTokens(),
+                usage == null ? null : usage.getTotalTokens(),
+                generationMetadata == null ? null : generationMetadata.keySet(),
                 output == null ? null : output.getClass().getName(),
-                output == null ? null : output.getMetadata(),
-                text == null ? null : text.length(),
-                preview(text, 300),
-                preview(output == null ? null : output.toString(), 500)
+                output == null ? null : output.getMetadata().keySet(),
+                text != null && !text.isBlank(),
+                text == null ? null : text.length()
         );
-    }
-
-    private String preview(String value, int maxLength) {
-        if (value == null) {
-            return null;
-        }
-        String normalized = value.replace('\n', ' ').replace('\r', ' ');
-        if (normalized.length() <= maxLength) {
-            return normalized;
-        }
-        return normalized.substring(0, maxLength) + "...";
     }
 }
