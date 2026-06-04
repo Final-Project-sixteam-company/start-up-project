@@ -105,7 +105,8 @@ public class AiInterrogationService {
     }
 
     private AiResult callAi(InterrogationContext context, InterrogationRequest request) {
-        boolean hasPresented = request.presentedEvidenceId() != null;
+        boolean hasPresented = request.questionType() == QuestionType.EVIDENCE_PRESENTED
+                && request.presentedEvidenceId() != null;
 
         if (aiClient.isMockMode()) {
             String answer = aiClient.chatOrMock(null, null, null, request.suspectId(), hasPresented);

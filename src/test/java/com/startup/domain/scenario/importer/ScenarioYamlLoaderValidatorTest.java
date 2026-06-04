@@ -182,15 +182,37 @@ class ScenarioYamlLoaderValidatorTest {
     @Test
     void evidencePresentedUnlockWithoutTrigger_failsValidation() throws IOException {
         // EVIDENCE_KEY 규칙을 EVIDENCE_PRESENTED로 바꾸되 requiredPresentedEvidenceCode는 비워둔다.
+        // (SAMPLE_YAML은 text block이라 들여쓰기 12칸이 stripped됨 → 실제 문자열 기준 2/4칸)
         String invalidYaml = SAMPLE_YAML.replace(
-                "              - evidenceCode: EVIDENCE_KEY\n                unlockType: PHASE",
-                "              - evidenceCode: EVIDENCE_KEY\n                unlockType: EVIDENCE_PRESENTED"
+                "  - evidenceCode: EVIDENCE_KEY\n    unlockType: PHASE",
+                "  - evidenceCode: EVIDENCE_KEY\n    unlockType: EVIDENCE_PRESENTED"
         );
 
         List<String> violations = validator.validate(load(invalidYaml));
 
         assertThat(violations).anyMatch(message -> message.contains(
                 "is EVIDENCE_PRESENTED but condition.requiredPresentedEvidenceCode is missing"));
+    }
+
+    @Test
+    void evidencePresentedUnlockSelfReference_failsValidation() throws IOException {
+        // EVIDENCE_KEY 규칙을 EVIDENCE_PRESENTED로 바꾸고 트리거를 자기 자신(EVIDENCE_KEY)으로 지정한다.
+        String invalidYaml = SAMPLE_YAML.replace(
+                "  - evidenceCode: EVIDENCE_KEY\n"
+                        + "    unlockType: PHASE\n"
+                        + "    condition:\n"
+                        + "      requiredPhase: PHASE_0_OPENING",
+                "  - evidenceCode: EVIDENCE_KEY\n"
+                        + "    unlockType: EVIDENCE_PRESENTED\n"
+                        + "    condition:\n"
+                        + "      requiredPresentedEvidenceCode: EVIDENCE_KEY\n"
+                        + "      requiredPhase: PHASE_0_OPENING"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "requiredPresentedEvidenceCode references itself"));
     }
 
     @Test
