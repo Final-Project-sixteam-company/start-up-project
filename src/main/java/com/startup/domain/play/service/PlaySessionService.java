@@ -258,48 +258,6 @@ public class PlaySessionService {
     }
 
     @Transactional
-    public List<PlayLocationResponse> getLocations(Long userId, Long sessionId) {
-        // 세션 존재 확인 및 소유권 검증 (보안)
-        PlaySession session = playSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
-
-        if (!session.getUserId().equals(userId)) {
-            throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
-        }
-
-        // 장소 목록 조회 전 자동 해금 증거 최신화
-        processAutomaticUnlocks(session);
-
-        // 해금된 증거 ID 목록
-        java.util.Set<Long> unlockedEvidenceIds = unlockedEvidenceRepository.findAllByPlaySessionId(sessionId).stream()
-                .map(unlocked -> unlocked.getEvidenceId())
-                .collect(java.util.stream.Collectors.toSet());
-
-        // 시나리오의 전체 증거를 가져와서 해금된 것만 필터링 후 장소별로 리스트화 (스포일러 방어)
-        List<Evidence> allEvidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId());
-        Map<Long, List<PlayLocationResponse.EvidenceSummary>> evidenceListMap = new HashMap<>();
-
-        for (Evidence e : allEvidences) {
-            if (e.getLocationId() != null && unlockedEvidenceIds.contains(e.getId())) {
-                evidenceListMap.computeIfAbsent(e.getLocationId(), k -> new ArrayList<>())
-                        .add(new PlayLocationResponse.EvidenceSummary(e.getId(), e.getTitle()));
-            }
-        }
-
-        // 현재 시나리오의 모든 장소 조회
-        Long scenarioId = session.getScenarioId();
-        List<ScenarioLocation> locations = scenarioLocationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
-
-        // 장소 리스트와 증거 리스트 맵을 조합하여 응답 DTO 생성
-        return locations.stream()
-                .map(location -> {
-                    List<PlayLocationResponse.EvidenceSummary> evidences = evidenceListMap.getOrDefault(location.getId(), List.of());
-                    return PlayLocationResponse.from(location, evidences);
-                })
-                .toList();
-    }
-
-    @Transactional
     public java.util.List<PlayTimelineResponse> getTimeline(Long userId, Long sessionId) {
         PlaySession session = playSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
