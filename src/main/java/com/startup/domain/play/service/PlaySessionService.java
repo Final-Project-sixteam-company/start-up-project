@@ -588,7 +588,8 @@ public class PlaySessionService {
                         suspect.getAlibi(),
                         scenarioAssetUrlResolver.resolve(suspect.getPortraitAssetKey()),
                         suspect.getSuspicionLevel(),
-                        interrogationCountMap.getOrDefault(suspect.getId(), 0) //map에서 가져오고 없으면 0
+                        interrogationCountMap.getOrDefault(suspect.getId(), 0), //map에서 가져오고 없으면 0
+                        suspect.getCulpritEligible()
                 ))
                 .toList();
     }
