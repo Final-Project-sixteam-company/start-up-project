@@ -394,8 +394,11 @@ public class PlaySessionService {
         // 변이(Variant) 전용 설명 해석 (단건 조회 시에도 선택된 변이 경로에 맞는 단서를 보여줌)
         String resolvedDescription = evidenceVariantDescriptionResolver.resolve(evidence, session.getScenarioVariantId());
 
+        // 이미지 URL을 asset resolver로 변환 (증거 목록 API와 동일한 흐름)
+        String resolvedImageUrl = scenarioAssetUrlResolver.resolve(evidence.getImageUrl(), evidence.getImageAssetKey());
+
         // 모든 정보를 조립하여 반환
-        return PlayEvidenceDetailResponse.of(evidence, resolvedDescription, location, relatedSuspects, relatedTimelines);
+        return PlayEvidenceDetailResponse.of(evidence, resolvedDescription, resolvedImageUrl, location, relatedSuspects, relatedTimelines);
     }
 
 
