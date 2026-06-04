@@ -290,7 +290,7 @@ API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
 |---|---|
 | 목적 | 용의자 공개 프로필과 공개 알리바이 확인 |
 | 호출 API | `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` |
-| 필요한 필드 | `suspectId`, `name`, `role`, `relationToVictim`, `publicProfile`, `publicStatement`, `alibi`, `relatedEvidences`, `interrogationLogs` |
+| 필요한 필드 | `suspectId`, `name`, `role`, `relationToVictim`, `publicProfile`, `publicStatement`, `alibi`, `portraitImageUrl`, `suspicionLevel`, `relatedEvidences`, `interrogationLogs` |
 | API Spec | 9.8 용의자 상세 조회 |
 
 ### 6.8 심문 채팅
@@ -325,7 +325,7 @@ Request 상세는 API Spec을 따른다.
 |---|---|
 | 목적 | 사건 발생 전후 시간 흐름 확인 |
 | 호출 API | `GET /api/play-sessions/{sessionId}/timeline` |
-| 필요한 필드 | `time`, `title`, `description`, `eventType`, `isTrueEvent`, `relatedEvidenceId` |
+| 필요한 필드 | `time`, `title`, `description`, `eventType`, `relatedEvidenceId` |
 | API Spec | 9.9 타임라인 조회 |
 
 ### 6.11 힌트

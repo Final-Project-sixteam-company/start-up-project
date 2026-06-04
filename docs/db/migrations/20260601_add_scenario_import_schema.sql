@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS timeline_events (
     event_type VARCHAR(50) NOT NULL DEFAULT 'FACT',
     is_true_event TINYINT(1) NOT NULL DEFAULT 1,
     visibility VARCHAR(30) NOT NULL DEFAULT 'PUBLIC',
-    created_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_timeline_events_order (scenario_id, event_order),
     KEY idx_timeline_events_suspect (related_suspect_id),

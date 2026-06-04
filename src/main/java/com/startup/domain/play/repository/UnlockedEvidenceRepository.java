@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface UnlockedEvidenceRepository extends JpaRepository<UnlockedEvidence, Long> {
 
@@ -15,6 +16,8 @@ public interface UnlockedEvidenceRepository extends JpaRepository<UnlockedEviden
     int countByPlaySessionId(Long playSessionId);
 
     boolean existsByPlaySessionIdAndEvidenceId(Long playSessionId, Long evidenceId);
+
+    Optional<UnlockedEvidence> findByPlaySessionIdAndEvidenceId(Long playSessionId, Long evidenceId);
 
     @Modifying
     @Query(value = "INSERT IGNORE INTO unlocked_evidences (play_session_id, evidence_id, unlocked_reason, unlocked_at) " +
