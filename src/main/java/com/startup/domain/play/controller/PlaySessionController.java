@@ -31,6 +31,16 @@ public class PlaySessionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
+    @Operation(summary = "진행 중인 플레이 세션 조회")
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<ActivePlaySessionResponse>> getActiveSession(
+            @RequestParam Long scenarioId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        ActivePlaySessionResponse response = playSessionService.getActiveSession(userId, scenarioId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @Operation(summary = "플레이 세션 상세 조회 (기본 정보 및 타이머 동기화)")
     @GetMapping("/{sessionId}")
     public ResponseEntity<ApiResponse<PlaySessionDetailResponse>> getSessionDetail(

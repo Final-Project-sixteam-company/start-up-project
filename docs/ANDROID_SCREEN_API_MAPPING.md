@@ -192,7 +192,7 @@ API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
 | 호출 API | `GET /api/scenarios?sort=popular&page=0&size=5` |
 | 선택 API | `GET /api/scenarios?sort=latest&page=0&size=5` |
 | 후순위 API | `GET /api/play-sessions/me?status=PLAYING&page=0&size=3` |
-| 필요한 필드 | `scenarioId`, `title`, `description`, `difficulty`, `estimatedPlayTimeMinutes`, `averageRating`, `playCount`, `thumbnailUrl`, `scenarioType` |
+| 필요한 필드 | `scenarioId`, `title`, `description`, `difficulty`, `estimatedPlayTimeMinutes`, `averageRating`, `playCount`, `thumbnailUrl`, `scenarioType`, `canPlay` |
 | API Spec | 6.1 시나리오 목록 조회, 11.3 내 플레이 기록 조회 |
 
 최근 플레이 기록은 인증/내 기록 기능이 준비되기 전까지 Mock 데이터 또는 미노출로 처리한다.
@@ -204,7 +204,7 @@ API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
 | 목적 | 공식/커스텀 시나리오 검색 및 필터 |
 | 호출 API | `GET /api/scenarios` |
 | 주요 Query | `type`, `difficulty`, `sort`, `keyword`, `page`, `size` |
-| 필요한 필드 | `scenarioId`, `title`, `description`, `difficulty`, `estimatedPlayTimeMinutes`, `suspectCount`, `evidenceCount`, `averageRating`, `scenarioType`, `isBookmarked` |
+| 필요한 필드 | `scenarioId`, `title`, `description`, `difficulty`, `estimatedPlayTimeMinutes`, `suspectCount`, `evidenceCount`, `averageRating`, `scenarioType`, `isBookmarked`, `canPlay` |
 | API Spec | 6.1 시나리오 목록 조회 |
 
 ### 5.3 시나리오 상세
@@ -228,11 +228,13 @@ API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
 |---|---|
 | 목적 | 사용자가 선택한 시나리오로 플레이 세션 생성 |
 | 호출 API | `POST /api/play-sessions` |
-| 보조 API | `GET /api/scenarios/{scenarioId}` |
+| 보조 API | `GET /api/scenarios/{scenarioId}`, `GET /api/play-sessions/active?scenarioId={scenarioId}` |
 | 필요한 필드 | `sessionId`, `scenarioId`, `status`, `startedAt` |
 | API Spec | 6.2 시나리오 상세 조회, 9.1 게임 세션 시작 |
 
 세션 시작 후 Android는 `sessionId`를 화면 이동 인자로 보관한다.
+`POST /api/play-sessions`가 409 `P002`를 반환하면 `error.details.activeSessionId`가 있는 경우 해당 세션으로 이어간다.
+`details.activeSessionId`가 없으면 `GET /api/play-sessions/active?scenarioId={scenarioId}`로 진행 중 세션을 조회해 `hasActiveSession=true`일 때 `activeSessionId`로 이어간다.
 
 ### 6.2 탐정 대시보드
 
@@ -504,7 +506,8 @@ AI 시나리오 초안 생성은 2차 기능이다.
 → 탐정 대시보드
 ```
 
-이어하기는 2차에서 완성한다. MVP에서는 최근 플레이 Mock 또는 미노출로 처리할 수 있다.
+시나리오별 진행 중 세션 복구는 MVP에서 `GET /api/play-sessions/active?scenarioId={scenarioId}`를 사용한다.
+목록형 내 기록/최근 플레이는 2차에서 완성한다.
 
 ---
 

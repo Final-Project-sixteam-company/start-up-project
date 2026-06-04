@@ -65,7 +65,8 @@ public class ScenarioService {
             int suspectCount = suspectCountMap.getOrDefault(scenario.getId(), 0);
             int evidenceCount = evidenceCountMap.getOrDefault(scenario.getId(), 0);
             String thumbnailUrl = scenarioAssetUrlResolver.resolve(scenario.getCoverAssetKey());
-            return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, false, thumbnailUrl);
+            Boolean canPlay = scenarioAccessService.canPlay(userId, scenario.getId());
+            return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, false, thumbnailUrl, canPlay);
         });
 
         return PageResponse.from(responsePage);
