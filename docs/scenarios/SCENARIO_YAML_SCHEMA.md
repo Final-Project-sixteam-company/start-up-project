@@ -148,11 +148,14 @@ locations:
     floor: "2F"
     description: "Player-facing location description"
     imageAssetKey: official/sample/v1/maps/LOC_PRIMARY_SCENE.png
+    mapX: 120
+    mapY: 80
     sortOrder: 10
 ```
 
-Locations are used for evidence source, filtering, and future map hotspot
-support. MVP does not require coordinates.
+Locations are used for evidence source, filtering, and scene map hotspots.
+For `PUBLISHED` official scenarios, `mapX` and `mapY` are required so the
+frontend can render selectable location points on the scenario map.
 
 ## Characters
 

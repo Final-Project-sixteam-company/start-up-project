@@ -249,7 +249,7 @@ API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
 |---|---|
 | 목적 | 장소 정보, 단면도, 증거 위치 표시 |
 | 호출 API | `GET /api/play-sessions/{sessionId}/locations` |
-| 필요한 필드 | `locationId`, `name`, `description`, `mapX`, `mapY`, `evidenceCount`, `evidences` |
+| 필요한 필드 | `sessionId`, `scenarioId`, `scenarioTitle`, `mapImageUrl`, `locations[].locationId`, `locations[].locationCode`, `locations[].name`, `locations[].description`, `locations[].imageUrl`, `locations[].mapX`, `locations[].mapY`, `locations[].totalEvidenceCount`, `locations[].unlockedEvidenceCount` |
 | API Spec | 9.3 현장 정보 조회 |
 
 ### 6.4 증거 보드

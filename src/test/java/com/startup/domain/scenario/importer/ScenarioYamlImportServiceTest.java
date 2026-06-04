@@ -8,6 +8,7 @@ import com.startup.domain.scenario.repository.EvidenceUnlockRuleRepository;
 import com.startup.domain.scenario.repository.EvidenceVariantStateRepository;
 import com.startup.domain.scenario.repository.NpcKnowledgeProfileRepository;
 import com.startup.domain.scenario.repository.ScenarioAssetRepository;
+import com.startup.domain.scenario.repository.ScenarioLocationRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import com.startup.domain.scenario.repository.ScenarioVariantRepository;
 import com.startup.domain.scenario.repository.SuspectRepository;
@@ -65,6 +66,9 @@ class ScenarioYamlImportServiceTest {
     @Autowired
     private ScenarioAssetRepository assetRepository;
 
+    @Autowired
+    private ScenarioLocationRepository locationRepository;
+
     @Test
     void importYaml_savesScenarioGraphAndSkipsSameHash() {
         ScenarioYaml yaml = sampleYaml();
@@ -94,6 +98,10 @@ class ScenarioYamlImportServiceTest {
         assertThat(solution.getCulpritName()).isEqualTo("용의자");
         assertThat(solution.getCulpritRole()).isEqualTo("비서");
         assertThat(solution.getMethod()).isEqualTo("방법");
+
+        var location = locationRepository.findByScenarioIdAndCode(imported.scenarioId(), "LOC_ROOM").orElseThrow();
+        assertThat(location.getMapX()).isEqualTo(120);
+        assertThat(location.getMapY()).isEqualTo(80);
     }
 
     @Test
@@ -155,6 +163,8 @@ class ScenarioYamlImportServiceTest {
                         "1F",
                         "테스트 방",
                         null,
+                        120,
+                        80,
                         10
                 )),
                 List.of(
