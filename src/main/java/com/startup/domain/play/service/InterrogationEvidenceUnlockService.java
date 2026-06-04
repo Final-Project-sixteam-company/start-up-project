@@ -81,7 +81,10 @@ public class InterrogationEvidenceUnlockService {
         Evidence presented = evidenceRepository.findById(presentedEvidenceId).orElse(null);
         Suspect suspect = suspectRepository.findById(suspectId).orElse(null);
         if (presented == null || suspect == null
-                || presented.getCode() == null || suspect.getCode() == null) {
+                || presented.getCode() == null || suspect.getCode() == null
+                || !scenarioId.equals(presented.getScenarioId())
+                || !scenarioId.equals(suspect.getScenarioId())) {
+            // 교차 시나리오 오염 방어: 제시 증거·용의자는 현재 세션 시나리오 소속이어야 한다.
             return List.of();
         }
         String presentedCode = presented.getCode();
@@ -109,11 +112,15 @@ public class InterrogationEvidenceUnlockService {
             if (!matches(rule, presentedCode, suspectCode, alreadyUnlockedCodes)) {
                 continue;
             }
+            // 교차 시나리오 오염 방어: 해금 대상 증거도 현재 시나리오 소속이어야 한다.
+            Evidence target = evidenceRepository.findById(rule.getEvidenceId()).orElse(null);
+            if (target == null || !scenarioId.equals(target.getScenarioId())) {
+                continue;
+            }
             int inserted = unlockedEvidenceRepository.insertIgnoreUnlockedEvidence(
-                    sessionId, rule.getEvidenceId(), "EVIDENCE_PRESENTED");
+                    sessionId, target.getId(), "EVIDENCE_PRESENTED");
             if (inserted > 0) {
-                evidenceRepository.findById(rule.getEvidenceId())
-                        .ifPresent(e -> newlyUnlocked.add(new UnlockedEvidenceResult(e.getId(), e.getTitle())));
+                newlyUnlocked.add(new UnlockedEvidenceResult(target.getId(), target.getTitle()));
             }
         }
         return newlyUnlocked;
@@ -144,8 +151,9 @@ public class InterrogationEvidenceUnlockService {
         try {
             return jsonMapper.readValue(rule.getConditionJson(), CONDITION_TYPE);
         } catch (Exception e) {
-            log.warn("EVIDENCE_PRESENTED unlock conditionJson 파싱 실패. evidenceId={}, conditionJson={}",
-                    rule.getEvidenceId(), rule.getConditionJson(), e);
+            // 민감 정보 노출 방지: conditionJson 전문·스택트레이스 대신 evidenceId와 예외 클래스만 남긴다.
+            log.warn("EVIDENCE_PRESENTED unlock conditionJson 파싱 실패. evidenceId={}, error={}",
+                    rule.getEvidenceId(), e.getClass().getSimpleName());
             return Map.of();
         }
     }
