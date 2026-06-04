@@ -1,0 +1,58 @@
+package com.startup.domain.play.dto;
+
+import com.startup.domain.scenario.entity.Evidence;
+import com.startup.domain.scenario.entity.ScenarioLocation;
+import com.startup.domain.scenario.entity.Suspect;
+import com.startup.domain.scenario.entity.TimelineEvent;
+import com.startup.domain.scenario.enums.EvidenceImportance;
+import lombok.Builder;
+
+import java.util.List;
+
+@Builder
+public record PlayEvidenceDetailResponse(
+        Long evidenceId,
+        String title,
+        String description,
+        String imageUrl,
+        LocationInfo location,
+        EvidenceImportance importance,
+        List<SuspectInfo> relatedSuspects,
+        List<TimelineInfo> relatedTimelineEvents
+) {
+    // JSON 중첩 객체를 위한 내부 record 선언
+    public record LocationInfo(Long locationId, String name) {}
+    public record SuspectInfo(Long suspectId, String name) {}
+    public record TimelineInfo(String time, String title) {}
+
+    public static PlayEvidenceDetailResponse of(
+            Evidence evidence,
+            String resolvedDescription,
+            String resolvedImageUrl,
+            ScenarioLocation location,
+            List<Suspect> relatedSuspects,
+            List<TimelineEvent> timelineEvents
+    ) {
+        LocationInfo locationInfo = location != null ?
+                new LocationInfo(location.getId(), location.getName()) : null;
+
+        List<SuspectInfo> suspectInfos = relatedSuspects.stream()
+                .map(s -> new SuspectInfo(s.getId(), s.getName()))
+                .toList();
+
+        List<TimelineInfo> timelineInfos = timelineEvents.stream()
+                .map(t -> new TimelineInfo(t.getEventTime(), t.getTitle()))
+                .toList();
+
+        return PlayEvidenceDetailResponse.builder()
+                .evidenceId(evidence.getId())
+                .title(evidence.getTitle())
+                .description(resolvedDescription)
+                .imageUrl(resolvedImageUrl)
+                .location(locationInfo)
+                .importance(evidence.getImportance())
+                .relatedSuspects(suspectInfos)
+                .relatedTimelineEvents(timelineInfos)
+                .build();
+    }
+}

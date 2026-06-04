@@ -59,6 +59,7 @@ public class PlaySessionService {
     private final EvidenceVariantDescriptionResolver evidenceVariantDescriptionResolver;
     private final EvidenceUnlockPolicy evidenceUnlockPolicy;
     private final ScenarioAssetUrlResolver scenarioAssetUrlResolver;
+    private final TimelineEventRepository timelineEventRepository;
 
     //게임 시작 세션
     @Transactional
@@ -114,6 +115,22 @@ public class PlaySessionService {
 
         return PlaySessionCreateResponse.from(session);
     }
+
+    @Transactional(readOnly = true)
+    public PlaySessionDetailResponse getSessionDetail(Long userId, Long sessionId) {
+        // 세션 존재 여부 확인
+        PlaySession session = playSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
+
+        // 소유권 검증: 남의 게임 세션을 URL ID 추측으로 훔쳐보지 못하도록 차단
+        if (!session.getUserId().equals(userId)) {
+            throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
+        }
+
+        // 3. DTO 변환 및 반환
+        return PlaySessionDetailResponse.from(session);
+    }
+
 
     //대시보드 조회
     @Transactional
@@ -239,6 +256,109 @@ public class PlaySessionService {
 
         return result;
     }
+
+    @Transactional
+    public java.util.List<PlayTimelineResponse> getTimeline(Long userId, Long sessionId) {
+        PlaySession session = playSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
+
+        // 소유권 검증 (동시성/보안 방어)
+        if (!session.getUserId().equals(userId)) {
+            throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
+        }
+
+        // 해당 시나리오의 전체 타임라인 사건을 순서대로 모두 가져옴
+        java.util.List<TimelineEvent> allEvents = timelineEventRepository.findAllByScenarioIdOrderByEventOrder(session.getScenarioId());
+
+        // 타임라인 조회 전, 시간 경과에 따른 자동 해금 증거 최신화
+        processAutomaticUnlocks(session);
+
+        // 현재 유저가 지금까지 게임하면서 '해금한(찾은) 증거 ID' 목록을 Set으로 변환 (O(1) 조회를 위해 Set 사용)
+        java.util.Set<Long> unlockedEvidenceIds = unlockedEvidenceRepository.findAllByPlaySessionId(sessionId).stream()
+                .map(unlocked -> unlocked.getEvidenceId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        // 필터링 로직 (스포일러 방지)
+        return allEvents.stream()
+                .filter(event -> {
+                    // PUBLIC 상태가 아닌 시스템/정답용 타임라인은 무조건 숨김
+                    if (!"PUBLIC".equalsIgnoreCase(event.getVisibility())) {
+                        return false;
+                    }
+
+                    // 특정 타임라인 사건이 어떤 증거(관련 증거 ID)와 연결되어 있다면?
+                    if (event.getRelatedEvidenceId() != null) {
+                        // 유저가 그 증거를 찾았을 때만 타임라인에 보여준다! (못 찾았으면 숨김 처리)
+                        return unlockedEvidenceIds.contains(event.getRelatedEvidenceId());
+                    }
+
+                    // 증거와 연결되지 않은 PUBLIC 사건(뼈대 사건)은 노출
+                    return true;
+                })
+                .map(PlayTimelineResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public PlayEvidenceDetailResponse getEvidenceDetail(Long userId, Long sessionId, Long evidenceId) {
+        // 소유권 및 세션 검증
+        PlaySession session = playSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.SESSION_NOT_FOUND));
+
+        if (!session.getUserId().equals(userId)) {
+            throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED);
+        }
+
+        // 증거 존재 확인 및 타 시나리오 증거 찌르기 방어
+        Evidence evidence = evidenceRepository.findById(evidenceId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.EVIDENCE_NOT_FOUND));
+
+        if (!evidence.getScenarioId().equals(session.getScenarioId())) {
+            // 다른 시나리오의 증거 ID를 입력한 경우 못 찾은 척(404) 튕겨냄
+            throw new PlayException(PlayErrorCode.EVIDENCE_NOT_FOUND);
+        }
+
+        // 조회 시점에 자동 해금 조건 동기화 처리 (단건 상세 조회 시점의 최신 상태 반영)
+        processAutomaticUnlocks(session);
+
+        // 해금 여부 검증 (스포일러 완벽 방어)
+        // 기본 제공 증거(isInitialPublic)가 아니라면, 반드시 UnlockedEvidence에 기록이 있어야 함
+        if (!evidence.getIsInitialPublic()) {
+            boolean isUnlocked = unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, evidenceId);
+            if (!isUnlocked) {
+                // 아직 못 얻은 증거라면 마스킹할 필요 없이 단호하게 403 Forbidden 에러 반환!
+                throw new PlayException(PlayErrorCode.SESSION_ACCESS_DENIED, "아직 해금되지 않은 증거입니다.");
+            }
+        }
+
+        // 연관 데이터 조회 (Location, Suspects, TimelineEvents)
+        // 장소 정보
+        ScenarioLocation location = null;
+        if (evidence.getLocationId() != null) {
+            location = scenarioLocationRepository.findById(evidence.getLocationId()).orElse(null);
+        }
+
+        // 연관 용의자 정보
+        java.util.List<Long> suspectIds = evidenceSuspectRepository.findAllByEvidenceIdIn(java.util.List.of(evidenceId)).stream()
+                .map(es -> es.getSuspectId())
+                .toList();
+        java.util.List<Suspect> relatedSuspects = suspectIds.isEmpty() ? java.util.List.of() : suspectRepository.findAllById(suspectIds);
+
+        // 연관 타임라인 사건 정보 (스포일러 방어: 비공개 사건은 단건 상세에서도 숨김 처리)
+        java.util.List<TimelineEvent> relatedTimelines = timelineEventRepository.findAllByRelatedEvidenceIdOrderByEventOrder(evidenceId).stream()
+                .filter(event -> "PUBLIC".equalsIgnoreCase(event.getVisibility()))
+                .toList();
+
+        // 변이(Variant) 전용 설명 해석 (단건 조회 시에도 선택된 변이 경로에 맞는 단서를 보여줌)
+        String resolvedDescription = evidenceVariantDescriptionResolver.resolve(evidence, session.getScenarioVariantId());
+
+        // 이미지 URL을 asset resolver로 변환 (증거 목록 API와 동일한 흐름)
+        String resolvedImageUrl = scenarioAssetUrlResolver.resolve(evidence.getImageUrl(), evidence.getImageAssetKey());
+
+        // 모든 정보를 조립하여 반환
+        return PlayEvidenceDetailResponse.of(evidence, resolvedDescription, resolvedImageUrl, location, relatedSuspects, relatedTimelines);
+    }
+
 
     private Long selectVariantId(Long scenarioId) {
         List<ScenarioVariant> activeVariants =

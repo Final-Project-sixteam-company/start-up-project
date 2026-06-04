@@ -31,6 +31,17 @@ public class PlaySessionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
+    @Operation(summary = "플레이 세션 상세 조회 (기본 정보 및 타이머 동기화)")
+    @GetMapping("/{sessionId}")
+    public ResponseEntity<ApiResponse<PlaySessionDetailResponse>> getSessionDetail(
+            @PathVariable Long sessionId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        PlaySessionDetailResponse response = playSessionService.getSessionDetail(userId, sessionId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+
     @Operation(summary = "탐정 대시보드 조회")
     @GetMapping("/{sessionId}/dashboard")
     public ResponseEntity<ApiResponse<DashboardResponse>> getDashboard(
@@ -62,6 +73,28 @@ public class PlaySessionController {
         List<PlaySuspectResponse> response = playSessionService.getSuspects(userId, sessionId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @Operation(summary = "타임라인 조회")
+    @GetMapping("/{sessionId}/timeline")
+    public ResponseEntity<ApiResponse<java.util.List<PlayTimelineResponse>>> getTimeline(
+            @PathVariable Long sessionId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        java.util.List<PlayTimelineResponse> response = playSessionService.getTimeline(userId, sessionId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "증거 단건 상세 조회 (스포일러 방지 적용)")
+    @GetMapping("/{sessionId}/evidences/{evidenceId}")
+    public ResponseEntity<ApiResponse<PlayEvidenceDetailResponse>> getEvidenceDetail(
+            @PathVariable Long sessionId,
+            @PathVariable Long evidenceId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        PlayEvidenceDetailResponse response = playSessionService.getEvidenceDetail(userId, sessionId, evidenceId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
 
     @Operation(summary = "현장/장소 정보 조회")
     @GetMapping("/{sessionId}/locations")

@@ -2,6 +2,8 @@ package com.startup.domain.scenario.repository;
 
 import com.startup.domain.scenario.entity.Suspect;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,4 +17,8 @@ public interface SuspectRepository extends JpaRepository<Suspect, Long> {
     Optional<Suspect> findByIdAndScenarioId(Long id, Long scenarioId);
 
     Optional<Suspect> findByScenarioIdAndCode(Long scenarioId, String code);
+
+    //여러 시나리오의 용의자 수를 한번에 조회
+    @Query("SELECT s.scenarioId, COUNT(s) FROM Suspect s WHERE s.scenarioId IN :scenarioIds GROUP BY s.scenarioId")
+    List<Object[]> countByScenarioIdIn(@Param("scenarioIds") List<Long> scenarioIds);
 }
