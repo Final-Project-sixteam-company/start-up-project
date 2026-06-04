@@ -329,6 +329,11 @@ public class ScenarioYamlValidator {
             if (hasText(condition.requiredCharacterCode()) && !characterCodes.contains(condition.requiredCharacterCode())) {
                 violations.add("unlockRule " + rule.evidenceCode() + " references missing character: " + condition.requiredCharacterCode());
             }
+            if (hasText(condition.requiredPresentedEvidenceCode())
+                    && !evidenceCodes.contains(condition.requiredPresentedEvidenceCode())) {
+                violations.add("unlockRule " + rule.evidenceCode()
+                        + " references missing presented evidence: " + condition.requiredPresentedEvidenceCode());
+            }
         }
     }
 

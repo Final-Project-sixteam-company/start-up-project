@@ -287,13 +287,13 @@ class ScenarioYamlImportServiceTest {
                         new ScenarioYaml.UnlockRuleYaml(
                                 "EVIDENCE_OPENING",
                                 "PHASE",
-                                new ScenarioYaml.UnlockConditionYaml("PHASE_0_OPENING", List.of(), null, null, false),
+                                new ScenarioYaml.UnlockConditionYaml("PHASE_0_OPENING", List.of(), null, null, null, false),
                                 10
                         ),
                         new ScenarioYaml.UnlockRuleYaml(
                                 "EVIDENCE_KEY",
                                 "PHASE",
-                                new ScenarioYaml.UnlockConditionYaml("PHASE_2_SYSTEM_LOGS", List.of("EVIDENCE_OPENING"), null, null, false),
+                                new ScenarioYaml.UnlockConditionYaml("PHASE_2_SYSTEM_LOGS", List.of("EVIDENCE_OPENING"), null, null, null, false),
                                 20
                         )
                 ),
