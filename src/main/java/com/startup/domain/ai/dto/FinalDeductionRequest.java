@@ -12,13 +12,13 @@ public record FinalDeductionRequest(
         @NotNull @Schema(description = "선택한 범인 용의자 ID", example = "1")
         Long selectedCulpritId,
 
-        @NotBlank @Schema(description = "범행 동기 서술")
+        @NotBlank @Size(max = 1000, message = "범행 동기는 1000자 이하로 입력해 주세요.") @Schema(description = "범행 동기 서술")
         String motiveText,
 
-        @NotBlank @Schema(description = "범행 방법 서술")
+        @NotBlank @Size(max = 1000, message = "범행 방법은 1000자 이하로 입력해 주세요.") @Schema(description = "범행 방법 서술")
         String methodText,
 
-        @Schema(description = "은폐 방법 서술")
+        @Size(max = 1000, message = "은폐 방법은 1000자 이하로 입력해 주세요.") @Schema(description = "은폐 방법 서술")
         String coverUpText,
 
         @NotNull
