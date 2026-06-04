@@ -1266,6 +1266,7 @@ GET /api/play-sessions/{sessionId}/suspects
       "relationToVictim": "공동창업자",
       "publicStatement": "재무팀 자리에서 투자 자료를 정리하고 있었다.",
       "alibi": "22시 이후 데모룸 근처에 가지 않았다고 주장한다.",
+      "portraitImageUrl": "https://assets.example.com/official/demo/characters/SUSPECT_CFO.png",
       "suspicionLevel": 60,
       "interrogationCount": 2
     }
@@ -1295,6 +1296,8 @@ GET /api/play-sessions/{sessionId}/suspects/{suspectId}
     "publicProfile": "회사 재무를 담당하는 인물",
     "publicStatement": "사건 당시 재무팀 자리에서 투자자료를 정리하고 있었다.",
     "alibi": "데모룸 근처에는 가지 않았다고 주장한다.",
+    "portraitImageUrl": "https://assets.example.com/official/demo/characters/SUSPECT_CFO.png",
+    "suspicionLevel": 60,
     "relatedEvidences": [
       {
         "evidenceId": 1,
@@ -1327,7 +1330,6 @@ GET /api/play-sessions/{sessionId}/timeline
       "title": "카페 결제",
       "description": "오트라떼와 아몬드라떼가 결제됨",
       "eventType": "FACT",
-      "isTrueEvent": true,
       "relatedEvidenceId": 3
     },
     {
@@ -1335,7 +1337,6 @@ GET /api/play-sessions/{sessionId}/timeline
       "title": "피해자 계정 메시지 전송",
       "description": "피해자 계정으로 단톡방 메시지가 전송됨",
       "eventType": "FACT",
-      "isTrueEvent": true,
       "relatedEvidenceId": 4
     }
   ],
@@ -2073,6 +2074,8 @@ AI 검증 요청
 | `SUSPECT_NOT_FOUND` | 용의자를 찾을 수 없음 |
 | `EVIDENCE_NOT_FOUND` | 증거를 찾을 수 없음 |
 | `EVIDENCE_LOCKED` | 아직 해금되지 않은 증거 |
+| `EVIDENCE_NOT_UNLOCKABLE` / `P010` | 아직 해금 조건을 충족하지 않은 증거 |
+| `SUSPECT_NOT_FOUND` / `P011` | 플레이 세션 시나리오에 속하지 않는 용의자 |
 | `HINT_NOT_AVAILABLE` | 아직 사용 불가능한 힌트 |
 | `FINAL_DEDUCTION_ALREADY_SUBMITTED` | 이미 최종 추리를 제출함 |
 | `AI_REQUEST_FAILED` | AI 요청 실패 |

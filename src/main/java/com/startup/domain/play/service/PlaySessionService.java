@@ -17,6 +17,7 @@ import com.startup.domain.play.support.EvidenceVariantDescriptionResolver;
 import com.startup.domain.play.support.EvidenceUnlockPolicy;
 import com.startup.domain.play.support.FinalDeductionLockManager;
 import com.startup.domain.scenario.entity.*;
+import com.startup.domain.scenario.enums.EvidenceUnlockType;
 import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
@@ -359,6 +360,47 @@ public class PlaySessionService {
         return PlayEvidenceDetailResponse.of(evidence, resolvedDescription, resolvedImageUrl, location, relatedSuspects, relatedTimelines);
     }
 
+    @Transactional
+    public EvidenceUnlockResponse unlockEvidence(Long userId, Long sessionId, Long evidenceId, EvidenceUnlockRequest request) {
+        PlaySession session = getSessionOrThrow(sessionId);
+        validateSessionOwner(session, userId);
+
+        if (!session.isPlaying()) {
+            throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
+        }
+        if (finalDeductionLockManager.isLocked(sessionId)) {
+            throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
+        }
+
+        Evidence evidence = evidenceRepository.findById(evidenceId)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.EVIDENCE_NOT_FOUND));
+        if (!evidence.getScenarioId().equals(session.getScenarioId())) {
+            throw new PlayException(PlayErrorCode.EVIDENCE_NOT_FOUND);
+        }
+
+        processAutomaticUnlocks(session);
+
+        Optional<UnlockedEvidence> existing =
+                unlockedEvidenceRepository.findByPlaySessionIdAndEvidenceId(sessionId, evidenceId);
+        if (existing.isPresent()) {
+            return toEvidenceUnlockResponse(existing.get());
+        }
+
+        if (!canUnlockByRequest(session, evidence)) {
+            throw new PlayException(PlayErrorCode.EVIDENCE_NOT_UNLOCKABLE);
+        }
+
+        int insertedRows = unlockedEvidenceRepository.insertIgnoreUnlockedEvidence(
+                sessionId,
+                evidenceId,
+                unlockReasonFor(evidence, request)
+        );
+
+        return findUnlockedEvidenceAfterInsert(sessionId, evidenceId, insertedRows)
+                .map(this::toEvidenceUnlockResponse)
+                .orElseThrow(() -> new PlayException(PlayErrorCode.EVIDENCE_NOT_UNLOCKABLE));
+    }
+
 
     private Long selectVariantId(Long scenarioId) {
         List<ScenarioVariant> activeVariants =
@@ -520,6 +562,48 @@ public class PlaySessionService {
                         interrogationCountMap.getOrDefault(suspect.getId(), 0) //map에서 가져오고 없으면 0
                 ))
                 .toList();
+    }
+
+    @Transactional
+    public PlaySuspectDetailResponse getSuspectDetail(Long userId, Long sessionId, Long suspectId) {
+        PlaySession session = getSessionOrThrow(sessionId);
+        validateSessionOwner(session, userId);
+
+        Suspect suspect = suspectRepository.findByIdAndScenarioId(suspectId, session.getScenarioId())
+                .orElseThrow(() -> new PlayException(PlayErrorCode.SUSPECT_NOT_FOUND));
+
+        processAutomaticUnlocks(session);
+
+        Set<Long> unlockedEvidenceIds = unlockedEvidenceRepository.findAllByPlaySessionId(sessionId)
+                .stream()
+                .map(UnlockedEvidence::getEvidenceId)
+                .collect(Collectors.toSet());
+
+        List<EvidenceSuspect> relations = evidenceSuspectRepository.findAllBySuspectIdIn(List.of(suspectId));
+        List<Long> relatedEvidenceIds = relations.stream()
+                .map(EvidenceSuspect::getEvidenceId)
+                .distinct()
+                .toList();
+
+        List<Evidence> relatedUnlockedEvidences = relatedEvidenceIds.isEmpty()
+                ? List.of()
+                : evidenceRepository.findAllById(relatedEvidenceIds).stream()
+                        .filter(evidence -> evidence.getScenarioId().equals(session.getScenarioId()))
+                        .filter(evidence -> unlockedEvidenceIds.contains(evidence.getId()))
+                        .sorted(Comparator
+                                .comparing(Evidence::getSortOrder, Comparator.nullsLast(Integer::compareTo))
+                                .thenComparing(Evidence::getId))
+                        .toList();
+
+        List<com.startup.domain.ai.entity.InterrogationLog> interrogationLogs =
+                interrogationLogRepository.findByPlaySessionIdAndSuspectIdOrderByCreatedAtAsc(sessionId, suspectId);
+
+        return PlaySuspectDetailResponse.of(
+                suspect,
+                scenarioAssetUrlResolver.resolve(suspect.getPortraitAssetKey()),
+                relatedUnlockedEvidences,
+                interrogationLogs
+        );
     }
 
     // 현장/장소 정보 조회
@@ -736,5 +820,75 @@ public class PlaySessionService {
 
     private int countAsInt(Map<Long, Long> counts, Long id) {
         return counts.getOrDefault(id, 0L).intValue();
+    }
+
+    private boolean canUnlockByRequest(PlaySession session, Evidence evidence) {
+        if (Boolean.TRUE.equals(evidence.getIsInitialPublic())) {
+            return true;
+        }
+        if (EvidenceUnlockType.MANUAL == evidence.getUnlockType()) {
+            return true;
+        }
+
+        int elapsedMinutes = calculateElapsedSeconds(session) / 60;
+        EvidenceUnlockRule unlockRule = evidenceUnlockRuleRepository.findByEvidenceId(evidence.getId()).orElse(null);
+        Set<String> unlockedEvidenceCodes = unlockedEvidenceCodes(session);
+        return evidenceUnlockPolicy.canAutoUnlock(evidence, unlockRule, elapsedMinutes, unlockedEvidenceCodes);
+    }
+
+    private Set<String> unlockedEvidenceCodes(PlaySession session) {
+        Set<Long> unlockedEvidenceIds = unlockedEvidenceRepository.findAllByPlaySessionId(session.getId())
+                .stream()
+                .map(UnlockedEvidence::getEvidenceId)
+                .collect(Collectors.toSet());
+        if (unlockedEvidenceIds.isEmpty()) {
+            return Set.of();
+        }
+        return evidenceRepository.findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
+                .stream()
+                .filter(evidence -> unlockedEvidenceIds.contains(evidence.getId()))
+                .map(Evidence::getCode)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    private String unlockReasonFor(Evidence evidence, EvidenceUnlockRequest request) {
+        if (Boolean.TRUE.equals(evidence.getIsInitialPublic())) {
+            return "INITIAL_PUBLIC_SYNC";
+        }
+        if (EvidenceUnlockType.MANUAL == evidence.getUnlockType()) {
+            String requestedReason = normalizedRequestedReason(request);
+            return requestedReason == null ? "MANUAL" : "MANUAL:" + requestedReason;
+        }
+        return evidence.getUnlockType().name() + "_CONDITION";
+    }
+
+    private String normalizedRequestedReason(EvidenceUnlockRequest request) {
+        if (request == null || request.reason() == null || request.reason().isBlank()) {
+            return null;
+        }
+        String normalized = request.reason().trim().replaceAll("[^A-Za-z0-9_-]", "_");
+        if (normalized.isBlank()) {
+            return null;
+        }
+        return normalized.length() > 80 ? normalized.substring(0, 80) : normalized;
+    }
+
+    private EvidenceUnlockResponse toEvidenceUnlockResponse(UnlockedEvidence unlockedEvidence) {
+        return new EvidenceUnlockResponse(
+                unlockedEvidence.getEvidenceId(),
+                true,
+                unlockedEvidence.getUnlockedAt()
+        );
+    }
+
+    private Optional<UnlockedEvidence> findUnlockedEvidenceAfterInsert(Long sessionId, Long evidenceId, int insertedRows) {
+        if (insertedRows > 0) {
+            return unlockedEvidenceRepository.findByPlaySessionIdAndEvidenceId(sessionId, evidenceId);
+        }
+
+        // MySQL REPEATABLE_READ keeps the earlier snapshot for normal reads.
+        // If INSERT IGNORE lost to a concurrent request, use a locking read so retries remain idempotent.
+        return unlockedEvidenceRepository.findByPlaySessionIdAndEvidenceIdForUpdate(sessionId, evidenceId);
     }
 }
