@@ -19,6 +19,7 @@ public class ScenarioYamlValidator {
 
     private static final Pattern ASSET_KEY_PATTERN = Pattern.compile("^[A-Za-z0-9._/-]+$");
     private static final Pattern LOCAL_PATH_PATTERN = Pattern.compile("^[A-Za-z]:\\\\|.*\\\\.*");
+    private static final Set<String> TIMELINE_EVENT_VISIBILITIES = Set.of("PUBLIC");
 
     public List<String> validate(ScenarioYaml yaml) {
         List<String> violations = new ArrayList<>();
@@ -215,6 +216,7 @@ public class ScenarioYamlValidator {
             requireText(event.title(), "timelineEvents[" + event.code() + "].title", violations);
             requireText(event.eventType(), "timelineEvents[" + event.code() + "].eventType", violations);
             requireText(event.visibility(), "timelineEvents[" + event.code() + "].visibility", violations);
+            validateTimelineVisibility(event, violations);
             if (event.isTrueEvent() == null) {
                 violations.add("timelineEvents[" + event.code() + "].isTrueEvent is required.");
             }
@@ -231,6 +233,17 @@ public class ScenarioYamlValidator {
                 violations.add("timelineEvent " + event.code()
                         + " references missing related character: " + event.relatedCharacterCode());
             }
+        }
+    }
+
+    private void validateTimelineVisibility(ScenarioYaml.TimelineEventYaml event, List<String> violations) {
+        if (!hasText(event.visibility())) {
+            return;
+        }
+        String visibility = event.visibility();
+        if (!TIMELINE_EVENT_VISIBILITIES.contains(visibility)) {
+            violations.add("timelineEvents[" + event.code() + "].visibility must be one of "
+                    + TIMELINE_EVENT_VISIBILITIES + ": " + visibility);
         }
     }
 

@@ -229,6 +229,9 @@ timelineEvents:
 `GET /api/play-sessions/{sessionId}/timeline`.
 
 Official YAML should put only player-safe public timeline items here.
+`visibility` currently allows only `PUBLIC`; typos such as `PULBIC`
+must fail import validation instead of silently hiding the event from
+every player.
 Variant truth timelines, culprit-only actions, hidden cover-up steps, and final
 solution timelines must remain under backend-only variant/solution data or
 private design documents. If `relatedEvidenceCode` is present, runtime can

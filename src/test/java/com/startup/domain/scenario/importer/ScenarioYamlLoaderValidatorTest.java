@@ -83,6 +83,19 @@ class ScenarioYamlLoaderValidatorTest {
     }
 
     @Test
+    void invalidTimelineVisibility_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "visibility: PUBLIC\n    isTrueEvent: true",
+                "visibility: PULBIC\n    isTrueEvent: true"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "timelineEvents[TIMELINE_TEST].visibility must be one of"));
+    }
+
+    @Test
     void duplicateTimelineOrder_failsValidation() throws IOException {
         String invalidYaml = SAMPLE_YAML.replace(
                 "timelineEvents:\n" +
