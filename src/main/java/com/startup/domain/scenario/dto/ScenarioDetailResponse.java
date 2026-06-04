@@ -12,6 +12,8 @@ public record ScenarioDetailResponse(
         String title,
         String description,
         String synopsis,
+        String coverImageUrl,
+        String mapImageUrl,
         ScenarioType scenarioType,
         ScenarioVisibility visibility,
         Difficulty difficulty,
@@ -37,11 +39,20 @@ public record ScenarioDetailResponse(
     public static ScenarioDetailResponse from(
             Scenario scenario, String creatorNickname,int suspectCount, int evidenceCount, int hintCount,
             Boolean isBookmarked, Boolean canPlay) {
+        return from(scenario, creatorNickname, suspectCount, evidenceCount, hintCount,
+                isBookmarked, canPlay, null, null);
+    }
+
+    public static ScenarioDetailResponse from(
+            Scenario scenario, String creatorNickname, int suspectCount, int evidenceCount, int hintCount,
+            Boolean isBookmarked, Boolean canPlay, String coverImageUrl, String mapImageUrl) {
         return new ScenarioDetailResponse(
                 scenario.getId(),
                 scenario.getTitle(),
                 scenario.getDescription(),
                 scenario.getSynopsis(),
+                coverImageUrl,
+                mapImageUrl,
                 scenario.getScenarioType(),
                 scenario.getVisibility(),
                 scenario.getDifficulty(),

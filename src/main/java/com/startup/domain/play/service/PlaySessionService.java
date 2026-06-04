@@ -22,6 +22,7 @@ import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.*;
 import com.startup.domain.scenario.service.ScenarioAccessService;
+import com.startup.domain.scenario.support.ScenarioAssetUrlResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -57,6 +58,7 @@ public class PlaySessionService {
     private final FinalDeductionLockManager finalDeductionLockManager;
     private final EvidenceVariantDescriptionResolver evidenceVariantDescriptionResolver;
     private final EvidenceUnlockPolicy evidenceUnlockPolicy;
+    private final ScenarioAssetUrlResolver scenarioAssetUrlResolver;
 
     //게임 시작 세션
     @Transactional
@@ -216,7 +218,9 @@ public class PlaySessionService {
                     ? locationNameMap.get(evidence.getLocationId())
                     : null;
             String unlockHint = isUnlocked ? null : buildUnlockHint(evidence);
-            String imageUrl = isUnlocked ? evidence.getImageUrl() : null;
+            String imageUrl = isUnlocked
+                    ? scenarioAssetUrlResolver.resolve(evidence.getImageUrl(), evidence.getImageAssetKey())
+                    : null;
 
             result.add(new PlayEvidenceResponse(
                     evidence.getId(),
@@ -391,6 +395,7 @@ public class PlaySessionService {
                         suspect.getRelationToVictim(),
                         suspect.getPublicStatement(),
                         suspect.getAlibi(),
+                        scenarioAssetUrlResolver.resolve(suspect.getPortraitAssetKey()),
                         suspect.getSuspicionLevel(),
                         interrogationCountMap.getOrDefault(suspect.getId(), 0) //map에서 가져오고 없으면 0
                 ))

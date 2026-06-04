@@ -101,6 +101,8 @@ caselab:
       max-tokens: ${AI_VALIDATION_MAX_TOKENS:1500}
 
 clueroom:
+  assets:
+    public-base-url: ${AWS_S3_PUBLIC_BASE_URL:}
   scenario-import:
     # 민감한 공식 시나리오 YAML은 repo에 올리지 않고 서버 로컬 경로 또는 private storage에서 주입한다.
     enabled: ${CLUEROOM_SCENARIO_IMPORT_ENABLED:false}
