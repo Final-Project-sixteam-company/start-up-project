@@ -34,4 +34,14 @@ public record InterrogationRequest(
                 }
                 return presentedEvidenceId != null;
         }
+
+        // 반대 방향: 증거 제시 심문이 아니면(FREE/RECOMMENDED) 제시 증거 ID를 보내면 안 된다.
+        @AssertTrue(message = "증거 제시 심문이 아니면 제시 증거 ID를 보낼 수 없습니다.")
+        @Schema(hidden = true)
+        public boolean isPresentedEvidenceAbsentForNonEvidenceQuestion() {
+                if (questionType == QuestionType.EVIDENCE_PRESENTED) {
+                        return true;
+                }
+                return presentedEvidenceId == null;
+        }
 }

@@ -70,6 +70,30 @@ class InterrogationRequestValidationTest {
     }
 
     @Test
+    @DisplayName("A1: FREE인데 presentedEvidenceId가 있으면 -> 400, AI 미호출")
+    void freeWithEvidenceRejected() throws Exception {
+        mockMvc.perform(post("/api/play-sessions/1/interrogations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"suspectId\":1,\"questionType\":\"FREE\","
+                                + "\"question\":\"자유 질문\",\"presentedEvidenceId\":3}"))
+                .andExpect(status().isBadRequest());
+
+        verify(interrogationService, never()).interrogate(anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("A1: RECOMMENDED인데 presentedEvidenceId가 있으면 -> 400, AI 미호출")
+    void recommendedWithEvidenceRejected() throws Exception {
+        mockMvc.perform(post("/api/play-sessions/1/interrogations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"suspectId\":1,\"questionType\":\"RECOMMENDED\","
+                                + "\"question\":\"추천 질문\",\"presentedEvidenceId\":3}"))
+                .andExpect(status().isBadRequest());
+
+        verify(interrogationService, never()).interrogate(anyLong(), any());
+    }
+
+    @Test
     @DisplayName("QA-12: 질문 500자 초과 -> 400")
     void questionTooLong() throws Exception {
         String longQuestion = "a".repeat(501);
