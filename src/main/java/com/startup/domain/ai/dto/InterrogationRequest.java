@@ -2,6 +2,7 @@ package com.startup.domain.ai.dto;
 
 import com.startup.domain.ai.enums.QuestionType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -24,4 +25,13 @@ public record InterrogationRequest(
         @Schema(description = "제시할 증거 ID (증거 제시 심문 시)", example = "3")
         Long presentedEvidenceId
 ) {
+        // 증거 제시 심문(EVIDENCE_PRESENTED)인데 제시 증거 ID가 없으면 AI 호출 전에 400으로 차단한다.
+        @AssertTrue(message = "증거 제시 심문에는 제시할 증거 ID가 필요합니다.")
+        @Schema(hidden = true)
+        public boolean isPresentedEvidenceProvided() {
+                if (questionType != QuestionType.EVIDENCE_PRESENTED) {
+                        return true;
+                }
+                return presentedEvidenceId != null;
+        }
 }
