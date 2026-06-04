@@ -3,6 +3,8 @@ package com.startup.domain.ai.client;
 import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -22,13 +24,16 @@ public class AiClient {
     private final ChatModel chatModel;
     private final MockResponseProvider mockResponseProvider;
     private final boolean mockMode;
+    private final boolean debugResponseLogEnabled;
 
     public AiClient(@Autowired(required = false) ChatModel chatModel,
                     MockResponseProvider mockResponseProvider,
-                    @Value("${spring.ai.model.chat:none}") String chatModelType) {
+                    @Value("${spring.ai.model.chat:none}") String chatModelType,
+                    @Value("${caselab.ai.debug-response-log-enabled:false}") boolean debugResponseLogEnabled) {
         this.chatModel = chatModel;
         this.mockResponseProvider = mockResponseProvider;
         this.mockMode = "none".equalsIgnoreCase(chatModelType);
+        this.debugResponseLogEnabled = debugResponseLogEnabled;
     }
 
     public String chat(String systemPrompt, String userPrompt, AiRequestParams params) {
@@ -57,7 +62,15 @@ public class AiClient {
                 throw new AiException(AiErrorCode.AI_INVALID_RESPONSE);
             }
 
-            return response.getResult().getOutput().getText();
+            AssistantMessage output = response.getResult().getOutput();
+            if (output == null) {
+                logChatResponse(response, null);
+                throw new AiException(AiErrorCode.AI_INVALID_RESPONSE);
+            }
+
+            String text = output.getText();
+            logChatResponse(response, output);
+            return text;
         } catch (AiException e) {
             throw e;
         } catch (Exception e) {
@@ -82,5 +95,42 @@ public class AiClient {
 
     public String getModelName() {
         return mockMode ? "MOCK" : "openai";
+    }
+
+    private void logChatResponse(ChatResponse response, AssistantMessage output) {
+        if (!debugResponseLogEnabled) {
+            return;
+        }
+
+        int resultCount = response.getResults() == null ? 0 : response.getResults().size();
+        Generation result = response.getResult();
+        String finishReason = result == null || result.getMetadata() == null
+                ? null
+                : result.getMetadata().getFinishReason();
+        String text = output == null ? null : output.getText();
+
+        log.info(
+                "AI ChatResponse debug: resultCount={}, finishReason={}, metadata={}, outputClass={}, "
+                        + "outputMetadata={}, textLength={}, textPreview={}, outputPreview={}",
+                resultCount,
+                finishReason,
+                response.getMetadata(),
+                output == null ? null : output.getClass().getName(),
+                output == null ? null : output.getMetadata(),
+                text == null ? null : text.length(),
+                preview(text, 300),
+                preview(output == null ? null : output.toString(), 500)
+        );
+    }
+
+    private String preview(String value, int maxLength) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.replace('\n', ' ').replace('\r', ' ');
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+        return normalized.substring(0, maxLength) + "...";
     }
 }
