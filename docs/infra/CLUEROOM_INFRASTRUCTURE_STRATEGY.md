@@ -2,10 +2,38 @@
 
 > 문서 목적: ClueRoom 프로젝트의 인프라 구성, 선택 이유, 운영 범위, 확장 계획, PoC 계획을 별도 정본으로 관리한다.
 > 기존 기획명 `CaseLab AI`는 레거시 명칭이며, 현재 서비스/도메인 기준 이름은 `ClueRoom`이다.
+> MVP 이후 상세 고도화 순서는 `docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md`를 기준으로 한다.
+> Monitoring Agent, Infra Codex Agent, LLMOps Agent 운영 기준은 `docs/infra/agent/` 아래 문서를 기준으로 한다.
 
 ---
 
 ## 1. 현재 확정된 인프라 목표
+
+### 1.0 고도화 문서 기준
+
+현재 문서는 인프라 선택 이유와 운영 구조의 정본이다.
+MVP 이후 세부 고도화 순서와 Agent/LLMOps 계획은 아래 문서로 분리한다.
+
+```text
+docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md
+docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md
+docs/infra/agent/OPS_SNAPSHOT_SPEC.md
+docs/infra/agent/MONITORING_AGENT_PLAN.md
+docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md
+docs/infra/agent/LLMOPS_AGENT_PLAN.md
+```
+
+주요 고도화 항목:
+
+```text
+- Monitoring Agent
+- Infra Codex Agent
+- LLMOps Agent
+- Nginx edge rate limit + Redis application-level AI quota
+- Blue-Green alert false-positive control
+- backup/restore hardening
+- scale-out PoC
+```
 
 ### 1.1 실제 운영 MVP
 

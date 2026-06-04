@@ -63,6 +63,7 @@ bash scripts/compose-up.sh     # Docker 빌드 + 실행
 실행, Android 연결, Docker Compose, 배포 명령 요약은 `docs/RUN_AND_DEPLOY.md`를 따른다.
 상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응은 `docs/infra/OPS_RUNBOOK.md`를 따른다.
 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보는 `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`를 따른다.
+운영/인프라 Agent 권한, Snapshot, Monitoring, Codex, LLMOps 기준은 `docs/infra/agent/`와 `docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md`를 따른다.
 
 ---
 
@@ -174,6 +175,12 @@ docs/CaseLab_AI_ERD_Design.md               ERD 설계 / 비판적 리뷰
 docs/RUN_AND_DEPLOY.md                      실행 / Android 연결 / Docker Compose / 배포 명령 요약
 docs/infra/OPS_RUNBOOK.md                   운영 명령어 / Blue-Green rollback / 백업 / 장애 대응
 docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md    인프라 선택 이유 / 운영 구조 / 확장 계획
+docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md  MVP 이후 인프라 고도화 로드맵
+docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md   운영/인프라 Agent 권한 / 금지 / 승인 정책
+docs/infra/agent/OPS_SNAPSHOT_SPEC.md       Agent 전달용 secret-safe 운영 snapshot 형식
+docs/infra/agent/MONITORING_AGENT_PLAN.md   Monitoring Agent 계획
+docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md    Infra Codex Agent 작업 플레이북
+docs/infra/agent/LLMOPS_AGENT_PLAN.md       LLMOps Agent 계획
 docs/scenarios/README.md                    시나리오 문서 공개 범위 / 내부 스포일러 문서 관리 기준
 ```
 

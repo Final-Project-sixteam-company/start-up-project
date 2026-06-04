@@ -1,7 +1,9 @@
 # ClueRoom 운영 명령어 & 장애 대응 Runbook
 
-> 목적: ClueRoom 운영 서버를 유지보수하면서 자주 쓰는 명령어, Blue-Green 배포, CD 후 정리 자동화, 롤백, 로그 확인, 백업/복구, 장애 대응 순서를 빠르게 확인하기 위한 운영 메모입니다.  
+> 목적: ClueRoom 운영 서버를 유지보수하면서 자주 쓰는 명령어, Blue-Green 배포, CD 후 정리 자동화, 롤백, 로그 확인, 백업/복구, 장애 대응 순서를 빠르게 확인하기 위한 운영 메모입니다.
 > 운영 서버 기준 경로는 `/opt/clueroom`입니다.
+> 운영/인프라 Agent에게 서버 상태를 전달할 때는 `docs/infra/agent/OPS_SNAPSHOT_SPEC.md`를 따릅니다.
+> Agent 기반 운영 분석과 자동 조치 제안은 `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md`의 승인 정책을 따릅니다.
 
 ---
 
@@ -152,7 +154,7 @@ DROP TABLE ...
 
 ### Secret 확인 원칙
 
-Secret 값은 직접 출력하지 않는다.  
+Secret 값은 직접 출력하지 않는다.
 항상 `set / empty` 방식으로만 확인한다.
 
 예:
@@ -253,7 +255,7 @@ CD가 성공하면 바로 standby를 끄지 말고 먼저 상태를 확인한다
 /opt/clueroom/rollback-bluegreen.sh
 ```
 
-> 이제 사람이 직접 “8081이면 green 끄고, 8082면 blue 끄고”를 판단하지 않는다.  
+> 이제 사람이 직접 “8081이면 green 끄고, 8082면 blue 끄고”를 판단하지 않는다.
 > `stop-standby.sh`가 현재 active를 자동 판별해서 반대편만 중지한다.
 
 ---
@@ -364,7 +366,7 @@ X-ClueRoom-Upstream: 127.0.0.1:8082
 → app-blue stop 해야 함
 ```
 
-실수로 active를 stop하면 API가 내려갈 수 있다.  
+실수로 active를 stop하면 API가 내려갈 수 있다.
 따라서 운영에서는 `stop-standby.sh`를 사용한다.
 
 ---
@@ -407,7 +409,7 @@ rm으로 삭제된 상태
 
 ## 8. Blue / Green 수동 전환
 
-자동 스크립트를 우선 사용한다.  
+자동 스크립트를 우선 사용한다.
 아래는 비상시 수동 전환용이다.
 
 ### Nginx를 Blue로 전환
@@ -947,7 +949,7 @@ crontab -l
 
 ## 17. MySQL 복구
 
-> 복구는 DB를 덮어쓸 수 있으므로 반드시 신중하게 실행한다.  
+> 복구는 DB를 덮어쓸 수 있으므로 반드시 신중하게 실행한다.
 > 복구 전 현재 DB를 한 번 더 백업하는 것을 권장한다.
 
 ### 복구 전 백업
@@ -987,7 +989,7 @@ git status --short
 
 ### 원격 최신 반영
 
-현재는 CD 또는 deploy.sh가 배포를 담당한다.  
+현재는 CD 또는 deploy.sh가 배포를 담당한다.
 서버에서 직접 commit/push하지 않는다.
 
 ### 서버 레포를 origin/develop과 맞춰야 할 때
@@ -1004,7 +1006,7 @@ git fetch origin develop
 git reset --hard origin/develop
 ```
 
-이 명령은 tracked 파일의 서버 수정사항을 날린다.  
+이 명령은 tracked 파일의 서버 수정사항을 날린다.
 실행 전 반드시 백업하고 확인한다.
 
 절대 함부로 실행하지 말 것:
@@ -1150,7 +1152,7 @@ free -m
 docker stats --no-stream
 ```
 
-`OOMKilled=true`면 메모리 부족 가능성이 있다.  
+`OOMKilled=true`면 메모리 부족 가능성이 있다.
 임시로 모니터링을 끄고 확인할 수 있다.
 
 ```bash
