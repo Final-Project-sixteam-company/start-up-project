@@ -14,6 +14,7 @@ import com.startup.domain.ai.prompt.AiPromptBuilder;
 import com.startup.domain.ai.repository.InterrogationLogRepository;
 import com.startup.domain.ai.support.InterrogationContextLoader;
 import com.startup.domain.ai.support.InterrogationLogWriter;
+import com.startup.domain.play.service.InterrogationEvidenceUnlockService;
 import com.startup.domain.play.service.TimeEvidenceUnlockSyncer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,7 @@ public class AiInterrogationService {
     private final InterrogationLogRepository interrogationLogRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final TimeEvidenceUnlockSyncer timeEvidenceUnlockSyncer;
+    private final InterrogationEvidenceUnlockService interrogationEvidenceUnlockService;
     private final MockUserProvider mockUserProvider;
 
     @Value("${caselab.ai.interrogation.temperature:0.3}")
@@ -66,8 +68,12 @@ public class AiInterrogationService {
                 result.modelName()
         );
 
-        // 4. 이벤트 발행
+        // 4. 이벤트 발행 (향후 비동기/분석용 확장 대비 보존)
         publishEvent(sessionId, request);
+
+        // 5. 증거 제시 기반 해금 (A안: domain/play 서비스 동기 호출 → 새로 해금된 증거 diff)
+        List<InterrogationResponse.UnlockedEvidenceDto> unlockedEvidences =
+                resolveUnlockedEvidences(sessionId, request);
 
         return new InterrogationResponse(
                 savedLog.getId(),
@@ -75,9 +81,22 @@ public class AiInterrogationService {
                 context.suspect().name(),
                 request.question(),
                 result.answer(),
-                List.of(),
+                unlockedEvidences,
                 savedLog.getCreatedAt()
         );
+    }
+
+    private List<InterrogationResponse.UnlockedEvidenceDto> resolveUnlockedEvidences(
+            Long sessionId, InterrogationRequest request) {
+        if (request.presentedEvidenceId() == null) {
+            return List.of();
+        }
+        // 세션 소유자/PLAYING 검증은 contextLoader.load 단계에서 이미 끝났다.
+        return interrogationEvidenceUnlockService
+                .unlockByPresentedEvidence(sessionId, request.suspectId(), request.presentedEvidenceId())
+                .stream()
+                .map(u -> new InterrogationResponse.UnlockedEvidenceDto(u.evidenceId(), u.title()))
+                .toList();
     }
 
     private AiResult callAi(InterrogationContext context, InterrogationRequest request) {
