@@ -301,7 +301,7 @@ sudo fail2ban-client get sshd ignoreip
 특정 IP unban:
 
 ```bash
-sudo fail2ban-client set sshd unbanip <PUBLIC_IP>
+sudo fail2ban-client set sshd unbanip <차단된_IP>
 ```
 
 특정 IP ban 여부 확인:

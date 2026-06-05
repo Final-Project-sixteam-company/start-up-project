@@ -294,8 +294,9 @@ Manual checks:
 
 ```bash
 cd /opt/clueroom/app
+DB_PASSWORD="$(grep -E '^DB_PASSWORD=' .env | tail -n 1 | cut -d '=' -f2-)"
 docker compose ps mysql
-docker compose exec mysql mysqladmin ping -uroot -p
+docker compose exec -T -e MYSQL_PWD="$DB_PASSWORD" mysql mysqladmin ping -uroot --silent && echo "MySQL OK"
 ```
 
 Do not commit DB passwords or full connection strings in alert docs or screenshots.
