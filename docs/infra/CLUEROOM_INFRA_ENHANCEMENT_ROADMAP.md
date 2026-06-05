@@ -209,6 +209,7 @@ Initial work:
 - track provider/model/featureType
 - track latency and errorCode
 - track fallbackUsed and fallbackReason
+- optionally persist metadata to ai_call_logs after manual table creation
 - track prompt validation failures
 - track secret leak blocked count
 ```

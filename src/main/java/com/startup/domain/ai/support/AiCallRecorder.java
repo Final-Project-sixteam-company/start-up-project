@@ -19,9 +19,12 @@ public class AiCallRecorder {
     private static final String UNKNOWN = "unknown";
 
     private final ObjectProvider<MeterRegistry> meterRegistryProvider;
+    private final AiCallLogWriter aiCallLogWriter;
 
-    public AiCallRecorder(ObjectProvider<MeterRegistry> meterRegistryProvider) {
+    public AiCallRecorder(ObjectProvider<MeterRegistry> meterRegistryProvider,
+                          AiCallLogWriter aiCallLogWriter) {
         this.meterRegistryProvider = meterRegistryProvider;
+        this.aiCallLogWriter = aiCallLogWriter;
     }
 
     public void record(AiCallContext context,
@@ -58,6 +61,8 @@ public class AiCallRecorder {
         );
 
         recordMetrics(safeContext, safeProvider, safeModel, safePromptVersion,
+                latencyMs, success, safeErrorCode, fallbackUsed, usage);
+        aiCallLogWriter.write(safeContext, safeProvider, safeModel, safePromptVersion,
                 latencyMs, success, safeErrorCode, fallbackUsed, usage);
     }
 

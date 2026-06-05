@@ -405,6 +405,70 @@ AI_CALL featureType provider model promptVersion scenarioId sessionId suspectId 
 
 These logs must never include raw prompt text, raw AI answer text, solution text, culprit data, API keys, or private scenario YAML.
 
+## 10.1 Optional DB Persistence
+
+Phase 2 can persist the same metadata to `ai_call_logs`.
+
+This path is disabled by default.
+
+```text
+AI_LLMOPS_DB_LOGGING_ENABLED=false
+```
+
+Enable it only after the table exists in the target database:
+
+```text
+AI_LLMOPS_DB_LOGGING_ENABLED=true
+```
+
+The DB writer is best-effort:
+
+```text
+- AI gameplay must not fail because LLMOps logging failed.
+- Missing table or DB insert failure is logged once and then treated as a non-blocking telemetry failure.
+- Prompt text, AI answer text, solution text, culprit data, API keys, and private scenario YAML are not stored.
+```
+
+Manual MySQL DDL candidate:
+
+```sql
+CREATE TABLE ai_call_logs (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    feature_type VARCHAR(40) NOT NULL,
+    provider VARCHAR(80) NOT NULL,
+    model VARCHAR(120) NOT NULL,
+    prompt_version VARCHAR(120) NOT NULL,
+    scenario_id BIGINT NULL,
+    play_session_id BIGINT NULL,
+    suspect_id BIGINT NULL,
+    npc_code VARCHAR(120) NULL,
+    latency_ms BIGINT NOT NULL,
+    success TINYINT(1) NOT NULL,
+    error_code VARCHAR(80) NULL,
+    fallback_used TINYINT(1) NOT NULL,
+    prompt_tokens INT NULL,
+    completion_tokens INT NULL,
+    total_tokens INT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    INDEX idx_ai_call_logs_created_at (created_at),
+    INDEX idx_ai_call_logs_feature_created (feature_type, created_at),
+    INDEX idx_ai_call_logs_session_created (play_session_id, created_at),
+    INDEX idx_ai_call_logs_scenario_created (scenario_id, created_at),
+    INDEX idx_ai_call_logs_success_created (success, created_at)
+);
+```
+
+Retention should be decided before long-term production use.
+
+Initial retention candidate:
+
+```text
+- keep detailed ai_call_logs rows for 30-90 days
+- keep aggregated dashboard data longer if needed
+- do not use ai_call_logs as a replay source because prompt and answer bodies are intentionally absent
+```
+
 Future metric candidates after backend safety/quota features exist:
 
 ```text
