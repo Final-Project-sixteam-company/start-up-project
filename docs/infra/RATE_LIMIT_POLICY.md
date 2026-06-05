@@ -14,6 +14,7 @@ ClueRoom needs rate limiting for three different risks.
 ```
 
 Actual production enforcement is deferred to `INFRA-03 Nginx Rate Limit PoC` after Android frontend E2E QA is complete.
+The dry-run operating procedure is documented in `docs/infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md`.
 Applying a strong edge rate limit during E2E can create false `429` failures and make frontend/backend debugging ambiguous.
 
 ## 2. Layer Separation
@@ -298,11 +299,12 @@ Notes:
 ```text
 1. Finalize this policy document.
 2. Wait for frontend E2E QA completion.
-3. Run Nginx general / AI endpoint limit_req PoC.
-4. Verify 429 responses and Nginx logs.
-5. Verify Android UX for throttled requests.
-6. Design backend Redis user/session/scenario limits.
-7. Connect rate-limit events to AI cost, latency, and fallback metrics.
+3. Apply Nginx general API limit_req dry-run using `docs/infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md`.
+4. Observe dry-run logs without returning 429.
+5. After E2E, decide whether to run a controlled real-enforcement PoC.
+6. Verify 429 responses and Android UX only in the controlled enforcement step.
+7. Design backend Redis user/session/scenario limits.
+8. Connect rate-limit events to AI cost, latency, and fallback metrics.
 ```
 
 `INFRA-03` should only start after frontend E2E no longer depends on unrestricted request bursts.

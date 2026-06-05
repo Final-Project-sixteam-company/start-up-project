@@ -103,6 +103,7 @@ Work:
 ```
 
 Reference: `docs/infra/RATE_LIMIT_POLICY.md`
+Reference: `docs/infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md`
 Reference: `docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md`
 
 AI cost defense must not rely only on Nginx IP rate limit.
@@ -121,7 +122,8 @@ Required later:
 Redis-backed backend quota by userId, sessionId, scenarioId, and featureType.
 ```
 
-Actual Nginx `limit_req` rollout is deferred to INFRA-03 after frontend E2E QA.
+Actual Nginx `limit_req` enforcement is deferred until after frontend E2E QA.
+Before enforcement, INFRA-03A should use Nginx dry-run mode to observe rate-limit hits without returning `429`.
 
 Recommended AI quota targets:
 
@@ -311,6 +313,12 @@ S3 backup rule:
 Do not upload DB backups to the public app asset bucket/prefix.
 ```
 
+Reference:
+
+```text
+docs/infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md
+```
+
 Recommended:
 
 ```text
@@ -340,6 +348,12 @@ PoC candidates:
 - evaluate load balancer
 - test server-level Blue-Green instead of only container slot Blue-Green
 - evaluate managed DB option if traffic grows
+```
+
+Reference:
+
+```text
+docs/infra/SCALE_OUT_POC_PLAN.md
 ```
 
 Do not start this before:

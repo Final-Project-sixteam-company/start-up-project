@@ -37,6 +37,7 @@ docs/infra/agent/LLMOPS_AGENT_PLAN.md
 
 Rate Limit의 상세 정책과 적용 순서는 `docs/infra/RATE_LIMIT_POLICY.md`를 따른다.
 Grafana/Prometheus alert와 Slack 알림 설계는 `docs/infra/GRAFANA_ALERT_POLICY.md`를 따른다.
+Scale-out PoC의 단계별 구조와 cleanup 기준은 `docs/infra/SCALE_OUT_POC_PLAN.md`를 따른다.
 
 ### 1.1 실제 운영 MVP
 
@@ -96,6 +97,7 @@ Firebase Cloud Messaging
 
 위 항목은 현재 트래픽과 비용을 고려하면 과설계로 판단한다.
 다만 학습/검증 목적의 PoC로는 별도 구성할 수 있다.
+운영 전환이 아닌 PoC 계획은 `docs/infra/SCALE_OUT_POC_PLAN.md`에서 별도로 관리한다.
 
 ---
 
