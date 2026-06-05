@@ -4,6 +4,7 @@ import com.startup.domain.ai.dto.ChatTurn;
 import com.startup.domain.ai.entity.InterrogationLog;
 import com.startup.domain.ai.repository.InterrogationLogRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -16,11 +17,15 @@ public class RecentTurnsHistoryProvider implements InterrogationHistoryProvider 
 
     @Override
     public List<ChatTurn> getHistory(Long sessionId, Long suspectId, int maxTurns) {
+        if (maxTurns <= 0) {
+            return List.of();
+        }
+        // 최신순으로 maxTurns개만 조회한 뒤, 프롬프트에는 오래된→최신 순서로 넣는다.
         List<InterrogationLog> logs = interrogationLogRepository
-                .findTop5ByPlaySessionIdAndSuspectIdOrderByCreatedAtDesc(sessionId, suspectId);
+                .findByPlaySessionIdAndSuspectIdOrderByCreatedAtDesc(
+                        sessionId, suspectId, PageRequest.of(0, maxTurns));
 
         return logs.reversed().stream()
-                .limit(maxTurns)
                 .map(log -> new ChatTurn(log.getQuestion(), log.getAnswer()))
                 .toList();
     }

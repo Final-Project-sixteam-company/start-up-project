@@ -10,6 +10,7 @@ public record ScenarioYaml(
         List<LocationYaml> locations,
         List<CharacterYaml> characters,
         List<EvidenceYaml> evidences,
+        List<TimelineEventYaml> timelineEvents,
         List<EvidenceVariantStateYaml> evidenceVariantStates,
         List<VariantYaml> variants,
         List<UnlockRuleYaml> unlockRules,
@@ -107,6 +108,21 @@ public record ScenarioYaml(
     ) {
     }
 
+    public record TimelineEventYaml(
+            String code,
+            Integer eventOrder,
+            String eventTime,
+            String title,
+            String description,
+            String eventType,
+            String visibility,
+            Boolean isTrueEvent,
+            String locationCode,
+            String relatedEvidenceCode,
+            String relatedCharacterCode
+    ) {
+    }
+
     public record EvidenceVariantStateYaml(
             String variantCode,
             String evidenceCode,
@@ -147,6 +163,8 @@ public record ScenarioYaml(
             String requiredPhase,
             List<String> requiredEvidenceCodes,
             String requiredCharacterCode,
+            // EVIDENCE_PRESENTED 해금의 트리거 증거 코드. condition_json에 함께 직렬화되어 런타임 평가에 쓰인다.
+            String requiredPresentedEvidenceCode,
             String requiredInterrogationTopic,
             Boolean hintFallbackAllowed
     ) {

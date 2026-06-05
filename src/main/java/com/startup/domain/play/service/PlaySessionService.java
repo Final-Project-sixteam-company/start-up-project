@@ -77,7 +77,7 @@ public class PlaySessionService {
         // 이미 진행 중인 세션이 있는지 확인
         playSessionRepository.findByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING)
                 .ifPresent(existing -> {
-                    throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
+                    throw sessionAlreadyExists(existing);
                 });
 
         Long variantId = selectVariantId(scenarioId);
@@ -94,7 +94,7 @@ public class PlaySessionService {
             playSessionRepository.saveAndFlush(session);
         } catch (DataIntegrityViolationException e) {
             // 동시 요청 또는 이미 PLAYING 중인 세션 존재 시 처리
-            throw new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
+            throw sessionAlreadyExistsAfterDuplicate(userId, scenarioId);
         }
 
         // 시나리오 플레이 카운트 증가
@@ -115,6 +115,35 @@ public class PlaySessionService {
                 session.getId(), userId, scenarioId, initialEvidences.size());
 
         return PlaySessionCreateResponse.from(session);
+    }
+
+    @Transactional(readOnly = true)
+    public ActivePlaySessionResponse getActiveSession(Long userId, Long scenarioId) {
+        // 현재는 true 통과지만 향후 canPlay 정책 도입 시 동일 훅에서 조정한다.
+        scenarioAccessService.validatePlayable(userId, scenarioId);
+        return playSessionRepository.findByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING)
+                .map(ActivePlaySessionResponse::exists)
+                .orElseGet(() -> ActivePlaySessionResponse.none(scenarioId));
+    }
+
+    private PlayException sessionAlreadyExists(PlaySession existing) {
+        return new PlayException(
+                PlayErrorCode.SESSION_ALREADY_EXISTS,
+                PlayErrorCode.SESSION_ALREADY_EXISTS.getMessage(),
+                Map.of("activeSessionId", existing.getId())
+        );
+    }
+
+    private PlayException sessionAlreadyExistsAfterDuplicate(Long userId, Long scenarioId) {
+        try {
+            return playSessionRepository.findByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING)
+                    .map(this::sessionAlreadyExists)
+                    .orElseGet(() -> new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS));
+        } catch (RuntimeException lookupFailure) {
+            log.warn("중복 세션 activeSessionId 재조회 실패, 기존 P002 fallback. userId={}, scenarioId={}",
+                    userId, scenarioId, lookupFailure);
+            return new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -559,7 +588,8 @@ public class PlaySessionService {
                         suspect.getAlibi(),
                         scenarioAssetUrlResolver.resolve(suspect.getPortraitAssetKey()),
                         suspect.getSuspicionLevel(),
-                        interrogationCountMap.getOrDefault(suspect.getId(), 0) //map에서 가져오고 없으면 0
+                        interrogationCountMap.getOrDefault(suspect.getId(), 0), //map에서 가져오고 없으면 0
+                        suspect.getCulpritEligible()
                 ))
                 .toList();
     }

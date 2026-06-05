@@ -2,6 +2,7 @@ package com.startup.domain.scenario.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -53,4 +54,27 @@ public class TimelineEvent {
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt;
+
+    @Builder
+    private TimelineEvent(Long scenarioId,
+                          Long relatedSuspectId,
+                          Long relatedEvidenceId,
+                          String eventTime,
+                          Integer eventOrder,
+                          String title,
+                          String description,
+                          String eventType,
+                          Boolean isTrueEvent,
+                          String visibility) {
+        this.scenarioId = scenarioId;
+        this.relatedSuspectId = relatedSuspectId;
+        this.relatedEvidenceId = relatedEvidenceId;
+        this.eventTime = eventTime;
+        this.eventOrder = eventOrder;
+        this.title = title;
+        this.description = description;
+        this.eventType = eventType;
+        this.isTrueEvent = isTrueEvent;
+        this.visibility = visibility;
+    }
 }

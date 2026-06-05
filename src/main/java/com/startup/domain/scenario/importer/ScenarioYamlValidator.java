@@ -19,6 +19,7 @@ public class ScenarioYamlValidator {
 
     private static final Pattern ASSET_KEY_PATTERN = Pattern.compile("^[A-Za-z0-9._/-]+$");
     private static final Pattern LOCAL_PATH_PATTERN = Pattern.compile("^[A-Za-z]:\\\\|.*\\\\.*");
+    private static final Set<String> TIMELINE_EVENT_VISIBILITIES = Set.of("PUBLIC");
 
     public List<String> validate(ScenarioYaml yaml) {
         List<String> violations = new ArrayList<>();
@@ -43,6 +44,7 @@ public class ScenarioYamlValidator {
         validateLocations(yaml, violations);
         validateVictim(yaml, locationCodes, violations);
         validateEvidenceReferences(yaml, locationCodes, characterCodes, violations);
+        validateTimelineEvents(yaml, locationCodes, evidenceCodes, characterCodes, violations);
         validateVariantReferences(yaml, charactersByCode, evidenceCodes, violations);
         validatePublishedVariants(yaml, violations);
         validateEvidenceVariantStates(yaml, evidenceCodes, variantCodes, violations);
@@ -187,6 +189,64 @@ public class ScenarioYamlValidator {
         }
     }
 
+    private void validateTimelineEvents(ScenarioYaml yaml,
+                                        Set<String> locationCodes,
+                                        Set<String> evidenceCodes,
+                                        Set<String> characterCodes,
+                                        List<String> violations) {
+        Set<String> eventCodes = new HashSet<>();
+        Set<Integer> eventOrders = new HashSet<>();
+        for (ScenarioYaml.TimelineEventYaml event : listOf(yaml.timelineEvents())) {
+            if (event == null) {
+                violations.add("timelineEvents[] item is required.");
+                continue;
+            }
+
+            requireText(event.code(), "timelineEvents[].code", violations);
+            if (hasText(event.code()) && !eventCodes.add(event.code())) {
+                violations.add("duplicate timelineEvent code: " + event.code());
+            }
+
+            requireNumber(event.eventOrder(), "timelineEvents[" + event.code() + "].eventOrder", violations);
+            if (event.eventOrder() != null && !eventOrders.add(event.eventOrder())) {
+                violations.add("duplicate timelineEvent eventOrder: " + event.eventOrder());
+            }
+
+            requireText(event.eventTime(), "timelineEvents[" + event.code() + "].eventTime", violations);
+            requireText(event.title(), "timelineEvents[" + event.code() + "].title", violations);
+            requireText(event.eventType(), "timelineEvents[" + event.code() + "].eventType", violations);
+            requireText(event.visibility(), "timelineEvents[" + event.code() + "].visibility", violations);
+            validateTimelineVisibility(event, violations);
+            if (event.isTrueEvent() == null) {
+                violations.add("timelineEvents[" + event.code() + "].isTrueEvent is required.");
+            }
+
+            if (hasText(event.locationCode()) && !locationCodes.contains(event.locationCode())) {
+                violations.add("timelineEvent " + event.code()
+                        + " references missing location: " + event.locationCode());
+            }
+            if (hasText(event.relatedEvidenceCode()) && !evidenceCodes.contains(event.relatedEvidenceCode())) {
+                violations.add("timelineEvent " + event.code()
+                        + " references missing related evidence: " + event.relatedEvidenceCode());
+            }
+            if (hasText(event.relatedCharacterCode()) && !characterCodes.contains(event.relatedCharacterCode())) {
+                violations.add("timelineEvent " + event.code()
+                        + " references missing related character: " + event.relatedCharacterCode());
+            }
+        }
+    }
+
+    private void validateTimelineVisibility(ScenarioYaml.TimelineEventYaml event, List<String> violations) {
+        if (!hasText(event.visibility())) {
+            return;
+        }
+        String visibility = event.visibility();
+        if (!TIMELINE_EVENT_VISIBILITIES.contains(visibility)) {
+            violations.add("timelineEvents[" + event.code() + "].visibility must be one of "
+                    + TIMELINE_EVENT_VISIBILITIES + ": " + visibility);
+        }
+    }
+
     private void validatePublishedVariants(ScenarioYaml yaml, List<String> violations) {
         if (!isPublished(yaml)) {
             return;
@@ -268,6 +328,25 @@ public class ScenarioYamlValidator {
             }
             if (hasText(condition.requiredCharacterCode()) && !characterCodes.contains(condition.requiredCharacterCode())) {
                 violations.add("unlockRule " + rule.evidenceCode() + " references missing character: " + condition.requiredCharacterCode());
+            }
+            if (hasText(condition.requiredPresentedEvidenceCode())
+                    && !evidenceCodes.contains(condition.requiredPresentedEvidenceCode())) {
+                violations.add("unlockRule " + rule.evidenceCode()
+                        + " references missing presented evidence: " + condition.requiredPresentedEvidenceCode());
+            }
+            // EVIDENCE_PRESENTED 해금은 트리거 증거가 반드시 있어야 한다.
+            // (runtime matcher가 requiredPresentedEvidenceCode를 필수로 보므로, 비면 import는 통과해도 런타임에서 영원히 매칭 실패한다.)
+            if ("EVIDENCE_PRESENTED".equalsIgnoreCase(rule.unlockType())
+                    && !hasText(condition.requiredPresentedEvidenceCode())) {
+                violations.add("unlockRule " + rule.evidenceCode()
+                        + " is EVIDENCE_PRESENTED but condition.requiredPresentedEvidenceCode is missing.");
+            }
+            // 자기 자신을 트리거로 지정하면 모순(잠긴 증거를 그 자신 제시로 여는 셈)이므로 차단한다.
+            if ("EVIDENCE_PRESENTED".equalsIgnoreCase(rule.unlockType())
+                    && hasText(condition.requiredPresentedEvidenceCode())
+                    && condition.requiredPresentedEvidenceCode().equals(rule.evidenceCode())) {
+                violations.add("unlockRule " + rule.evidenceCode()
+                        + " is EVIDENCE_PRESENTED but requiredPresentedEvidenceCode references itself.");
             }
         }
     }

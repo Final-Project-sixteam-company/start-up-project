@@ -24,6 +24,8 @@ class ScenarioYamlLoaderValidatorTest {
 
         assertThat(yaml.scenario().code()).isEqualTo("SCENARIO_TEST");
         assertThat(yaml.evidences()).hasSize(2);
+        assertThat(yaml.timelineEvents()).hasSize(1);
+        assertThat(yaml.timelineEvents().getFirst().relatedEvidenceCode()).isEqualTo("EVIDENCE_KEY");
         assertThat(yaml.evidences().getFirst().relatedCharacterCodes()).containsExactly("SUSPECT_TEST");
         assertThat(yaml.locations().getFirst().mapX()).isEqualTo(120);
         assertThat(yaml.locations().getFirst().mapY()).isEqualTo(80);
@@ -65,6 +67,57 @@ class ScenarioYamlLoaderValidatorTest {
 
         assertThat(violations).anyMatch(message -> message.contains(
                 "relatedCharacterCodes references missing character: SUSPECT_MISSING"));
+    }
+
+    @Test
+    void missingTimelineEvidence_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "relatedEvidenceCode: EVIDENCE_KEY",
+                "relatedEvidenceCode: EVIDENCE_MISSING"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "timelineEvent TIMELINE_TEST references missing related evidence: EVIDENCE_MISSING"));
+    }
+
+    @Test
+    void invalidTimelineVisibility_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "visibility: PUBLIC\n    isTrueEvent: true",
+                "visibility: PULBIC\n    isTrueEvent: true"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "timelineEvents[TIMELINE_TEST].visibility must be one of"));
+    }
+
+    @Test
+    void duplicateTimelineOrder_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "timelineEvents:\n" +
+                        "  - code: TIMELINE_TEST",
+                "timelineEvents:\n" +
+                        "  - code: TIMELINE_DUPLICATE\n" +
+                        "    eventOrder: 10\n" +
+                        "    eventTime: \"20:55\"\n" +
+                        "    title: \"중복 순서\"\n" +
+                        "    description: \"중복 순서\"\n" +
+                        "    eventType: FACT\n" +
+                        "    visibility: PUBLIC\n" +
+                        "    isTrueEvent: true\n" +
+                        "    locationCode: LOC_TEST\n" +
+                        "    relatedEvidenceCode: null\n" +
+                        "    relatedCharacterCode: null\n\n" +
+                        "  - code: TIMELINE_TEST"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains("duplicate timelineEvent eventOrder: 10"));
     }
 
     @Test
@@ -124,6 +177,42 @@ class ScenarioYamlLoaderValidatorTest {
 
         assertThat(violations).anyMatch(message -> message.contains("locations[LOC_TEST].mapX is required"));
         assertThat(violations).anyMatch(message -> message.contains("locations[LOC_TEST].mapY is required"));
+    }
+
+    @Test
+    void evidencePresentedUnlockWithoutTrigger_failsValidation() throws IOException {
+        // EVIDENCE_KEY 규칙을 EVIDENCE_PRESENTED로 바꾸되 requiredPresentedEvidenceCode는 비워둔다.
+        // (SAMPLE_YAML은 text block이라 들여쓰기 12칸이 stripped됨 → 실제 문자열 기준 2/4칸)
+        String invalidYaml = SAMPLE_YAML.replace(
+                "  - evidenceCode: EVIDENCE_KEY\n    unlockType: PHASE",
+                "  - evidenceCode: EVIDENCE_KEY\n    unlockType: EVIDENCE_PRESENTED"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "is EVIDENCE_PRESENTED but condition.requiredPresentedEvidenceCode is missing"));
+    }
+
+    @Test
+    void evidencePresentedUnlockSelfReference_failsValidation() throws IOException {
+        // EVIDENCE_KEY 규칙을 EVIDENCE_PRESENTED로 바꾸고 트리거를 자기 자신(EVIDENCE_KEY)으로 지정한다.
+        String invalidYaml = SAMPLE_YAML.replace(
+                "  - evidenceCode: EVIDENCE_KEY\n"
+                        + "    unlockType: PHASE\n"
+                        + "    condition:\n"
+                        + "      requiredPhase: PHASE_0_OPENING",
+                "  - evidenceCode: EVIDENCE_KEY\n"
+                        + "    unlockType: EVIDENCE_PRESENTED\n"
+                        + "    condition:\n"
+                        + "      requiredPresentedEvidenceCode: EVIDENCE_KEY\n"
+                        + "      requiredPhase: PHASE_0_OPENING"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "requiredPresentedEvidenceCode references itself"));
     }
 
     @Test
@@ -232,6 +321,19 @@ class ScenarioYamlLoaderValidatorTest {
                 tags:
                   - support
                 sortOrder: 20
+
+            timelineEvents:
+              - code: TIMELINE_TEST
+                eventOrder: 10
+                eventTime: "21:00"
+                title: "테스트 타임라인"
+                description: "테스트 타임라인 설명"
+                eventType: FACT
+                visibility: PUBLIC
+                isTrueEvent: true
+                locationCode: LOC_TEST
+                relatedEvidenceCode: EVIDENCE_KEY
+                relatedCharacterCode: SUSPECT_TEST
 
             evidenceVariantStates:
               - variantCode: VARIANT_TEST

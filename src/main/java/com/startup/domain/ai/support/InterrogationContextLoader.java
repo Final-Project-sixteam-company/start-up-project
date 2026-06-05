@@ -29,7 +29,7 @@ public class InterrogationContextLoader {
     private final InterrogationHistoryProvider historyProvider;
     private final MockUserProvider mockUserProvider;
 
-    @Value("${caselab.ai.interrogation.max-history-turns:5}")
+    @Value("${caselab.ai.interrogation.max-history-turns:10}")
     private int maxHistoryTurns;
 
     @Transactional(readOnly = true)

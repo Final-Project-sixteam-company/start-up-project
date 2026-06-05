@@ -1,9 +1,11 @@
 package com.startup.domain.play.controller;
 
 import com.startup.common.auth.MockUserProvider;
+import com.startup.domain.play.dto.ActivePlaySessionResponse;
 import com.startup.domain.play.dto.EvidenceUnlockResponse;
 import com.startup.domain.play.dto.PlayLocationsResponse;
 import com.startup.domain.play.dto.PlaySuspectDetailResponse;
+import com.startup.domain.play.enums.PlaySessionStatus;
 import com.startup.domain.play.service.PlaySessionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -22,6 +24,37 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class PlaySessionControllerTest {
+
+    @Test
+    void getActiveSession_usesCurrentUserAndReturnsSuccessWrapper() throws Exception {
+        PlaySessionService playSessionService = mock(PlaySessionService.class);
+        MockUserProvider mockUserProvider = mock(MockUserProvider.class);
+        when(mockUserProvider.currentUserId()).thenReturn(1L);
+        when(playSessionService.getActiveSession(1L, 10L))
+                .thenReturn(new ActivePlaySessionResponse(
+                        true,
+                        100L,
+                        10L,
+                        PlaySessionStatus.PLAYING,
+                        LocalDateTime.parse("2026-06-04T12:00:00")
+                ));
+
+        MockMvc mockMvc = MockMvcBuilders
+                .standaloneSetup(new PlaySessionController(playSessionService, mockUserProvider))
+                .build();
+
+        mockMvc.perform(get("/api/play-sessions/active")
+                        .param("scenarioId", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.hasActiveSession").value(true))
+                .andExpect(jsonPath("$.data.activeSessionId").value(100L))
+                .andExpect(jsonPath("$.data.scenarioId").value(10L))
+                .andExpect(jsonPath("$.data.status").value("PLAYING"))
+                .andExpect(jsonPath("$.error").doesNotExist());
+
+        verify(playSessionService).getActiveSession(1L, 10L);
+    }
 
     @Test
     void abandonSession_usesCurrentUserAndReturnsSuccessWrapper() throws Exception {
