@@ -475,3 +475,20 @@ docs/MVP_QA_ISSUE_HANDOFF_2026-06-04.md
    - active variants 전체 검증 여부
    - AI 호출 완료 로그 확인
 ```
+# 2026-06-05 Codex Local Re-check
+
+> 상세 handoff: `.review/FE_BE_MVP_CROSSCHECK_2026-06-05.md`
+
+- BE/FE 모두 최신 `origin/develop`으로 fast-forward 후 재검증했다.
+- Local Docker API는 `http://localhost:18080/api`로 확인했다.
+- 로컬 DB에는 scenarioId=1만 존재해 운영 QA 문서의 scenarioId=10/11 flow는 동일 id로 재현하지 못했다.
+- request body parse/type/enum 오류는 400으로 내려온다.
+- `EVIDENCE_PRESENTED + presentedEvidenceId=null` 및 `FREE + presentedEvidenceId`는 400으로 차단된다.
+- `EVIDENCE_PRESENTED` 기반 unlock은 로컬 smoke에서 `unlockedEvidences` 1건 반환 및 target evidence detail 200으로 확인했다.
+- `coverUpText` 누락 final-deduction은 여전히 200으로 허용된다.
+- validate는 로컬에서도 `NEEDS_FIX`, score 40, hints 0으로 재현됐다.
+- abandon 응답은 `{"success":true}`이고, abandon 후 final-deduction은 여전히 409 AI010과 부정확한 메시지를 반환한다.
+- Docker/prod 기본 Hibernate bind log level은 warn이며, Docker log tail 기준 원문 bind 로그/fallback/MockSolutionReader/AI 호출 실패는 확인되지 않았다.
+- 현재 셸 PATH에서 `flutter`/`adb`가 탐지되지 않아 FE emulator UI smoke는 수행하지 못했다.
+
+---
