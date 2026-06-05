@@ -5,6 +5,7 @@ import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.entity.Solution;
 import com.startup.domain.scenario.entity.Suspect;
 import com.startup.domain.scenario.entity.Evidence;
+import com.startup.domain.scenario.entity.Hint;
 import com.startup.domain.scenario.enums.*;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
@@ -25,6 +26,7 @@ public class ScenarioServiceCrudTest {
     @Autowired private SuspectRepository suspectRepository;
     @Autowired private EvidenceRepository evidenceRepository;
     @Autowired private SolutionRepository solutionRepository;
+    @Autowired private HintRepository hintRepository;
 
     // ──────────────────────────────────────────
     // 공통 기본 세팅
@@ -50,6 +52,7 @@ public class ScenarioServiceCrudTest {
 
     @AfterEach
     void tearDown() {
+        hintRepository.deleteAllInBatch();
         solutionRepository.deleteAllInBatch();
         evidenceRepository.deleteAllInBatch();
         suspectRepository.deleteAllInBatch();
@@ -186,6 +189,13 @@ public class ScenarioServiceCrudTest {
                 .culpritSuspectId(suspect.getId())
                 .motive("돈")
                 .method("독살")
+                .build());
+
+        hintRepository.save(Hint.builder()
+                .scenarioId(scenarioId)
+                .hintLevel(1)
+                .content("힌트 내용")
+                .penaltyScore(10)
                 .build());
 
         // when
