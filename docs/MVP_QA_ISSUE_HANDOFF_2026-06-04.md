@@ -405,6 +405,421 @@ docs/MVP_QA_ISSUE_HANDOFF_2026-06-04.md
 2026-06-04 추가 QA 리뷰 기준으로, 백엔드 운영 API 단독 QA는 대부분 완료된 상태다.
 남은 항목은 "지금 앱/운영에서 바로 확인할 것"과 "수정 후 재검증할 것"으로 분리한다.
 
+## Android / Frontend 담당
+
+담당자:
+
+```text
+정채림
+```
+
+### P0. Studio9 앱 진입 차단
+
+확인 결과:
+
+```text
+Backend /api/scenarios:
+- Studio9 scenarioId=11
+- canPlay=true
+- evidenceCount=35
+- suspectCount=7
+
+Android:
+- 목록에 Studio9 카드 노출
+- 상세 화면에서 "CL-011 시나리오는 아직 준비 중입니다. 곧 플레이할 수 있어요." 표시
+- 시작 버튼이 "준비 중"으로 비활성화
+- Studio9 case briefing / session start / locations / evidence QA 진행 불가
+```
+
+영향:
+
+```text
+백엔드와 운영 seed는 Studio9를 플레이 가능 상태로 내려주지만,
+Android 화이트리스트가 scenarioId=11을 차단하고 있어 앱에서 플레이할 수 없다.
+발표/데모에서 Studio9를 사용할 계획이면 MVP 차단 이슈다.
+```
+
+소스 위치:
+
+```text
+start-up-fe/lib/screens/scenario_detail_screen.dart
+
+const _kPlayableIds = {'1', '10'};
+```
+
+필요 작업:
+
+```text
+1. Studio9 운영 smoke가 완료된 기준으로 11을 _kPlayableIds에 추가
+2. 또는 백엔드 canPlay를 신뢰하도록 전환
+3. 임시 화이트리스트를 유지한다면 데모 대상 scenarioId 10/11을 모두 포함
+```
+
+### P1. P002 active session 복구 계약 미연동
+
+테스트 조건:
+
+```text
+1. 서월채 active PLAYING 세션 생성
+2. 앱 로컬 데이터 초기화로 SharedPreferences active_play_session 저장값 제거
+3. 같은 사용자/같은 scenarioId=10으로 앱에서 다시 조사 시작
+```
+
+확인 결과:
+
+```text
+Android UI:
+- "진행 중인 세션이 있습니다"
+- "기존 세션 포기 후 새로 시작"
+- 버튼 클릭 후 "이 기기에서 시작한 세션 기록이 없어 자동으로 정리할 수 없습니다..." 안내
+
+Android 코드:
+- P002 error.details.activeSessionId 사용 없음
+- GET /api/play-sessions/active?scenarioId= fallback 호출 없음
+- 로컬 SharedPreferences에 저장된 sessionId가 없으면 복구 불가
+```
+
+영향:
+
+```text
+새 설치, 앱 데이터 초기화, 다른 기기에서 이어가기 상황에서 기존 PLAYING 세션으로 복구할 수 없다.
+백엔드 ST-53에서 추가한 activeSessionId / GET active 계약이 앱에 아직 연결되지 않았다.
+```
+
+소스 위치:
+
+```text
+start-up-fe/lib/controllers/game_session_controller.dart
+start-up-fe/lib/repositories/play_session_repository.dart
+```
+
+필요 작업:
+
+```text
+1. POST /api/play-sessions 409 P002에서 error.details.activeSessionId가 있으면 해당 sessionId로 진입
+2. details가 없으면 GET /api/play-sessions/active?scenarioId= fallback
+3. UI 문구를 "진행 중인 수사 이어가기" 중심으로 변경
+4. 정말 새로 시작할 때만 abandon 후 재시작 제공
+```
+
+### P1. Timeline API 미연동
+
+확인 결과:
+
+```text
+백엔드 /api/play-sessions/{sessionId}/timeline:
+- 서월채/스튜디오9 timelineEvents 존재
+
+Android:
+- 타임라인 탭에서 "타임라인 준비 중" 표시
+- 실제 /timeline API 응답 렌더링 없음
+```
+
+소스 위치:
+
+```text
+start-up-fe/lib/screens/timeline_screen.dart
+TODO: 백엔드 구현 시 controller.timeline을 읽도록 교체
+```
+
+필요 작업:
+
+```text
+MVP에서 타임라인 탭을 노출한다면 실제 /timeline API 응답을 렌더링해야 한다.
+MVP에서 타임라인을 제외한다면 탭 숨김 또는 데모 범위에 맞는 준비 중 문구로 정리한다.
+```
+
+### P1. 시나리오 목록/상세 이미지 미사용
+
+확인 결과:
+
+```text
+Backend:
+- thumbnailUrl / coverImageUrl / mapImageUrl 정상
+- S3 URL 200 OK
+
+Android:
+- 목록/상세 카드에서 API 이미지 대신 CL-010/CL-011 placeholder 표시
+```
+
+영향:
+
+```text
+S3와 백엔드는 정상이나, 앱 첫 화면에서 공식 시나리오 비주얼 완성도가 낮아 보인다.
+```
+
+필요 작업:
+
+```text
+목록: thumbnailUrl 사용
+상세 hero: coverImageUrl 사용
+assetKey로 URL 직접 조합 금지, 백엔드 응답 imageUrl 계열 사용
+```
+
+### P2. Hint 빈 상태 UX 부족
+
+확인 결과:
+
+```text
+현장 힌트 버튼 -> 힌트 바텀시트 표시
+하지만 "힌트 요청" 제목과 "힌트 사용 시 최종 점수가 감점됩니다." 안내만 보임
+힌트 목록 / 사용 가능한 힌트 없음 / 닫기 액션이 명확히 보이지 않음
+```
+
+필요 작업:
+
+```text
+힌트 seed가 없는 MVP 상태라도 빈 상태 문구를 보여준다.
+예: "현재 사용할 수 있는 힌트가 없습니다."
+닫기/취소 액션을 명확히 제공한다.
+```
+
+### P2. 검색 빈 상태 요약 기준 모호
+
+확인 결과:
+
+```text
+증거 검색 결과 없음: PASS
+용의자 검색 결과 없음: PASS
+다만 용의자 검색 결과가 0명이어도 상단 요약은 전체 기준 5명 / 0회 / 50%를 그대로 표시
+```
+
+판단:
+
+```text
+기능 오류는 아니지만, 검색 결과 기준 요약인지 전체 사건 기준 요약인지 혼동될 수 있다.
+```
+
+### Android Implementation Notes
+
+위 이슈를 고칠 때 같이 확인할 코드 포인트다.
+
+#### 1. Scenario canPlay / image fields
+
+현재:
+
+```text
+lib/models/scenario.dart
+- Scenario 모델에 thumbnailUrl만 있음
+- canPlay 없음
+- coverImageUrl 없음
+
+lib/repositories/scenario_repository.dart
+- summary thumbnailUrl은 파싱
+- detail 응답의 coverImageUrl은 파싱하지 않음
+
+lib/screens/scenario_detail_screen.dart
+- _isPlayable이 backend canPlay가 아니라 _kPlayableIds만 봄
+- _HeroArt가 coverImageUrl 없이 gradient + CL-XXX placeholder만 표시
+
+lib/screens/scenario_library_screen.dart
+- _CodeThumb가 thumbnailUrl 없이 CL-XXX placeholder만 표시
+```
+
+권장:
+
+```text
+Scenario 모델:
+- bool canPlay
+- String? thumbnailUrl
+- String? coverImageUrl
+
+ScenarioRepository:
+- summary: canPlay / thumbnailUrl 파싱
+- detail: canPlay / coverImageUrl / thumbnailUrl 파싱
+
+ScenarioDetailScreen:
+- 임시로는 _kPlayableIds에 11 추가
+- 더 나은 방향은 _scenario.canPlay 사용
+- 상세 hero는 coverImageUrl 사용
+
+ScenarioLibraryScreen:
+- 목록 thumb는 thumbnailUrl 사용
+```
+
+#### 2. P002 details / active fallback
+
+현재:
+
+```text
+lib/core/api/api_exception.dart
+- code/message/status만 있음
+- details 없음
+
+lib/core/api/api_client.dart
+- error.details를 ApiException에 보존하지 않음
+
+lib/repositories/play_session_repository.dart
+- GET /api/play-sessions/active?scenarioId= 메서드 없음
+
+lib/controllers/game_session_controller.dart
+- 409 발생 시 sessionConflict=true만 설정
+- error.details.activeSessionId를 사용하지 않음
+- /active fallback 없음
+```
+
+권장:
+
+```text
+ApiException:
+- Map<String, dynamic>? details 추가
+
+ApiClient._parse:
+- error['details']가 Map이면 ApiException.details에 보존
+
+PlaySessionRepository:
+- activeSession(int scenarioId) 추가
+- GET /api/play-sessions/active?scenarioId=
+
+GameSessionController.loadFromServer:
+- createSession 409 P002 발생
+- e.details['activeSessionId'] 있으면 그 sessionId로 _tryResume
+- details 없으면 repo.activeSession(sid) fallback
+- activeSessionId를 얻으면 _saveSession 후 _refreshAll
+- 둘 다 실패할 때만 conflict 안내
+```
+
+#### 3. Timeline API
+
+현재:
+
+```text
+lib/screens/timeline_screen.dart
+- sampleCase.timeline만 사용
+- CL-001 외 시나리오는 "타임라인 준비 중"
+
+lib/repositories/play_session_repository.dart
+- GET /api/play-sessions/{sessionId}/timeline 메서드 없음
+
+lib/models/play_models.dart
+- timeline list 응답 DTO 없음
+
+lib/controllers/game_session_controller.dart
+- _refreshAll에서 timeline을 로드하지 않음
+```
+
+권장:
+
+```text
+PlayTimelineEvent 모델 추가:
+- time
+- title
+- description
+- eventType
+- relatedEvidenceId
+
+PlaySessionRepository.timeline(sessionId) 추가
+GameSessionController에 timeline 상태 추가
+TimelineScreen이 context.sessionRead.timeline을 렌더링
+기존 sampleCase timeline gate는 CL-001 fallback 전용으로만 유지하거나 제거
+```
+
+#### 4. Hint empty state
+
+현재:
+
+```text
+힌트 API data=[] 상태에서 바텀시트가 제목/감점 안내만 보여줌
+```
+
+권장:
+
+```text
+data=[]이면 MSEmpty 또는 명확한 문구 표시
+"현재 사용할 수 있는 힌트가 없습니다."
+닫기/취소 액션 명확화
+```
+
+### Android Fix DoD / Re-smoke
+
+Android 수정 후 아래 순서로 다시 확인한다.
+
+#### 1. Studio9 Playability
+
+```text
+1. 앱 실행
+2. 라이브러리 진입
+3. Studio9 상세 진입
+4. 시작 버튼이 "준비 중"이 아니라 "조사 시작"인지 확인
+5. CASE BRIEFING 표시
+6. 수사 시작하기
+7. 현장 화면 진입
+8. Studio9 mapImageUrl 표시
+9. 장소 목록 10개 표시
+10. 증거 탭에서 35개 기준 count 표시
+```
+
+PASS 기준:
+
+```text
+Studio9를 앱에서 실제 플레이 시작할 수 있다.
+CL-011 준비 중 게이트가 더 이상 보이지 않는다.
+```
+
+#### 2. P002 Active Recovery
+
+```text
+1. 서월채 또는 Studio9에서 active PLAYING 세션 생성
+2. 앱 데이터 삭제 또는 다른 기기 상태로 로컬 active session 저장값 제거
+3. 같은 scenarioId로 다시 조사 시작
+4. POST /play-sessions가 409 P002를 받는 상황 유도
+5. 앱이 error.details.activeSessionId 또는 GET /active fallback으로 기존 세션에 진입하는지 확인
+```
+
+PASS 기준:
+
+```text
+"이 기기에서 시작한 세션 기록이 없어 자동으로 정리할 수 없습니다" 화면으로 막히지 않는다.
+기존 세션 이어가기 또는 명확한 복구 동선이 제공된다.
+```
+
+#### 3. Timeline Rendering
+
+```text
+1. 서월채 세션 진입
+2. 타임라인 탭 클릭
+3. "타임라인 준비 중" 대신 서버 timeline event 목록 표시
+4. Studio9 세션에서도 동일 확인
+```
+
+PASS 기준:
+
+```text
+GET /api/play-sessions/{sessionId}/timeline 응답이 앱 화면에 표시된다.
+timeline에서 isTrueEvent 필드를 기대하지 않는다.
+```
+
+#### 4. Scenario Images
+
+```text
+1. 라이브러리 목록 진입
+2. 서월채 / Studio9 카드 썸네일 확인
+3. 상세 화면 hero 이미지 확인
+```
+
+PASS 기준:
+
+```text
+목록에서 thumbnailUrl 이미지 표시
+상세에서 coverImageUrl 이미지 표시
+CL-010 / CL-011 placeholder만 보이는 상태 해소
+```
+
+#### 5. Hint Empty State
+
+```text
+1. 현장 화면 진입
+2. 힌트 버튼 클릭
+3. 힌트 data=[] 상태 확인
+```
+
+PASS 기준:
+
+```text
+빈 바텀시트가 아니라 "현재 사용할 수 있는 힌트가 없습니다" 같은 명확한 빈 상태가 보인다.
+닫기/취소 동선이 있다.
+```
+
 ### 지금 바로 확인할 항목
 
 ```text
@@ -474,6 +889,85 @@ docs/MVP_QA_ISSUE_HANDOFF_2026-06-04.md
    - timelineEvents 포함 여부
    - active variants 전체 검증 여부
    - AI 호출 완료 로그 확인
+```
+
+## 2026-06-05 Evidence Presented Smoke
+
+운영 API 기준으로 `EVIDENCE_PRESENTED` 심문 스모크를 재확인했다.
+
+결과:
+
+```text
+PASS:
+- 문하연에게 제보 초안 제시 시 웨어러블 바이탈 원시 데이터가 unlockedEvidences에 포함됨
+- evidence board unlocked count가 20 -> 21로 증가
+- locked evidence를 presentedEvidenceId로 보내면 400(AI009)
+- FREE에 presentedEvidenceId를 보내면 400(C001)
+- RECOMMENDED에 presentedEvidenceId를 보내면 400(C001)
+- EVIDENCE_PRESENTED에 presentedEvidenceId가 없으면 400(C001)
+- 같은 해금 조건 입력을 반복해도 추가 unlockedEvidences는 없음
+```
+
+담당 분류:
+
+```text
+인프라:
+- 운영 seed/rule 수동 반영 완료
+- 테스트 세션 정리 완료
+```
+
+## 2026-06-05 Demo Variant Final Deduction Smoke
+
+운영 API 기준으로 데모용 단일 Variant 고정과 최종 추리 정채점 흐름을 확인했다.
+
+준비:
+
+```text
+scenarioId: 10
+sessionId: 75
+selected variant: VARIANT_SECRETARY
+variant active state: VARIANT_SECRETARY만 active, 나머지 inactive
+phase elapsed: 16분 경과 상태로 조정
+```
+
+검증 결과:
+
+```text
+PASS:
+- 새 세션이 VARIANT_SECRETARY로 생성됨
+- 문하연에게 제보 초안 제시 후 웨어러블 바이탈 원시 데이터 해금
+- unlocked evidence count: 24 -> 25
+- 정답 캐릭터 + 핵심 증거 전체로 final-deduction 제출
+- POST /final-deduction HTTP 200
+- GET /result HTTP 200
+- score=100
+- grade=S
+- matched.culprit/motive/method/coverUp=true
+- matched.keyEvidences=11
+```
+
+로그 확인:
+
+```text
+PASS:
+- interrogation AI 호출 완료
+- final-deduction AI 호출 완료
+- AI 호출 실패 없음
+- fallback / MockSolutionReader warn 없음
+- AI012 / Exception 없음
+```
+
+담당 분류:
+
+```text
+인프라:
+- 운영 seed hash 반영 완료
+- 운영 variant active 상태 수동 반영 완료
+- 데모 Variant smoke 완료
+
+백엔드:
+- final-deduction read-path / scoring path 정상 확인
+- MockSolutionReader fallback 미발생 확인
 ```
 # 2026-06-05 Codex Local Re-check
 
