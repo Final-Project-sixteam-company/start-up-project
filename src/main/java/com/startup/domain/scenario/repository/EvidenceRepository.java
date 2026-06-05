@@ -26,4 +26,6 @@ public interface EvidenceRepository extends JpaRepository<Evidence, Long> {
     @Query("SELECT e.locationId, COUNT(e) FROM Evidence e WHERE e.scenarioId = :scenarioId AND e.locationId IS NOT NULL GROUP BY e.locationId")
     List<Object[]> countByLocationIdForScenario(@Param("scenarioId") Long scenarioId);
 
+    long countByIdInAndScenarioId(List<Long> ids, Long scenarioId);
+
 }

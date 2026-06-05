@@ -34,14 +34,14 @@ public class ScenarioPublishValidator {
             errors.add("설명 없음");
         }
 
-        // 2. 용의자 최소 1명
-        if (suspectRepository.countByScenarioId(scenario.getId()) < 1) {
-            errors.add("용의자 1명 이상 필요");
+        // 2. 용의자 최소 2명
+        if (suspectRepository.countByScenarioId(scenario.getId()) < 2) {
+            errors.add("용의자 2명 이상 필요");
         }
 
-        // 3. 증거 최소 N개 (예: 1개)
-        if (evidenceRepository.countByScenarioId(scenario.getId()) < 1) {
-            errors.add("증거 1개 이상 필요");
+        // 3. 증거 최소 3개
+        if (evidenceRepository.countByScenarioId(scenario.getId()) < 3) {
+            errors.add("증거 3개 이상 필요");
         }
 
         // 4. 힌트 최소 1개
@@ -55,8 +55,16 @@ public class ScenarioPublishValidator {
                     if (suspectRepository.findByIdAndScenarioId(solution.getCulpritSuspectId(), scenario.getId()).isEmpty()) {
                         errors.add("정답의 범인이 현재 시나리오의 용의자가 아님");
                     }
-                    if (solution.parseKeyEvidenceIds().isEmpty()) {
+                    List<Long> keyEvidenceIds = solution.parseKeyEvidenceIds();
+                    if (keyEvidenceIds.isEmpty()) {
                         errors.add("정답에 핵심 증거가 지정되지 않음");
+                    } else {
+                        // 핵심 증거가 모두 현재 시나리오 소속인지 검증
+                        long validCount = evidenceRepository.countByIdInAndScenarioId(keyEvidenceIds, scenario.getId());
+
+                        if (validCount != keyEvidenceIds.size()) {
+                            errors.add("정답의 핵심 증거 중 현재 시나리오에 속하지 않는 증거가 있음");
+                        }
                     }
                     if (!StringUtils.hasText(solution.getMotive())) {
                         errors.add("정답의 동기(motive) 미입력");
@@ -74,7 +82,6 @@ public class ScenarioPublishValidator {
         // 에러가 하나라도 있으면 커스텀 메시지를 담아 예외 던짐
         if (!errors.isEmpty()) {
             String errorMessage = "발행 불가 사유: " + String.join(", ", errors);
-            // 기존 ScenarioException(ErrorCode, String) 생성자 활용!
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_PUBLISH, errorMessage);
         }
     }
