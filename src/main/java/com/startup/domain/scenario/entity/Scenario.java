@@ -138,4 +138,11 @@ public class Scenario extends BaseEntity {
         this.visibility = ScenarioVisibility.PUBLIC;
     }
 
+    public void updateBasicInfo(String title, String description, Difficulty difficulty, Integer estimatedPlayTimeMinutes) {
+        if (title != null && !title.isBlank()) this.title = title;
+        if (description != null && !description.isBlank()) this.description = description;
+        if (difficulty != null) this.difficulty = difficulty;
+        if (estimatedPlayTimeMinutes != null) this.estimatedPlayTimeMinutes = estimatedPlayTimeMinutes;
+    }
+
 }

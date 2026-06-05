@@ -52,4 +52,15 @@ public class ScenarioController {
                 .body(ApiResponse.success(response));
     }
 
+    @Operation(summary = "시나리오 기본 정보 수정")
+    @PatchMapping("/{scenarioId}")
+    public ResponseEntity<ApiResponse<ScenarioUpdateResponse>> updateScenario(
+            @PathVariable Long scenarioId,
+            @RequestBody ScenarioUpdateRequest request
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        ScenarioUpdateResponse response = scenarioService.updateScenario(userId, scenarioId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
 }

@@ -134,6 +134,38 @@ public class ScenarioService {
     }
 
     @Transactional
+    public ScenarioUpdateResponse updateScenario(Long userId, Long scenarioId, ScenarioUpdateRequest request) {
+        // 낙관적 락 대신 비관적 락 사용:
+        // 같은 시나리오를 두 기기에서 동시에 수정할 경우 데이터 충돌 방지
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        // 소유권 검증 (타인 시나리오 조작 방어)
+        if (!scenario.getCreatorId().equals(userId)) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
+        }
+
+        // 상태 잠금: DRAFT 상태일 때만 수정 허용
+        // PUBLISHED된 시나리오를 수정하면 현재 플레이 중인 유저에게 영향을 줄 수 있음
+        if (scenario.getStatus() != ScenarioStatus.DRAFT) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_PUBLISH,
+                    "DRAFT 상태의 시나리오만 수정할 수 있습니다.");
+        }
+
+        // 부분 수정 (null 필드는 기존 값 유지)
+        scenario.updateBasicInfo(
+                request.title(),
+                request.description(),
+                request.difficulty(),
+                request.estimatedPlayTimeMinutes()
+        );
+
+        // @Transactional 내에서 변경 감지(Dirty Checking)가 동작하므로 save() 불필요
+        return new ScenarioUpdateResponse(scenarioId, true);
+    }
+
+
+    @Transactional
     public void publishScenario(Long userId, Long scenarioId) {
         Scenario scenario = scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
