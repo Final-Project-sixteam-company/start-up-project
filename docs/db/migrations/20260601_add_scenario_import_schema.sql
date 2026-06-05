@@ -17,7 +17,6 @@ ALTER TABLE scenarios
     ADD COLUMN map_asset_key VARCHAR(500) NULL AFTER cover_asset_key;
 
 ALTER TABLE scenarios
-    ADD COLUMN published_at DATETIME NULL,
     ADD CONSTRAINT uk_scenarios_code_version UNIQUE (code, content_version);
 
 ALTER TABLE scenario_locations
@@ -139,54 +138,4 @@ CREATE TABLE IF NOT EXISTS scenario_assets (
     KEY idx_scenario_assets_target (target_kind, target_code),
     CONSTRAINT fk_scenario_assets_scenario
         FOREIGN KEY (scenario_id) REFERENCES scenarios (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS timeline_events (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    scenario_id BIGINT NOT NULL,
-    related_suspect_id BIGINT NULL,
-    related_evidence_id BIGINT NULL,
-    event_time VARCHAR(50) NOT NULL,
-    event_order INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT NULL,
-    event_type VARCHAR(50) NOT NULL DEFAULT 'FACT',
-    is_true_event TINYINT(1) NOT NULL DEFAULT 1,
-    visibility VARCHAR(30) NOT NULL DEFAULT 'PUBLIC',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_timeline_events_order (scenario_id, event_order),
-    KEY idx_timeline_events_suspect (related_suspect_id),
-    KEY idx_timeline_events_evidence (related_evidence_id),
-    CONSTRAINT fk_timeline_events_scenario
-        FOREIGN KEY (scenario_id) REFERENCES scenarios (id),
-    CONSTRAINT fk_timeline_events_suspect
-        FOREIGN KEY (related_suspect_id) REFERENCES suspects (id),
-    CONSTRAINT fk_timeline_events_evidence
-        FOREIGN KEY (related_evidence_id) REFERENCES evidences (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- Create solutions table for custom scenarios
--- Apply this migration to production to pass ddl-auto=validate check.
---
--- Example:
--- mysql -h <host> -u <user> -p <database> < docs/db/migrations/20260605_create_solutions_table.sql
-
-CREATE TABLE IF NOT EXISTS solutions (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    scenario_id BIGINT NOT NULL,
-    culprit_suspect_id BIGINT NOT NULL,
-    motive TEXT NOT NULL,
-    method TEXT NOT NULL,
-    cover_up TEXT NULL,
-    full_explanation TEXT NULL,
-    created_at DATETIME NOT NULL,
-    updated_at DATETIME NOT NULL,
-    deleted_at DATETIME NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_solutions_scenario (scenario_id),
-    KEY idx_solutions_suspect (culprit_suspect_id),
-    CONSTRAINT fk_solutions_scenario
-        FOREIGN KEY (scenario_id) REFERENCES scenarios (id),
-    CONSTRAINT fk_solutions_suspect
-        FOREIGN KEY (culprit_suspect_id) REFERENCES suspects (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
