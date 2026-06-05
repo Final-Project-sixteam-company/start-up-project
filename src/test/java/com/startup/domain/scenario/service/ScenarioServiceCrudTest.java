@@ -189,6 +189,7 @@ public class ScenarioServiceCrudTest {
                 .culpritSuspectId(suspect.getId())
                 .motive("돈")
                 .method("독살")
+                .keyEvidenceIds("999") // 필수값(Empty 방지)
                 .build());
 
         hintRepository.save(Hint.builder()

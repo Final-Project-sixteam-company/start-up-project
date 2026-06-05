@@ -55,6 +55,9 @@ public class ScenarioPublishValidator {
                     if (suspectRepository.findByIdAndScenarioId(solution.getCulpritSuspectId(), scenario.getId()).isEmpty()) {
                         errors.add("정답의 범인이 현재 시나리오의 용의자가 아님");
                     }
+                    if (solution.parseKeyEvidenceIds().isEmpty()) {
+                        errors.add("정답에 핵심 증거가 지정되지 않음");
+                    }
                 },
                 () -> errors.add("정답 미설정")
         );

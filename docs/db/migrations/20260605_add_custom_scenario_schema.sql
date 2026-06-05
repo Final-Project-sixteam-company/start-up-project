@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS solutions (
     method TEXT NOT NULL,
     cover_up TEXT NULL,
     full_explanation TEXT NULL,
+    key_evidence_ids TEXT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     deleted_at DATETIME NULL,

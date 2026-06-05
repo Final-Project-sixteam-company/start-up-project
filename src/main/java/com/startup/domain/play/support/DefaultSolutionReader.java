@@ -51,6 +51,16 @@ public class DefaultSolutionReader implements SolutionReader {
             Suspect suspect = suspectRepository.findById(customSolution.getCulpritSuspectId())
                     .orElseThrow(() -> new AiException(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
 
+            List<Long> keyEvidenceIds = customSolution.parseKeyEvidenceIds();
+
+            // 증거 제목은 DB에서 동적으로 조회
+            Map<Long, String> evidenceTitles = evidenceRepository.findAllById(keyEvidenceIds)
+                    .stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getId(),
+                            e -> e.getTitle()
+                    ));
+
             return new SolutionInfo(
                     suspect.getId(),
                     suspect.getName(),
@@ -59,8 +69,8 @@ public class DefaultSolutionReader implements SolutionReader {
                     customSolution.getMethod(),
                     customSolution.getCoverUp(),
                     customSolution.getFullExplanation(),
-                    Collections.emptyList(), // 커스텀 시나리오는 핵심 증거 미지원
-                    Collections.emptyMap()
+                    keyEvidenceIds,
+                    evidenceTitles
             );
         }
 

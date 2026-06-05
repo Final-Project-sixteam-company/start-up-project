@@ -243,6 +243,7 @@ CREATE TABLE solutions (
     method TEXT NOT NULL,
     cover_up TEXT NULL,
     full_explanation TEXT NULL,
+    key_evidence_ids TEXT NULL,
     created_at DATETIME NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_solutions_scenario (scenario_id),
