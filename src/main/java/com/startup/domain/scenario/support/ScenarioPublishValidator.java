@@ -1,0 +1,57 @@
+package com.startup.domain.scenario.support;
+
+import com.startup.domain.scenario.entity.Scenario;
+import com.startup.domain.scenario.error.ScenarioErrorCode;
+import com.startup.domain.scenario.error.ScenarioException;
+import com.startup.domain.scenario.repository.EvidenceRepository;
+import com.startup.domain.scenario.repository.SolutionRepository;
+import com.startup.domain.scenario.repository.SuspectRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+public class ScenarioPublishValidator {
+
+    private final SuspectRepository suspectRepository;
+    private final EvidenceRepository evidenceRepository;
+    private final SolutionRepository solutionRepository;
+
+    public void validate(Scenario scenario) {
+        List<String> errors = new ArrayList<>();
+
+        // 1. 제목/설명 필수
+        if (!StringUtils.hasText(scenario.getTitle())) {
+            errors.add("제목 없음");
+        }
+        if (!StringUtils.hasText(scenario.getDescription())) {
+            errors.add("설명 없음");
+        }
+
+        // 2. 용의자 최소 1명
+        if (suspectRepository.countByScenarioId(scenario.getId()) < 1) {
+            errors.add("용의자 1명 이상 필요");
+        }
+
+        // 3. 증거 최소 N개 (예: 1개)
+        if (evidenceRepository.countByScenarioId(scenario.getId()) < 1) {
+            errors.add("증거 1개 이상 필요");
+        }
+
+        // 4. 정답(Solution) 설정 여부
+        if (!solutionRepository.existsByScenarioId(scenario.getId())) {
+            errors.add("정답 미설정");
+        }
+
+        // 에러가 하나라도 있으면 커스텀 메시지를 담아 예외 던짐
+        if (!errors.isEmpty()) {
+            String errorMessage = "발행 불가 사유: " + String.join(", ", errors);
+            // 기존 ScenarioException(ErrorCode, String) 생성자 활용!
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_PUBLISH, errorMessage);
+        }
+    }
+}
