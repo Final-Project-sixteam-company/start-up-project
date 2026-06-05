@@ -93,6 +93,7 @@ Work:
 
 ```text
 - Nginx IP-based rate limit for basic bot traffic
+- GeoIP / country-based bot traffic control PoC design
 - request size limits
 - HTTPS-only public API
 - no direct Prometheus exposure
@@ -102,6 +103,7 @@ Work:
 ```
 
 Reference: `docs/infra/RATE_LIMIT_POLICY.md`
+Reference: `docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md`
 
 AI cost defense must not rely only on Nginx IP rate limit.
 

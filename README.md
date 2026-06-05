@@ -44,15 +44,16 @@ AI: Spring AI 기반 LLM 연동
 | 11 | [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) | 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 |
 | 12 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
 | 13 | [docs/infra/RATE_LIMIT_POLICY.md](docs/infra/RATE_LIMIT_POLICY.md) | Nginx/Redis Rate Limit 정책 설계 |
-| 14 | [docs/infra/GRAFANA_ALERT_POLICY.md](docs/infra/GRAFANA_ALERT_POLICY.md) | Grafana/Prometheus Alert와 Slack 알림 정책 설계 |
-| 15 | [docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md](docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md) | MVP 이후 인프라 고도화 로드맵 |
-| 16 | [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 운영/인프라 Agent 권한, 금지, 승인 정책 |
-| 17 | [docs/infra/agent/OPS_SNAPSHOT_SPEC.md](docs/infra/agent/OPS_SNAPSHOT_SPEC.md) | Agent에게 전달할 secret-safe 운영 상태 snapshot 형식 |
-| 18 | [docs/infra/agent/MONITORING_AGENT_PLAN.md](docs/infra/agent/MONITORING_AGENT_PLAN.md) | Monitoring Agent 도입 계획 |
-| 19 | [docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md](docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md) | Infra Codex Agent 작업 플레이북 |
-| 20 | [docs/infra/agent/LLMOPS_AGENT_PLAN.md](docs/infra/agent/LLMOPS_AGENT_PLAN.md) | LLMOps Agent 도입 계획 |
-| 21 | [docs/scenarios/README.md](docs/scenarios/README.md) | 시나리오 문서 공개 범위와 스포일러 문서 관리 기준 |
-| 22 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
+| 14 | [docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md](docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md) | 해외 봇성 트래픽 / 국가 기반 차단 PoC 정책 |
+| 15 | [docs/infra/GRAFANA_ALERT_POLICY.md](docs/infra/GRAFANA_ALERT_POLICY.md) | Grafana/Prometheus Alert와 Slack 알림 정책 설계 |
+| 16 | [docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md](docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md) | MVP 이후 인프라 고도화 로드맵 |
+| 17 | [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 운영/인프라 Agent 권한, 금지, 승인 정책 |
+| 18 | [docs/infra/agent/OPS_SNAPSHOT_SPEC.md](docs/infra/agent/OPS_SNAPSHOT_SPEC.md) | Agent에게 전달할 secret-safe 운영 상태 snapshot 형식 |
+| 19 | [docs/infra/agent/MONITORING_AGENT_PLAN.md](docs/infra/agent/MONITORING_AGENT_PLAN.md) | Monitoring Agent 도입 계획 |
+| 20 | [docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md](docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md) | Infra Codex Agent 작업 플레이북 |
+| 21 | [docs/infra/agent/LLMOPS_AGENT_PLAN.md](docs/infra/agent/LLMOPS_AGENT_PLAN.md) | LLMOps Agent 도입 계획 |
+| 22 | [docs/scenarios/README.md](docs/scenarios/README.md) | 시나리오 문서 공개 범위와 스포일러 문서 관리 기준 |
+| 23 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
 
 ### 문서 수정 기준
 
@@ -71,6 +72,7 @@ AI: Spring AI 기반 LLM 연동
 | 상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 | [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) |
 | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) |
 | Nginx/Redis Rate Limit 정책 | [docs/infra/RATE_LIMIT_POLICY.md](docs/infra/RATE_LIMIT_POLICY.md) |
+| 해외 봇성 트래픽 / 국가 기반 차단 PoC 정책 | [docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md](docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md) |
 | Grafana/Prometheus Alert와 Slack 알림 정책 | [docs/infra/GRAFANA_ALERT_POLICY.md](docs/infra/GRAFANA_ALERT_POLICY.md) |
 | MVP 이후 인프라 고도화 순서 | [docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md](docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md) |
 | 운영/인프라 Agent 권한, Snapshot, Monitoring, Codex, LLMOps 계획 | [docs/infra/agent/](docs/infra/agent/) |
