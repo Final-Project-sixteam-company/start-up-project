@@ -7,6 +7,7 @@ import com.startup.domain.scenario.entity.Suspect;
 import com.startup.domain.scenario.entity.Evidence;
 import com.startup.domain.scenario.enums.*;
 import com.startup.domain.scenario.error.ScenarioException;
+import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.repository.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -131,6 +132,31 @@ public class ScenarioServiceCrudTest {
         assertThatThrownBy(() ->
                 scenarioService.updateScenario(OWNER_USER_ID, savedScenario.getId(), request)
         ).isInstanceOf(ScenarioException.class);
+    }
+
+    @Test
+    @DisplayName("수정 실패: creatorId가 null인 공식 시나리오 수정 시 NPE 대신 ACCESS_DENIED 예외 발생")
+    void updateScenario_fail_officialScenarioNullCreatorId() {
+        // given: 공식 시나리오 (creatorId = null) 생성
+        Scenario officialScenario = scenarioRepository.save(Scenario.builder()
+                .title("공식 사건")
+                .description("설명")
+                .scenarioType(ScenarioType.OFFICIAL)
+                .visibility(ScenarioVisibility.PUBLIC)
+                .difficulty(Difficulty.NORMAL)
+                .status(ScenarioStatus.PUBLISHED)
+                .creatorId(null)
+                .build());
+
+        ScenarioUpdateRequest request = new ScenarioUpdateRequest(
+                "수정 시도", null, null, null
+        );
+
+        // when & then: NPE가 터지지 않고 정해진 예외가 발생해야 함
+        assertThatThrownBy(() ->
+                scenarioService.updateScenario(OWNER_USER_ID, officialScenario.getId(), request)
+        ).isInstanceOf(ScenarioException.class)
+         .hasMessageContaining(ScenarioErrorCode.SCENARIO_ACCESS_DENIED.getMessage());
     }
 
     // ================================================

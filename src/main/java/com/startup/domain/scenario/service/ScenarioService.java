@@ -141,7 +141,7 @@ public class ScenarioService {
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 소유권 검증 (타인 시나리오 조작 방어)
-        if (!scenario.getCreatorId().equals(userId)) {
+        if (!userId.equals(scenario.getCreatorId())) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
 
@@ -170,8 +170,8 @@ public class ScenarioService {
         Scenario scenario = scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        // 소유권 검증
-        if (!scenario.getCreatorId().equals(userId)) {
+        // 소유권 검증 (null-safe)
+        if (!userId.equals(scenario.getCreatorId())) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
 
