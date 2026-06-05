@@ -3,6 +3,8 @@ package com.startup.domain.ai.service;
 import com.startup.common.auth.MockUserProvider;
 import com.startup.common.error.BusinessException;
 import com.startup.common.error.CommonErrorCode;
+import com.startup.domain.ai.client.AiCallContext;
+import com.startup.domain.ai.client.AiCallResult;
 import com.startup.domain.ai.client.AiClient;
 import com.startup.domain.ai.client.AiRequestParams;
 import com.startup.domain.ai.dto.AiFeedbackResult;
@@ -14,6 +16,7 @@ import com.startup.domain.ai.dto.ScoringResult;
 import com.startup.domain.ai.dto.SolutionInfo;
 import com.startup.domain.ai.entity.FinalDeduction;
 import com.startup.domain.ai.entity.FinalDeductionEvidence;
+import com.startup.domain.ai.enums.AiFeatureType;
 import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.prompt.AiPromptBuilder;
@@ -46,6 +49,8 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class AiDeductionScorer {
+
+    private static final String PROMPT_VERSION = "final_deduction_scoring_v1";
 
     private final MockUserProvider mockUserProvider;
     private final DeductionContextLoader contextLoader;
@@ -99,7 +104,7 @@ public class AiDeductionScorer {
             String grade = calculateGrade(finalScore);
 
             // 3. AI 피드백 (트랜잭션 밖)
-            AiFeedbackResult feedbackResult = generateFeedback(scoringResult, solution, request, criteria);
+            AiFeedbackResult feedbackResult = generateFeedback(sessionId, scoringResult, solution, request, criteria);
 
             // 4. 결과 저장 + 세션 완료 (트랜잭션 2) — 저장 성공 시에만 COMPLETED
             LocalDateTime submittedAt = LocalDateTime.now();
@@ -241,11 +246,22 @@ public class AiDeductionScorer {
         }
     }
 
-    private AiFeedbackResult generateFeedback(ScoringResult scoringResult,
-                                               SolutionInfo solution,
-                                               FinalDeductionRequest request,
-                                               ScoringCriteria criteria) {
+    private AiFeedbackResult generateFeedback(Long sessionId,
+                                              ScoringResult scoringResult,
+                                              SolutionInfo solution,
+                                              FinalDeductionRequest request,
+                                              ScoringCriteria criteria) {
+        AiCallContext context = new AiCallContext(
+                AiFeatureType.FINAL_DEDUCTION,
+                PROMPT_VERSION,
+                criteria.scenarioId(),
+                sessionId,
+                null,
+                null
+        );
+
         if (aiClient.isMockMode()) {
+            aiClient.recordMock(context);
             return fallbackFeedbackGenerator.generate(scoringResult, criteria);
         }
 
@@ -255,12 +271,20 @@ public class AiDeductionScorer {
                     scoringResult, solution, request, criteria);
             AiRequestParams params = AiRequestParams.deduction(temperature, maxTokens);
 
-            String response = aiClient.chat(systemPrompt, userPrompt, params);
-            return parseAiFeedback(response);
+            AiCallResult response = aiClient.chatWithMetadata(systemPrompt, userPrompt, params, context);
+            return parseAiFeedback(response.text());
         } catch (Exception e) {
             log.warn("AI 피드백 생성 실패, Fallback 사용: {}", e.getMessage());
+            aiClient.recordFallback(context, errorCode(e));
             return fallbackFeedbackGenerator.generate(scoringResult, criteria);
         }
+    }
+
+    private String errorCode(Exception e) {
+        if (e instanceof AiException aiException) {
+            return aiException.getErrorCode().getCode();
+        }
+        return AiErrorCode.SCORING_FAILED.getCode();
     }
 
     private AiFeedbackResult parseAiFeedback(String response) {

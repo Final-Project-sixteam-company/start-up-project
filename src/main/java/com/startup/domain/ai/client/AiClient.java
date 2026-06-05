@@ -2,7 +2,9 @@ package com.startup.domain.ai.client;
 
 import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
+import com.startup.domain.ai.support.AiCallRecorder;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -21,23 +23,40 @@ public class AiClient {
 
     private final ChatModel chatModel;
     private final MockResponseProvider mockResponseProvider;
+    private final AiCallRecorder aiCallRecorder;
     private final boolean mockMode;
+    private final String baseUrl;
+    private final String configuredModel;
 
     public AiClient(@Autowired(required = false) ChatModel chatModel,
                     MockResponseProvider mockResponseProvider,
-                    @Value("${spring.ai.model.chat:none}") String chatModelType) {
+                    AiCallRecorder aiCallRecorder,
+                    @Value("${spring.ai.model.chat:none}") String chatModelType,
+                    @Value("${spring.ai.openai.base-url:}") String baseUrl,
+                    @Value("${spring.ai.openai.chat.options.model:unknown}") String configuredModel) {
         this.chatModel = chatModel;
         this.mockResponseProvider = mockResponseProvider;
+        this.aiCallRecorder = aiCallRecorder;
         this.mockMode = "none".equalsIgnoreCase(chatModelType);
+        this.baseUrl = baseUrl;
+        this.configuredModel = configuredModel;
     }
 
     public String chat(String systemPrompt, String userPrompt, AiRequestParams params) {
+        return chatWithMetadata(systemPrompt, userPrompt, params, AiCallContext.unknown()).text();
+    }
+
+    public AiCallResult chatWithMetadata(String systemPrompt, String userPrompt,
+                                         AiRequestParams params, AiCallContext context) {
+        long startTime = System.currentTimeMillis();
         if (chatModel == null) {
+            long latency = System.currentTimeMillis() - startTime;
+            aiCallRecorder.record(context, providerName(), getModelName(), latency,
+                    false, AiErrorCode.AI_SERVICE_UNAVAILABLE.getCode(), false, null);
             throw new AiException(AiErrorCode.AI_SERVICE_UNAVAILABLE,
                     "ChatModel not configured. Set SPRING_AI_MODEL_CHAT in .env");
         }
 
-        long startTime = System.currentTimeMillis();
         try {
             OpenAiChatOptions options = OpenAiChatOptions.builder()
                     .temperature(params.getTemperature())
@@ -50,30 +69,55 @@ public class AiClient {
             );
 
             ChatResponse response = chatModel.call(prompt);
-            long latency = System.currentTimeMillis() - startTime;
-            log.info("AI 호출 완료: latency={}ms", latency);
 
             if (response == null || response.getResult() == null) {
                 throw new AiException(AiErrorCode.AI_INVALID_RESPONSE);
             }
 
-            return response.getResult().getOutput().getText();
+            String text = response.getResult().getOutput().getText();
+            long latency = System.currentTimeMillis() - startTime;
+            String modelName = resolveModelName(response);
+            AiTokenUsage usage = extractUsage(response);
+            aiCallRecorder.record(context, providerName(), modelName, latency, true, null, false, usage);
+
+            return new AiCallResult(text, modelName, latency, usage, false);
         } catch (AiException e) {
+            long latency = System.currentTimeMillis() - startTime;
+            aiCallRecorder.record(context, providerName(), getModelName(), latency,
+                    false, e.getErrorCode().getCode(), false, null);
             throw e;
         } catch (Exception e) {
             long latency = System.currentTimeMillis() - startTime;
-            log.error("AI 호출 실패: latency={}ms", latency, e);
+            aiCallRecorder.record(context, providerName(), getModelName(), latency,
+                    false, AiErrorCode.AI_REQUEST_FAILED.getCode(), false, null);
+            log.error("AI provider call failed: latency={}ms", latency, e);
             throw new AiException(AiErrorCode.AI_REQUEST_FAILED, e);
         }
     }
 
     public String chatOrMock(String systemPrompt, String userPrompt, AiRequestParams params,
                              Long suspectId, boolean hasPresented) {
+        return chatOrMockWithMetadata(systemPrompt, userPrompt, params, AiCallContext.unknown(),
+                suspectId, hasPresented).text();
+    }
+
+    public AiCallResult chatOrMockWithMetadata(String systemPrompt, String userPrompt, AiRequestParams params,
+                                               AiCallContext context, Long suspectId, boolean hasPresented) {
         if (mockMode) {
             log.debug("Mock 모드: suspectId={}, hasPresented={}", suspectId, hasPresented);
-            return mockResponseProvider.getResponse(suspectId, hasPresented);
+            String response = mockResponseProvider.getResponse(suspectId, hasPresented);
+            aiCallRecorder.record(context, "mock", "MOCK", 0L, true, null, false, null);
+            return new AiCallResult(response, "MOCK", 0L, null, false);
         }
-        return chat(systemPrompt, userPrompt, params);
+        return chatWithMetadata(systemPrompt, userPrompt, params, context);
+    }
+
+    public void recordMock(AiCallContext context) {
+        aiCallRecorder.record(context, "mock", "MOCK", 0L, true, null, false, null);
+    }
+
+    public void recordFallback(AiCallContext context, String errorCode) {
+        aiCallRecorder.record(context, "fallback", "FALLBACK", 0L, true, errorCode, true, null);
     }
 
     public boolean isMockMode() {
@@ -81,6 +125,47 @@ public class AiClient {
     }
 
     public String getModelName() {
-        return mockMode ? "MOCK" : "openai";
+        return mockMode ? "MOCK" : configuredModel;
+    }
+
+    private String providerName() {
+        if (mockMode) {
+            return "mock";
+        }
+        String normalized = baseUrl == null ? "" : baseUrl.toLowerCase();
+        if (normalized.contains("deepseek")) {
+            return "deepseek";
+        }
+        if (normalized.contains("openai")) {
+            return "openai";
+        }
+        return "openai-compatible";
+    }
+
+    private String resolveModelName(ChatResponse response) {
+        if (response != null
+                && response.getMetadata() != null
+                && response.getMetadata().getModel() != null
+                && !response.getMetadata().getModel().isBlank()) {
+            return response.getMetadata().getModel();
+        }
+        return getModelName();
+    }
+
+    private AiTokenUsage extractUsage(ChatResponse response) {
+        if (response == null || response.getMetadata() == null) {
+            return null;
+        }
+
+        Usage usage = response.getMetadata().getUsage();
+        if (usage == null) {
+            return null;
+        }
+
+        return new AiTokenUsage(
+                usage.getPromptTokens(),
+                usage.getCompletionTokens(),
+                usage.getTotalTokens()
+        );
     }
 }

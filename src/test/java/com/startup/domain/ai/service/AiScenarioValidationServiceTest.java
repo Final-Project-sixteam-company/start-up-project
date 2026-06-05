@@ -1,5 +1,7 @@
 package com.startup.domain.ai.service;
 
+import com.startup.domain.ai.client.AiCallContext;
+import com.startup.domain.ai.client.AiCallResult;
 import com.startup.domain.ai.client.AiClient;
 import com.startup.domain.ai.client.AiRequestParams;
 import com.startup.domain.ai.dto.ScenarioValidationData;
@@ -91,7 +93,7 @@ class AiScenarioValidationServiceTest {
         SavedRepository repository = new SavedRepository();
         AiClient aiClient = mock(AiClient.class);
         when(aiClient.isMockMode()).thenReturn(false);
-        when(aiClient.chat(anyString(), anyString(), any(AiRequestParams.class)))
+        when(aiClient.chatWithMetadata(anyString(), anyString(), any(AiRequestParams.class), any(AiCallContext.class)))
                 .thenThrow(new RuntimeException("boom"));
 
         AiScenarioValidationService service = newService(
@@ -110,8 +112,8 @@ class AiScenarioValidationServiceTest {
         SavedRepository repository = new SavedRepository();
         AiClient aiClient = mock(AiClient.class);
         when(aiClient.isMockMode()).thenReturn(false);
-        when(aiClient.chat(anyString(), anyString(), any(AiRequestParams.class)))
-                .thenReturn("""
+        when(aiClient.chatWithMetadata(anyString(), anyString(), any(AiRequestParams.class), any(AiCallContext.class)))
+                .thenReturn(new AiCallResult("""
                         ```json
                         {
                           "items": [
@@ -125,7 +127,7 @@ class AiScenarioValidationServiceTest {
                           "suggestion": "해설 완결성을 보강하세요."
                         }
                         ```
-                        """);
+                        """, "test-model", 0L, null, false));
 
         AiScenarioValidationService service = newService(
                 new MockScenarioDataReader(), aiClient, repository.mock(), new NoopLockService());
@@ -165,7 +167,7 @@ class AiScenarioValidationServiceTest {
 
         assertThat(response.validationStatus()).isEqualTo(ValidationStatus.NEEDS_FIX.name());
         assertThat(response.checkItems()).hasSize(10);
-        verify(aiClient, never()).chat(anyString(), anyString(), any(AiRequestParams.class));
+        verify(aiClient, never()).chatWithMetadata(anyString(), anyString(), any(AiRequestParams.class), any(AiCallContext.class));
     }
 
     @Test

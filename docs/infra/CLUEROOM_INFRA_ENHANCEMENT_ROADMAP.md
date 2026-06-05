@@ -219,7 +219,8 @@ Prometheus metric candidates:
 ai_requests_total
 ai_failures_total
 ai_latency_seconds
-ai_fallback_total
+ai_fallbacks_total
+ai_tokens_total
 ai_prompt_validation_failures_total
 ai_secret_leak_blocked_total
 ```

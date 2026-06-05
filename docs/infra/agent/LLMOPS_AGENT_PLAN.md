@@ -45,7 +45,7 @@ Current and planned AI feature categories:
 |---|---|---|
 | `INTERROGATION` | `POST /api/play-sessions/{sessionId}/interrogations` | secret leakage, hallucinated facts, latency |
 | `FINAL_DEDUCTION` | `POST /api/play-sessions/{sessionId}/final-deduction` | wrong scoring, fallback misuse, missing solution data |
-| `SCENARIO_VALIDATE` | `POST /api/ai/scenarios/{scenarioId}/validate` | validation false positive/negative |
+| `SCENARIO_VALIDATION` | `POST /api/ai/scenarios/{scenarioId}/validate` | validation false positive/negative |
 | `PROMPT_POLICY_CHECK` | backend prompt policy and response policy checks | forbidden facts in prompt |
 | `FALLBACK_RESPONSE` | AI provider failure path | demo continuity but quality degradation |
 
@@ -343,49 +343,76 @@ This matters for Android because carrier NAT or shared Wi-Fi can make many users
 
 ## 10. Prometheus Metric Candidates
 
-Candidate counters:
+Phase 1 implementation records structured `AI_CALL` logs and the following Micrometer metrics.
+Micrometer dot names are exposed to Prometheus with Prometheus naming conventions.
+
+Implemented counters:
 
 ```text
-ai_requests_total
-ai_failures_total
-ai_fallback_total
-ai_prompt_validation_failures_total
-ai_secret_leak_blocked_total
-ai_response_validation_failures_total
-ai_quota_rejections_total
+Micrometer: ai.requests  -> Prometheus: ai_requests_total
+Micrometer: ai.failures  -> Prometheus: ai_failures_total
+Micrometer: ai.fallbacks -> Prometheus: ai_fallbacks_total
+Micrometer: ai.tokens    -> Prometheus: ai_tokens_total
 ```
 
-Candidate histograms:
+Implemented timer:
 
 ```text
-ai_latency_seconds
-ai_prompt_tokens
-ai_completion_tokens
+Micrometer: ai.latency -> Prometheus: ai_latency_seconds
 ```
 
-Candidate labels:
+Implemented low-cardinality labels:
 
 ```text
 feature_type
 provider
 model
 prompt_version
-scenario_id
-error_code
-fallback_reason
+success
+fallback_used
+error_code      only on failure/fallback counters
+token_type      only on token counter
+```
+
+Interpretation:
+
+```text
+ai_requests_total includes provider, mock, and fallback events.
+Provider attempt views should filter fallback_used="false".
+Fallback views should prefer ai_fallbacks_total.
 ```
 
 Avoid high-cardinality labels:
 
 ```text
+scenarioId
 sessionId
+suspectId
+npcCode
 requestId
 user text
 raw prompt
 raw answer
 ```
 
-Use logs or DB rows for request-level detail, not Prometheus labels.
+Use structured logs or future DB rows for request-level detail, not Prometheus labels.
+
+Current structured log fields:
+
+```text
+AI_CALL featureType provider model promptVersion scenarioId sessionId suspectId npcCode latencyMs success errorCode fallbackUsed promptTokens completionTokens totalTokens
+```
+
+These logs must never include raw prompt text, raw AI answer text, solution text, culprit data, API keys, or private scenario YAML.
+
+Future metric candidates after backend safety/quota features exist:
+
+```text
+ai_prompt_validation_failures_total
+ai_secret_leak_blocked_total
+ai_response_validation_failures_total
+ai_quota_rejections_total
+```
 
 ---
 
