@@ -53,6 +53,9 @@ class InterrogationEvidenceUnlockServiceTest {
     private Long otherSuspectId;
     private Long triggerEvidenceId;
     private Long targetEvidenceId;
+    private Long foreignScenarioId;
+    private Long foreignSuspectId;
+    private Long foreignEvidenceId;
 
     @BeforeEach
     void setUp() {
@@ -89,6 +92,20 @@ class InterrogationEvidenceUnlockServiceTest {
 
         sessionId = playSessionRepository.save(PlaySession.builder()
                 .userId(USER_ID).scenarioId(scenarioId).build()).getId();
+
+        // 교차 시나리오 방어 테스트용: 다른 시나리오 + 그 소속 용의자/증거
+        foreignScenarioId = scenarioRepository.save(Scenario.builder()
+                .title("foreign").description("d")
+                .scenarioType(ScenarioType.OFFICIAL).visibility(ScenarioVisibility.PUBLIC)
+                .difficulty(Difficulty.NORMAL).status(ScenarioStatus.PUBLISHED).build()).getId();
+        foreignSuspectId = suspectRepository.save(Suspect.builder()
+                .scenarioId(foreignScenarioId).code("SUSPECT_FOREIGN").name("외부용의자").role("외부")
+                .characterType("SUSPECT").culpritEligible(true)
+                .suspicionLevel(0).sortOrder(1).build()).getId();
+        foreignEvidenceId = evidenceRepository.save(Evidence.builder()
+                .scenarioId(foreignScenarioId).code("EVIDENCE_FOREIGN").title("외부 증거").description("d")
+                .evidenceType(EvidenceType.DOCUMENT).importance(EvidenceImportance.NORMAL)
+                .isInitialPublic(true).unlockType(EvidenceUnlockType.PHASE).sortOrder(1).build()).getId();
     }
 
     @AfterEach
@@ -154,6 +171,86 @@ class InterrogationEvidenceUnlockServiceTest {
         // 트리거를 unlocked_evidences에 넣지 않은 채 제시 -> write-path가 잠긴 증거 제시를 차단
         List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
                 unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, USER_ID);
+
+        assertThat(unlocked).isEmpty();
+        assertThat(unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, targetEvidenceId)).isFalse();
+    }
+
+    @Test
+    @DisplayName("세션 소유자 불일치 -> 해금 안 됨")
+    void ownerMismatch_doesNotUnlock() {
+        List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
+                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, 9999L);
+
+        assertThat(unlocked).isEmpty();
+        assertThat(unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, targetEvidenceId)).isFalse();
+    }
+
+    @Test
+    @DisplayName("currentUserId가 null -> 해금 안 됨 (write-path self-protection)")
+    void ownerNull_doesNotUnlock() {
+        List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
+                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, null);
+
+        assertThat(unlocked).isEmpty();
+        assertThat(unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, targetEvidenceId)).isFalse();
+    }
+
+    @Test
+    @DisplayName("다른 시나리오의 제시 증거 -> 해금 안 됨 (교차 시나리오 방어)")
+    void presentingEvidenceFromOtherScenario_doesNotUnlock() {
+        List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
+                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, foreignEvidenceId, USER_ID);
+
+        assertThat(unlocked).isEmpty();
+        assertThat(unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, targetEvidenceId)).isFalse();
+    }
+
+    @Test
+    @DisplayName("다른 시나리오의 용의자에게 제시 -> 해금 안 됨 (교차 시나리오 방어)")
+    void presentingToSuspectFromOtherScenario_doesNotUnlock() {
+        List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
+                unlockService.unlockByPresentedEvidence(sessionId, foreignSuspectId, triggerEvidenceId, USER_ID);
+
+        assertThat(unlocked).isEmpty();
+        assertThat(unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, targetEvidenceId)).isFalse();
+    }
+
+    @Test
+    @DisplayName("규칙의 대상 증거가 다른 시나리오 소속이면 -> 건너뜀 (교차 시나리오 방어)")
+    void targetEvidenceFromOtherScenario_isSkipped() {
+        // 우리 시나리오의 규칙이지만 대상 증거를 다른 시나리오 증거로 지정한 모순 규칙(트리거/용의자 조건은 동일)
+        evidenceUnlockRuleRepository.save(EvidenceUnlockRule.builder()
+                .scenarioId(scenarioId).evidenceId(foreignEvidenceId).evidenceCode("EVIDENCE_FOREIGN")
+                .unlockType("EVIDENCE_PRESENTED")
+                .conditionJson("{\"requiredPresentedEvidenceCode\":\"" + EV_TRIGGER
+                        + "\",\"requiredCharacterCode\":\"" + SUS_CARE + "\",\"requiredEvidenceCodes\":[]}")
+                .sortOrder(20).build());
+        markUnlocked(triggerEvidenceId);
+
+        List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
+                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, triggerEvidenceId, USER_ID);
+
+        // 정상 타깃만 해금되고 교차 시나리오 대상(foreign)은 건너뜀
+        assertThat(unlocked).extracting(InterrogationEvidenceUnlockService.UnlockedEvidenceResult::evidenceId)
+                .containsExactly(targetEvidenceId);
+        assertThat(unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, foreignEvidenceId)).isFalse();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 증거 제시 -> 해금 안 됨")
+    void nonexistentEvidence_doesNotUnlock() {
+        List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
+                unlockService.unlockByPresentedEvidence(sessionId, careManagerId, 999999L, USER_ID);
+
+        assertThat(unlocked).isEmpty();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 용의자에게 제시 -> 해금 안 됨")
+    void nonexistentSuspect_doesNotUnlock() {
+        List<InterrogationEvidenceUnlockService.UnlockedEvidenceResult> unlocked =
+                unlockService.unlockByPresentedEvidence(sessionId, 999999L, triggerEvidenceId, USER_ID);
 
         assertThat(unlocked).isEmpty();
         assertThat(unlockedEvidenceRepository.existsByPlaySessionIdAndEvidenceId(sessionId, targetEvidenceId)).isFalse();
