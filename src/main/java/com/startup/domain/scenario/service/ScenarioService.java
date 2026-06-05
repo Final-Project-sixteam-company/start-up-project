@@ -1,11 +1,11 @@
 package com.startup.domain.scenario.service;
 
 import com.startup.common.dto.PageResponse;
-import com.startup.domain.scenario.dto.ScenarioDetailResponse;
-import com.startup.domain.scenario.dto.ScenarioSearchCondition;
-import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
+import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.entity.Scenario;
+import com.startup.domain.scenario.enums.Difficulty;
 import com.startup.domain.scenario.enums.ScenarioStatus;
+import com.startup.domain.scenario.enums.ScenarioType;
 import com.startup.domain.scenario.enums.ScenarioVisibility;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
@@ -14,6 +14,7 @@ import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import com.startup.domain.scenario.repository.SuspectRepository;
 import com.startup.domain.scenario.support.ScenarioAssetUrlResolver;
+import com.startup.domain.scenario.support.ScenarioPublishValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,7 @@ public class ScenarioService {
     private final EvidenceRepository evidenceRepository;
     private final HintRepository hintRepository;
     private final ScenarioAssetUrlResolver scenarioAssetUrlResolver;
+    private final ScenarioPublishValidator scenarioPublishValidator;
 
     @Transactional(readOnly = true)
     public PageResponse<ScenarioSummaryResponse> getScenarios(Long userId, ScenarioSearchCondition condition, Pageable pageable) {
@@ -108,6 +110,49 @@ public class ScenarioService {
         return ScenarioDetailResponse.from(scenario, mockCreatorNickname, suspectCount, evidenceCount, hintCount,
                 isBookmarked, canPlay, coverImageUrl, mapImageUrl);
 
+    }
+
+    @Transactional
+    public ScenarioCreateResponse createScenario(Long userId, ScenarioCreateRequest request) {
+        Scenario scenario = Scenario.builder()
+                .title(request.title())
+                .description(request.description())
+                .synopsis(request.synopsis())
+                .scenarioType(ScenarioType.CUSTOM)          // 유저가 만들면 무조건 CUSTOM
+                .visibility(ScenarioVisibility.PRIVATE)     // 최초 생성 시 무조건 PRIVATE (스토어 미노출)
+                .difficulty(request.difficulty() != null ? request.difficulty() : Difficulty.NORMAL)
+                .playerCountMin(request.playerCountMin())
+                .playerCountMax(request.playerCountMax())
+                .estimatedPlayTimeMinutes(request.estimatedPlayTimeMinutes())
+                .creatorId(userId)                          // 요청한 유저를 작성자로 매핑
+                .status(ScenarioStatus.DRAFT)               // 무조건 DRAFT로 강제 (클라이언트 값 무시)
+                .build();
+
+        Scenario saved = scenarioRepository.save(scenario);
+
+        return new ScenarioCreateResponse(saved.getId(), saved.getStatus());
+    }
+
+    @Transactional
+    public void publishScenario(Long userId, Long scenarioId) {
+        Scenario scenario = scenarioRepository.findById(scenarioId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        // 1. 소유권 검증
+        if (!scenario.getCreatorId().equals(userId)) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
+        }
+
+        // 2. 상태 전환 가능 여부 검증 (ScenarioStatus.canPublish() 활용)
+        if (!scenario.getStatus().canPublish()) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_PUBLISH);
+        }
+
+        // 3. 정합성 검증 (여기서 부족한 항목 체크)
+        scenarioPublishValidator.validate(scenario);
+
+        // 4. 상태 PUBLISHED로 변경
+        scenario.publish();
     }
 
     private Pageable mapPageableSort(Pageable pageable) {

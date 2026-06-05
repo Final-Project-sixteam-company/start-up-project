@@ -132,4 +132,10 @@ public class Scenario extends BaseEntity {
     public void incrementPlayCount(){
         this.playCount++;
     }
+
+    public void publish() {
+        this.status = ScenarioStatus.PUBLISHED;
+        this.visibility = ScenarioVisibility.PUBLIC;
+    }
+
 }

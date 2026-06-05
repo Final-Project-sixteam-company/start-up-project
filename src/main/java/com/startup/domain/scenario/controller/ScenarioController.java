@@ -3,13 +3,12 @@ package com.startup.domain.scenario.controller;
 import com.startup.common.auth.MockUserProvider;
 import com.startup.common.dto.ApiResponse;
 import com.startup.common.dto.PageResponse;
-import com.startup.domain.scenario.dto.ScenarioDetailResponse;
-import com.startup.domain.scenario.dto.ScenarioSearchCondition;
-import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
+import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.service.ScenarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,4 +40,16 @@ public class ScenarioController {
         ScenarioDetailResponse response = scenarioService.getScenario(userId, scenarioId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @Operation(summary = "커스텀 시나리오 생성")
+    @PostMapping
+    public ResponseEntity<ApiResponse<ScenarioCreateResponse>> createScenario(
+            @RequestBody ScenarioCreateRequest request
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        ScenarioCreateResponse response = scenarioService.createScenario(userId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(response));
+    }
+
 }
