@@ -220,4 +220,41 @@ public class ScenarioServiceCrudTest {
                 )
         ).isInstanceOf(ScenarioException.class);
     }
+
+    @Test
+    @DisplayName("발행 실패: 진범이 해당 시나리오의 용의자가 아니면 정합성 검증 예외 발생")
+    void publishScenario_fail_invalidCulprit() {
+        // given: 정상 용의자, 증거 세팅
+        Long scenarioId = savedScenario.getId();
+
+        suspectRepository.save(Suspect.builder()
+                .scenarioId(scenarioId)
+                .name("용의자A")
+                .role("비서")
+                .sortOrder(1)
+                .build());
+
+        evidenceRepository.save(Evidence.builder()
+                .scenarioId(scenarioId)
+                .title("증거1")
+                .description("증거 설명")
+                .sortOrder(1)
+                .build());
+
+        // 다른 시나리오의 용의자라고 가정하고 존재하지 않는 9999L을 진범으로 설정
+        solutionRepository.save(Solution.builder()
+                .scenarioId(scenarioId)
+                .culpritSuspectId(9999L)
+                .motive("돈")
+                .method("독살")
+                .build());
+
+        // 정답의 진범이 현재 시나리오의 용의자가 아니므로 발행 시 예외가 발생해야 한다
+        assertThatThrownBy(() ->
+                scenarioService.publishScenario(
+                        OWNER_USER_ID, scenarioId, new ScenarioPublishRequest(ScenarioVisibility.PUBLIC)
+                )
+        ).isInstanceOf(ScenarioException.class)
+         .hasMessageContaining("정답의 범인이 현재 시나리오의 용의자가 아님");
+    }
 }

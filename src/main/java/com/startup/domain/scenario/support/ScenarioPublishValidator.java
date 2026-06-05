@@ -42,10 +42,15 @@ public class ScenarioPublishValidator {
             errors.add("증거 1개 이상 필요");
         }
 
-        // 4. 정답(Solution) 설정 여부
-        if (!solutionRepository.existsByScenarioId(scenario.getId())) {
-            errors.add("정답 미설정");
-        }
+        // 4. 정답(Solution) 설정 여부 및 진범 소속 검증
+        solutionRepository.findByScenarioId(scenario.getId()).ifPresentOrElse(
+                solution -> {
+                    if (suspectRepository.findByIdAndScenarioId(solution.getCulpritSuspectId(), scenario.getId()).isEmpty()) {
+                        errors.add("정답의 범인이 현재 시나리오의 용의자가 아님");
+                    }
+                },
+                () -> errors.add("정답 미설정")
+        );
 
         // 에러가 하나라도 있으면 커스텀 메시지를 담아 예외 던짐
         if (!errors.isEmpty()) {
