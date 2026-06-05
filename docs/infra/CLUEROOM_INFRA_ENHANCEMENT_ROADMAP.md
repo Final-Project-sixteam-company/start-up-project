@@ -93,6 +93,7 @@ Work:
 
 ```text
 - Nginx IP-based rate limit for basic bot traffic
+- GeoIP / country-based bot traffic control PoC design
 - request size limits
 - HTTPS-only public API
 - no direct Prometheus exposure
@@ -100,6 +101,10 @@ Work:
 - no direct MySQL/Redis exposure
 - secret file permission review
 ```
+
+Reference: `docs/infra/RATE_LIMIT_POLICY.md`
+Reference: `docs/infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md`
+Reference: `docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md`
 
 AI cost defense must not rely only on Nginx IP rate limit.
 
@@ -116,6 +121,9 @@ Required later:
 ```text
 Redis-backed backend quota by userId, sessionId, scenarioId, and featureType.
 ```
+
+Actual Nginx `limit_req` enforcement is deferred until after frontend E2E QA.
+Before enforcement, INFRA-03A should use Nginx dry-run mode to observe rate-limit hits without returning `429`.
 
 Recommended AI quota targets:
 
@@ -187,9 +195,12 @@ manual DB/Redis checks
 Reference:
 
 ```text
+docs/infra/GRAFANA_ALERT_POLICY.md
 docs/infra/agent/MONITORING_AGENT_PLAN.md
 docs/infra/agent/OPS_SNAPSHOT_SPEC.md
 ```
+
+Actual Slack notification wiring is deferred to INFRA-09 after alert policy and metric names are confirmed.
 
 ---
 
@@ -302,6 +313,12 @@ S3 backup rule:
 Do not upload DB backups to the public app asset bucket/prefix.
 ```
 
+Reference:
+
+```text
+docs/infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md
+```
+
 Recommended:
 
 ```text
@@ -331,6 +348,12 @@ PoC candidates:
 - evaluate load balancer
 - test server-level Blue-Green instead of only container slot Blue-Green
 - evaluate managed DB option if traffic grows
+```
+
+Reference:
+
+```text
+docs/infra/SCALE_OUT_POC_PLAN.md
 ```
 
 Do not start this before:
