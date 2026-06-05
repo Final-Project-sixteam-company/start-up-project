@@ -170,28 +170,52 @@ public class ScenarioServiceCrudTest {
     void publishScenario_success() {
         // given
         Long scenarioId = savedScenario.getId();
+
+        // 용의자 2명 (최소 2명 필요)
         Suspect suspect = suspectRepository.save(Suspect.builder()
                 .scenarioId(scenarioId)
                 .name("용의자A")
                 .role("비서")
                 .sortOrder(1)
                 .build());
-
-        evidenceRepository.save(Evidence.builder()
+        suspectRepository.save(Suspect.builder()
                 .scenarioId(scenarioId)
-                .title("증거1")
-                .description("증거 설명")
-                .sortOrder(1)
+                .name("용의자B")
+                .role("경호원")
+                .sortOrder(2)
                 .build());
 
+        // 증거 3개 (최소 3개 필요)
+        Evidence evidence1 = evidenceRepository.save(Evidence.builder()
+                .scenarioId(scenarioId)
+                .title("증거1")
+                .description("증거 설명1")
+                .sortOrder(1)
+                .build());
+        Evidence evidence2 = evidenceRepository.save(Evidence.builder()
+                .scenarioId(scenarioId)
+                .title("증거2")
+                .description("증거 설명2")
+                .sortOrder(2)
+                .build());
+        evidenceRepository.save(Evidence.builder()
+                .scenarioId(scenarioId)
+                .title("증거3")
+                .description("증거 설명3")
+                .sortOrder(3)
+                .build());
+
+        // 정답: 채점 필수 필드(motive, method, coverUp) + 실제 증거 ID를 핵심 증거로 지정
         solutionRepository.save(Solution.builder()
                 .scenarioId(scenarioId)
                 .culpritSuspectId(suspect.getId())
                 .motive("돈")
                 .method("독살")
-                .keyEvidenceIds("999") // 필수값(Empty 방지)
+                .coverUp("시체 유기")
+                .keyEvidenceIds(evidence1.getId() + "," + evidence2.getId())
                 .build());
 
+        // 힌트 1개 (최소 1개 필요)
         hintRepository.save(Hint.builder()
                 .scenarioId(scenarioId)
                 .hintLevel(1)
