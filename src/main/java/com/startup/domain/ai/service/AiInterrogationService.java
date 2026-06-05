@@ -115,10 +115,10 @@ public class AiInterrogationService {
         AiCallContext aiCallContext = new AiCallContext(
                 AiFeatureType.INTERROGATION,
                 PROMPT_VERSION,
-                null,
+                context.scenarioId(),
                 sessionId,
-                request.suspectId(),
-                null
+                context.suspect().id(),
+                context.suspect().code()
         );
 
         if (aiClient.isMockMode()) {
