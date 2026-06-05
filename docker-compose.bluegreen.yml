@@ -15,6 +15,7 @@ services:
       DB_PORT: 3306
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      AI_LLMOPS_DB_LOGGING_ENABLED: ${AI_LLMOPS_DB_LOGGING_ENABLED:-false}
     ports:
       - "127.0.0.1:8081:8080"
     volumes:
@@ -42,6 +43,7 @@ services:
       DB_PORT: 3306
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      AI_LLMOPS_DB_LOGGING_ENABLED: ${AI_LLMOPS_DB_LOGGING_ENABLED:-false}
     ports:
       - "127.0.0.1:8082:8080"
     volumes:

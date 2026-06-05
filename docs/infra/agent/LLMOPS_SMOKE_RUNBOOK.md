@@ -226,6 +226,15 @@ AI_LLMOPS_DB_LOGGING_ENABLED=true
 
 Then redeploy or restart the active app through the normal Blue-Green deploy process so the new env value is loaded.
 
+Confirm the value is actually present inside the running app container:
+
+```bash
+docker exec start-up-app-blue printenv | grep '^AI_LLMOPS_DB_LOGGING_ENABLED='
+docker exec start-up-app-green printenv | grep '^AI_LLMOPS_DB_LOGGING_ENABLED='
+```
+
+If one slot is intentionally stopped, check only the active/running slot from `/opt/clueroom/bg-status.sh`.
+
 ---
 
 ## 8. Verify DB Persistence

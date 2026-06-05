@@ -376,6 +376,9 @@ error_code      only on failure/fallback counters
 token_type      only on token counter
 ```
 
+`scenarioId`, `sessionId`, `suspectId`, and `npcCode` are intentionally excluded from Prometheus labels.
+They are request-level fields for structured logs and optional `ai_call_logs` rows only.
+
 Interpretation:
 
 ```text
