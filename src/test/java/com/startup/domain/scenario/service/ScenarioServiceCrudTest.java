@@ -120,7 +120,7 @@ public class ScenarioServiceCrudTest {
     @DisplayName("수정 실패: PUBLISHED 상태의 시나리오는 수정할 수 없다")
     void updateScenario_fail_publishedCannotModify() {
         // given: 시나리오를 PUBLISHED 상태로 바꿔놓습니다
-        savedScenario.publish();
+        savedScenario.publish(ScenarioVisibility.PUBLIC);
         scenarioRepository.saveAndFlush(savedScenario);
 
         ScenarioUpdateRequest request = new ScenarioUpdateRequest(

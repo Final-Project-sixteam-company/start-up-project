@@ -180,11 +180,16 @@ public class ScenarioService {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_PUBLISH);
         }
 
+        // 요청된 visibility 검증 (PUBLIC 또는 UNLISTED만 허용)
+        if (request.visibility() != ScenarioVisibility.PUBLIC && request.visibility() != ScenarioVisibility.UNLISTED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_PUBLISH, "발행 시에는 PUBLIC 또는 UNLISTED 상태로만 변경할 수 있습니다.");
+        }
+
         // 정합성 검증 (여기서 부족한 항목 체크)
         scenarioPublishValidator.validate(scenario);
 
         // 상태 PUBLISHED로 변경
-        scenario.publish();
+        scenario.publish(request.visibility());
 
         return new ScenarioPublishResponse(
                 scenario.getId(),

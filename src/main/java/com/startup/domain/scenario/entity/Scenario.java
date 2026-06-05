@@ -139,9 +139,9 @@ public class Scenario extends BaseEntity {
         this.playCount++;
     }
 
-    public void publish() {
+    public void publish(ScenarioVisibility visibility) {
         this.status = ScenarioStatus.PUBLISHED;
-        this.visibility = ScenarioVisibility.PUBLIC;
+        this.visibility = visibility;
         this.publishedAt = LocalDateTime.now();
     }
 
