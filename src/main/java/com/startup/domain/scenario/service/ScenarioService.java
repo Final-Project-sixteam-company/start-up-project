@@ -122,9 +122,9 @@ public class ScenarioService {
                 .scenarioType(ScenarioType.CUSTOM)          // 유저가 만들면 무조건 CUSTOM
                 .visibility(ScenarioVisibility.PRIVATE)     // 최초 생성 시 무조건 PRIVATE (스토어 미노출)
                 .difficulty(request.difficulty() != null ? request.difficulty() : Difficulty.NORMAL)
-                .playerCountMin(request.playerCountMin())
-                .playerCountMax(request.playerCountMax())
-                .estimatedPlayTimeMinutes(request.estimatedPlayTimeMinutes())
+                .playerCountMin(request.playerCountMin() != null ? request.playerCountMin() : 1)
+                .playerCountMax(request.playerCountMax() != null ? request.playerCountMax() : 1)
+                .estimatedPlayTimeMinutes(request.estimatedPlayTimeMinutes() != null ? request.estimatedPlayTimeMinutes() : 30)
                 .creatorId(userId)                          // 요청한 유저를 작성자로 매핑
                 .status(ScenarioStatus.DRAFT)               // 무조건 DRAFT로 강제 (클라이언트 값 무시)
                 .build();
