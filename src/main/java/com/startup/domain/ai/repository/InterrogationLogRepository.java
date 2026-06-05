@@ -1,6 +1,7 @@
 package com.startup.domain.ai.repository;
 
 import com.startup.domain.ai.entity.InterrogationLog;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,8 +10,9 @@ import java.util.List;
 
 public interface InterrogationLogRepository extends JpaRepository<InterrogationLog, Long> {
 
-    List<InterrogationLog> findTop5ByPlaySessionIdAndSuspectIdOrderByCreatedAtDesc(
-            Long playSessionId, Long suspectId);
+    // 최근 N턴 조회. N은 호출부(설정값)에서 Pageable로 주입한다(과거 findTop5 하드코딩 제거).
+    List<InterrogationLog> findByPlaySessionIdAndSuspectIdOrderByCreatedAtDesc(
+            Long playSessionId, Long suspectId, Pageable pageable);
 
     int countByPlaySessionIdAndSuspectId(Long playSessionId, Long suspectId);
 

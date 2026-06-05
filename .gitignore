@@ -52,6 +52,9 @@ scripts/review-snapshot.sh
 docs/REVIEW_SNAPSHOT_GUIDE.md
 .private/
 .private.zip
+# 운영 동일본 시나리오 seed/secret — 점 없는 변형도 무시한다 (정답/시크릿 유출 방지)
+private/
+private.zip
 
 # Internal scenario spoiler docs
 docs/scenarios/*IMPLEMENTATION_CANON*.md
@@ -59,6 +62,10 @@ docs/scenarios/*WORKING_BRIEF*.md
 docs/scenarios/*SOLUTION*.md
 docs/scenarios/*TRUTH*.md
 !docs/scenarios/README.md
+
+# 내부 리뷰/체크리스트 문서 — 로컬 전용(Codex가 로컬에서 참조). 저장소엔 올리지 않는다.
+docs/FE_BE_INTEGRATION_REVIEW_2026-06-04.md
+docs/MVP_CHECKLIST_FE_BE_2026-06-05.md
 
 # Runtime env / secrets
 *.pem

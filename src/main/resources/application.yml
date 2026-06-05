@@ -90,7 +90,7 @@ caselab:
       cover-up-max-score: ${SCORING_COVER_UP_MAX_SCORE:10}
   ai:
     interrogation:
-      max-history-turns: ${AI_INTERROGATION_MAX_HISTORY_TURNS:5}
+      max-history-turns: ${AI_INTERROGATION_MAX_HISTORY_TURNS:10}
       temperature: ${AI_INTERROGATION_TEMPERATURE:0.3}
       max-tokens: ${AI_INTERROGATION_MAX_TOKENS:150}
     deduction:

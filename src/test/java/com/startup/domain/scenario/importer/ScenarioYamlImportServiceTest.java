@@ -118,6 +118,37 @@ class ScenarioYamlImportServiceTest {
     }
 
     @Test
+    void importYaml_persistsEvidencePresentedTriggerInConditionJson() {
+        // base에서 EVIDENCE_KEY 규칙만 EVIDENCE_PRESENTED(트리거=EVIDENCE_OPENING)로 교체해 import 한다.
+        ScenarioYaml base = sampleYaml();
+        ScenarioYaml yaml = new ScenarioYaml(
+                base.metadata(), base.scenario(), base.victim(), base.locations(), base.characters(),
+                base.evidences(), base.timelineEvents(), base.evidenceVariantStates(), base.variants(),
+                List.of(
+                        new ScenarioYaml.UnlockRuleYaml("EVIDENCE_OPENING", "PHASE",
+                                new ScenarioYaml.UnlockConditionYaml("PHASE_0_OPENING", List.of(), null, null, null, false), 10),
+                        new ScenarioYaml.UnlockRuleYaml("EVIDENCE_KEY", "EVIDENCE_PRESENTED",
+                                new ScenarioYaml.UnlockConditionYaml(
+                                        null, List.of(), "SUSPECT_SECRETARY", "EVIDENCE_OPENING", null, false), 20)
+                ),
+                base.npcPolicies(), base.scoring(), base.assets()
+        );
+
+        ScenarioImportResult result = importService.importYaml(yaml, "hash-presented", "test");
+
+        var keyEvidence = evidenceRepository.findByScenarioIdAndCode(result.scenarioId(), "EVIDENCE_KEY").orElseThrow();
+        var rule = unlockRuleRepository.findByEvidenceId(keyEvidence.getId()).orElseThrow();
+        assertThat(rule.getUnlockType()).isEqualTo("EVIDENCE_PRESENTED");
+        // seed -> DTO -> importer -> DB condition_json 체인 증명 (matcher는 InterrogationEvidenceUnlockServiceTest가 커버)
+        assertThat(rule.getConditionJson())
+                .contains("requiredPresentedEvidenceCode")
+                .contains("EVIDENCE_OPENING")
+                .contains("SUSPECT_SECRETARY");
+        // evidence 엔티티의 unlock_type도 EVIDENCE_PRESENTED로 매핑된다(시간 자동해금 차단).
+        assertThat(keyEvidence.getUnlockType().name()).isEqualTo("EVIDENCE_PRESENTED");
+    }
+
+    @Test
     void importYaml_rejectsSameVersionDifferentHash() {
         ScenarioYaml yaml = sampleYaml();
 
@@ -287,13 +318,13 @@ class ScenarioYamlImportServiceTest {
                         new ScenarioYaml.UnlockRuleYaml(
                                 "EVIDENCE_OPENING",
                                 "PHASE",
-                                new ScenarioYaml.UnlockConditionYaml("PHASE_0_OPENING", List.of(), null, null, false),
+                                new ScenarioYaml.UnlockConditionYaml("PHASE_0_OPENING", List.of(), null, null, null, false),
                                 10
                         ),
                         new ScenarioYaml.UnlockRuleYaml(
                                 "EVIDENCE_KEY",
                                 "PHASE",
-                                new ScenarioYaml.UnlockConditionYaml("PHASE_2_SYSTEM_LOGS", List.of("EVIDENCE_OPENING"), null, null, false),
+                                new ScenarioYaml.UnlockConditionYaml("PHASE_2_SYSTEM_LOGS", List.of("EVIDENCE_OPENING"), null, null, null, false),
                                 20
                         )
                 ),

@@ -329,6 +329,25 @@ public class ScenarioYamlValidator {
             if (hasText(condition.requiredCharacterCode()) && !characterCodes.contains(condition.requiredCharacterCode())) {
                 violations.add("unlockRule " + rule.evidenceCode() + " references missing character: " + condition.requiredCharacterCode());
             }
+            if (hasText(condition.requiredPresentedEvidenceCode())
+                    && !evidenceCodes.contains(condition.requiredPresentedEvidenceCode())) {
+                violations.add("unlockRule " + rule.evidenceCode()
+                        + " references missing presented evidence: " + condition.requiredPresentedEvidenceCode());
+            }
+            // EVIDENCE_PRESENTED 해금은 트리거 증거가 반드시 있어야 한다.
+            // (runtime matcher가 requiredPresentedEvidenceCode를 필수로 보므로, 비면 import는 통과해도 런타임에서 영원히 매칭 실패한다.)
+            if ("EVIDENCE_PRESENTED".equalsIgnoreCase(rule.unlockType())
+                    && !hasText(condition.requiredPresentedEvidenceCode())) {
+                violations.add("unlockRule " + rule.evidenceCode()
+                        + " is EVIDENCE_PRESENTED but condition.requiredPresentedEvidenceCode is missing.");
+            }
+            // 자기 자신을 트리거로 지정하면 모순(잠긴 증거를 그 자신 제시로 여는 셈)이므로 차단한다.
+            if ("EVIDENCE_PRESENTED".equalsIgnoreCase(rule.unlockType())
+                    && hasText(condition.requiredPresentedEvidenceCode())
+                    && condition.requiredPresentedEvidenceCode().equals(rule.evidenceCode())) {
+                violations.add("unlockRule " + rule.evidenceCode()
+                        + " is EVIDENCE_PRESENTED but requiredPresentedEvidenceCode references itself.");
+            }
         }
     }
 
