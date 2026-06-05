@@ -69,7 +69,67 @@ It is a deployment and rollback PoC, not high availability.
 
 PoC success is measured by repeatable checks and screenshots, not permanent operation.
 
-## 4. Required Application Conditions
+## 4. Immediate LLMOps Path
+
+The first weekend enhancement goal is not full app scale-out. It is to attach LLMOps and a Monitoring Agent quickly while keeping production data risk low.
+
+Do not migrate MySQL or Redis first.
+
+Immediate structure:
+
+```text
+prod-01
+  ├─ Nginx
+  ├─ app-blue / app-green
+  ├─ MySQL
+  ├─ Redis
+  ├─ Prometheus
+  └─ Grafana
+
+ops-01
+  ├─ n8n
+  ├─ Loki
+  └─ Monitoring Agent
+```
+
+Rationale:
+
+```text
+- DB/Redis migration changes runtime risk more than LLMOps needs.
+- Current prod MySQL/Redis should stay on prod-01 until backup/restore rehearsal is complete.
+- The first LLMOps signal should come from backend structured AI_CALL logs.
+- Loki can collect AI_CALL logs before a DB-backed LLMOps table exists.
+- DB-backed LLMOps storage can be added later when schema, retention, and dashboard needs are clear.
+```
+
+Near-term flow:
+
+```text
+Spring Boot AI call
+  ↓
+structured AI_CALL log
+  ↓
+Promtail or equivalent log shipper
+  ↓
+ops-01 Loki
+  ↓
+Monitoring Agent / n8n summary
+```
+
+Later, when true app scale-out is being verified, DB and Redis should be separated into a shared infra/data server so every app instance uses the same state layer.
+
+Long-term safer split:
+
+```text
+app-*   Spring Boot app instances
+data-01 MySQL / Redis / backup jobs
+ops-01  n8n / Loki / Monitoring Agent / alert workflows
+lb-01   public Nginx or managed load balancer
+```
+
+This keeps data services and automation/agent workloads from competing on one small host.
+
+## 5. Required Application Conditions
 
 Before any multi-server app PoC, verify:
 
@@ -85,7 +145,7 @@ Before any multi-server app PoC, verify:
 
 If these are not true, scale-out can create inconsistent gameplay behavior.
 
-## 5. PoC 1: Two-Server Role Separation
+## 6. PoC 1: Two-Server Role Separation
 
 Goal:
 
@@ -155,7 +215,7 @@ curl -I https://poc-api.clueroom.xyz/actuator/health
 curl -s https://poc-api.clueroom.xyz/api/scenarios
 ```
 
-## 6. PoC 2: Manual Nginx Load Balancing
+## 7. PoC 2: Manual Nginx Load Balancing
 
 Goal:
 
@@ -228,7 +288,7 @@ Expected:
 requests continue through app-02
 ```
 
-## 7. PoC 3: Server-Level Blue-Green
+## 8. PoC 3: Server-Level Blue-Green
 
 Goal:
 
@@ -295,7 +355,7 @@ What this proves:
 - app hosts can be replaced independently
 ```
 
-## 8. PoC 4: Blue/Green App Groups
+## 9. PoC 4: Blue/Green App Groups
 
 Goal:
 
@@ -355,7 +415,7 @@ location / {
 
 This is not required for MVP. It is useful for demonstrating how ClueRoom could evolve beyond one active app instance.
 
-## 9. Shared Data And State
+## 10. Shared Data And State
 
 Shared components:
 
@@ -386,7 +446,7 @@ Required mitigations:
 - follow expand-contract DB migration policy later
 ```
 
-## 10. Verification Checklist
+## 11. Verification Checklist
 
 For any scale-out PoC:
 
@@ -404,7 +464,7 @@ For any scale-out PoC:
 - rollback path is documented
 ```
 
-## 11. Cleanup
+## 12. Cleanup
 
 PoC resources should not be left running indefinitely.
 
@@ -422,7 +482,7 @@ Cleanup checklist:
 
 Do not delete production resources during PoC cleanup.
 
-## 12. Do Not Do
+## 13. Do Not Do
 
 ```text
 - Do not move production api.clueroom.xyz to PoC LB without a separate rollout plan.
@@ -433,7 +493,7 @@ Do not delete production resources during PoC cleanup.
 - Do not treat this PoC as production HA.
 ```
 
-## 13. Completion Criteria
+## 14. Completion Criteria
 
 The scale-out PoC plan is complete when:
 
