@@ -58,6 +58,15 @@ public class ScenarioPublishValidator {
                     if (solution.parseKeyEvidenceIds().isEmpty()) {
                         errors.add("정답에 핵심 증거가 지정되지 않음");
                     }
+                    if (!StringUtils.hasText(solution.getMotive())) {
+                        errors.add("정답의 동기(motive) 미입력");
+                    }
+                    if (!StringUtils.hasText(solution.getMethod())) {
+                        errors.add("정답의 방법(method) 미입력");
+                    }
+                    if (!StringUtils.hasText(solution.getCoverUp())) {
+                        errors.add("정답의 은폐 방법(coverUp) 미입력");
+                    }
                 },
                 () -> errors.add("정답 미설정")
         );
