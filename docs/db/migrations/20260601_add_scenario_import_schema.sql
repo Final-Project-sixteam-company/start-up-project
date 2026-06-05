@@ -17,6 +17,7 @@ ALTER TABLE scenarios
     ADD COLUMN map_asset_key VARCHAR(500) NULL AFTER cover_asset_key;
 
 ALTER TABLE scenarios
+    ADD COLUMN published_at DATETIME NULL,
     ADD CONSTRAINT uk_scenarios_code_version UNIQUE (code, content_version);
 
 ALTER TABLE scenario_locations

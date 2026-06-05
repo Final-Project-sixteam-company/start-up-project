@@ -166,25 +166,32 @@ public class ScenarioService {
 
 
     @Transactional
-    public void publishScenario(Long userId, Long scenarioId) {
+    public ScenarioPublishResponse publishScenario(Long userId, Long scenarioId, ScenarioPublishRequest request) {
         Scenario scenario = scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        // 1. 소유권 검증
+        // 소유권 검증
         if (!scenario.getCreatorId().equals(userId)) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
 
-        // 2. 상태 전환 가능 여부 검증 (ScenarioStatus.canPublish() 활용)
+        // 상태 전환 가능 여부 검증 (ScenarioStatus.canPublish() 활용)
         if (!scenario.getStatus().canPublish()) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_PUBLISH);
         }
 
-        // 3. 정합성 검증 (여기서 부족한 항목 체크)
+        // 정합성 검증 (여기서 부족한 항목 체크)
         scenarioPublishValidator.validate(scenario);
 
-        // 4. 상태 PUBLISHED로 변경
+        // 상태 PUBLISHED로 변경
         scenario.publish();
+
+        return new ScenarioPublishResponse(
+                scenario.getId(),
+                scenario.getVisibility(),
+                scenario.getStatus(),
+                scenario.getPublishedAt()
+        );
     }
 
     private Pageable mapPageableSort(Pageable pageable) {

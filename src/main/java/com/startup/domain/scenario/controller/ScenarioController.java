@@ -63,4 +63,15 @@ public class ScenarioController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Operation(summary = "시나리오 공개 등록(발행)")
+    @PostMapping("/{scenarioId}/publish")
+    public ResponseEntity<ApiResponse<ScenarioPublishResponse>> publishScenario(
+            @PathVariable Long scenarioId,
+            @RequestBody ScenarioPublishRequest request
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        ScenarioPublishResponse response = scenarioService.publishScenario(userId, scenarioId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
 }
