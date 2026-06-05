@@ -191,9 +191,12 @@ manual DB/Redis checks
 Reference:
 
 ```text
+docs/infra/GRAFANA_ALERT_POLICY.md
 docs/infra/agent/MONITORING_AGENT_PLAN.md
 docs/infra/agent/OPS_SNAPSHOT_SPEC.md
 ```
+
+Actual Slack notification wiring is deferred to INFRA-09 after alert policy and metric names are confirmed.
 
 ---
 

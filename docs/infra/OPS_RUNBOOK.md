@@ -212,6 +212,7 @@ X-ClueRoom-Upstream: 127.0.0.1:8082
 
 외부에서 허용되는 actuator endpoint는 health check뿐이다.
 Rate Limit 정책은 `docs/infra/RATE_LIMIT_POLICY.md`를 기준으로 설계하되, 프론트 E2E QA가 완료되기 전까지 운영 Nginx에 `limit_req`를 실제 적용하지 않는다.
+Grafana Alert 정책은 `docs/infra/GRAFANA_ALERT_POLICY.md`를 기준으로 설계하며, Slack 알림 실제 연동은 별도 INFRA-09 작업에서 진행한다.
 
 ```bash
 curl -I https://api.clueroom.xyz/actuator/health

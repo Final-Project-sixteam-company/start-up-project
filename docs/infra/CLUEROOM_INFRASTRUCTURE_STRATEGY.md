@@ -36,6 +36,7 @@ docs/infra/agent/LLMOPS_AGENT_PLAN.md
 ```
 
 Rate Limit의 상세 정책과 적용 순서는 `docs/infra/RATE_LIMIT_POLICY.md`를 따른다.
+Grafana/Prometheus alert와 Slack 알림 설계는 `docs/infra/GRAFANA_ALERT_POLICY.md`를 따른다.
 
 ### 1.1 실제 운영 MVP
 
@@ -342,6 +343,7 @@ Docker Compose + Blue-Green overlay
 
 Prometheus / Grafana는 actuator metric 확인용으로 구성했다.
 Prometheus는 외부에 직접 공개하지 않고 Grafana datasource가 Docker 내부 URL(`http://prometheus:9090`)로 조회한다. Grafana는 팀원이 운영 메트릭을 함께 볼 수 있도록 Nginx HTTPS reverse proxy 뒤에서 `https://monitor.clueroom.xyz`로 공개한다.
+Alert 정책은 외부 health와 active upstream을 우선하고, standby app-blue/app-green down은 오탐 가능성이 있으므로 단독 CRITICAL로 보지 않는다.
 
 운영 원칙:
 
