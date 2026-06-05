@@ -1462,6 +1462,17 @@ curl -I https://api.clueroom.xyz/actuator/health
 
 장애가 나면 아래 순서로 확인한다.
 
+표준 read-only snapshot이 필요하면 PR로 관리되는 스크립트를 운영 위치에 설치한 뒤 사용한다.
+
+```bash
+cp /opt/clueroom/app/scripts/ops-snapshot.sh /opt/clueroom/ops-snapshot.sh
+chmod +x /opt/clueroom/ops-snapshot.sh
+bash -n /opt/clueroom/ops-snapshot.sh
+/opt/clueroom/ops-snapshot.sh | tee /tmp/clueroom-ops-snapshot.txt
+```
+
+Snapshot 출력은 AI 도구나 팀 채팅에 붙이기 전에 secret 값이 없는지 사람이 한 번 확인한다.
+
 ```bash
 /opt/clueroom/bg-status.sh
 ```
