@@ -57,6 +57,7 @@ Reference policies:
 docs/AI_NPC_PROMPT_POLICY.md
 docs/BACKEND_IMPLEMENTATION_GUIDE.md
 AGENTS.md
+docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md
 ```
 
 ---

@@ -49,8 +49,9 @@ AI: Spring AI 기반 LLM 연동
 | 16 | [docs/infra/agent/MONITORING_AGENT_PLAN.md](docs/infra/agent/MONITORING_AGENT_PLAN.md) | Monitoring Agent 도입 계획 |
 | 17 | [docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md](docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md) | Infra Codex Agent 작업 플레이북 |
 | 18 | [docs/infra/agent/LLMOPS_AGENT_PLAN.md](docs/infra/agent/LLMOPS_AGENT_PLAN.md) | LLMOps Agent 도입 계획 |
-| 19 | [docs/scenarios/README.md](docs/scenarios/README.md) | 시나리오 문서 공개 범위와 스포일러 문서 관리 기준 |
-| 20 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
+| 19 | [docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md](docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md) | LLMOps metric/log/DB persistence smoke 절차 |
+| 20 | [docs/scenarios/README.md](docs/scenarios/README.md) | 시나리오 문서 공개 범위와 스포일러 문서 관리 기준 |
+| 21 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
 
 ### 문서 수정 기준
 
