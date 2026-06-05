@@ -165,3 +165,28 @@ CREATE TABLE IF NOT EXISTS timeline_events (
     CONSTRAINT fk_timeline_events_evidence
         FOREIGN KEY (related_evidence_id) REFERENCES evidences (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Create solutions table for custom scenarios
+-- Apply this migration to production to pass ddl-auto=validate check.
+--
+-- Example:
+-- mysql -h <host> -u <user> -p <database> < docs/db/migrations/20260605_create_solutions_table.sql
+
+CREATE TABLE IF NOT EXISTS solutions (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    scenario_id BIGINT NOT NULL,
+    culprit_suspect_id BIGINT NOT NULL,
+    motive TEXT NOT NULL,
+    method TEXT NOT NULL,
+    cover_up TEXT NULL,
+    full_explanation TEXT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    deleted_at DATETIME NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_solutions_scenario (scenario_id),
+    KEY idx_solutions_suspect (culprit_suspect_id),
+    CONSTRAINT fk_solutions_scenario
+        FOREIGN KEY (scenario_id) REFERENCES scenarios (id),
+    CONSTRAINT fk_solutions_suspect
+        FOREIGN KEY (culprit_suspect_id) REFERENCES suspects (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
