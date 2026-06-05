@@ -198,6 +198,136 @@ X-ClueRoom-Upstream: 127.0.0.1:8082
 → app-green active
 ```
 
+### 운영 보안 hardening 적용 상태
+
+운영 서버에는 아래 hardening을 적용한다.
+
+```text
+1. 외부에서 /actuator/prometheus 접근 차단
+2. /actuator/health 외 actuator 민감 endpoint 외부 차단
+3. /.env, /.git, wp-admin, phpmyadmin 등 봇 스캔 경로 차단
+4. legacy app(start-up-app) 중지, Blue-Green 슬롯(app-blue/app-green)만 운영
+5. Fail2Ban sshd jail 적용
+```
+
+외부에서 허용되는 actuator endpoint는 health check뿐이다.
+Rate Limit 정책은 `docs/infra/RATE_LIMIT_POLICY.md`를 기준으로 설계하되, 프론트 E2E QA가 완료되기 전까지 운영 Nginx에 `limit_req`를 실제 적용하지 않는다.
+
+```bash
+curl -I https://api.clueroom.xyz/actuator/health
+```
+
+차단 확인:
+
+```bash
+curl -I https://api.clueroom.xyz/actuator/prometheus
+curl -I https://api.clueroom.xyz/actuator/env
+curl -I https://api.clueroom.xyz/actuator/beans
+curl -I https://api.clueroom.xyz/.env
+curl -I https://api.clueroom.xyz/.git/config
+curl -I https://api.clueroom.xyz/wp-admin/
+curl -I https://api.clueroom.xyz/phpmyadmin/
+```
+
+기대:
+
+```text
+/actuator/health
+→ 200
+
+/actuator/prometheus, /actuator/env, /.env, /.git/*, wp-admin, phpmyadmin
+→ 404 또는 403
+```
+
+> Prometheus 내부 scrape는 Nginx 외부 URL이 아니라 Docker 내부 또는 localhost 경로를 사용한다.
+> 외부 `https://api.clueroom.xyz/actuator/prometheus`는 공개하지 않는다.
+
+Nginx 설정 변경 후 검증:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://api.clueroom.xyz/actuator/health
+curl -I https://api.clueroom.xyz/actuator/prometheus
+```
+
+### legacy app 컨테이너 중지 원칙
+
+운영 traffic은 Nginx Blue-Green upstream을 통해 app-blue 또는 app-green 중 하나로만 간다.
+기존 단일 app 컨테이너인 `start-up-app`은 legacy이며 운영 traffic 대상이 아니다.
+
+확인:
+
+```bash
+docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E 'start-up-app($|-blue|-green)|NAME'
+/opt/clueroom/bg-status.sh
+```
+
+정상 기준:
+
+```text
+start-up-app-blue 또는 start-up-app-green 중 active 슬롯 1개가 Nginx upstream 대상
+standby 슬롯은 배포 직후 rollback 확인 후 stop 가능
+start-up-app legacy 컨테이너는 운영에서 중지 상태 유지
+```
+
+legacy 컨테이너가 실행 중이면 아래처럼 중지한다.
+
+```bash
+cd /opt/clueroom/app
+docker compose stop app
+```
+
+> `docker compose down` 또는 volume 삭제 명령은 사용하지 않는다.
+
+### Fail2Ban sshd jail 운영
+
+SSH brute-force와 반복 실패 접속을 줄이기 위해 Fail2Ban `sshd` jail을 적용한다.
+
+상태 확인:
+
+```bash
+sudo fail2ban-client status
+sudo fail2ban-client status sshd
+```
+
+ignoreip 확인:
+
+```bash
+sudo fail2ban-client get sshd ignoreip
+```
+
+특정 IP unban:
+
+```bash
+sudo fail2ban-client set sshd unbanip <PUBLIC_IP>
+```
+
+특정 IP ban 여부 확인:
+
+```bash
+sudo fail2ban-client status sshd | grep -E 'Currently banned|Banned IP list'
+```
+
+Fail2Ban 로그 확인:
+
+```bash
+sudo journalctl -u fail2ban --since "1 hour ago"
+```
+
+SSH 인증 실패 확인:
+
+```bash
+sudo journalctl -u ssh --since "1 hour ago"
+```
+
+팀원 제한 계정 SSH 안내:
+
+```text
+팀원별 제한 계정은 SSH key / username / host를 잘못 입력해 반복 실패하면 Fail2Ban에 의해 ban될 수 있다.
+접속이 갑자기 안 되면 무리하게 계속 재시도하지 말고, 본인 public IP를 인프라 담당자에게 전달해 unban 여부를 확인한다.
+```
+
 ---
 
 ## 4. 배포 운영 흐름
@@ -856,6 +986,7 @@ Admin 계정 공유 금지
 Prometheus:
 외부 직접 공개 금지
 Grafana가 Docker 내부 URL http://prometheus:9090 으로 조회
+https://api.clueroom.xyz/actuator/prometheus 외부 접근은 Nginx에서 차단
 
 서버 로그:
 인프라 담당자가 SSH로 확인

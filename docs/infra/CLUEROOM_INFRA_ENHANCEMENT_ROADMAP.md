@@ -101,6 +101,8 @@ Work:
 - secret file permission review
 ```
 
+Reference: `docs/infra/RATE_LIMIT_POLICY.md`
+
 AI cost defense must not rely only on Nginx IP rate limit.
 
 Reason:
@@ -116,6 +118,8 @@ Required later:
 ```text
 Redis-backed backend quota by userId, sessionId, scenarioId, and featureType.
 ```
+
+Actual Nginx `limit_req` rollout is deferred to INFRA-03 after frontend E2E QA.
 
 Recommended AI quota targets:
 
