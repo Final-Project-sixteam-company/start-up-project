@@ -3,6 +3,28 @@
 > Status: INFRA-06 policy and PoC design only.
 > This document does not apply country blocking, install GeoIP modules, change DNS, modify Nginx, or restart production servers.
 
+## 0. Decision Summary
+
+ClueRoom MVP enhancement work does not immediately adopt Cloudflare WAF.
+The current production path is already stabilized around Dynadot DNS, Nginx Reverse Proxy, and Certbot HTTPS.
+Adding Cloudflare Proxy changes DNS, SSL mode, real client IP headers, origin protection, cache behavior, and WAF policy at the same time.
+
+Therefore, the short-term INFRA-06 PoC priority is Nginx GeoIP2.
+
+```text
+MVP / learning PoC priority:
+→ Nginx GeoIP2
+
+Long-term production candidate:
+→ Cloudflare WAF, if ClueRoom later needs CDN, managed WAF, challenge-based bot control, or centralized edge policy
+
+Not recommended for current production:
+→ ipset / iptables / nftables country CIDR blocking
+```
+
+Nginx GeoIP2 is also not applied directly to production `api.clueroom.xyz`.
+It should be validated on a test server, a separate test server block, or `poc-api.clueroom.xyz` before any production decision.
+
 ## 1. Purpose
 
 ClueRoom is currently operated for Korean MVP users first.
@@ -119,9 +141,38 @@ wide distributed scans from many networks
 → country/ASN controls may be considered only after impact review.
 ```
 
-## 5. Blocking Options
+## 5. Log Interpretation Caution
 
-### 5.1 Cloudflare WAF Custom Rules
+Top source IPs in Nginx access logs are not automatically attackers.
+
+The current ClueRoom production server can include traffic from:
+
+```text
+- Codex-based QA requests
+- Android/frontend E2E test requests
+- team member manual testing
+- infra lead curl / Swagger checks
+- GitHub Actions or external validation checks
+```
+
+Do not block an IP only because it appears frequently in access logs.
+
+Bot-like traffic should be judged by multiple signals:
+
+```text
+- repeated scan paths such as /.env, /.git, wp-admin, phpmyadmin
+- abnormal repeated requests in a short time window
+- high 4xx ratio
+- suspicious User-Agent patterns
+- overlap with known QA/test time windows
+- whether the IP only probes scan paths without normal API flow
+```
+
+This caution is important during frontend E2E and Codex QA because test automation can temporarily look noisy.
+
+## 6. Blocking Options
+
+### 6.1 Cloudflare WAF Custom Rules
 
 Description:
 
@@ -151,12 +202,12 @@ Cons:
 Recommendation:
 
 ```text
-Primary production candidate after MVP.
-Use a PoC domain first and start with challenge/log mode where possible.
-Do not immediately apply broad country blocks to api.clueroom.xyz.
+Long-term production candidate only if ClueRoom later needs CDN, managed WAF, challenge-based bot control, or centralized edge policy.
+Not selected for the current short-term PoC because it changes DNS, proxy, SSL, and client IP handling scope.
+If evaluated later, use a PoC domain first and start with challenge/log mode where possible.
 ```
 
-### 5.2 Nginx GeoIP2
+### 6.2 Nginx GeoIP2
 
 Description:
 
@@ -186,12 +237,13 @@ Cons:
 Recommendation:
 
 ```text
-Useful learning PoC.
-Use a test host or test server block first.
+Preferred short-term PoC for this project.
+It works within the current Nginx reverse proxy structure and does not require DNS/proxy migration.
+Use a test host, test server block, or poc-api.clueroom.xyz first.
 Use cautiously for always-on production enforcement.
 ```
 
-### 5.3 ipset / iptables / nftables Country CIDR Blocking
+### 6.3 ipset / iptables / nftables Country CIDR Blocking
 
 Description:
 
@@ -224,7 +276,7 @@ Do not use for current production MVP.
 Keep as investigation/comparison only unless there is a clear abuse incident and rollback plan.
 ```
 
-## 6. Production Enforcement Criteria
+## 7. Production Enforcement Criteria
 
 Do not apply country or ASN blocking until all conditions below are satisfied.
 
@@ -256,9 +308,9 @@ Examples that do not justify immediate country block:
 - lack of confirmed source country/ASN
 ```
 
-## 7. PoC Scenarios
+## 8. PoC Scenarios
 
-### 7.1 Cloudflare WAF PoC
+### 8.1 Cloudflare WAF PoC
 
 Recommended scope:
 
@@ -286,7 +338,7 @@ Success criteria:
 - rule can be disabled quickly
 ```
 
-### 7.2 Nginx GeoIP2 PoC
+### 8.2 Nginx GeoIP2 PoC
 
 Recommended scope:
 
@@ -331,7 +383,7 @@ Nginx if usage must be reviewed carefully before production use.
 This snippet is conceptual and should not be copied directly into production.
 ```
 
-### 7.3 ipset / nftables PoC
+### 8.3 ipset / nftables PoC
 
 Recommended scope:
 
@@ -351,7 +403,7 @@ Steps:
 
 Production use requires a stronger change approval than document-only infra tasks.
 
-## 8. Rollback Principles
+## 9. Rollback Principles
 
 Cloudflare:
 
@@ -387,7 +439,7 @@ curl -I https://api.clueroom.xyz/actuator/health
 sudo tail -n 50 /var/log/nginx/error.log
 ```
 
-## 9. Do Not Do
+## 10. Do Not Do
 
 ```text
 - Do not apply broad China IP or country-wide blocking directly to api.clueroom.xyz during MVP.
@@ -398,7 +450,7 @@ sudo tail -n 50 /var/log/nginx/error.log
 - Do not block OPTIONS/preflight without frontend E2E verification.
 ```
 
-## 10. Completion Criteria
+## 11. Completion Criteria
 
 ```text
 - GEOIP_BOT_TRAFFIC_POLICY.md exists.
@@ -410,7 +462,7 @@ sudo tail -n 50 /var/log/nginx/error.log
 - No secret file or token is added.
 ```
 
-## 11. Review Checklist
+## 12. Review Checklist
 
 ```text
 - Does the document avoid immediate broad country blocking?
