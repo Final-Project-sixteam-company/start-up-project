@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -115,8 +116,8 @@ public class ScenarioService {
     @Transactional
     public ScenarioCreateResponse createScenario(Long userId, ScenarioCreateRequest request) {
         Scenario scenario = Scenario.builder()
-                .title(request.title())
-                .description(request.description())
+                .title(StringUtils.hasText(request.title()) ? request.title() : "제목 없는 사건")
+                .description(StringUtils.hasText(request.description()) ? request.description() : "")
                 .synopsis(request.synopsis())
                 .scenarioType(ScenarioType.CUSTOM)          // 유저가 만들면 무조건 CUSTOM
                 .visibility(ScenarioVisibility.PRIVATE)     // 최초 생성 시 무조건 PRIVATE (스토어 미노출)
