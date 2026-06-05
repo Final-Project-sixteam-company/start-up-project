@@ -6,17 +6,19 @@ import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.support.MockSolutionReader;
 import com.startup.domain.ai.support.SolutionReader;
 import com.startup.domain.scenario.entity.ScenarioVariant;
+import com.startup.domain.scenario.entity.Solution;
+import com.startup.domain.scenario.entity.Suspect;
 import com.startup.domain.scenario.entity.VariantSolution;
-import com.startup.domain.scenario.repository.EvidenceRepository;
-import com.startup.domain.scenario.repository.ScenarioVariantRepository;
-import com.startup.domain.scenario.repository.VariantSolutionRepository;
+import com.startup.domain.scenario.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,6 +33,8 @@ public class DefaultSolutionReader implements SolutionReader {
     // seed 데이터가 없는 환경(개발/데모)에서 SOLUTION_NOT_FOUND를 방지하기 위한 fallback.
     // scenario_variants / variant_solutions 테이블에 행이 채워지면 이 경로는 사용되지 않는다.
     private final MockSolutionReader mockSolutionReader;
+    private final SolutionRepository solutionRepository;
+    private final SuspectRepository suspectRepository;
 
     @Override
     public SolutionInfo findByScenarioId(Long scenarioId) {
@@ -39,6 +43,27 @@ public class DefaultSolutionReader implements SolutionReader {
 
     @Override
     public SolutionInfo findByScenarioIdAndVariantId(Long scenarioId, Long variantId) {
+
+        Optional<Solution> customSolutionOpt = solutionRepository.findByScenarioId(scenarioId);
+
+        if (customSolutionOpt.isPresent()) {
+            Solution customSolution = customSolutionOpt.get();
+            Suspect suspect = suspectRepository.findById(customSolution.getCulpritSuspectId())
+                    .orElseThrow(() -> new AiException(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
+
+            return new SolutionInfo(
+                    suspect.getId(),
+                    suspect.getName(),
+                    suspect.getRole(),
+                    customSolution.getMotive(),
+                    customSolution.getMethod(),
+                    customSolution.getCoverUp(),
+                    customSolution.getFullExplanation(),
+                    Collections.emptyList(), // 커스텀 시나리오는 핵심 증거 미지원
+                    Collections.emptyMap()
+            );
+        }
+
         ScenarioVariant variant = null;
 
         // 1. 세션에 고정된 variantId가 있으면 그걸 우선 조회

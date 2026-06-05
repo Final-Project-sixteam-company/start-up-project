@@ -4,6 +4,7 @@ import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.EvidenceRepository;
+import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.repository.SolutionRepository;
 import com.startup.domain.scenario.repository.SuspectRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class ScenarioPublishValidator {
     private final SuspectRepository suspectRepository;
     private final EvidenceRepository evidenceRepository;
     private final SolutionRepository solutionRepository;
+    private final HintRepository hintRepository;
 
     public void validate(Scenario scenario) {
         List<String> errors = new ArrayList<>();
@@ -42,7 +44,12 @@ public class ScenarioPublishValidator {
             errors.add("증거 1개 이상 필요");
         }
 
-        // 4. 정답(Solution) 설정 여부 및 진범 소속 검증
+        // 4. 힌트 최소 1개
+        if(hintRepository.countByScenarioId(scenario.getId()) < 1) {
+            errors.add("힌트 1개 이상 필요");
+        }
+
+        // 5. 정답(Solution) 설정 여부 및 진범 소속 검증
         solutionRepository.findByScenarioId(scenario.getId()).ifPresentOrElse(
                 solution -> {
                     if (suspectRepository.findByIdAndScenarioId(solution.getCulpritSuspectId(), scenario.getId()).isEmpty()) {
