@@ -188,6 +188,31 @@ What this proves:
 - private network security group / firewall rules are understood
 ```
 
+Compose readiness:
+
+```text
+- docker-compose.yml and docker-compose.bluegreen.yml keep mysql/redis as defaults.
+- DB_HOST / DB_PORT / REDIS_HOST / REDIS_PORT can be overridden by .env or runtime env.
+- docker-compose.external-data.yml is the single-app PoC override that removes local mysql/redis depends_on.
+- docker-compose.bluegreen.external-data.yml is the Blue-Green PoC override for app-blue/app-green slots.
+- The default single-server path must keep working without this override.
+```
+
+External data env example:
+
+```env
+DB_HOST=10.0.10.11
+DB_PORT=3306
+REDIS_HOST=10.0.10.11
+REDIS_PORT=6379
+```
+
+For production Blue-Green, put the external data host values in the runtime env source used by `/opt/clueroom/bg-compose` or `/opt/clueroom/deploy.sh`. Do not hardcode private IPs into compose files.
+
+Existing developer `.env` files may still contain `DB_HOST=localhost` or `REDIS_HOST=localhost`. That is valid for host-side tools, but it is not valid inside an app container. Before Docker Compose smoke tests, make sure the app container env uses either `mysql/redis` for the default single-server path or the external data server private address for PoC.
+
+Also check shell-level environment variables before running compose. Shell variables can override `.env` values during Compose interpolation.
+
 Nginx upstream example:
 
 ```nginx
@@ -444,6 +469,16 @@ Required mitigations:
 - keep user/session/game state in DB/Redis
 - make jobs idempotent or single-owner
 - follow expand-contract DB migration policy later
+```
+
+Externalization readiness:
+
+```text
+- DB_HOST / REDIS_HOST override support is a readiness step only.
+- Actual data migration requires backup/restore rehearsal first.
+- Single-app PoC should use docker-compose.external-data.yml or an equivalent override.
+- Blue-Green PoC should use docker-compose.bluegreen.external-data.yml in addition to docker-compose.bluegreen.yml.
+- Do not remove local MySQL/Redis from the default compose path until production cutover is planned.
 ```
 
 ## 11. Verification Checklist

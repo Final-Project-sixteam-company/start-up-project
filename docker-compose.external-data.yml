@@ -1,0 +1,24 @@
+# Optional override for single app / external data server PoC.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.external-data.yml config
+#   docker compose -f docker-compose.yml -f docker-compose.external-data.yml up -d --build app
+#
+# Required env:
+#   DB_HOST=<data-server-private-ip-or-dns>
+#   DB_PORT=3306
+#   REDIS_HOST=<data-server-private-ip-or-dns>
+#   REDIS_PORT=6379
+#
+# This file does not change the default single-server compose path.
+services:
+  mysql:
+    profiles:
+      - local-data
+
+  redis:
+    profiles:
+      - local-data
+
+  app:
+    depends_on: !reset []

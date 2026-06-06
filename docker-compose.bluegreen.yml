@@ -11,10 +11,10 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
       SERVER_FORWARD_HEADERS_STRATEGY: framework
-      DB_HOST: mysql
-      DB_PORT: 3306
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
     ports:
       - "127.0.0.1:8081:8080"
     volumes:
@@ -38,10 +38,10 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
       SERVER_FORWARD_HEADERS_STRATEGY: framework
-      DB_HOST: mysql
-      DB_PORT: 3306
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
     ports:
       - "127.0.0.1:8082:8080"
     volumes:

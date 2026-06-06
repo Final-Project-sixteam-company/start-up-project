@@ -1,0 +1,31 @@
+# Optional override for Blue-Green app slots with an external data server.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.bluegreen.yml -f docker-compose.bluegreen.external-data.yml config
+#   docker compose -f docker-compose.yml -f docker-compose.bluegreen.yml -f docker-compose.bluegreen.external-data.yml up -d --build app-blue
+#
+# Required env:
+#   DB_HOST=<data-server-private-ip-or-dns>
+#   DB_PORT=3306
+#   REDIS_HOST=<data-server-private-ip-or-dns>
+#   REDIS_PORT=6379
+#
+# This file is for PoC/cutover rehearsal only. The default production Blue-Green
+# path keeps local mysql/redis depends_on through docker-compose.bluegreen.yml.
+services:
+  mysql:
+    profiles:
+      - local-data
+
+  redis:
+    profiles:
+      - local-data
+
+  app:
+    depends_on: !reset []
+
+  app-blue:
+    depends_on: !reset []
+
+  app-green:
+    depends_on: !reset []
