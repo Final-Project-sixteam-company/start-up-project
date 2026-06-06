@@ -10,6 +10,8 @@ import com.startup.domain.scenario.enums.*;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.repository.*;
+import com.startup.domain.ai.entity.ScenarioValidationResult;
+import com.startup.domain.ai.repository.ScenarioValidationResultRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +29,7 @@ public class ScenarioServiceCrudTest {
     @Autowired private EvidenceRepository evidenceRepository;
     @Autowired private SolutionRepository solutionRepository;
     @Autowired private HintRepository hintRepository;
+    @Autowired private ScenarioValidationResultRepository validationResultRepository;
 
     // ──────────────────────────────────────────
     // 공통 기본 세팅
@@ -52,6 +55,7 @@ public class ScenarioServiceCrudTest {
 
     @AfterEach
     void tearDown() {
+        validationResultRepository.deleteAllInBatch();
         hintRepository.deleteAllInBatch();
         solutionRepository.deleteAllInBatch();
         evidenceRepository.deleteAllInBatch();
@@ -221,6 +225,16 @@ public class ScenarioServiceCrudTest {
                 .hintLevel(1)
                 .content("힌트 내용")
                 .penaltyScore(10)
+                .build());
+
+        // AI 검증 통과(PASSED) 기록 세팅 (flush를 호출해 DB에 즉시 반영)
+        validationResultRepository.saveAndFlush(ScenarioValidationResult.builder()
+                .scenarioId(scenarioId)
+                .validationStatus("PASSED")
+                .validationScore(100)
+                .problemSummary("문제 없음")
+                .suggestion("훌륭한 시나리오입니다.")
+                .checkItemsJson("{}")
                 .build());
 
         // when
