@@ -265,6 +265,7 @@ public class AiDeductionScorer {
             return fallbackFeedbackGenerator.generate(scoringResult, criteria);
         }
 
+        long startTime = System.currentTimeMillis();
         try {
             String systemPrompt = "너는 추리게임 채점 보조 AI다. JSON으로만 응답하라.";
             String userPrompt = promptBuilder.buildDeductionScoringPrompt(
@@ -275,9 +276,13 @@ public class AiDeductionScorer {
             return parseAiFeedback(response.text());
         } catch (Exception e) {
             log.warn("AI 피드백 생성 실패, Fallback 사용: {}", e.getMessage());
-            aiClient.recordFallback(context, errorCode(e));
+            aiClient.recordFallback(context, errorCode(e), elapsedMs(startTime));
             return fallbackFeedbackGenerator.generate(scoringResult, criteria);
         }
+    }
+
+    private long elapsedMs(long startTime) {
+        return Math.max(0L, System.currentTimeMillis() - startTime);
     }
 
     private String errorCode(Exception e) {

@@ -117,7 +117,12 @@ public class AiClient {
     }
 
     public void recordFallback(AiCallContext context, String errorCode) {
-        aiCallRecorder.record(context, "fallback", "FALLBACK", 0L, true, errorCode, true, null);
+        recordFallback(context, errorCode, 0L);
+    }
+
+    public void recordFallback(AiCallContext context, String errorCode, long latencyMs) {
+        aiCallRecorder.record(context, "fallback", "FALLBACK", Math.max(0L, latencyMs),
+                true, errorCode, true, null);
     }
 
     public boolean isMockMode() {

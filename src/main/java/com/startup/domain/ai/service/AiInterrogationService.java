@@ -140,14 +140,19 @@ public class AiInterrogationService {
 
         AiRequestParams params = AiRequestParams.interrogation(temperature, maxTokens);
 
+        long startTime = System.currentTimeMillis();
         try {
             AiCallResult result = aiClient.chatWithMetadata(systemPrompt, userPrompt, params, aiCallContext);
             return new AiResult(result.text(), result.modelName());
         } catch (AiException e) {
             log.warn("AI 호출 실패, Fallback 응답 반환: {}", e.getMessage());
-            aiClient.recordFallback(aiCallContext, e.getErrorCode().getCode());
+            aiClient.recordFallback(aiCallContext, e.getErrorCode().getCode(), elapsedMs(startTime));
             return new AiResult(mockResponseProvider.getFallbackResponse(), "FALLBACK");
         }
+    }
+
+    private long elapsedMs(long startTime) {
+        return Math.max(0L, System.currentTimeMillis() - startTime);
     }
 
     private void publishEvent(Long sessionId, InterrogationRequest request) {

@@ -203,6 +203,7 @@ public class AiScenarioValidationService {
             return buildMockAiOutcome();
         }
 
+        long startTime = System.currentTimeMillis();
         try {
             String systemPrompt = "너는 추리게임 시나리오 품질 검증 AI다. JSON으로만 응답하라.";
             String userPrompt = promptBuilder.buildScenarioValidationPrompt(data, ruleItems);
@@ -212,9 +213,13 @@ public class AiScenarioValidationService {
             return parseAiResponse(response.text());
         } catch (Exception e) {
             log.warn("AI 검증 호출 실패: {}", e.getMessage());
-            aiClient.recordFallback(context, errorCode(e));
+            aiClient.recordFallback(context, errorCode(e), elapsedMs(startTime));
             return AiValidationOutcome.failed();
         }
+    }
+
+    private long elapsedMs(long startTime) {
+        return Math.max(0L, System.currentTimeMillis() - startTime);
     }
 
     private String errorCode(Exception e) {
