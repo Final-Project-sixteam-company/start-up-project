@@ -95,6 +95,8 @@ public class AiScenarioValidationService {
         acquireLock(lockKey);
 
         try {
+            // 💡 데이터 로드 '시작 시점'을 기록 (검증 중 시나리오 변경 방지)
+            LocalDateTime dataLoadedAt = LocalDateTime.now();
             ScenarioValidationData data = scenarioDataReader.loadForValidation(scenarioId);
             RuleBasedScenarioValidator.RuleValidationResult ruleResult = ruleValidator.validate(data);
 
@@ -141,7 +143,7 @@ public class AiScenarioValidationService {
                     .problemSummary(problemSummary)
                     .suggestion(suggestion)
                     .checkItemsJson(toJson(allItemsForStorage))
-                    .checkedAt(LocalDateTime.now())
+                    .checkedAt(dataLoadedAt)
                     .build();
 
             resultRepository.save(entity);
