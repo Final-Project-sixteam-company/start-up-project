@@ -35,6 +35,10 @@ docs/infra/agent/LLMOPS_AGENT_PLAN.md
 - scale-out PoC
 ```
 
+Rate Limit의 상세 정책과 적용 순서는 `docs/infra/RATE_LIMIT_POLICY.md`를 따른다.
+Grafana/Prometheus alert와 Slack 알림 설계는 `docs/infra/GRAFANA_ALERT_POLICY.md`를 따른다.
+Scale-out PoC의 단계별 구조와 cleanup 기준은 `docs/infra/SCALE_OUT_POC_PLAN.md`를 따른다.
+
 ### 1.1 실제 운영 MVP
 
 ClueRoom의 실제 운영 MVP는 **단일 Lightsail 서버 기반**으로 유지한다.
@@ -93,6 +97,7 @@ Firebase Cloud Messaging
 
 위 항목은 현재 트래픽과 비용을 고려하면 과설계로 판단한다.
 다만 학습/검증 목적의 PoC로는 별도 구성할 수 있다.
+운영 전환이 아닌 PoC 계획은 `docs/infra/SCALE_OUT_POC_PLAN.md`에서 별도로 관리한다.
 
 ---
 
@@ -277,6 +282,7 @@ Nginx는 서버 OS에 직접 설치한다.
 - HTTP → HTTPS 리다이렉트
 - TLS 인증서 처리
 - 내부 Blue-Green active upstream으로 Reverse Proxy
+- public health check 외 actuator / bot scan path edge 차단
 ```
 
 개념:
@@ -293,6 +299,16 @@ app-green 127.0.0.1:8082
 Spring Boot는 직접 HTTPS를 처리하지 않는다.
 SSL termination은 Nginx에서 수행한다.
 현재 active slot은 `/etc/nginx/conf.d/clueroom-upstream.conf`와 health check 응답의 `X-ClueRoom-Upstream` 헤더로 확인한다.
+
+운영 hardening 원칙:
+
+```text
+- 외부에서 /actuator/health만 health check 용도로 허용
+- /actuator/prometheus는 외부 공개하지 않음
+- /actuator/env, /actuator/beans 등 민감 actuator endpoint는 Nginx에서 차단
+- /.env, /.git, wp-admin, phpmyadmin 등 봇 스캔 경로는 Nginx에서 upstream 전 차단
+- Rate Limit은 Nginx IP 기반 방어와 Redis 기반 user/session quota를 분리해 설계
+```
 
 ### 4.4 Docker Compose
 
@@ -323,8 +339,13 @@ Docker Compose + Blue-Green overlay
   └─ redis
 ```
 
+기존 단일 app 컨테이너(`start-up-app`)는 legacy 경로로 보고 운영 traffic 대상에서 제외한다.
+운영 traffic은 Blue-Green 슬롯인 `app-blue` 또는 `app-green` 중 Nginx active upstream으로 지정된 슬롯만 받는다.
+배포 후 rollback 확인이 끝나면 standby 슬롯은 stop 상태로 둘 수 있지만, rollback 가능성을 위해 무분별하게 삭제하지 않는다.
+
 Prometheus / Grafana는 actuator metric 확인용으로 구성했다.
 Prometheus는 외부에 직접 공개하지 않고 Grafana datasource가 Docker 내부 URL(`http://prometheus:9090`)로 조회한다. Grafana는 팀원이 운영 메트릭을 함께 볼 수 있도록 Nginx HTTPS reverse proxy 뒤에서 `https://monitor.clueroom.xyz`로 공개한다.
+Alert 정책은 외부 health와 active upstream을 우선하고, standby app-blue/app-green down은 오탐 가능성이 있으므로 단독 CRITICAL로 보지 않는다.
 
 운영 원칙:
 
@@ -467,6 +488,9 @@ Lightsail 방화벽에서 외부에 공개하는 포트:
 ```
 
 Spring Boot는 Nginx 뒤에서만 접근한다.
+
+SSH는 Fail2Ban `sshd` jail로 반복 실패 접속을 차단한다.
+팀원별 제한 계정은 SSH key / username / host 입력을 여러 번 틀리면 일시 ban될 수 있으므로, 접속 실패가 반복되면 재시도하기 전에 인프라 담당자에게 public IP와 함께 확인을 요청한다.
 
 ### 5.2 Secret 관리
 
