@@ -1,6 +1,8 @@
 package com.startup.domain.scenario.support;
 
+import com.startup.domain.ai.repository.ScenarioValidationResultRepository;
 import com.startup.domain.scenario.entity.Scenario;
+import com.startup.domain.scenario.enums.ScenarioType;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.EvidenceRepository;
@@ -22,6 +24,7 @@ public class ScenarioPublishValidator {
     private final EvidenceRepository evidenceRepository;
     private final SolutionRepository solutionRepository;
     private final HintRepository hintRepository;
+    private final ScenarioValidationResultRepository scenarioValidationResultRepository;
 
     public void validate(Scenario scenario) {
         List<String> errors = new ArrayList<>();
@@ -87,6 +90,21 @@ public class ScenarioPublishValidator {
                 },
                 () -> errors.add("정답 미설정")
         );
+
+        // 6. AI 검증 통과 여부 검증 (💡 클로드 지적사항 반영)
+        // 공식 시나리오는 자체 검수하므로 제외, 커스텀 시나리오인 경우에만 강제
+        if (scenario.getScenarioType() == ScenarioType.CUSTOM) {
+            scenarioValidationResultRepository.findTopByScenarioIdOrderByCheckedAtDescIdDesc(scenario.getId())
+                    .ifPresentOrElse(
+                            result -> {
+                                String status = result.getValidationStatus();
+                                if (!"PASSED".equals(status) && !"PASSED_WITH_WARNINGS".equals(status)) {
+                                    errors.add("AI 논리 검증을 통과하지 못함 (최근 상태: " + status + ")");
+                                }
+                            },
+                            () -> errors.add("AI 논리 검증 기록이 없음")
+                    );
+        }
 
         // 에러가 하나라도 있으면 커스텀 메시지를 담아 예외 던짐
         if (!errors.isEmpty()) {
