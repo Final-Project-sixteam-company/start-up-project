@@ -224,6 +224,20 @@ Enable DB logging only after the table exists:
 AI_LLMOPS_DB_LOGGING_ENABLED=true
 ```
 
+For production Blue-Green, put this value in the runtime env source loaded by the helpers.
+The preferred location is a secret env file such as:
+
+```text
+/opt/clueroom/secrets/env.d/ai.env
+```
+
+The Blue-Green compose file intentionally does not define `AI_LLMOPS_DB_LOGGING_ENABLED`
+in the explicit `environment` block. This lets the generated `CLUEROOM_RUNTIME_ENV_FILE`
+and `env_file` value win.
+
+For the local single-app compose stack, `.env` can contain the same key because
+`docker-compose.yml` passes it through explicitly for local/dev use.
+
 Then redeploy or restart the active app through the normal Blue-Green deploy process so the new env value is loaded.
 
 Confirm the value is actually present inside the running app container:
