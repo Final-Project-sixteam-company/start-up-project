@@ -55,7 +55,15 @@ public class ScenarioPublishValidator {
                     if (suspectRepository.findByIdAndScenarioId(solution.getCulpritSuspectId(), scenario.getId()).isEmpty()) {
                         errors.add("정답의 범인이 현재 시나리오의 용의자가 아님");
                     }
-                    List<Long> keyEvidenceIds = solution.parseKeyEvidenceIds();
+
+                    List<Long> keyEvidenceIds;
+                    try {
+                        keyEvidenceIds = solution.parseKeyEvidenceIds();
+                    } catch (NumberFormatException e) {
+                        errors.add("정답의 핵심 증거 ID 형식이 올바르지 않음");
+                        keyEvidenceIds = List.of();
+                    }
+
                     if (keyEvidenceIds.isEmpty()) {
                         errors.add("정답에 핵심 증거가 지정되지 않음");
                     } else {
@@ -66,6 +74,7 @@ public class ScenarioPublishValidator {
                             errors.add("정답의 핵심 증거 중 현재 시나리오에 속하지 않는 증거가 있음");
                         }
                     }
+
                     if (!StringUtils.hasText(solution.getMotive())) {
                         errors.add("정답의 동기(motive) 미입력");
                     }
