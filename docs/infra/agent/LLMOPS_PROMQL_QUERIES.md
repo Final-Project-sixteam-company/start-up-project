@@ -146,7 +146,12 @@ Fallback ratio by feature:
 ```promql
 sum by (feature_type) (increase(ai_fallbacks_total[5m]))
 /
-clamp_min(sum by (feature_type) (increase(ai_requests_total[5m])), 1)
+clamp_min(
+  sum by (feature_type) (
+    increase(ai_requests_total{fallback_used="false",provider!="mock"}[5m])
+  ),
+  1
+)
 ```
 
 Failure ratio by feature:
@@ -154,7 +159,12 @@ Failure ratio by feature:
 ```promql
 sum by (feature_type) (increase(ai_failures_total[5m]))
 /
-clamp_min(sum by (feature_type) (increase(ai_requests_total[5m])), 1)
+clamp_min(
+  sum by (feature_type) (
+    increase(ai_requests_total{fallback_used="false",provider!="mock"}[5m])
+  ),
+  1
+)
 ```
 
 Interpretation:
@@ -162,6 +172,9 @@ Interpretation:
 ```text
 Fallback may preserve demo UX, but it means the real provider or parser path did not complete.
 Failure and fallback panels should be reviewed together.
+Use provider attempts as the denominator for failure/fallback ratios.
+Do not divide by all ai_requests_total because fallback events are also recorded as AI request events.
+Mock-mode smoke calls are excluded from the production-oriented ratio denominator.
 ```
 
 ---
