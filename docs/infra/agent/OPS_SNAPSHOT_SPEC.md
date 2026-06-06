@@ -2,7 +2,8 @@
 
 > Purpose: define a secret-safe server status snapshot format for Monitoring Agent, Infra Agent, and human incident review.
 >
-> Status: planning document. The snapshot script described here is not implemented yet.
+> Status: PoC script available at `scripts/ops-snapshot.sh`.
+> Production install path is `/opt/clueroom/ops-snapshot.sh`.
 
 ---
 
@@ -85,12 +86,13 @@ cat /opt/clueroom/app/.env
 cat /opt/clueroom/secrets/env.d/*.env
 cat /opt/clueroom/secrets/firebase-service-account.json
 printenv
-docker inspect
+docker inspect without an explicit secret-safe --format
 mysqldump
 cat /opt/clueroom/secrets/scenarios/*.yaml
 ```
 
 If a command can reveal secrets in normal output, exclude it or redact it before the snapshot is emitted.
+The PoC script may use `docker inspect --format` only for bounded container health fields such as container name and health status.
 
 ---
 
@@ -433,9 +435,21 @@ Output:
 
 ---
 
-## 9. Future `/opt/clueroom/ops-snapshot.sh` Design
+## 9. `/opt/clueroom/ops-snapshot.sh` PoC
 
-The future script should:
+The repository PoC script lives at:
+
+```text
+scripts/ops-snapshot.sh
+```
+
+The production install path is:
+
+```text
+/opt/clueroom/ops-snapshot.sh
+```
+
+The script should:
 
 ```text
 1. run only bounded read-only commands
@@ -444,23 +458,36 @@ The future script should:
 4. include command exit statuses
 5. include timestamps
 6. mark each section as PASS/WARN/FAIL/UNKNOWN
-7. save output to a timestamped local file
-8. avoid uploading output automatically in MVP
+7. avoid uploading output automatically in MVP
+8. keep logs bounded to recent tails
 ```
 
-Candidate path:
+Install after PR merge:
 
-```text
-/opt/clueroom/ops-snapshot.sh
+```bash
+cd /opt/clueroom/app
+cp scripts/ops-snapshot.sh /opt/clueroom/ops-snapshot.sh
+chmod +x /opt/clueroom/ops-snapshot.sh
+bash -n /opt/clueroom/ops-snapshot.sh
 ```
 
-Candidate output path:
+Run:
 
-```text
-/opt/clueroom/logs/ops-snapshot-YYYYMMDD_HHMMSS.txt
+```bash
+/opt/clueroom/ops-snapshot.sh | tee /tmp/clueroom-ops-snapshot.txt
 ```
 
-The script should not be added to production automatically until reviewed through PR and tested on staging or a maintenance window.
+Secret smoke:
+
+```bash
+grep -Ei 'AWS_SECRET|OPENAI_API_KEY|DB_PASSWORD|PRIVATE KEY|BEGIN|SLACK_WEBHOOK|FIREBASE|SERVICE_ACCOUNT' /tmp/clueroom-ops-snapshot.txt && echo "POTENTIAL SECRET FOUND" || echo "snapshot redaction OK"
+```
+
+The grep can match key names in warnings or documentation text.
+The important rule is that actual secret values must not appear.
+
+The script must not be added to production automatically.
+Install it only after PR review and human approval.
 
 ---
 

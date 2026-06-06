@@ -201,6 +201,7 @@ Never allowed.
 These commands are acceptable for diagnosis when the human has asked for infrastructure analysis.
 
 ```bash
+/opt/clueroom/ops-snapshot.sh
 /opt/clueroom/bg-status.sh
 curl -I https://api.clueroom.xyz/actuator/health
 curl -s https://api.clueroom.xyz/actuator/health
@@ -218,6 +219,9 @@ git log --oneline -5
 ```
 
 Log reads are allowed only when they avoid secrets and stay bounded.
+
+`/opt/clueroom/ops-snapshot.sh` is the preferred bundled read-only status collector after it has been installed from `scripts/ops-snapshot.sh`.
+The agent may analyze its human-reviewed output, but must not request secret files or unbounded logs.
 
 For production Blue-Green app logs, identify the active slot first and read that slot through the compose helper.
 
