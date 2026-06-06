@@ -27,7 +27,10 @@ public class ScenarioAccessService {
     }
 
     public boolean canEdit(Long userId, Long scenarioId) {
-        return true;
+        Scenario scenario = scenarioRepository.findById(scenarioId).orElse(null);
+        if (scenario == null) return false;
+        
+        return userId != null && userId.equals(scenario.getCreatorId());
     }
 
     public boolean canView(Long userId, Long scenarioId) {
