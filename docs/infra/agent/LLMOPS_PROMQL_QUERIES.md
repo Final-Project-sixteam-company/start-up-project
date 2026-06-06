@@ -184,9 +184,9 @@ Mock-mode smoke calls are excluded from the production-oriented ratio denominato
 Default average latency by feature type:
 
 ```promql
-sum by (feature_type) (rate(ai_latency_seconds_sum[5m]))
+sum by (feature_type) (increase(ai_latency_seconds_sum[5m]))
 /
-clamp_min(sum by (feature_type) (rate(ai_latency_seconds_count[5m])), 1)
+clamp_min(sum by (feature_type) (increase(ai_latency_seconds_count[5m])), 0.001)
 ```
 
 Request count by feature type:
@@ -224,6 +224,7 @@ Notes:
 ```text
 ai_latency_seconds_bucket may not exist unless histogram buckets are enabled for this timer.
 Use ai_latency_seconds_sum/count for the first dashboard if buckets are not present.
+Use increase(sum)/increase(count) for average latency so low-volume periods do not under-report.
 AI final deduction and scenario validation can naturally be slower than interrogation.
 Do not use one global latency threshold for every feature.
 ```
