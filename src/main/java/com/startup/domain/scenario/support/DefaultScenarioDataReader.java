@@ -7,21 +7,8 @@ import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
 import com.startup.domain.ai.support.MockSolutionReader;
 import com.startup.domain.ai.support.ScenarioDataReader;
-import com.startup.domain.scenario.entity.Evidence;
-import com.startup.domain.scenario.entity.EvidenceSuspect;
-import com.startup.domain.scenario.entity.ScenarioLocation;
-import com.startup.domain.scenario.entity.Suspect;
-import com.startup.domain.scenario.entity.VariantSolution;
-import com.startup.domain.scenario.entity.Victim;
-import com.startup.domain.scenario.repository.EvidenceRepository;
-import com.startup.domain.scenario.repository.EvidenceSuspectRepository;
-import com.startup.domain.scenario.repository.HintRepository;
-import com.startup.domain.scenario.repository.ScenarioLocationRepository;
-import com.startup.domain.scenario.repository.ScenarioRepository;
-import com.startup.domain.scenario.repository.ScenarioVariantRepository;
-import com.startup.domain.scenario.repository.SuspectRepository;
-import com.startup.domain.scenario.repository.VariantSolutionRepository;
-import com.startup.domain.scenario.repository.VictimRepository;
+import com.startup.domain.scenario.entity.*;
+import com.startup.domain.scenario.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
@@ -51,6 +38,7 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
     private final VariantSolutionRepository variantSolutionRepository;
     private final SuspectResponsePolicyRepository policyRepository;
     private final MockSolutionReader mockSolutionReader;
+    private final SolutionRepository solutionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -202,7 +190,8 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
         Long culpritId = variantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
                 .flatMap(variant -> variantSolutionRepository.findByVariantId(variant.getId()))
                 .map(VariantSolution::getCulpritSuspectId)
-                .orElse(null);
+                .orElseGet(() -> solutionRepository.findByScenarioId(scenarioId)
+                                .map(Solution::getCulpritSuspectId).orElse(null));
 
         if (culpritId == null) {
             try {
@@ -231,6 +220,21 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
                         solution.getFullExplanation(),
                         solution.parseKeyEvidenceIds()
                 ))
+                .orElseGet(() -> solutionRepository.findByScenarioId(scenarioId)
+                        .map(solution -> {
+                            // 커스텀 정답엔 이름/역할 컬럼이 없으므로 용의자 테이블에서 즉시 조회
+                            Suspect suspect = suspectRepository.findById(solution.getCulpritSuspectId()).orElse(null);
+                            return new ScenarioValidationData.SolutionValidationInfo(
+                                    solution.getCulpritSuspectId(),
+                                    suspect != null ? suspect.getName() : "알 수 없음",
+                                    suspect != null ? suspect.getRole() : "알 수 없음",
+                                    solution.getMotive(),
+                                    solution.getMethod(),
+                                    solution.getCoverUp(),
+                                    solution.getFullExplanation(),
+                                    solution.parseKeyEvidenceIds()
+                            );
+                        })
                 .orElseGet(() -> {
                     log.warn("[ScenarioDataReader] 활성 variant/solution 없음. scenarioId={} -> Mock으로 fallback", scenarioId);
                     try {
@@ -248,7 +252,7 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
                     } catch (AiException e) {
                         return null;
                     }
-                });
+                }));
     }
 
     /**
