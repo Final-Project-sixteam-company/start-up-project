@@ -168,7 +168,7 @@ public class ScenarioService {
 
     @Transactional
     public ScenarioPublishResponse publishScenario(Long userId, Long scenarioId, ScenarioPublishRequest request) {
-        Scenario scenario = scenarioRepository.findById(scenarioId)
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 소유권 검증 (null-safe)
