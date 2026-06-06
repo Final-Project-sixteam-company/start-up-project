@@ -57,13 +57,13 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
-      DB_HOST: ${DB_HOST:-mysql}
-      DB_PORT: ${DB_PORT:-3306}
+      DB_HOST: ${APP_DB_HOST:-mysql}
+      DB_PORT: ${APP_DB_PORT:-3306}
       DB_NAME: ${DB_NAME:-startup}
       DB_USERNAME: ${DB_USERNAME:-root}
       DB_PASSWORD: ${DB_PASSWORD:-12345678}
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_HOST: ${APP_REDIS_HOST:-redis}
+      REDIS_PORT: ${APP_REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JPA_DDL_AUTO: ${DOCKER_JPA_DDL_AUTO:-update}
       SPRING_AI_MODEL_CHAT: ${SPRING_AI_MODEL_CHAT:-none}

@@ -150,18 +150,20 @@ REDIS_HOST=redis
 REDIS_PORT=6379
 ```
 
-`.env.example`도 Docker Compose 기본값에 맞춰 `mysql/redis`를 사용한다. 호스트 PC에서 직접 MySQL/Redis에 접속할 때는 `DB_HOST`/`REDIS_HOST`가 아니라 아래 host port를 사용한다.
+컨테이너 내부에서 Spring이 읽는 최종 변수명은 여전히 `DB_HOST`와 `REDIS_HOST`다. 다만 Docker Compose가 그 값을 고를 때는 `APP_DB_HOST`와 `APP_REDIS_HOST`를 입력 변수로 사용한다.
 
-기존 `.env`를 오래 전에 복사해 둔 경우 `DB_HOST=localhost`, `REDIS_HOST=localhost`, `REDIS_PORT=16379`가 남아 있을 수 있다. Docker Compose로 앱 컨테이너를 실행할 때는 아래처럼 맞춘다.
+이렇게 분리하는 이유는 기존 운영 `.env`의 `DB_HOST=localhost`, `REDIS_HOST=localhost`, `REDIS_PORT=16379` 같은 로컬 JVM 실행용 값이 app 컨테이너에 잘못 들어가는 것을 막기 위해서다.
+
+Docker Compose로 앱 컨테이너를 실행할 때는 아래 APP_* 값을 기준으로 target을 정한다.
 
 ```properties
-DB_HOST=mysql
-DB_PORT=3306
-REDIS_HOST=redis
-REDIS_PORT=6379
+APP_DB_HOST=mysql
+APP_DB_PORT=3306
+APP_REDIS_HOST=redis
+APP_REDIS_PORT=6379
 ```
 
-Docker Compose interpolation은 쉘 환경변수가 `.env` 파일보다 우선될 수 있다. `DB_HOST`, `REDIS_HOST`, `REDIS_PORT`를 쉘에 export해 둔 상태에서 compose를 실행하면 그 값이 컨테이너에 들어갈 수 있으므로, PoC 검증 전 현재 쉘 환경을 확인한다.
+Docker Compose interpolation은 쉘 환경변수가 `.env` 파일보다 우선될 수 있다. `APP_DB_HOST`, `APP_REDIS_HOST`, `APP_REDIS_PORT`를 쉘에 export해 둔 상태에서 compose를 실행하면 그 값이 컨테이너에 들어갈 수 있으므로, PoC 검증 전 현재 쉘 환경을 확인한다.
 
 호스트에서 접속할 때는 아래 포트를 사용한다.
 
@@ -170,7 +172,7 @@ MySQL: localhost:33306
 Redis: localhost:16379
 ```
 
-App 서버 분리 PoC처럼 외부 data 서버를 바라보려면 `DB_HOST`와 `REDIS_HOST`를 data 서버 private IP 또는 DNS로 바꾸고 external-data override를 함께 사용한다.
+App 서버 분리 PoC처럼 외부 data 서버를 바라보려면 `APP_DB_HOST`와 `APP_REDIS_HOST`를 data 서버 private IP 또는 DNS로 바꾸고 external-data override를 함께 사용한다.
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.external-data.yml config
@@ -188,6 +190,8 @@ docker compose \
 ```
 
 `docker-compose.external-data.yml`과 `docker-compose.bluegreen.external-data.yml`은 로컬 `mysql/redis` healthcheck 의존성을 제거하기 위한 PoC override다. 기본 단일 서버 운영 경로에는 사용하지 않는다.
+
+운영 Blue-Green에서 `APP_DB_HOST` / `APP_REDIS_HOST`는 compose interpolation 단계에서 필요하다. 따라서 `/opt/clueroom/app/.env` 또는 배포 명령을 실행하는 쉘 환경에 넣어야 하며, service `env_file`로만 추가되는 secret env 파일에만 두면 `DB_HOST` / `REDIS_HOST` 값이 바뀌지 않을 수 있다.
 
 ---
 

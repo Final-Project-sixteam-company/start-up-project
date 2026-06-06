@@ -336,7 +336,7 @@ Before moving MySQL or Redis to a shared data server:
 1. complete at least one non-production restore rehearsal
 2. verify backup checksum and restore table counts
 3. prepare data server private networking and firewall rules
-4. set DB_HOST / REDIS_HOST to private IP or internal DNS through runtime env
+4. set APP_DB_HOST / APP_REDIS_HOST to private IP or internal DNS through the compose interpolation source
 5. use docker-compose.external-data.yml or an equivalent app-only override to remove local mysql/redis depends_on
 6. run health, scenario, play-session, interrogation, and final-deduction smoke checks
 ```

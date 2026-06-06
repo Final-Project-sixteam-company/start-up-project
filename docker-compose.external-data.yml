@@ -5,10 +5,10 @@
 #   docker compose -f docker-compose.yml -f docker-compose.external-data.yml up -d --build app
 #
 # Required env:
-#   DB_HOST=<data-server-private-ip-or-dns>
-#   DB_PORT=3306
-#   REDIS_HOST=<data-server-private-ip-or-dns>
-#   REDIS_PORT=6379
+#   APP_DB_HOST=<data-server-private-ip-or-dns>
+#   APP_DB_PORT=3306
+#   APP_REDIS_HOST=<data-server-private-ip-or-dns>
+#   APP_REDIS_PORT=6379
 #
 # This file does not change the default single-server compose path.
 services:
