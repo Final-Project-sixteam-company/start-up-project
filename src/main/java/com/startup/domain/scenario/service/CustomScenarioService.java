@@ -31,6 +31,7 @@ public class CustomScenarioService {
     private final HintRepository hintRepository;
     private final SolutionRepository solutionRepository;
     private final SuspectResponsePolicyRepository suspectResponsePolicyRepository;
+    private final EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
 
     @Transactional
     public CustomLocationCreateResponse createLocation(Long userId, Long scenarioId, CustomLocationCreateRequest request) {
@@ -249,6 +250,20 @@ public class CustomScenarioService {
             evidenceSuspectRepository.saveAll(evidenceSuspects);
         }
 
+        // 언락 조건 규칙 보존 (NONE이 아니면 저장)
+        if (request.getUnlockType() != null && request.getUnlockType() != com.startup.domain.scenario.enums.EvidenceUnlockType.NONE) {
+            EvidenceUnlockRule rule = EvidenceUnlockRule.builder()
+                    .scenarioId(scenarioId)
+                    .evidenceId(savedEvidence.getId())
+                    .evidenceCode("EVIDENCE_" + savedEvidence.getId()) // 임시 코드 생성
+                    .unlockType(request.getUnlockType().name())
+                    .requiredPhase(request.getUnlockPhase())
+                    .conditionJson(request.getUnlockConditionJson())
+                    .sortOrder(nextSortOrder)
+                    .build();
+            evidenceUnlockRuleRepository.save(rule);
+        }
+
         // 부모 시나리오 강제 갱신 -> 검증 우회 전면 방어
         scenario.forceUpdateModifiedAt();
 
@@ -384,6 +399,13 @@ public class CustomScenarioService {
         JsonNode presented = node.get("presentedEvidenceId");
         if (presented != null && !presented.isNull()) {
             hasGates = true;
+            if (!presented.isNumber()) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시된 증거 ID는 숫자여야 합니다.");
+            }
+            long validCount = evidenceRepository.countByIdInAndScenarioId(java.util.List.of(presented.asLong()), scenarioId);
+            if (validCount != 1) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "정책에 포함된 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
+            }
         }
 
         if ("DEFAULT".equals(conditionKey) && hasGates) {

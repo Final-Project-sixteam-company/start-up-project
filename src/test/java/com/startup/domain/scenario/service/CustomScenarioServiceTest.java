@@ -33,6 +33,7 @@ public class CustomScenarioServiceTest {
     @Autowired private HintRepository hintRepository;
     @Autowired private SolutionRepository solutionRepository;
     @Autowired private SuspectResponsePolicyRepository suspectResponsePolicyRepository;
+    @Autowired private EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
 
     private static final Long OWNER_USER_ID = 100L;
     private static final Long OTHER_USER_ID = 999L;
@@ -57,6 +58,7 @@ public class CustomScenarioServiceTest {
         solutionRepository.deleteAllInBatch();
         hintRepository.deleteAllInBatch();
         suspectResponsePolicyRepository.deleteAllInBatch();
+        evidenceUnlockRuleRepository.deleteAllInBatch();
         evidenceSuspectRepository.deleteAllInBatch();
         evidenceRepository.deleteAllInBatch();
         suspectRepository.deleteAllInBatch();
@@ -186,6 +188,33 @@ public class CustomScenarioServiceTest {
     }
 
     @Test
+    @DisplayName("용의자 응답 정책에 잘못된 제시 증거 ID가 포함되어 있으면 실패")
+    void createSuspect_fail_malformedPresentedEvidencePolicy() {
+        CustomSuspectCreateRequest request = new CustomSuspectCreateRequest();
+        ReflectionTestUtils.setField(request, "name", "이상한");
+
+        try {
+            JsonMapper mapper = JsonMapper.builder().build();
+            // presentedEvidenceId에 문자열을 넣은 잘못된 포맷
+            ReflectionTestUtils.setField(request, "responsePolicyJson", mapper.readTree("{\"conditionKey\":\"GATED\",\"presentedEvidenceId\":\"invalid_string\"}"));
+        } catch (Exception e) {}
+
+        assertThatThrownBy(() -> customScenarioService.createSuspect(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("숫자여야 합니다.");
+
+        try {
+            JsonMapper mapper = JsonMapper.builder().build();
+            // 존재하지 않는 증거 ID
+            ReflectionTestUtils.setField(request, "responsePolicyJson", mapper.readTree("{\"conditionKey\":\"GATED\",\"presentedEvidenceId\":99999}"));
+        } catch (Exception e) {}
+
+        assertThatThrownBy(() -> customScenarioService.createSuspect(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("존재하지 않거나");
+    }
+
+    @Test
     @DisplayName("증거 등록 성공 및 updatedAt 갱신 확인")
     void createEvidence_success() {
         // given: 용의자가 먼저 등록되어야 함
@@ -204,6 +233,8 @@ public class CustomScenarioServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(request, "description", "칼입니다.");
         org.springframework.test.util.ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
         org.springframework.test.util.ReflectionTestUtils.setField(request, "relatedSuspectIds", java.util.List.of(suspect.getId()));
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.EVIDENCE_PRESENTED);
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "unlockConditionJson", "{\"evidenceId\": 123}");
 
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
 
@@ -217,6 +248,12 @@ public class CustomScenarioServiceTest {
         
         long mappedCount = evidenceSuspectRepository.count();
         assertThat(mappedCount).isEqualTo(1); // 용의자 매핑 확인
+
+        long unlockRuleCount = evidenceUnlockRuleRepository.count();
+        assertThat(unlockRuleCount).isEqualTo(1);
+        var rule = evidenceUnlockRuleRepository.findAll().get(0);
+        assertThat(rule.getUnlockType()).isEqualTo("EVIDENCE_PRESENTED");
+        assertThat(rule.getConditionJson()).isEqualTo("{\"evidenceId\": 123}");
 
         Scenario updatedScenario = scenarioRepository.findById(savedScenario.getId()).orElseThrow();
         assertThat(updatedScenario.getUpdatedAt()).isAfterOrEqualTo(beforeUpdate != null ? beforeUpdate : LocalDateTime.MIN);
