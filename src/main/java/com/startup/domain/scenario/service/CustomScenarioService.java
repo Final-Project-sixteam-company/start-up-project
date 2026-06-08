@@ -24,6 +24,7 @@ public class CustomScenarioService {
     private final SuspectRepository suspectRepository;
     private final EvidenceRepository evidenceRepository;
     private final EvidenceSuspectRepository evidenceSuspectRepository;
+    private final HintRepository hintRepository;
 
     @Transactional
     public CustomLocationCreateResponse createLocation(Long userId, Long scenarioId, CustomLocationCreateRequest request) {
@@ -232,6 +233,35 @@ public class CustomScenarioService {
         scenario.forceUpdateModifiedAt();
 
         return new CustomEvidenceCreateResponse(savedEvidence.getId());
+    }
+
+    @Transactional
+    public CustomHintCreateResponse createHint(Long userId, Long scenarioId, CustomHintCreateRequest request) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+        }
+
+        Integer maxHintLevel = hintRepository.findMaxHintLevelByScenarioId(scenarioId);
+        int nextHintLevel = maxHintLevel + 1;
+
+        Hint hint = Hint.builder()
+                .scenarioId(scenarioId)
+                .hintLevel(nextHintLevel)
+                .content(request.getContent())
+                .unlockAfterMinutes(request.getUnlockAfterMinutes())
+                .penaltyScore(request.getPenaltyScore())
+                .build();
+
+        Hint savedHint = hintRepository.save(hint);
+
+        scenario.forceUpdateModifiedAt();
+
+        return new CustomHintCreateResponse(savedHint.getId());
     }
 
 }

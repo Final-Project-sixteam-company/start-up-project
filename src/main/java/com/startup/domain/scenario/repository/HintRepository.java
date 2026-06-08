@@ -17,4 +17,7 @@ public interface HintRepository extends JpaRepository<Hint, Long> {
     //여러 시나리오의 힌트 수를 한번에 조회
     @Query("SELECT h.scenarioId, COUNT(h) FROM Hint h WHERE h.scenarioId IN :scenarioIds GROUP BY h.scenarioId")
     List<Object[]> countByScenarioIdIn(@Param("scenarioIds") List<Long> scenarioIds);
+
+    @Query("SELECT COALESCE(MAX(h.hintLevel), 0) FROM Hint h WHERE h.scenarioId = :scenarioId")
+    Integer findMaxHintLevelByScenarioId(@Param("scenarioId") Long scenarioId);
 }

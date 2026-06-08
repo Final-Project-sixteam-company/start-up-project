@@ -63,5 +63,15 @@ public class CustomScenarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
+    @Operation(summary = "커스텀 시나리오 힌트 등록")
+    @PostMapping("/{scenarioId}/hints")
+    public ResponseEntity<ApiResponse<CustomHintCreateResponse>> createHint(
+            @PathVariable Long scenarioId,
+            @Valid @RequestBody CustomHintCreateRequest request
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        CustomHintCreateResponse response = customScenarioService.createHint(userId, scenarioId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
 
 }
