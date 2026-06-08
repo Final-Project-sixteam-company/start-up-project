@@ -1527,7 +1527,28 @@ bash -n /opt/clueroom/ops-snapshot.sh
 /opt/clueroom/ops-snapshot.sh | tee /tmp/clueroom-ops-snapshot.txt
 ```
 
+Ops Snapshot v3 기준:
+
+```text
+- prod app-blue/app-green DB/Redis target: data server 172.26.1.185
+- prod local MySQL/Redis: rollback/local-data copy only, not source of truth
+- app container env 출력 범위: DB_HOST, DB_PORT, REDIS_HOST, REDIS_PORT, AI_LLMOPS_DB_LOGGING_ENABLED
+- data connectivity: 3306/6379 TCP check only, no password query
+- ops Loki ready: http://172.26.15.52:3100/ready
+- Alloy: start-up-alloy running 여부와 제한된 warn/error log만 확인
+- heartbeat: DATA_HEALTH, SERVER_HEALTH, OPS_HEALTH는 Loki sample이 가능할 때 1~3개만 출력
+```
+
+필요하면 실행 시점에만 아래 값을 override한다. 이 값들은 secret이 아니다.
+
+```bash
+DATA_HOST=172.26.1.185 \
+OPS_LOKI_BASE_URL=http://172.26.15.52:3100 \
+/opt/clueroom/ops-snapshot.sh | tee /tmp/clueroom-ops-snapshot.txt
+```
+
 Snapshot 출력은 AI 도구나 팀 채팅에 붙이기 전에 secret 값이 없는지 사람이 한 번 확인한다.
+`.env` 전체, Firebase JSON, API key, DB password, private key는 snapshot이나 팀 채팅에 붙이지 않는다.
 
 ```bash
 /opt/clueroom/bg-status.sh

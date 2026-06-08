@@ -483,6 +483,17 @@ docker-compose.bluegreen.yml
 docker-compose.bluegreen.external-data.yml
 ```
 
+운영 read-only snapshot은 현재 external-data 구조를 기준으로 확인한다.
+
+```bash
+cp /opt/clueroom/app/scripts/ops-snapshot.sh /opt/clueroom/ops-snapshot.sh
+chmod +x /opt/clueroom/ops-snapshot.sh
+bash -n /opt/clueroom/ops-snapshot.sh
+/opt/clueroom/ops-snapshot.sh | tee /tmp/clueroom-ops-snapshot.txt
+```
+
+snapshot v3는 app-blue/app-green 컨테이너의 `DB_HOST` / `REDIS_HOST`가 data 서버 `172.26.1.185`를 보는지, data MySQL/Redis TCP 연결이 가능한지, ops Loki ready와 `start-up-alloy` 실행 여부를 확인한다. prod local MySQL/Redis는 source of truth가 아니라 rollback/local-data copy로만 표시한다.
+
 레포 원본 스크립트를 서버 실행 위치로 배치한다.
 
 ```bash

@@ -211,6 +211,22 @@ prod local MySQL/Redis
 → temporarily kept for rollback/comparison
 ```
 
+Current monitoring/health flow:
+
+```text
+prod Alloy
+→ ships Nginx/app/server-health logs to ops Loki
+
+data server
+→ pushes DATA_HEALTH to ops Loki
+
+ops server
+→ runs n8n/Loki and pushes OPS_HEALTH
+
+ops snapshot v3
+→ checks external data target, app container env, data TCP connectivity, ops Loki ready, Alloy status, and limited heartbeat samples
+```
+
 External data env example:
 
 ```env
@@ -491,6 +507,7 @@ Externalization readiness:
 - Single-app external-data mode uses docker-compose.external-data.yml or an equivalent override.
 - Blue-Green external-data mode uses docker-compose.external-data.yml and docker-compose.bluegreen.external-data.yml in addition to the base Blue-Green files.
 - Do not stop or remove prod local MySQL/Redis immediately after cutover; keep them for rollback/comparison until helper PR merge, redeploy, team smoke, and data-server backup checks pass.
+- Ops Snapshot v3 treats prod local MySQL/Redis as rollback/local-data only and validates the external data target plus ops Loki/Alloy health.
 ```
 
 ## 11. Verification Checklist
