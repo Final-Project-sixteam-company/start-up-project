@@ -220,6 +220,7 @@ public class CustomScenarioServiceTest {
         // given: 용의자가 먼저 등록되어야 함
         Suspect suspect = suspectRepository.save(Suspect.builder()
                 .scenarioId(savedScenario.getId())
+                .code("S_TEST")
                 .name("용의자A")
                 .role("친구")
                 .publicProfile("테스트")
@@ -228,13 +229,23 @@ public class CustomScenarioServiceTest {
                 .sortOrder(1)
                 .build());
 
+        Evidence prereqEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("E_PREREQ")
+                .title("선행 증거")
+                .description("제시용 증거")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(0)
+                .build());
+
         CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
         org.springframework.test.util.ReflectionTestUtils.setField(request, "title", "피묻은 칼");
         org.springframework.test.util.ReflectionTestUtils.setField(request, "description", "칼입니다.");
         org.springframework.test.util.ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
         org.springframework.test.util.ReflectionTestUtils.setField(request, "relatedSuspectIds", java.util.List.of(suspect.getId()));
         org.springframework.test.util.ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.EVIDENCE_PRESENTED);
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "unlockConditionJson", "{\"evidenceId\": 123}");
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "unlockConditionJson", "{\"evidenceId\": " + prereqEvidence.getId() + ", \"requiredCharacterId\": " + suspect.getId() + "}");
 
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
 
@@ -253,7 +264,8 @@ public class CustomScenarioServiceTest {
         assertThat(unlockRuleCount).isEqualTo(1);
         var rule = evidenceUnlockRuleRepository.findAll().get(0);
         assertThat(rule.getUnlockType()).isEqualTo("EVIDENCE_PRESENTED");
-        assertThat(rule.getConditionJson()).isEqualTo("{\"evidenceId\": 123}");
+        assertThat(rule.getConditionJson()).contains("\"requiredPresentedEvidenceCode\":\"E_PREREQ\"");
+        assertThat(rule.getConditionJson()).contains("\"requiredCharacterCode\":\"" + suspect.getCode() + "\"");
 
         Scenario updatedScenario = scenarioRepository.findById(savedScenario.getId()).orElseThrow();
         assertThat(updatedScenario.getUpdatedAt()).isAfterOrEqualTo(beforeUpdate != null ? beforeUpdate : LocalDateTime.MIN);
