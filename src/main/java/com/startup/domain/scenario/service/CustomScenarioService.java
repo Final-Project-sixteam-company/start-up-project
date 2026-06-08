@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -142,9 +143,12 @@ public class CustomScenarioService {
         Integer maxSortOrder = suspectRepository.findMaxSortOrderByScenarioId(scenarioId);
         int nextSortOrder = (maxSortOrder == null ? 0 : maxSortOrder) + 1;
 
+        String generatedCode = "SUSPECT_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+
         // 엔티티 생성 및 저장
         Suspect newSuspect = Suspect.builder()
                 .scenarioId(scenarioId)
+                .code(generatedCode)
                 .name(request.getName())
                 .role(request.getRole())
                 .characterType(request.getCharacterType())
@@ -215,8 +219,11 @@ public class CustomScenarioService {
         Integer maxSortOrder = evidenceRepository.findMaxSortOrderByScenarioId(scenarioId);
         int nextSortOrder = (maxSortOrder == null ? 0 : maxSortOrder) + 1;
 
+        String generatedCode = "EVIDENCE_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+
         Evidence evidence = Evidence.builder()
                 .scenarioId(scenarioId)
+                .code(generatedCode)
                 .locationId(request.getLocationId())
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -255,7 +262,7 @@ public class CustomScenarioService {
             EvidenceUnlockRule rule = EvidenceUnlockRule.builder()
                     .scenarioId(scenarioId)
                     .evidenceId(savedEvidence.getId())
-                    .evidenceCode("EVIDENCE_" + savedEvidence.getId()) // 임시 코드 생성
+                    .evidenceCode(savedEvidence.getCode()) // 생성된 증거 코드 사용
                     .unlockType(request.getUnlockType().name())
                     .requiredPhase(request.getUnlockPhase())
                     .conditionJson(request.getUnlockConditionJson())
