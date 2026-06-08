@@ -211,18 +211,34 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
     private ScenarioValidationData.SolutionValidationInfo buildSolutionInfo(Long scenarioId) {
         return variantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
                 .flatMap(variant -> variantSolutionRepository.findByVariantId(variant.getId()))
-                .map(solution -> new ScenarioValidationData.SolutionValidationInfo(
-                        solution.getCulpritSuspectId(),
-                        solution.getCulpritName(),
-                        solution.getCulpritRole(),
-                        solution.getMotive(),
-                        solution.getMethod(),
-                        solution.getCoverUp(),
-                        solution.getFullExplanation(),
-                        solution.parseKeyEvidenceIds()
-                ))
+                .map(solution -> {
+                    List<Long> keyEvidences;
+                    try {
+                        keyEvidences = solution.parseKeyEvidenceIds();
+                    } catch (Exception e) {
+                        log.error("핵심 증거 ID 파싱 실패. VariantSolution ID: {}", solution.getId(), e);
+                        keyEvidences = List.of();
+                    }
+                    return new ScenarioValidationData.SolutionValidationInfo(
+                            solution.getCulpritSuspectId(),
+                            solution.getCulpritName(),
+                            solution.getCulpritRole(),
+                            solution.getMotive(),
+                            solution.getMethod(),
+                            solution.getCoverUp(),
+                            solution.getFullExplanation(),
+                            keyEvidences
+                    );
+                })
                 .orElseGet(() -> solutionRepository.findByScenarioId(scenarioId)
                         .map(solution -> {
+                            List<Long> keyEvidences;
+                            try {
+                                keyEvidences = solution.parseKeyEvidenceIds();
+                            } catch (Exception e) {
+                                log.error("핵심 증거 ID 파싱 실패. Solution ID: {}", solution.getId(), e);
+                                keyEvidences = List.of();
+                            }
                             // 커스텀 정답엔 이름/역할 컬럼이 없으므로 용의자 테이블에서 즉시 조회
                             Suspect suspect = suspectRepository.findById(solution.getCulpritSuspectId()).orElse(null);
                             return new ScenarioValidationData.SolutionValidationInfo(
@@ -233,7 +249,7 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
                                     solution.getMethod(),
                                     solution.getCoverUp(),
                                     solution.getFullExplanation(),
-                                    solution.parseKeyEvidenceIds()
+                                    keyEvidences
                             );
                         })
                 .orElseGet(() -> {
