@@ -148,7 +148,7 @@ public class CustomScenarioService {
                 .publicStatement(request.getPublicStatement())
                 .alibi(request.getAlibi())
                 .personalityPrompt(request.getPersonalityPrompt())
-                .responsePolicyJson(request.getResponsePolicyJson())
+                .responsePolicyJson(request.getResponsePolicy() != null ? request.getResponsePolicy().toString() : null)
                 .portraitAssetKey(request.getPortraitAssetKey())
                 .suspicionLevel(request.getSuspicionLevel() != null ? request.getSuspicionLevel() : 0) // 제공 안되면 0
                 .sortOrder(nextSortOrder)

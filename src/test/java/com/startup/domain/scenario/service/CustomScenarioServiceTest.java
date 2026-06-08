@@ -127,7 +127,10 @@ public class CustomScenarioServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(request, "alibi", "혼자 집에 있었음");
         org.springframework.test.util.ReflectionTestUtils.setField(request, "culpritEligible", true);
         org.springframework.test.util.ReflectionTestUtils.setField(request, "suspicionLevel", 50);
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "responsePolicyJson", "{\"tone\":\"aggressive\"}");
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            org.springframework.test.util.ReflectionTestUtils.setField(request, "responsePolicy", mapper.readTree("{\"tone\":\"aggressive\"}"));
+        } catch (Exception e) {}
 
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
 

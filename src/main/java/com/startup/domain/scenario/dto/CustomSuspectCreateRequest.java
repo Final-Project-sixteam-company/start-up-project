@@ -1,5 +1,6 @@
 package com.startup.domain.scenario.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,7 +20,7 @@ public class CustomSuspectCreateRequest {
     private String publicStatement;
     private String alibi;
     private String personalityPrompt;
-    private String responsePolicyJson; // 응답 정책
+    private JsonNode responsePolicy; // 응답 정책 (구조화된 JSON 객체 수용)
     private String portraitAssetKey;
     private Integer suspicionLevel; // 의심도
 }
