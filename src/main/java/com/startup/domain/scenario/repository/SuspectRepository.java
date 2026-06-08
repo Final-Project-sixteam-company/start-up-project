@@ -25,6 +25,7 @@ public interface SuspectRepository extends JpaRepository<Suspect, Long> {
     @Query("SELECT COALESCE(MAX(s.sortOrder), 0) FROM Suspect s WHERE s.scenarioId = :scenarioId")
     Integer findMaxSortOrderByScenarioId(@Param("scenarioId") Long scenarioId);
 
-    // 증거/정답 검증용 메서드
+    // 여러 용의자 ID가 모두 특정 시나리오 소속인지 한 번에 확인
     List<Suspect> findAllByIdInAndScenarioId(List<Long> ids, Long scenarioId);
+
 }

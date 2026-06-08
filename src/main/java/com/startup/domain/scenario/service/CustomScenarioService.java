@@ -3,19 +3,14 @@ package com.startup.domain.scenario.service;
 import com.startup.common.error.BusinessException;
 import com.startup.common.error.CommonErrorCode;
 import com.startup.domain.scenario.dto.*;
-import com.startup.domain.scenario.entity.Scenario;
-import com.startup.domain.scenario.entity.ScenarioLocation;
-import com.startup.domain.scenario.entity.Suspect;
-import com.startup.domain.scenario.entity.Victim;
+import com.startup.domain.scenario.entity.*;
 import com.startup.domain.scenario.enums.ScenarioStatus;
-import com.startup.domain.scenario.repository.ScenarioLocationRepository;
-import com.startup.domain.scenario.repository.ScenarioRepository;
-import com.startup.domain.scenario.repository.SuspectRepository;
-import com.startup.domain.scenario.repository.VictimRepository;
+import com.startup.domain.scenario.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -27,6 +22,8 @@ public class CustomScenarioService {
     private final ScenarioAccessService scenarioAccessService;
     private final VictimRepository victimRepository;
     private final SuspectRepository suspectRepository;
+    private final EvidenceRepository evidenceRepository;
+    private final EvidenceSuspectRepository evidenceSuspectRepository;
 
     @Transactional
     public CustomLocationCreateResponse createLocation(Long userId, Long scenarioId, CustomLocationCreateRequest request) {
@@ -162,5 +159,79 @@ public class CustomScenarioService {
         return new CustomSuspectCreateResponse(savedSuspect.getId());
     }
 
+
+    @Transactional
+    public CustomEvidenceCreateResponse createEvidence(Long userId, Long scenarioId, CustomEvidenceCreateRequest request) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+
+        // 발행된 시나리오 수정 금지
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+        }
+
+        // 넘겨받은 장소 ID가 다른 시나리오의 장소가 아닌지 검증
+        if (request.getLocationId() != null) {
+            ScenarioLocation location = locationRepository.findById(request.getLocationId())
+                    .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "장소를 찾을 수 없습니다."));
+            if (!location.getScenarioId().equals(scenarioId)) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "다른 시나리오의 장소를 증거 위치로 지정할 수 없습니다.");
+            }
+        }
+
+        // 관련 용의자로 1, 2, 3번을 넘겼을 때, 셋 중 하나라도 다른 시나리오 용의자라면 해킹 시도로 간주하고 튕겨냄
+        if (request.getRelatedSuspectIds() != null && !request.getRelatedSuspectIds().isEmpty()) {
+            List<Long> uniqueSuspectIds = request.getRelatedSuspectIds().stream().distinct().toList();
+            int validCount = suspectRepository.findAllByIdInAndScenarioId(uniqueSuspectIds, scenarioId).size();
+            if (validCount != uniqueSuspectIds.size()) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "현재 시나리오에 소속되지 않은 용의자가 포함되어 있습니다.");
+            }
+        }
+
+        Integer maxSortOrder = evidenceRepository.findMaxSortOrderByScenarioId(scenarioId);
+        int nextSortOrder = (maxSortOrder == null ? 0 : maxSortOrder) + 1;
+
+        Evidence evidence = Evidence.builder()
+                .scenarioId(scenarioId)
+                .locationId(request.getLocationId())
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .oneLine(request.getOneLine())
+                .evidenceType(request.getEvidenceType())
+                .importance(request.getImportance())
+                .imageUrl(request.getImageUrl())
+                .imageAssetKey(request.getImageAssetKey())
+                .thumbnailAssetKey(request.getThumbnailAssetKey())
+                .tagsJson(request.getTagsJson())
+                .unlockPhase(request.getUnlockPhase())
+                .isInitialPublic(request.getIsInitialPublic())
+                .unlockType(request.getUnlockType())
+                .unlockConditionJson(request.getUnlockConditionJson())
+                .unlockAfterMinutes(request.getUnlockAfterMinutes())
+                .sortOrder(nextSortOrder)
+                .build();
+
+        Evidence savedEvidence = evidenceRepository.save(evidence);
+
+        // 관련 용의자 매핑 정보 다중 저장 (EvidenceSuspect)
+        if (request.getRelatedSuspectIds() != null && !request.getRelatedSuspectIds().isEmpty()) {
+            List<EvidenceSuspect> evidenceSuspects = request.getRelatedSuspectIds().stream()
+                    .distinct() // 중복 입력 방어
+                    .map(suspectId -> EvidenceSuspect.builder()
+                            .evidenceId(savedEvidence.getId())
+                            .suspectId(suspectId)
+                            .relationType(com.startup.domain.scenario.enums.RelationType.RELATED) // 기본 연관 관계
+                            .build())
+                    .toList();
+            evidenceSuspectRepository.saveAll(evidenceSuspects);
+        }
+
+        // 부모 시나리오 강제 갱신 -> 검증 우회 전면 방어
+        scenario.forceUpdateModifiedAt();
+
+        return new CustomEvidenceCreateResponse(savedEvidence.getId());
+    }
 
 }
