@@ -69,6 +69,11 @@ public class DefaultSolutionReader implements SolutionReader {
                             e -> e.getTitle()
                     ));
 
+            // 필터링된 ID 리스트만 SolutionInfo에 전달
+            List<Long> validKeyEvidenceIds = keyEvidenceIds.stream()
+                    .filter(evidenceTitles::containsKey)
+                    .toList();
+
             return new SolutionInfo(
                     suspect.getId(),
                     suspect.getName(),
@@ -77,7 +82,7 @@ public class DefaultSolutionReader implements SolutionReader {
                     customSolution.getMethod(),
                     customSolution.getCoverUp(),
                     customSolution.getFullExplanation(),
-                    keyEvidenceIds,
+                    validKeyEvidenceIds,
                     evidenceTitles
             );
         }
@@ -122,6 +127,11 @@ public class DefaultSolutionReader implements SolutionReader {
                         e -> e.getTitle()
                 ));
 
+        // 필터링된 ID 리스트만 SolutionInfo에 전달
+        List<Long> validKeyEvidenceIds = keyEvidenceIds.stream()
+                .filter(evidenceTitles::containsKey)
+                .toList();
+
         return new SolutionInfo(
                 solution.getCulpritSuspectId(),
                 solution.getCulpritName(),
@@ -130,7 +140,7 @@ public class DefaultSolutionReader implements SolutionReader {
                 solution.getMethod(),
                 solution.getCoverUp(),
                 solution.getFullExplanation(),
-                keyEvidenceIds,
+                validKeyEvidenceIds,
                 evidenceTitles
         );
     }
