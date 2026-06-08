@@ -160,6 +160,32 @@ public class CustomScenarioServiceTest {
     }
 
     @Test
+    @DisplayName("용의자 응답 정책에 잘못된 증거 ID가 포함되어 있으면 실패")
+    void createSuspect_fail_malformedEvidencePolicy() {
+        CustomSuspectCreateRequest request = new CustomSuspectCreateRequest();
+        ReflectionTestUtils.setField(request, "name", "이상한");
+        try {
+            JsonMapper mapper = JsonMapper.builder().build();
+            // requiredEvidenceIds에 문자열을 넣은 잘못된 포맷
+            ReflectionTestUtils.setField(request, "responsePolicy", mapper.readTree("{\"requiredEvidenceIds\":\"invalid_string\"}"));
+        } catch (Exception e) {}
+
+        assertThatThrownBy(() -> customScenarioService.createSuspect(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("배열 형태");
+
+        try {
+            JsonMapper mapper = JsonMapper.builder().build();
+            // 존재하지 않는 증거 ID
+            ReflectionTestUtils.setField(request, "responsePolicy", mapper.readTree("{\"requiredEvidenceIds\":[99999]}"));
+        } catch (Exception e) {}
+
+        assertThatThrownBy(() -> customScenarioService.createSuspect(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("존재하지 않거나");
+    }
+
+    @Test
     @DisplayName("증거 등록 성공 및 updatedAt 갱신 확인")
     void createEvidence_success() {
         // given: 용의자가 먼저 등록되어야 함

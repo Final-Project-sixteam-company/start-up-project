@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -164,9 +165,11 @@ public class CustomScenarioService {
             JsonNode policyNode = request.getResponsePolicy();
             if (policyNode.isArray()) {
                 for (JsonNode node : policyNode) {
+                    validatePolicyEvidenceIds(scenarioId, node);
                     saveSuspectResponsePolicy(savedSuspect.getId(), node);
                 }
             } else {
+                validatePolicyEvidenceIds(scenarioId, policyNode);
                 saveSuspectResponsePolicy(savedSuspect.getId(), policyNode);
             }
         }
@@ -358,5 +361,34 @@ public class CustomScenarioService {
                 .priority(node.has("priority") && !node.get("priority").isNull() ? node.get("priority").asInt() : 0)
                 .build();
         suspectResponsePolicyRepository.save(policy);
+    }
+
+    private void validatePolicyEvidenceIds(Long scenarioId, JsonNode node) {
+        validateEvidenceArray(scenarioId, node.get("requiredEvidenceIds"));
+        validateEvidenceArray(scenarioId, node.get("excludedEvidenceIds"));
+    }
+
+    private void validateEvidenceArray(Long scenarioId, JsonNode arrayNode) {
+        if (arrayNode == null || arrayNode.isNull()) {
+            return;
+        }
+        if (!arrayNode.isArray()) {
+            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "정책 증거 ID 목록은 JSON 배열 형태여야 합니다.");
+        }
+
+        List<Long> evidenceIds = new ArrayList<>();
+        for (JsonNode element : arrayNode) {
+            if (!element.isNumber()) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "정책 증거 ID는 숫자여야 합니다.");
+            }
+            evidenceIds.add(element.asLong());
+        }
+
+        if (!evidenceIds.isEmpty()) {
+            long validCount = evidenceRepository.countByIdInAndScenarioId(evidenceIds, scenarioId);
+            if (validCount != evidenceIds.size()) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "정책에 포함된 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
+            }
+        }
     }
 }
