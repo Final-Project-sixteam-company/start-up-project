@@ -153,7 +153,7 @@ public class CustomScenarioService {
                 .publicStatement(request.getPublicStatement())
                 .alibi(request.getAlibi())
                 .personalityPrompt(request.getPersonalityPrompt())
-                .responsePolicyJson(request.getResponsePolicy() != null ? request.getResponsePolicy().toString() : null)
+                .responsePolicyJson(request.getResponsePolicyJson() != null ? request.getResponsePolicyJson().toString() : null)
                 .portraitAssetKey(request.getPortraitAssetKey())
                 .suspicionLevel(request.getSuspicionLevel() != null ? request.getSuspicionLevel() : 0) // 제공 안되면 0
                 .sortOrder(nextSortOrder)
@@ -161,8 +161,8 @@ public class CustomScenarioService {
 
         Suspect savedSuspect = suspectRepository.save(newSuspect);
 
-        if (request.getResponsePolicy() != null) {
-            JsonNode policyNode = request.getResponsePolicy();
+        if (request.getResponsePolicyJson() != null) {
+            JsonNode policyNode = request.getResponsePolicyJson();
             if (policyNode.isArray()) {
                 for (JsonNode node : policyNode) {
                     validatePolicyEvidenceIds(scenarioId, node);

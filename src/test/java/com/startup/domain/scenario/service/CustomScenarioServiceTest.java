@@ -134,7 +134,7 @@ public class CustomScenarioServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(request, "suspicionLevel", 50);
         try {
             JsonMapper mapper = JsonMapper.builder().build();
-            ReflectionTestUtils.setField(request, "responsePolicy", mapper.readTree("{\"tone\":\"aggressive\"}"));
+            ReflectionTestUtils.setField(request, "responsePolicyJson", mapper.readTree("{\"tone\":\"aggressive\"}"));
         } catch (Exception e) {}
 
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
@@ -167,7 +167,7 @@ public class CustomScenarioServiceTest {
         try {
             JsonMapper mapper = JsonMapper.builder().build();
             // requiredEvidenceIds에 문자열을 넣은 잘못된 포맷
-            ReflectionTestUtils.setField(request, "responsePolicy", mapper.readTree("{\"requiredEvidenceIds\":\"invalid_string\"}"));
+            ReflectionTestUtils.setField(request, "responsePolicyJson", mapper.readTree("{\"requiredEvidenceIds\":\"invalid_string\"}"));
         } catch (Exception e) {}
 
         assertThatThrownBy(() -> customScenarioService.createSuspect(OWNER_USER_ID, savedScenario.getId(), request))
@@ -177,7 +177,7 @@ public class CustomScenarioServiceTest {
         try {
             JsonMapper mapper = JsonMapper.builder().build();
             // 존재하지 않는 증거 ID
-            ReflectionTestUtils.setField(request, "responsePolicy", mapper.readTree("{\"requiredEvidenceIds\":[99999]}"));
+            ReflectionTestUtils.setField(request, "responsePolicyJson", mapper.readTree("{\"requiredEvidenceIds\":[99999]}"));
         } catch (Exception e) {}
 
         assertThatThrownBy(() -> customScenarioService.createSuspect(OWNER_USER_ID, savedScenario.getId(), request))
