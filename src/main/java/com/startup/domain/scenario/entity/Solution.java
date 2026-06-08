@@ -78,4 +78,5 @@ public class Solution extends BaseEntity {
         this.fullExplanation = fullExplanation;
         this.keyEvidenceIds = keyEvidenceIds;
     }
+
 }
