@@ -126,8 +126,8 @@ Recommended version dimensions:
 | prompt version | `v1.3.0` |
 | response policy version | `v1` |
 | scenario schema version | `seowolchae.v1` |
-| model | `gpt-4o-mini` |
-| provider | `openai` |
+| model | `deepseek-v4-flash` |
+| provider | `deepseek` |
 
 Each AI call should be attributable to a prompt version.
 

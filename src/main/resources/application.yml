@@ -40,11 +40,11 @@ spring:
       image: ${SPRING_AI_MODEL_IMAGE:none}
       moderation: ${SPRING_AI_MODEL_MODERATION:none}
     openai:
-      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
       api-key: ${OPENAI_API_KEY:}
       chat:
         options:
-          model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+          model: ${OPENAI_CHAT_MODEL:deepseek-v4-flash}
           temperature: ${OPENAI_CHAT_TEMPERATURE:0.4}
 
 management:
