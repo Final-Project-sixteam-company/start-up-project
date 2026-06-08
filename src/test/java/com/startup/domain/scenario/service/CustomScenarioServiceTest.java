@@ -126,6 +126,8 @@ public class CustomScenarioServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(request, "publicProfile", "피해자의 비서");
         org.springframework.test.util.ReflectionTestUtils.setField(request, "alibi", "혼자 집에 있었음");
         org.springframework.test.util.ReflectionTestUtils.setField(request, "culpritEligible", true);
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "suspicionLevel", 50);
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "responsePolicyJson", "{\"tone\":\"aggressive\"}");
 
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
 
@@ -137,6 +139,8 @@ public class CustomScenarioServiceTest {
         Suspect suspect = suspectRepository.findById(response.getSuspectId()).orElseThrow();
         assertThat(suspect.getName()).isEqualTo("최용의");
         assertThat(suspect.getSortOrder()).isEqualTo(1); // 첫 용의자
+        assertThat(suspect.getSuspicionLevel()).isEqualTo(50);
+        assertThat(suspect.getResponsePolicyJson()).isEqualTo("{\"tone\":\"aggressive\"}");
 
         Scenario updatedScenario = scenarioRepository.findById(savedScenario.getId()).orElseThrow();
         assertThat(updatedScenario.getUpdatedAt()).isAfterOrEqualTo(beforeUpdate != null ? beforeUpdate : LocalDateTime.MIN);

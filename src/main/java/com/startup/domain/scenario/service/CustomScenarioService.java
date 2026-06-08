@@ -148,8 +148,9 @@ public class CustomScenarioService {
                 .publicStatement(request.getPublicStatement())
                 .alibi(request.getAlibi())
                 .personalityPrompt(request.getPersonalityPrompt())
+                .responsePolicyJson(request.getResponsePolicyJson())
                 .portraitAssetKey(request.getPortraitAssetKey())
-                .suspicionLevel(0) // 초기 기본값
+                .suspicionLevel(request.getSuspicionLevel() != null ? request.getSuspicionLevel() : 0) // 제공 안되면 0
                 .sortOrder(nextSortOrder)
                 .build();
 

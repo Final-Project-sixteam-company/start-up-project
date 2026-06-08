@@ -19,5 +19,7 @@ public class CustomSuspectCreateRequest {
     private String publicStatement;
     private String alibi;
     private String personalityPrompt;
+    private String responsePolicyJson; // 응답 정책
     private String portraitAssetKey;
+    private Integer suspicionLevel; // 의심도
 }
