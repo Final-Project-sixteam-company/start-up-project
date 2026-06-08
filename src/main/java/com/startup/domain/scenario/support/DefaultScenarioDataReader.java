@@ -188,20 +188,11 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
      * variant 데이터가 없으면 MockSolutionReader로 fallback한다.
      */
     private Long resolveCulpritSuspectId(Long scenarioId) {
-        Long culpritId = variantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
+        return variantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
                 .flatMap(variant -> variantSolutionRepository.findByVariantId(variant.getId()))
                 .map(VariantSolution::getCulpritSuspectId)
                 .orElseGet(() -> solutionRepository.findByScenarioId(scenarioId)
                                 .map(Solution::getCulpritSuspectId).orElse(null));
-
-        if (culpritId == null) {
-            try {
-                return mockSolutionReader.findByScenarioId(scenarioId).culpritSuspectId();
-            } catch (AiException e) {
-                return null;
-            }
-        }
-        return culpritId;
     }
 
     /**
@@ -252,24 +243,7 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
                                     keyEvidences
                             );
                         })
-                .orElseGet(() -> {
-                    log.warn("[ScenarioDataReader] 활성 variant/solution 없음. scenarioId={} -> Mock으로 fallback", scenarioId);
-                    try {
-                        var mock = mockSolutionReader.findByScenarioId(scenarioId);
-                        return new ScenarioValidationData.SolutionValidationInfo(
-                                mock.culpritSuspectId(),
-                                mock.culpritName(),
-                                mock.culpritRole(),
-                                mock.motive(),
-                                mock.method(),
-                                mock.coverUp(),
-                                mock.fullExplanation(),
-                                mock.keyEvidenceIds()
-                        );
-                    } catch (AiException e) {
-                        return null;
-                    }
-                }));
+                        .orElse(null));
     }
 
     /**
