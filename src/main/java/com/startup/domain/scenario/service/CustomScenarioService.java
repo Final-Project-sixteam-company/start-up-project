@@ -25,6 +25,7 @@ public class CustomScenarioService {
     private final EvidenceRepository evidenceRepository;
     private final EvidenceSuspectRepository evidenceSuspectRepository;
     private final HintRepository hintRepository;
+    private final SolutionRepository solutionRepository;
 
     @Transactional
     public CustomLocationCreateResponse createLocation(Long userId, Long scenarioId, CustomLocationCreateRequest request) {
@@ -262,6 +263,64 @@ public class CustomScenarioService {
         scenario.forceUpdateModifiedAt();
 
         return new CustomHintCreateResponse(savedHint.getId());
+    }
+
+    @Transactional
+    public CustomSolutionCreateResponse createOrUpdateSolution(Long userId, Long scenarioId, CustomSolutionCreateRequest request) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+        }
+
+        // 진범 용의자가 이 시나리오에 소속되어 있는지 검증
+        Suspect culprit = suspectRepository.findByIdAndScenarioId(request.getCulpritSuspectId(), scenarioId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.INVALID_REQUEST, "해당 용의자는 이 시나리오 소속이 아닙니다."));
+        
+        if (!culprit.getCulpritEligible()) {
+            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이 용의자는 범인으로 지목될 수 없습니다.");
+        }
+
+        String keyEvidenceStr = "";
+        if (request.getKeyEvidenceIds() != null && !request.getKeyEvidenceIds().isEmpty()) {
+            keyEvidenceStr = String.join(",", request.getKeyEvidenceIds().stream().map(String::valueOf).toList());
+        }
+
+        // UPSERT 분기
+        Solution savedSolution;
+        Optional<Solution> existingSolution = solutionRepository.findByScenarioId(scenarioId);
+
+        if (existingSolution.isPresent()) {
+            Solution solution = existingSolution.get();
+            solution.updateInfo(
+                    request.getCulpritSuspectId(),
+                    request.getMotive(),
+                    request.getMethod(),
+                    request.getCoverUp(),
+                    request.getFullExplanation(),
+                    keyEvidenceStr
+            );
+            savedSolution = solution;
+        } else {
+            Solution newSolution = Solution.builder()
+                    .scenarioId(scenarioId)
+                    .culpritSuspectId(request.getCulpritSuspectId())
+                    .motive(request.getMotive())
+                    .method(request.getMethod())
+                    .coverUp(request.getCoverUp())
+                    .fullExplanation(request.getFullExplanation())
+                    .keyEvidenceIds(keyEvidenceStr)
+                    .build();
+            savedSolution = solutionRepository.save(newSolution);
+        }
+
+        // 부모 시나리오 updatedAt 갱신
+        scenario.forceUpdateModifiedAt();
+
+        return new CustomSolutionCreateResponse(savedSolution.getId());
     }
 
 }

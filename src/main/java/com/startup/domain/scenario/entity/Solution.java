@@ -68,4 +68,14 @@ public class Solution extends BaseEntity {
                 .map(Long::parseLong)
                 .toList();
     }
+
+    public void updateInfo(Long culpritSuspectId, String motive, String method,
+                           String coverUp, String fullExplanation, String keyEvidenceIds) {
+        this.culpritSuspectId = culpritSuspectId;
+        this.motive = motive;
+        this.method = method;
+        this.coverUp = coverUp;
+        this.fullExplanation = fullExplanation;
+        this.keyEvidenceIds = keyEvidenceIds;
+    }
 }

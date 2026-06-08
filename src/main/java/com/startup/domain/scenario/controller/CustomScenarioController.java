@@ -74,4 +74,15 @@ public class CustomScenarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
+    @Operation(summary = "커스텀 시나리오 정답 등록 및 수정(UPSERT)")
+    @PostMapping("/{scenarioId}/solution")
+    public ResponseEntity<ApiResponse<CustomSolutionCreateResponse>> createOrUpdateSolution(
+            @PathVariable Long scenarioId,
+            @Valid @RequestBody CustomSolutionCreateRequest request
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        CustomSolutionCreateResponse response = customScenarioService.createOrUpdateSolution(userId, scenarioId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
 }
