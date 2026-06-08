@@ -19,7 +19,8 @@ public record ScenarioValidationData(
             Long scenarioId,
             String title,
             String description,
-            String difficulty
+            String difficulty,
+            String status
     ) {
     }
 

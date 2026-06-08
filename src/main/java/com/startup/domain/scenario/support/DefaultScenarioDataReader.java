@@ -51,7 +51,8 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
                 scenario.getId(),
                 scenario.getTitle(),
                 scenario.getDescription(),
-                scenario.getDifficulty().name()
+                scenario.getDifficulty().name(),
+                scenario.getStatus().name()
         );
 
         // 2. 피해자 정보 (시나리오당 1명, 없으면 검증 불가)

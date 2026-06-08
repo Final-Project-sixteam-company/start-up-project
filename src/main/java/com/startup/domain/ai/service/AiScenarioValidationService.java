@@ -102,6 +102,11 @@ public class AiScenarioValidationService {
             // 💡 데이터 로드 '시작 시점'을 기록 (검증 중 시나리오 변경 방지)
             LocalDateTime dataLoadedAt = LocalDateTime.now();
             ScenarioValidationData data = scenarioDataReader.loadForValidation(scenarioId);
+
+            if (!"DRAFT".equals(data.scenario().status())) {
+                throw new AiException(AiErrorCode.SCENARIO_VALIDATION_FAILED, "DRAFT 상태의 시나리오만 검증할 수 있습니다.");
+            }
+
             RuleBasedScenarioValidator.RuleValidationResult ruleResult = ruleValidator.validate(data);
 
             List<ValidationCheckItem> publicScoredItems = new ArrayList<>(ruleResult.publicItems());
