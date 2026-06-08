@@ -45,7 +45,7 @@ Current and planned AI feature categories:
 |---|---|---|
 | `INTERROGATION` | `POST /api/play-sessions/{sessionId}/interrogations` | secret leakage, hallucinated facts, latency |
 | `FINAL_DEDUCTION` | `POST /api/play-sessions/{sessionId}/final-deduction` | wrong scoring, fallback misuse, missing solution data |
-| `SCENARIO_VALIDATE` | `POST /api/ai/scenarios/{scenarioId}/validate` | validation false positive/negative |
+| `SCENARIO_VALIDATION` | `POST /api/ai/scenarios/{scenarioId}/validate` | validation false positive/negative |
 | `PROMPT_POLICY_CHECK` | backend prompt policy and response policy checks | forbidden facts in prompt |
 | `FALLBACK_RESPONSE` | AI provider failure path | demo continuity but quality degradation |
 
@@ -57,6 +57,8 @@ Reference policies:
 docs/AI_NPC_PROMPT_POLICY.md
 docs/BACKEND_IMPLEMENTATION_GUIDE.md
 AGENTS.md
+docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md
+docs/infra/agent/LLMOPS_PROMQL_QUERIES.md
 ```
 
 ---
@@ -343,49 +345,143 @@ This matters for Android because carrier NAT or shared Wi-Fi can make many users
 
 ## 10. Prometheus Metric Candidates
 
-Candidate counters:
+Phase 1 implementation records structured `AI_CALL` logs and the following Micrometer metrics.
+Micrometer dot names are exposed to Prometheus with Prometheus naming conventions.
+
+Implemented counters:
 
 ```text
-ai_requests_total
-ai_failures_total
-ai_fallback_total
-ai_prompt_validation_failures_total
-ai_secret_leak_blocked_total
-ai_response_validation_failures_total
-ai_quota_rejections_total
+Micrometer: ai.requests  -> Prometheus: ai_requests_total
+Micrometer: ai.failures  -> Prometheus: ai_failures_total
+Micrometer: ai.fallbacks -> Prometheus: ai_fallbacks_total
+Micrometer: ai.tokens    -> Prometheus: ai_tokens_total
 ```
 
-Candidate histograms:
+Implemented timer:
 
 ```text
-ai_latency_seconds
-ai_prompt_tokens
-ai_completion_tokens
+Micrometer: ai.latency -> Prometheus: ai_latency_seconds
 ```
 
-Candidate labels:
+Implemented low-cardinality labels:
 
 ```text
 feature_type
 provider
 model
 prompt_version
-scenario_id
-error_code
-fallback_reason
+success
+fallback_used
+error_code      only on failure/fallback counters
+token_type      only on token counter
+```
+
+`scenarioId`, `sessionId`, `suspectId`, and `npcCode` are intentionally excluded from Prometheus labels.
+They are request-level fields for structured logs and optional `ai_call_logs` rows only.
+
+Interpretation:
+
+```text
+ai_requests_total includes provider, mock, and fallback events.
+Provider attempt views should filter fallback_used="false".
+Fallback views should prefer ai_fallbacks_total.
 ```
 
 Avoid high-cardinality labels:
 
 ```text
+scenarioId
 sessionId
+suspectId
+npcCode
 requestId
 user text
 raw prompt
 raw answer
 ```
 
-Use logs or DB rows for request-level detail, not Prometheus labels.
+Use structured logs or future DB rows for request-level detail, not Prometheus labels.
+
+Current structured log fields:
+
+```text
+AI_CALL featureType provider model promptVersion scenarioId sessionId suspectId npcCode latencyMs success errorCode fallbackUsed promptTokens completionTokens totalTokens
+```
+
+These logs must never include raw prompt text, raw AI answer text, solution text, culprit data, API keys, or private scenario YAML.
+
+## 10.1 Optional DB Persistence
+
+Phase 2 can persist the same metadata to `ai_call_logs`.
+
+This path is disabled by default.
+
+```text
+AI_LLMOPS_DB_LOGGING_ENABLED=false
+```
+
+Enable it only after the table exists in the target database:
+
+```text
+AI_LLMOPS_DB_LOGGING_ENABLED=true
+```
+
+The DB writer is best-effort:
+
+```text
+- AI gameplay must not fail because LLMOps logging failed.
+- Missing table or DB insert failure is logged once and then treated as a non-blocking telemetry failure.
+- Prompt text, AI answer text, solution text, culprit data, API keys, and private scenario YAML are not stored.
+```
+
+Manual MySQL DDL candidate:
+
+```sql
+CREATE TABLE ai_call_logs (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    feature_type VARCHAR(40) NOT NULL,
+    provider VARCHAR(80) NOT NULL,
+    model VARCHAR(120) NOT NULL,
+    prompt_version VARCHAR(120) NOT NULL,
+    scenario_id BIGINT NULL,
+    play_session_id BIGINT NULL,
+    suspect_id BIGINT NULL,
+    npc_code VARCHAR(120) NULL,
+    latency_ms BIGINT NOT NULL,
+    success TINYINT(1) NOT NULL,
+    error_code VARCHAR(80) NULL,
+    fallback_used TINYINT(1) NOT NULL,
+    prompt_tokens INT NULL,
+    completion_tokens INT NULL,
+    total_tokens INT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    INDEX idx_ai_call_logs_created_at (created_at),
+    INDEX idx_ai_call_logs_feature_created (feature_type, created_at),
+    INDEX idx_ai_call_logs_session_created (play_session_id, created_at),
+    INDEX idx_ai_call_logs_scenario_created (scenario_id, created_at),
+    INDEX idx_ai_call_logs_success_created (success, created_at)
+);
+```
+
+Retention should be decided before long-term production use.
+
+Initial retention candidate:
+
+```text
+- keep detailed ai_call_logs rows for 30-90 days
+- keep aggregated dashboard data longer if needed
+- do not use ai_call_logs as a replay source because prompt and answer bodies are intentionally absent
+```
+
+Future metric candidates after backend safety/quota features exist:
+
+```text
+ai_prompt_validation_failures_total
+ai_secret_leak_blocked_total
+ai_response_validation_failures_total
+ai_quota_rejections_total
+```
 
 ---
 

@@ -21,6 +21,7 @@ public class DefaultSuspectReader implements SuspectReader {
         return suspectRepository.findById(suspectId)
                 .map(suspect -> new SuspectProfile(
                         suspect.getId(),
+                        suspect.getCode(),
                         suspect.getName(),
                         suspect.getRole(),
                         suspect.getRelationToVictim(),
@@ -36,6 +37,7 @@ public class DefaultSuspectReader implements SuspectReader {
         return suspectRepository.findByIdAndScenarioId(suspectId, scenarioId)
                 .map(suspect -> new SuspectProfile(
                         suspect.getId(),
+                        suspect.getCode(),
                         suspect.getName(),
                         suspect.getRole(),
                         suspect.getRelationToVictim(),

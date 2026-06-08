@@ -1,6 +1,8 @@
 package com.startup.domain.ai.service;
 
 import com.startup.common.auth.MockUserProvider;
+import com.startup.domain.ai.client.AiCallContext;
+import com.startup.domain.ai.client.AiCallResult;
 import com.startup.domain.ai.client.AiClient;
 import com.startup.domain.ai.client.AiRequestParams;
 import com.startup.domain.ai.client.MockResponseProvider;
@@ -8,6 +10,7 @@ import com.startup.domain.ai.dto.InterrogationCompletedEvent;
 import com.startup.domain.ai.dto.InterrogationContext;
 import com.startup.domain.ai.dto.InterrogationRequest;
 import com.startup.domain.ai.dto.InterrogationResponse;
+import com.startup.domain.ai.enums.AiFeatureType;
 import com.startup.domain.ai.enums.QuestionType;
 import com.startup.domain.ai.entity.InterrogationLog;
 import com.startup.domain.ai.error.AiException;
@@ -29,6 +32,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AiInterrogationService {
+
+    private static final String PROMPT_VERSION = "npc_interrogation_v1";
 
     private final InterrogationContextLoader contextLoader;
     private final AiPromptBuilder promptBuilder;
@@ -56,7 +61,7 @@ public class AiInterrogationService {
                 sessionId, request.suspectId(), request.presentedEvidenceId());
 
         // 2. AI 호출 (트랜잭션 밖)
-        AiResult result = callAi(context, request);
+        AiResult result = callAi(sessionId, context, request);
 
         // 3. 로그 저장 (쓰기 트랜잭션 — InterrogationLogWriter)
         InterrogationLog savedLog = logWriter.save(
@@ -104,13 +109,22 @@ public class AiInterrogationService {
                 .toList();
     }
 
-    private AiResult callAi(InterrogationContext context, InterrogationRequest request) {
+    private AiResult callAi(Long sessionId, InterrogationContext context, InterrogationRequest request) {
         boolean hasPresented = request.questionType() == QuestionType.EVIDENCE_PRESENTED
                 && request.presentedEvidenceId() != null;
+        AiCallContext aiCallContext = new AiCallContext(
+                AiFeatureType.INTERROGATION,
+                PROMPT_VERSION,
+                context.scenarioId(),
+                sessionId,
+                context.suspect().id(),
+                context.suspect().code()
+        );
 
         if (aiClient.isMockMode()) {
-            String answer = aiClient.chatOrMock(null, null, null, request.suspectId(), hasPresented);
-            return new AiResult(answer, "MOCK");
+            AiCallResult result = aiClient.chatOrMockWithMetadata(
+                    null, null, null, aiCallContext, request.suspectId(), hasPresented);
+            return new AiResult(result.text(), result.modelName());
         }
 
         String systemPrompt = promptBuilder.buildSystemPrompt();
@@ -126,13 +140,19 @@ public class AiInterrogationService {
 
         AiRequestParams params = AiRequestParams.interrogation(temperature, maxTokens);
 
+        long startTime = System.currentTimeMillis();
         try {
-            String answer = aiClient.chat(systemPrompt, userPrompt, params);
-            return new AiResult(answer, aiClient.getModelName());
+            AiCallResult result = aiClient.chatWithMetadata(systemPrompt, userPrompt, params, aiCallContext);
+            return new AiResult(result.text(), result.modelName());
         } catch (AiException e) {
             log.warn("AI 호출 실패, Fallback 응답 반환: {}", e.getMessage());
+            aiClient.recordFallback(aiCallContext, e.getErrorCode().getCode(), elapsedMs(startTime));
             return new AiResult(mockResponseProvider.getFallbackResponse(), "FALLBACK");
         }
+    }
+
+    private long elapsedMs(long startTime) {
+        return Math.max(0L, System.currentTimeMillis() - startTime);
     }
 
     private void publishEvent(Long sessionId, InterrogationRequest request) {
