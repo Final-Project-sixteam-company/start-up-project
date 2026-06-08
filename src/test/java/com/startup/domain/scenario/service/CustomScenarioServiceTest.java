@@ -318,4 +318,33 @@ public class CustomScenarioServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("일부 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
     }
+
+    @Test
+    @DisplayName("용의자 응답 정책이 DEFAULT인데 증거 조건(해금 등)이 설정되어 있으면 실패")
+    void createSuspect_fail_defaultPolicyWithGates() {
+        // given
+        CustomSuspectCreateRequest request = new CustomSuspectCreateRequest();
+        ReflectionTestUtils.setField(request, "name", "이상한");
+        
+        // 유효한 증거 등록 (에러를 우회하기 위해)
+        Evidence evidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .title("증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .sortOrder(1)
+                .build());
+
+        try {
+            JsonMapper mapper = JsonMapper.builder().build();
+            // conditionKey가 누락되거나 DEFAULT인데 requiredEvidenceIds가 존재함
+            String policyJson = String.format("{\"requiredEvidenceIds\":[%d]}", evidence.getId());
+            ReflectionTestUtils.setField(request, "responsePolicyJson", mapper.readTree(policyJson));
+        } catch (Exception e) {}
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createSuspect(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("별도의 conditionKey를 지정해주세요");
+    }
 }

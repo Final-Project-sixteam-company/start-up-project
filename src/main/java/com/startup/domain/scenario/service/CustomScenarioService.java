@@ -366,6 +366,29 @@ public class CustomScenarioService {
     private void validatePolicyEvidenceIds(Long scenarioId, JsonNode node) {
         validateEvidenceArray(scenarioId, node.get("requiredEvidenceIds"));
         validateEvidenceArray(scenarioId, node.get("excludedEvidenceIds"));
+
+        String conditionKey = node.has("conditionKey") && !node.get("conditionKey").isNull() ? node.get("conditionKey").asText() : "DEFAULT";
+
+        boolean hasGates = false;
+
+        JsonNode required = node.get("requiredEvidenceIds");
+        if (required != null && !required.isNull() && required.isArray() && !required.isEmpty()) {
+            hasGates = true;
+        }
+
+        JsonNode excluded = node.get("excludedEvidenceIds");
+        if (excluded != null && !excluded.isNull() && excluded.isArray() && !excluded.isEmpty()) {
+            hasGates = true;
+        }
+
+        JsonNode presented = node.get("presentedEvidenceId");
+        if (presented != null && !presented.isNull()) {
+            hasGates = true;
+        }
+
+        if ("DEFAULT".equals(conditionKey) && hasGates) {
+            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "DEFAULT 상태인 정책에는 증거 조건(해금/제시 등)을 설정할 수 없습니다. 별도의 conditionKey를 지정해주세요.");
+        }
     }
 
     private void validateEvidenceArray(Long scenarioId, JsonNode arrayNode) {
