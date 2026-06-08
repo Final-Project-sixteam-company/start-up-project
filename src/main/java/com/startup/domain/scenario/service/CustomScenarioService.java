@@ -2,16 +2,15 @@ package com.startup.domain.scenario.service;
 
 import com.startup.common.error.BusinessException;
 import com.startup.common.error.CommonErrorCode;
-import com.startup.domain.scenario.dto.CustomLocationCreateRequest;
-import com.startup.domain.scenario.dto.CustomLocationCreateResponse;
-import com.startup.domain.scenario.dto.CustomVictimCreateRequest;
-import com.startup.domain.scenario.dto.CustomVictimCreateResponse;
+import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.entity.ScenarioLocation;
+import com.startup.domain.scenario.entity.Suspect;
 import com.startup.domain.scenario.entity.Victim;
 import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.repository.ScenarioLocationRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
+import com.startup.domain.scenario.repository.SuspectRepository;
 import com.startup.domain.scenario.repository.VictimRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +26,7 @@ public class CustomScenarioService {
     private final ScenarioLocationRepository locationRepository;
     private final ScenarioAccessService scenarioAccessService;
     private final VictimRepository victimRepository;
+    private final SuspectRepository suspectRepository;
 
     @Transactional
     public CustomLocationCreateResponse createLocation(Long userId, Long scenarioId, CustomLocationCreateRequest request) {
@@ -121,5 +121,46 @@ public class CustomScenarioService {
 
         return new CustomVictimCreateResponse(savedVictim.getId());
     }
+
+    @Transactional
+    public CustomSuspectCreateResponse createSuspect(Long userId, Long scenarioId, CustomSuspectCreateRequest request) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+
+        // 발행된 시나리오는 수정 불가
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+        }
+
+        Integer maxSortOrder = suspectRepository.findMaxSortOrderByScenarioId(scenarioId);
+        int nextSortOrder = (maxSortOrder == null ? 0 : maxSortOrder) + 1;
+
+        // 엔티티 생성 및 저장
+        Suspect newSuspect = Suspect.builder()
+                .scenarioId(scenarioId)
+                .name(request.getName())
+                .role(request.getRole())
+                .characterType(request.getCharacterType())
+                .culpritEligible(request.getCulpritEligible() != null ? request.getCulpritEligible() : true)
+                .relationToVictim(request.getRelationToVictim())
+                .publicProfile(request.getPublicProfile())
+                .publicStatement(request.getPublicStatement())
+                .alibi(request.getAlibi())
+                .personalityPrompt(request.getPersonalityPrompt())
+                .portraitAssetKey(request.getPortraitAssetKey())
+                .suspicionLevel(0) // 초기 기본값
+                .sortOrder(nextSortOrder)
+                .build();
+
+        Suspect savedSuspect = suspectRepository.save(newSuspect);
+
+        // 부모 시나리오의 updatedAt 강제 갱신
+        scenario.forceUpdateModifiedAt();
+
+        return new CustomSuspectCreateResponse(savedSuspect.getId());
+    }
+
 
 }

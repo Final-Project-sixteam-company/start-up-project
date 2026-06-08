@@ -2,10 +2,7 @@ package com.startup.domain.scenario.controller;
 
 import com.startup.common.auth.MockUserProvider;
 import com.startup.common.dto.ApiResponse;
-import com.startup.domain.scenario.dto.CustomLocationCreateRequest;
-import com.startup.domain.scenario.dto.CustomLocationCreateResponse;
-import com.startup.domain.scenario.dto.CustomVictimCreateRequest;
-import com.startup.domain.scenario.dto.CustomVictimCreateResponse;
+import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.service.CustomScenarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -41,6 +38,17 @@ public class CustomScenarioController {
     ) {
         Long userId = mockUserProvider.currentUserId();
         CustomVictimCreateResponse response = customScenarioService.createOrUpdateVictim(userId, scenarioId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "커스텀 시나리오 용의자 등록")
+    @PostMapping("/{scenarioId}/suspects")
+    public ResponseEntity<ApiResponse<CustomSuspectCreateResponse>> createSuspect(
+            @PathVariable Long scenarioId,
+            @Valid @RequestBody CustomSuspectCreateRequest request
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        CustomSuspectCreateResponse response = customScenarioService.createSuspect(userId, scenarioId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
