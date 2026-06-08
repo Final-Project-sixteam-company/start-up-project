@@ -119,7 +119,22 @@ GOOGLE_CLIENT_SECRET=...
 
 JWT secret은 충분히 긴 난수로 생성하고 레포에 기록하지 않는다.
 
-## 10. 접속 실패 시 점검
+## 10. Atlassian MCP OAuth 설정 예시
+
+Jira/Confluence MCP 연동용 Atlassian OAuth credential은 `/opt/clueroom/secrets/env.d/oauth.env`에 입력한다.
+
+```env
+ATLASSIAN_CLIENT_ID=...
+ATLASSIAN_CLIENT_SECRET=...
+ATLASSIAN_REDIRECT_URI=...
+ATLASSIAN_MODULES=jira,confluence
+```
+
+`ATLASSIAN_REDIRECT_URI`는 Atlassian Developer Console의 Authorization callback URL과 MCP gateway/client가 실제로 처리하는 callback URL이 완전히 같아야 한다. 현재 Spring 백엔드는 `/callback` OAuth handler를 제공하지 않으므로, `http://localhost:8080/callback` 같은 값을 사용할 때는 해당 포트의 MCP gateway/client가 callback을 받고 있는지 확인한다.
+
+필수 scope와 최초 인증 절차는 `docs/infra/ATLASSIAN_MCP_OAUTH_SETUP.md`를 따른다.
+
+## 11. 접속 실패 시 점검
 
 ```bash
 whoami
@@ -137,7 +152,7 @@ SSH public key가 서버 계정에 등록되었는지
 해당 계정에 env 파일 ACL이 있는지
 ```
 
-## 11. 저장 실패 시 ACL 점검
+## 12. 저장 실패 시 ACL 점검
 
 ```bash
 getfacl /opt/clueroom/secrets/env.d/ai.env
@@ -151,7 +166,7 @@ getfacl /opt/clueroom/secrets/env.d/oauth.env
 sudo setfacl -m u:ai-secret:rw /opt/clueroom/secrets/env.d/ai.env
 ```
 
-## 12. secret 값 확인은 set/empty 방식만 사용
+## 13. secret 값 확인은 set/empty 방식만 사용
 
 값 전체를 출력하지 않는다. 설정 여부만 확인한다.
 
@@ -166,7 +181,7 @@ cat /opt/clueroom/secrets/env.d/ai.env
 printenv OPENAI_API_KEY
 ```
 
-## 13. Firebase service account
+## 14. Firebase service account
 
 Firebase service account JSON은 아래 같은 서버 secret 경로에만 둔다.
 

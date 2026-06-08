@@ -84,7 +84,7 @@ MySQL 백업 S3 업로드와 복구 리허설 정책은 `docs/infra/MYSQL_BACKUP
 → PortOne 결제 Secret
 
 /opt/clueroom/secrets/env.d/oauth.env
-→ OAuth / JWT Secret
+→ OAuth / JWT Secret, Atlassian MCP OAuth credential
 ```
 
 ### 레포 원본 위치와 서버 설치 위치
