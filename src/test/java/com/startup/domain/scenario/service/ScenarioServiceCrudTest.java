@@ -213,7 +213,7 @@ public class ScenarioServiceCrudTest {
         solutionRepository.save(Solution.builder()
                 .scenarioId(scenarioId)
                 .culpritSuspectId(suspect.getId())
-                .motive("돈")
+                .motive("금전")
                 .method("독살")
                 .coverUp("시체 유기")
                 .keyEvidenceIds(evidence1.getId() + "," + evidence2.getId())
@@ -320,7 +320,7 @@ public class ScenarioServiceCrudTest {
         solutionRepository.save(Solution.builder()
                 .scenarioId(scenarioId)
                 .culpritSuspectId(9999L)
-                .motive("돈")
+                .motive("금전")
                 .method("독살")
                 .build());
 

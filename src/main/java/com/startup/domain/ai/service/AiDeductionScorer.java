@@ -375,9 +375,7 @@ public class AiDeductionScorer {
     }
 
     private ScoringCriteria.KeywordCriteria extractKeywords(String text, int maxScore) {
-        List<String> words = java.util.Arrays.stream(text.split("[\\s\\p{Punct}]+"))
-                .filter(w -> w.length() >= 2)
-                .toList();
+        List<String> words = com.startup.common.util.TextTokenizerUtil.extractValidTokens(text);
 
         if (words.isEmpty()) {
             throw new AiException(AiErrorCode.SOLUTION_NOT_FOUND);
