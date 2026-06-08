@@ -6,7 +6,7 @@ import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.support.MockSolutionReader;
 import com.startup.domain.ai.support.SolutionReader;
 import com.startup.domain.scenario.entity.Scenario;
-import com.startup.domain.scenario.entity.ScenarioType;
+import com.startup.domain.scenario.enums.ScenarioType;
 import com.startup.domain.scenario.entity.ScenarioVariant;
 import com.startup.domain.scenario.entity.Solution;
 import com.startup.domain.scenario.entity.Suspect;
