@@ -60,9 +60,10 @@ public class DefaultSolutionReader implements SolutionReader {
 
             List<Long> keyEvidenceIds = customSolution.parseKeyEvidenceIds();
 
-            // 증거 제목은 DB에서 동적으로 조회
+            // 증거 제목은 DB에서 동적으로 조회 (Ownership 외래키 검증: 해당 시나리오 소속인지 확인)
             Map<Long, String> evidenceTitles = evidenceRepository.findAllById(keyEvidenceIds)
                     .stream()
+                    .filter(e -> e.getScenarioId().equals(scenarioId))
                     .collect(Collectors.toMap(
                             e -> e.getId(),
                             e -> e.getTitle()
@@ -112,9 +113,10 @@ public class DefaultSolutionReader implements SolutionReader {
 
         List<Long> keyEvidenceIds = solution.parseKeyEvidenceIds();
 
-        // 증거 제목은 DB에서 동적으로 조회
+        // 증거 제목은 DB에서 동적으로 조회 (Ownership 외래키 검증: 해당 시나리오 소속인지 확인)
         Map<Long, String> evidenceTitles = evidenceRepository.findAllById(keyEvidenceIds)
                 .stream()
+                .filter(e -> e.getScenarioId().equals(scenarioId))
                 .collect(Collectors.toMap(
                         e -> e.getId(),
                         e -> e.getTitle()
