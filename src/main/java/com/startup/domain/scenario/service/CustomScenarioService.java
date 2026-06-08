@@ -4,6 +4,9 @@ import com.startup.common.error.BusinessException;
 import com.startup.common.error.CommonErrorCode;
 import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.entity.*;
+import com.startup.domain.ai.entity.SuspectResponsePolicy;
+import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ public class CustomScenarioService {
     private final EvidenceSuspectRepository evidenceSuspectRepository;
     private final HintRepository hintRepository;
     private final SolutionRepository solutionRepository;
+    private final SuspectResponsePolicyRepository suspectResponsePolicyRepository;
 
     @Transactional
     public CustomLocationCreateResponse createLocation(Long userId, Long scenarioId, CustomLocationCreateRequest request) {
@@ -155,6 +159,17 @@ public class CustomScenarioService {
                 .build();
 
         Suspect savedSuspect = suspectRepository.save(newSuspect);
+
+        if (request.getResponsePolicy() != null) {
+            JsonNode policyNode = request.getResponsePolicy();
+            if (policyNode.isArray()) {
+                for (JsonNode node : policyNode) {
+                    saveSuspectResponsePolicy(savedSuspect.getId(), node);
+                }
+            } else {
+                saveSuspectResponsePolicy(savedSuspect.getId(), policyNode);
+            }
+        }
 
         // 부모 시나리오의 updatedAt 강제 갱신
         scenario.forceUpdateModifiedAt();
@@ -328,4 +343,20 @@ public class CustomScenarioService {
         return new CustomSolutionCreateResponse(savedSolution.getId());
     }
 
+    private void saveSuspectResponsePolicy(Long suspectId, JsonNode node) {
+        SuspectResponsePolicy policy = SuspectResponsePolicy.builder()
+                .suspectId(suspectId)
+                .conditionKey(node.has("conditionKey") ? node.get("conditionKey").asText() : "DEFAULT")
+                .userIntent(node.has("userIntent") && !node.get("userIntent").isNull() ? node.get("userIntent").asText() : null)
+                .requiredEvidenceIds(node.has("requiredEvidenceIds") && !node.get("requiredEvidenceIds").isNull() ? node.get("requiredEvidenceIds").toString() : null)
+                .excludedEvidenceIds(node.has("excludedEvidenceIds") && !node.get("excludedEvidenceIds").isNull() ? node.get("excludedEvidenceIds").toString() : null)
+                .presentedEvidenceId(node.has("presentedEvidenceId") && !node.get("presentedEvidenceId").isNull() ? node.get("presentedEvidenceId").asLong() : null)
+                .policyText(node.has("policyText") && !node.get("policyText").isNull() ? node.get("policyText").asText() : "기본 응답")
+                .allowedFacts(node.has("allowedFacts") && !node.get("allowedFacts").isNull() ? node.get("allowedFacts").toString() : null)
+                .forbiddenFacts(node.has("forbiddenFacts") && !node.get("forbiddenFacts").isNull() ? node.get("forbiddenFacts").toString() : null)
+                .tone(node.has("tone") && !node.get("tone").isNull() ? node.get("tone").asText() : null)
+                .priority(node.has("priority") && !node.get("priority").isNull() ? node.get("priority").asInt() : 0)
+                .build();
+        suspectResponsePolicyRepository.save(policy);
+    }
 }

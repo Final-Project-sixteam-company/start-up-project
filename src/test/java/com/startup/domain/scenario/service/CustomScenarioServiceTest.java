@@ -5,6 +5,7 @@ import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.entity.*;
 import com.startup.domain.scenario.enums.*;
 import com.startup.domain.scenario.repository.*;
+import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +30,7 @@ public class CustomScenarioServiceTest {
     @Autowired private EvidenceSuspectRepository evidenceSuspectRepository;
     @Autowired private HintRepository hintRepository;
     @Autowired private SolutionRepository solutionRepository;
+    @Autowired private SuspectResponsePolicyRepository suspectResponsePolicyRepository;
 
     private static final Long OWNER_USER_ID = 100L;
     private static final Long OTHER_USER_ID = 999L;
@@ -52,6 +54,7 @@ public class CustomScenarioServiceTest {
     void tearDown() {
         solutionRepository.deleteAllInBatch();
         hintRepository.deleteAllInBatch();
+        suspectResponsePolicyRepository.deleteAllInBatch();
         evidenceSuspectRepository.deleteAllInBatch();
         evidenceRepository.deleteAllInBatch();
         suspectRepository.deleteAllInBatch();
@@ -144,6 +147,11 @@ public class CustomScenarioServiceTest {
         assertThat(suspect.getSortOrder()).isEqualTo(1); // 첫 용의자
         assertThat(suspect.getSuspicionLevel()).isEqualTo(50);
         assertThat(suspect.getResponsePolicyJson()).isEqualTo("{\"tone\":\"aggressive\"}");
+
+        assertThat(suspectResponsePolicyRepository.count()).isEqualTo(1);
+        var policy = suspectResponsePolicyRepository.findAll().get(0);
+        assertThat(policy.getTone()).isEqualTo("aggressive");
+        assertThat(policy.getConditionKey()).isEqualTo("DEFAULT");
 
         Scenario updatedScenario = scenarioRepository.findById(savedScenario.getId()).orElseThrow();
         assertThat(updatedScenario.getUpdatedAt()).isAfterOrEqualTo(beforeUpdate != null ? beforeUpdate : LocalDateTime.MIN);
