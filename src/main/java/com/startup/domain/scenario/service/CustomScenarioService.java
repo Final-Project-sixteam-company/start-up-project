@@ -6,7 +6,7 @@ import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.entity.*;
 import com.startup.domain.ai.entity.SuspectResponsePolicy;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.repository.*;
 import lombok.RequiredArgsConstructor;

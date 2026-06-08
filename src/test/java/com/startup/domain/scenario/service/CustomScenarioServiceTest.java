@@ -12,6 +12,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.util.ReflectionTestUtils;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
 
@@ -131,8 +133,8 @@ public class CustomScenarioServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(request, "culpritEligible", true);
         org.springframework.test.util.ReflectionTestUtils.setField(request, "suspicionLevel", 50);
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            org.springframework.test.util.ReflectionTestUtils.setField(request, "responsePolicy", mapper.readTree("{\"tone\":\"aggressive\"}"));
+            JsonMapper mapper = JsonMapper.builder().build();
+            ReflectionTestUtils.setField(request, "responsePolicy", mapper.readTree("{\"tone\":\"aggressive\"}"));
         } catch (Exception e) {}
 
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
