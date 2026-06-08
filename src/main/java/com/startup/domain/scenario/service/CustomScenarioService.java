@@ -362,6 +362,30 @@ public class CustomScenarioService {
     }
 
     private void saveSuspectResponsePolicy(Long suspectId, JsonNode node) {
+        String basePolicy = node.has("policyText") && !node.get("policyText").isNull() ? node.get("policyText").asText() : "";
+        StringBuilder policyBuilder = new StringBuilder(basePolicy);
+
+        Integer maxSentences = node.has("maxSentences") && !node.get("maxSentences").isNull() ? node.get("maxSentences").asInt() : null;
+        if (maxSentences != null) {
+            if (policyBuilder.length() > 0) policyBuilder.append(" ");
+            policyBuilder.append("답변은 최대 ").append(maxSentences).append("문장으로 제한한다.");
+        }
+
+        Boolean allowExternalFacts = node.has("allowExternalFacts") && !node.get("allowExternalFacts").isNull() ? node.get("allowExternalFacts").asBoolean() : null;
+        if (allowExternalFacts != null && !allowExternalFacts) {
+            if (policyBuilder.length() > 0) policyBuilder.append(" ");
+            policyBuilder.append("설정에 없는 외부 사실을 임의로 지어내지 않는다.");
+        }
+
+        String defaultStance = node.has("defaultStance") && !node.get("defaultStance").isNull() ? node.get("defaultStance").asText() : null;
+        if (defaultStance != null && basePolicy.isEmpty()) {
+            if (policyBuilder.length() > 0) policyBuilder.append(" ");
+            policyBuilder.append("기본 태도: ").append(defaultStance).append(".");
+        }
+
+        String finalPolicyText = policyBuilder.length() > 0 ? policyBuilder.toString().trim() : "기본 응답";
+        String tone = node.has("tone") && !node.get("tone").isNull() ? node.get("tone").asText() : defaultStance;
+
         SuspectResponsePolicy policy = SuspectResponsePolicy.builder()
                 .suspectId(suspectId)
                 .conditionKey(node.has("conditionKey") ? node.get("conditionKey").asText() : "DEFAULT")
@@ -369,10 +393,10 @@ public class CustomScenarioService {
                 .requiredEvidenceIds(node.has("requiredEvidenceIds") && !node.get("requiredEvidenceIds").isNull() ? node.get("requiredEvidenceIds").toString() : null)
                 .excludedEvidenceIds(node.has("excludedEvidenceIds") && !node.get("excludedEvidenceIds").isNull() ? node.get("excludedEvidenceIds").toString() : null)
                 .presentedEvidenceId(node.has("presentedEvidenceId") && !node.get("presentedEvidenceId").isNull() ? node.get("presentedEvidenceId").asLong() : null)
-                .policyText(node.has("policyText") && !node.get("policyText").isNull() ? node.get("policyText").asText() : "기본 응답")
+                .policyText(finalPolicyText)
                 .allowedFacts(node.has("allowedFacts") && !node.get("allowedFacts").isNull() ? node.get("allowedFacts").toString() : null)
                 .forbiddenFacts(node.has("forbiddenFacts") && !node.get("forbiddenFacts").isNull() ? node.get("forbiddenFacts").toString() : null)
-                .tone(node.has("tone") && !node.get("tone").isNull() ? node.get("tone").asText() : null)
+                .tone(tone)
                 .priority(node.has("priority") && !node.get("priority").isNull() ? node.get("priority").asInt() : 0)
                 .build();
         suspectResponsePolicyRepository.save(policy);
