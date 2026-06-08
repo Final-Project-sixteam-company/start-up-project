@@ -7,21 +7,8 @@ import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
 import com.startup.domain.ai.support.MockSolutionReader;
 import com.startup.domain.ai.support.ScenarioDataReader;
-import com.startup.domain.scenario.entity.Evidence;
-import com.startup.domain.scenario.entity.EvidenceSuspect;
-import com.startup.domain.scenario.entity.ScenarioLocation;
-import com.startup.domain.scenario.entity.Suspect;
-import com.startup.domain.scenario.entity.VariantSolution;
-import com.startup.domain.scenario.entity.Victim;
-import com.startup.domain.scenario.repository.EvidenceRepository;
-import com.startup.domain.scenario.repository.EvidenceSuspectRepository;
-import com.startup.domain.scenario.repository.HintRepository;
-import com.startup.domain.scenario.repository.ScenarioLocationRepository;
-import com.startup.domain.scenario.repository.ScenarioRepository;
-import com.startup.domain.scenario.repository.ScenarioVariantRepository;
-import com.startup.domain.scenario.repository.SuspectRepository;
-import com.startup.domain.scenario.repository.VariantSolutionRepository;
-import com.startup.domain.scenario.repository.VictimRepository;
+import com.startup.domain.scenario.entity.*;
+import com.startup.domain.scenario.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
@@ -51,6 +38,7 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
     private final VariantSolutionRepository variantSolutionRepository;
     private final SuspectResponsePolicyRepository policyRepository;
     private final MockSolutionReader mockSolutionReader;
+    private final SolutionRepository solutionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -63,7 +51,8 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
                 scenario.getId(),
                 scenario.getTitle(),
                 scenario.getDescription(),
-                scenario.getDifficulty().name()
+                scenario.getDifficulty().name(),
+                scenario.getStatus().name()
         );
 
         // 2. 피해자 정보 (시나리오당 1명, 없으면 검증 불가)
@@ -199,19 +188,11 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
      * variant 데이터가 없으면 MockSolutionReader로 fallback한다.
      */
     private Long resolveCulpritSuspectId(Long scenarioId) {
-        Long culpritId = variantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
+        return variantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
                 .flatMap(variant -> variantSolutionRepository.findByVariantId(variant.getId()))
                 .map(VariantSolution::getCulpritSuspectId)
-                .orElse(null);
-
-        if (culpritId == null) {
-            try {
-                return mockSolutionReader.findByScenarioId(scenarioId).culpritSuspectId();
-            } catch (AiException e) {
-                return null;
-            }
-        }
-        return culpritId;
+                .orElseGet(() -> solutionRepository.findByScenarioId(scenarioId)
+                                .map(Solution::getCulpritSuspectId).orElse(null));
     }
 
     /**
@@ -221,34 +202,48 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
     private ScenarioValidationData.SolutionValidationInfo buildSolutionInfo(Long scenarioId) {
         return variantRepository.findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(scenarioId)
                 .flatMap(variant -> variantSolutionRepository.findByVariantId(variant.getId()))
-                .map(solution -> new ScenarioValidationData.SolutionValidationInfo(
-                        solution.getCulpritSuspectId(),
-                        solution.getCulpritName(),
-                        solution.getCulpritRole(),
-                        solution.getMotive(),
-                        solution.getMethod(),
-                        solution.getCoverUp(),
-                        solution.getFullExplanation(),
-                        solution.parseKeyEvidenceIds()
-                ))
-                .orElseGet(() -> {
-                    log.warn("[ScenarioDataReader] 활성 variant/solution 없음. scenarioId={} -> Mock으로 fallback", scenarioId);
+                .map(solution -> {
+                    List<Long> keyEvidences;
                     try {
-                        var mock = mockSolutionReader.findByScenarioId(scenarioId);
-                        return new ScenarioValidationData.SolutionValidationInfo(
-                                mock.culpritSuspectId(),
-                                mock.culpritName(),
-                                mock.culpritRole(),
-                                mock.motive(),
-                                mock.method(),
-                                mock.coverUp(),
-                                mock.fullExplanation(),
-                                mock.keyEvidenceIds()
-                        );
-                    } catch (AiException e) {
-                        return null;
+                        keyEvidences = solution.parseKeyEvidenceIds();
+                    } catch (Exception e) {
+                        log.error("핵심 증거 ID 파싱 실패. VariantSolution ID: {}", solution.getId(), e);
+                        keyEvidences = List.of();
                     }
-                });
+                    return new ScenarioValidationData.SolutionValidationInfo(
+                            solution.getCulpritSuspectId(),
+                            solution.getCulpritName(),
+                            solution.getCulpritRole(),
+                            solution.getMotive(),
+                            solution.getMethod(),
+                            solution.getCoverUp(),
+                            solution.getFullExplanation(),
+                            keyEvidences
+                    );
+                })
+                .orElseGet(() -> solutionRepository.findByScenarioId(scenarioId)
+                        .map(solution -> {
+                            List<Long> keyEvidences;
+                            try {
+                                keyEvidences = solution.parseKeyEvidenceIds();
+                            } catch (Exception e) {
+                                log.error("핵심 증거 ID 파싱 실패. Solution ID: {}", solution.getId(), e);
+                                keyEvidences = List.of();
+                            }
+                            // 커스텀 정답엔 이름/역할 컬럼이 없으므로 용의자 테이블에서 즉시 조회
+                            Suspect suspect = suspectRepository.findById(solution.getCulpritSuspectId()).orElse(null);
+                            return new ScenarioValidationData.SolutionValidationInfo(
+                                    solution.getCulpritSuspectId(),
+                                    suspect != null ? suspect.getName() : "알 수 없음",
+                                    suspect != null ? suspect.getRole() : "알 수 없음",
+                                    solution.getMotive(),
+                                    solution.getMethod(),
+                                    solution.getCoverUp(),
+                                    solution.getFullExplanation(),
+                                    keyEvidences
+                            );
+                        })
+                        .orElse(null));
     }
 
     /**

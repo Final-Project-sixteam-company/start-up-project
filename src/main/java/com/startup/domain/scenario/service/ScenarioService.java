@@ -1,19 +1,17 @@
 package com.startup.domain.scenario.service;
 
 import com.startup.common.dto.PageResponse;
-import com.startup.domain.scenario.dto.ScenarioDetailResponse;
-import com.startup.domain.scenario.dto.ScenarioSearchCondition;
-import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
+import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.entity.Scenario;
+import com.startup.domain.scenario.enums.Difficulty;
 import com.startup.domain.scenario.enums.ScenarioStatus;
+import com.startup.domain.scenario.enums.ScenarioType;
 import com.startup.domain.scenario.enums.ScenarioVisibility;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
-import com.startup.domain.scenario.repository.EvidenceRepository;
-import com.startup.domain.scenario.repository.HintRepository;
-import com.startup.domain.scenario.repository.ScenarioRepository;
-import com.startup.domain.scenario.repository.SuspectRepository;
+import com.startup.domain.scenario.repository.*;
 import com.startup.domain.scenario.support.ScenarioAssetUrlResolver;
+import com.startup.domain.scenario.support.ScenarioPublishValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -22,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -38,6 +37,7 @@ public class ScenarioService {
     private final EvidenceRepository evidenceRepository;
     private final HintRepository hintRepository;
     private final ScenarioAssetUrlResolver scenarioAssetUrlResolver;
+    private final ScenarioPublishValidator scenarioPublishValidator;
 
     @Transactional(readOnly = true)
     public PageResponse<ScenarioSummaryResponse> getScenarios(Long userId, ScenarioSearchCondition condition, Pageable pageable) {
@@ -108,6 +108,93 @@ public class ScenarioService {
         return ScenarioDetailResponse.from(scenario, mockCreatorNickname, suspectCount, evidenceCount, hintCount,
                 isBookmarked, canPlay, coverImageUrl, mapImageUrl);
 
+    }
+
+    @Transactional
+    public ScenarioCreateResponse createScenario(Long userId, ScenarioCreateRequest request) {
+        Scenario scenario = Scenario.builder()
+                .title(StringUtils.hasText(request.title()) ? request.title() : "제목 없는 사건")
+                .description(StringUtils.hasText(request.description()) ? request.description() : "")
+                .synopsis(request.synopsis())
+                .scenarioType(ScenarioType.CUSTOM)          // 유저가 만들면 무조건 CUSTOM
+                .visibility(ScenarioVisibility.PRIVATE)     // 최초 생성 시 무조건 PRIVATE (스토어 미노출)
+                .difficulty(request.difficulty() != null ? request.difficulty() : Difficulty.NORMAL)
+                .playerCountMin(request.playerCountMin() != null ? request.playerCountMin() : 1)
+                .playerCountMax(request.playerCountMax() != null ? request.playerCountMax() : 1)
+                .estimatedPlayTimeMinutes(request.estimatedPlayTimeMinutes() != null ? request.estimatedPlayTimeMinutes() : 30)
+                .creatorId(userId)                          // 요청한 유저를 작성자로 매핑
+                .status(ScenarioStatus.DRAFT)               // 무조건 DRAFT로 강제 (클라이언트 값 무시)
+                .build();
+
+        Scenario saved = scenarioRepository.save(scenario);
+
+        return new ScenarioCreateResponse(saved.getId(), saved.getStatus());
+    }
+
+    @Transactional
+    public ScenarioUpdateResponse updateScenario(Long userId, Long scenarioId, ScenarioUpdateRequest request) {
+        // 낙관적 락 대신 비관적 락 사용:
+        // 같은 시나리오를 두 기기에서 동시에 수정할 경우 데이터 충돌 방지
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        // 소유권 검증 (타인 시나리오 조작 방어)
+        if (!userId.equals(scenario.getCreatorId())) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
+        }
+
+        // 상태 잠금: DRAFT 상태일 때만 수정 허용
+        // PUBLISHED된 시나리오를 수정하면 현재 플레이 중인 유저에게 영향을 줄 수 있음
+        if (scenario.getStatus() != ScenarioStatus.DRAFT) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_PUBLISH,
+                    "DRAFT 상태의 시나리오만 수정할 수 있습니다.");
+        }
+
+        // 부분 수정 (null 필드는 기존 값 유지)
+        scenario.updateBasicInfo(
+                request.title(),
+                request.description(),
+                request.difficulty(),
+                request.estimatedPlayTimeMinutes()
+        );
+
+        // @Transactional 내에서 변경 감지(Dirty Checking)가 동작하므로 save() 불필요
+        return new ScenarioUpdateResponse(scenarioId, true);
+    }
+
+
+    @Transactional
+    public ScenarioPublishResponse publishScenario(Long userId, Long scenarioId, ScenarioPublishRequest request) {
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        // 소유권 검증 (null-safe)
+        if (!userId.equals(scenario.getCreatorId())) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
+        }
+
+        // 상태 전환 가능 여부 검증 (ScenarioStatus.canPublish() 활용)
+        if (!scenario.getStatus().canPublish()) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_PUBLISH);
+        }
+
+        // 요청된 visibility 검증 (PUBLIC 또는 UNLISTED만 허용)
+        if (request.visibility() != ScenarioVisibility.PUBLIC && request.visibility() != ScenarioVisibility.UNLISTED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_PUBLISH, "발행 시에는 PUBLIC 또는 UNLISTED 상태로만 변경할 수 있습니다.");
+        }
+
+        // 정합성 검증 (여기서 부족한 항목 체크)
+        scenarioPublishValidator.validate(scenario);
+
+        // 상태 PUBLISHED로 변경
+        scenario.publish(request.visibility());
+
+        return new ScenarioPublishResponse(
+                scenario.getId(),
+                scenario.getVisibility(),
+                scenario.getStatus(),
+                scenario.getPublishedAt()
+        );
     }
 
     private Pageable mapPageableSort(Pageable pageable) {

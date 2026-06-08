@@ -38,7 +38,8 @@ public class MockScenarioDataReader implements ScenarioDataReader {
                 1L,
                 "데모데이 전야 살인사건",
                 "AI 스타트업 대표가 데모데이 전날 사무실 데모룸에서 사망한 사건",
-                "NORMAL"
+                "NORMAL",
+                "DRAFT"
         );
     }
 

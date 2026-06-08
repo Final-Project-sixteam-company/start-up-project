@@ -10,6 +10,9 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
 @Entity
 @Table(
         name = "scenarios",
@@ -94,6 +97,9 @@ public class Scenario extends BaseEntity {
     @Column(nullable = false, length = 20)
     private ScenarioStatus status;
 
+    @Column(name = "published_at")
+    private LocalDateTime publishedAt;
+
     @Builder
     public Scenario(String code, String version, String contentHash,
                     String title, String description, String synopsis, String genre,
@@ -132,4 +138,18 @@ public class Scenario extends BaseEntity {
     public void incrementPlayCount(){
         this.playCount++;
     }
+
+    public void publish(ScenarioVisibility visibility) {
+        this.status = ScenarioStatus.PUBLISHED;
+        this.visibility = visibility;
+        this.publishedAt = LocalDateTime.now();
+    }
+
+    public void updateBasicInfo(String title, String description, Difficulty difficulty, Integer estimatedPlayTimeMinutes) {
+        if (title != null && !title.isBlank()) this.title = title;
+        if (description != null && !description.isBlank()) this.description = description;
+        if (difficulty != null) this.difficulty = difficulty;
+        if (estimatedPlayTimeMinutes != null) this.estimatedPlayTimeMinutes = estimatedPlayTimeMinutes;
+    }
+
 }
