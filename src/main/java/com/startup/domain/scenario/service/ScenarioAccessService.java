@@ -34,7 +34,12 @@ public class ScenarioAccessService {
     }
 
     public boolean canView(Long userId, Long scenarioId) {
-        return true;
+        Scenario scenario = scenarioRepository.findById(scenarioId).orElse(null);
+        if (scenario == null) return false;
+        
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) return true;
+        
+        return userId != null && userId.equals(scenario.getCreatorId());
     }
 
     public void validatePlayable(Long userId, Long scenarioId) {
