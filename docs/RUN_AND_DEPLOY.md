@@ -172,7 +172,25 @@ MySQL: localhost:33306
 Redis: localhost:16379
 ```
 
-App 서버 분리 PoC처럼 외부 data 서버를 바라보려면 `APP_DB_HOST`와 `APP_REDIS_HOST`를 data 서버 private IP 또는 DNS로 바꾸고 external-data override를 함께 사용한다.
+운영 cutover 이후 Blue-Green 배포 helper는 external-data mode를 기본으로 사용한다.
+
+```text
+prod app-blue/app-green
+→ data server 172.26.1.185 MySQL/Redis
+
+prod local MySQL/Redis
+→ rollback/비교용으로 일시 유지
+```
+
+즉시 하지 말 것:
+
+```bash
+docker compose stop mysql redis
+docker compose down -v
+docker volume rm ...
+```
+
+App 컨테이너가 외부 data 서버를 바라보려면 `APP_DB_HOST`와 `APP_REDIS_HOST`를 data 서버 private IP 또는 DNS로 바꾸고 external-data override를 함께 사용한다.
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.external-data.yml config
@@ -184,12 +202,22 @@ Blue-Green slot으로 검증할 때는 Blue-Green 전용 override를 같이 사�
 ```bash
 docker compose \
   -f docker-compose.yml \
+  -f docker-compose.external-data.yml \
   -f docker-compose.bluegreen.yml \
   -f docker-compose.bluegreen.external-data.yml \
   config
 ```
 
-`docker-compose.external-data.yml`과 `docker-compose.bluegreen.external-data.yml`은 로컬 `mysql/redis` healthcheck 의존성을 제거하기 위한 PoC override다. 기본 단일 서버 운영 경로에는 사용하지 않는다.
+`/opt/clueroom/deploy.sh`와 `/opt/clueroom/bg-compose`도 같은 compose 파일 순서를 사용한다.
+
+```text
+docker-compose.yml
+docker-compose.external-data.yml
+docker-compose.bluegreen.yml
+docker-compose.bluegreen.external-data.yml
+```
+
+`docker-compose.external-data.yml`과 `docker-compose.bluegreen.external-data.yml`은 로컬 `mysql/redis` healthcheck 의존성을 제거한다. `app-blue` / `app-green`은 external-data mode에서 `mysql` / `redis`에 `depends_on`하지 않아야 한다. `prometheus`도 legacy `app` service에 `depends_on`하지 않아야 하며, `grafana -> prometheus` 의존성은 유지 가능하다.
 
 운영 Blue-Green에서 `APP_DB_HOST` / `APP_REDIS_HOST`는 compose interpolation 단계에서 필요하다. 따라서 `/opt/clueroom/app/.env` 또는 배포 명령을 실행하는 쉘 환경에 넣어야 하며, service `env_file`로만 추가되는 secret env 파일에만 두면 `DB_HOST` / `REDIS_HOST` 값이 바뀌지 않을 수 있다.
 
@@ -445,6 +473,15 @@ ping
 ## 10. Blue-Green 배포
 
 운영 서버의 `/opt/clueroom/deploy.sh`는 Blue-Green 배포를 수행한다. 일반 배포는 GitHub Actions CD로 실행하고, 서버에서 직접 실행하는 방식은 비상/확인용으로 사용한다.
+
+external-data cutover 이후 `/opt/clueroom/deploy.sh`와 `/opt/clueroom/bg-compose`는 기본적으로 아래 compose 조합을 사용한다.
+
+```text
+docker-compose.yml
+docker-compose.external-data.yml
+docker-compose.bluegreen.yml
+docker-compose.bluegreen.external-data.yml
+```
 
 레포 원본 스크립트를 서버 실행 위치로 배치한다.
 

@@ -113,6 +113,15 @@ scripts/backup-mysql.sh
 
 PR merge 후 서버에 반영할 때는 레포의 `scripts/*.sh`를 `/opt/clueroom` 운영 위치로 복사한다.
 
+external-data cutover 이후 `/opt/clueroom/deploy.sh`와 `/opt/clueroom/bg-compose`는 아래 compose 조합을 기본으로 사용한다.
+
+```text
+docker-compose.yml
+docker-compose.external-data.yml
+docker-compose.bluegreen.yml
+docker-compose.bluegreen.external-data.yml
+```
+
 ---
 
 ## 2. 절대 하지 말 것
@@ -180,11 +189,14 @@ clueroom_backend upstream
   ├─ app-blue  : 127.0.0.1:8081
   └─ app-green : 127.0.0.1:8082
   ↓
-MySQL Docker
-Redis Docker
+data server 172.26.1.185
+  ├─ MySQL
+  └─ Redis
 S3
 FCM
 ```
+
+prod local MySQL/Redis는 external-data cutover 직후 즉시 삭제하거나 중지하지 않는다. rollback/비교용으로 일시 유지하고, helper PR merge, 새 helper 기준 배포 성공, 팀 기능 테스트, data 서버 백업 정상 확인 후 stop만 검토한다.
 
 현재 active는 아래 명령어로 확인한다.
 
@@ -414,6 +426,46 @@ curl -I https://api.clueroom.xyz/actuator/health
 
 ```bash
 /opt/clueroom/bg-compose ps
+```
+
+external-data helper config 검증:
+
+```bash
+cd /opt/clueroom/app
+/opt/clueroom/bg-compose config > /tmp/bg-compose-external-config.yml
+
+grep -n -A45 -E '^  app-blue:|^  app-green:' /tmp/bg-compose-external-config.yml \
+  | grep -E 'app-blue:|app-green:|DB_HOST:|DB_PORT:|REDIS_HOST:|REDIS_PORT:|AI_LLMOPS_DB_LOGGING_ENABLED|depends_on'
+```
+
+기대값:
+
+```text
+app-blue/app-green DB_HOST: 172.26.1.185
+app-blue/app-green DB_PORT: "3306"
+app-blue/app-green REDIS_HOST: 172.26.1.185
+app-blue/app-green REDIS_PORT: "6379"
+app-blue/app-green AI_LLMOPS_DB_LOGGING_ENABLED: "false"
+app-blue/app-green 아래 mysql/redis depends_on 없음
+prometheus가 legacy app에 depends_on하지 않음
+```
+
+현재 실행 컨테이너 env 확인:
+
+```bash
+ACTIVE_SERVICE="$(/opt/clueroom/bg-status.sh | awk -F: '/Active service/{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}')"
+STANDBY_SERVICE="$(/opt/clueroom/bg-status.sh | awk -F: '/Standby service/{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}')"
+
+docker exec "start-up-$ACTIVE_SERVICE" printenv | grep -E 'DB_HOST|DB_PORT|REDIS_HOST|REDIS_PORT|AI_LLMOPS_DB_LOGGING_ENABLED'
+docker exec "start-up-$STANDBY_SERVICE" printenv | grep -E 'DB_HOST|DB_PORT|REDIS_HOST|REDIS_PORT|AI_LLMOPS_DB_LOGGING_ENABLED'
+```
+
+health 확인:
+
+```bash
+/opt/clueroom/bg-status.sh
+curl -I https://api.clueroom.xyz/actuator/health
+curl https://api.clueroom.xyz/actuator/health
 ```
 
 ### Blue 실행

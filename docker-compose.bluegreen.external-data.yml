@@ -1,8 +1,8 @@
 # Optional override for Blue-Green app slots with an external data server.
 #
 # Usage:
-#   docker compose -f docker-compose.yml -f docker-compose.bluegreen.yml -f docker-compose.bluegreen.external-data.yml config
-#   docker compose -f docker-compose.yml -f docker-compose.bluegreen.yml -f docker-compose.bluegreen.external-data.yml up -d --build app-blue
+#   docker compose -f docker-compose.yml -f docker-compose.external-data.yml -f docker-compose.bluegreen.yml -f docker-compose.bluegreen.external-data.yml config
+#   docker compose -f docker-compose.yml -f docker-compose.external-data.yml -f docker-compose.bluegreen.yml -f docker-compose.bluegreen.external-data.yml up -d --build app-blue
 #
 # Required env:
 #   APP_DB_HOST=<data-server-private-ip-or-dns>
@@ -10,8 +10,9 @@
 #   APP_REDIS_HOST=<data-server-private-ip-or-dns>
 #   APP_REDIS_PORT=6379
 #
-# This file is for PoC/cutover rehearsal only. The default production Blue-Green
-# path keeps local mysql/redis depends_on through docker-compose.bluegreen.yml.
+# Production Blue-Green helpers include this after external-data cutover.
+# Local mysql/redis services are not deleted here; they remain under the
+# local-data profile for rollback/comparison while app slots use external data.
 services:
   mysql:
     profiles:
@@ -22,6 +23,9 @@ services:
       - local-data
 
   app:
+    depends_on: !reset []
+
+  prometheus:
     depends_on: !reset []
 
   app-blue:
