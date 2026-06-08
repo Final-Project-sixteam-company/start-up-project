@@ -65,6 +65,7 @@ public class InterrogationContextLoader {
         List<ChatTurn> history = historyProvider.getHistory(
                 sessionId, suspectId, maxHistoryTurns);
 
-        return new InterrogationContext(suspect, revealedEvidences, presentedEvidence, policy, history);
+        return new InterrogationContext(
+                scenarioId, suspect, revealedEvidences, presentedEvidence, policy, history);
     }
 }

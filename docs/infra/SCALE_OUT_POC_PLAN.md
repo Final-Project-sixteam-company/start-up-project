@@ -188,6 +188,33 @@ What this proves:
 - private network security group / firewall rules are understood
 ```
 
+Compose readiness:
+
+```text
+- docker-compose.yml and docker-compose.bluegreen.yml keep mysql/redis as defaults.
+- APP_DB_HOST / APP_DB_PORT / APP_REDIS_HOST / APP_REDIS_PORT can be overridden by .env or runtime env.
+- The app container still receives DB_HOST / DB_PORT / REDIS_HOST / REDIS_PORT internally.
+- APP_* inputs are separate so old local JVM values such as DB_HOST=localhost do not break app containers.
+- docker-compose.external-data.yml is the single-app PoC override that removes local mysql/redis depends_on.
+- docker-compose.bluegreen.external-data.yml is the Blue-Green PoC override for app-blue/app-green slots.
+- The default single-server path must keep working without this override.
+```
+
+External data env example:
+
+```env
+APP_DB_HOST=10.0.10.11
+APP_DB_PORT=3306
+APP_REDIS_HOST=10.0.10.11
+APP_REDIS_PORT=6379
+```
+
+For production Blue-Green, put the external data host values in `/opt/clueroom/app/.env` or the shell environment that runs `/opt/clueroom/bg-compose` or `/opt/clueroom/deploy.sh`. `APP_*` values are used during Compose interpolation, so service `env_file`-only secret files are not enough. Do not hardcode private IPs into compose files.
+
+Existing developer or production `.env` files may still contain `DB_HOST=localhost` or `REDIS_HOST=localhost`. Those values remain valid for local JVM or host-side tools, but Compose should use `APP_DB_HOST` / `APP_REDIS_HOST` to populate the app container target.
+
+Also check shell-level environment variables before running compose. Shell variables can override `.env` values during Compose interpolation, especially `APP_DB_HOST`, `APP_REDIS_HOST`, and `APP_REDIS_PORT`.
+
 Nginx upstream example:
 
 ```nginx
@@ -444,6 +471,16 @@ Required mitigations:
 - keep user/session/game state in DB/Redis
 - make jobs idempotent or single-owner
 - follow expand-contract DB migration policy later
+```
+
+Externalization readiness:
+
+```text
+- APP_DB_HOST / APP_REDIS_HOST override support is a readiness step only.
+- Actual data migration requires backup/restore rehearsal first.
+- Single-app PoC should use docker-compose.external-data.yml or an equivalent override.
+- Blue-Green PoC should use docker-compose.bluegreen.external-data.yml in addition to docker-compose.bluegreen.yml.
+- Do not remove local MySQL/Redis from the default compose path until production cutover is planned.
 ```
 
 ## 11. Verification Checklist

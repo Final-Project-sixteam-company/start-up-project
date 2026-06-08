@@ -326,7 +326,24 @@ Before any production restore:
 
 Production restore is destructive and must not be done from an agent suggestion without human approval.
 
-## 10. Security Rules
+## 11. Data Server Split Readiness
+
+DB/Redis externalization is a separate cutover from normal app deployment.
+
+Before moving MySQL or Redis to a shared data server:
+
+```text
+1. complete at least one non-production restore rehearsal
+2. verify backup checksum and restore table counts
+3. prepare data server private networking and firewall rules
+4. set APP_DB_HOST / APP_REDIS_HOST to private IP or internal DNS through the compose interpolation source
+5. use docker-compose.external-data.yml or an equivalent app-only override to remove local mysql/redis depends_on
+6. run health, scenario, play-session, interrogation, and final-deduction smoke checks
+```
+
+Do not treat Blue-Green app deployment as sufficient rollback protection for DB/Redis migration. If every app slot points to a broken external DB or Redis, both blue and green can fail.
+
+## 12. Security Rules
 
 ```text
 - Do not commit .sql or .sql.gz backup files.
@@ -338,7 +355,7 @@ Production restore is destructive and must not be done from an agent suggestion 
 - Do not run restore against production DB during rehearsal.
 ```
 
-## 11. Open Decisions
+## 13. Open Decisions
 
 ```text
 - create separate backup-only S3 bucket name
@@ -349,7 +366,7 @@ Production restore is destructive and must not be done from an agent suggestion 
 - decide rehearsal cadence
 ```
 
-## 12. Completion Criteria
+## 14. Completion Criteria
 
 Policy is complete when:
 

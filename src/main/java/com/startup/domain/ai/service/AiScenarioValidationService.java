@@ -1,5 +1,7 @@
 package com.startup.domain.ai.service;
 
+import com.startup.domain.ai.client.AiCallContext;
+import com.startup.domain.ai.client.AiCallResult;
 import com.startup.domain.ai.client.AiClient;
 import com.startup.domain.ai.client.AiRequestParams;
 import com.startup.domain.ai.dto.AiValidationOutcome;
@@ -8,6 +10,7 @@ import com.startup.domain.ai.dto.ScenarioValidationData;
 import com.startup.domain.ai.dto.ScenarioValidationResponse;
 import com.startup.domain.ai.dto.ValidationCheckItem;
 import com.startup.domain.ai.entity.ScenarioValidationResult;
+import com.startup.domain.ai.enums.AiFeatureType;
 import com.startup.domain.ai.enums.ValidationSeverity;
 import com.startup.domain.ai.enums.ValidationSource;
 import com.startup.domain.ai.enums.ValidationStatus;
@@ -42,6 +45,7 @@ import java.util.stream.Collectors;
 public class AiScenarioValidationService {
 
     private static final String LOCK_PREFIX = "scenario-validation:";
+    private static final String PROMPT_VERSION = "scenario_validation_v1";
     private static final long LOCK_WAIT_SECONDS = 3;
     private static final long LOCK_LEASE_SECONDS = 120;
 
@@ -110,7 +114,7 @@ public class AiScenarioValidationService {
                 problemSummary = buildRuleOnlyProblemSummary(ruleResult.allItems());
                 suggestion = "필수 항목을 먼저 보완해 주세요.";
             } else {
-                AiValidationOutcome aiOutcome = callAiValidation(data, ruleResult.publicItems());
+                AiValidationOutcome aiOutcome = callAiValidation(scenarioId, data, ruleResult.publicItems());
                 aiFailed = aiOutcome.aiFailed();
 
                 if (aiFailed) {
@@ -183,24 +187,48 @@ public class AiScenarioValidationService {
     }
 
     private AiValidationOutcome callAiValidation(
+            Long scenarioId,
             ScenarioValidationData data,
             List<ValidationCheckItem> ruleItems
     ) {
+        AiCallContext context = new AiCallContext(
+                AiFeatureType.SCENARIO_VALIDATION,
+                PROMPT_VERSION,
+                scenarioId,
+                null,
+                null,
+                null
+        );
+
         if (aiClient.isMockMode()) {
+            aiClient.recordMock(context);
             return buildMockAiOutcome();
         }
 
+        long startTime = System.currentTimeMillis();
         try {
             String systemPrompt = "너는 추리게임 시나리오 품질 검증 AI다. JSON으로만 응답하라.";
             String userPrompt = promptBuilder.buildScenarioValidationPrompt(data, ruleItems);
             AiRequestParams params = AiRequestParams.validation(temperature, maxTokens);
 
-            String response = aiClient.chat(systemPrompt, userPrompt, params);
-            return parseAiResponse(response);
+            AiCallResult response = aiClient.chatWithMetadata(systemPrompt, userPrompt, params, context);
+            return parseAiResponse(response.text());
         } catch (Exception e) {
             log.warn("AI 검증 호출 실패: {}", e.getMessage());
+            aiClient.recordFallback(context, errorCode(e), elapsedMs(startTime));
             return AiValidationOutcome.failed();
         }
+    }
+
+    private long elapsedMs(long startTime) {
+        return Math.max(0L, System.currentTimeMillis() - startTime);
+    }
+
+    private String errorCode(Exception e) {
+        if (e instanceof AiException aiException) {
+            return aiException.getErrorCode().getCode();
+        }
+        return AiErrorCode.SCENARIO_VALIDATION_FAILED.getCode();
     }
 
     private AiValidationOutcome parseAiResponse(String response) {

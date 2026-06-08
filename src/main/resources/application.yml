@@ -99,6 +99,9 @@ caselab:
     validation:
       temperature: ${AI_VALIDATION_TEMPERATURE:0.2}
       max-tokens: ${AI_VALIDATION_MAX_TOKENS:1500}
+    llmops:
+      # true로 켜려면 운영 DB에 ai_call_logs 테이블을 먼저 생성해야 한다.
+      db-logging-enabled: ${AI_LLMOPS_DB_LOGGING_ENABLED:false}
 
 clueroom:
   assets:
