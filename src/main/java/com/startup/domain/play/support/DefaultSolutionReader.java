@@ -5,6 +5,8 @@ import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.support.MockSolutionReader;
 import com.startup.domain.ai.support.SolutionReader;
+import com.startup.domain.scenario.entity.Scenario;
+import com.startup.domain.scenario.entity.ScenarioType;
 import com.startup.domain.scenario.entity.ScenarioVariant;
 import com.startup.domain.scenario.entity.Solution;
 import com.startup.domain.scenario.entity.Suspect;
@@ -35,6 +37,7 @@ public class DefaultSolutionReader implements SolutionReader {
     private final MockSolutionReader mockSolutionReader;
     private final SolutionRepository solutionRepository;
     private final SuspectRepository suspectRepository;
+    private final ScenarioRepository scenarioRepository;
 
     @Override
     public SolutionInfo findByScenarioId(Long scenarioId) {
@@ -44,12 +47,16 @@ public class DefaultSolutionReader implements SolutionReader {
     @Override
     public SolutionInfo findByScenarioIdAndVariantId(Long scenarioId, Long variantId) {
 
-        Optional<Solution> customSolutionOpt = solutionRepository.findByScenarioId(scenarioId);
+        Scenario scenario = scenarioRepository.findById(scenarioId)
+                .orElseThrow(() -> new AiException(AiErrorCode.SCENARIO_NOT_FOUND));
 
-        if (customSolutionOpt.isPresent()) {
-            Solution customSolution = customSolutionOpt.get();
-            Suspect suspect = suspectRepository.findById(customSolution.getCulpritSuspectId())
-                    .orElseThrow(() -> new AiException(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
+        if (scenario.getScenarioType() == ScenarioType.CUSTOM) {
+            Optional<Solution> customSolutionOpt = solutionRepository.findByScenarioId(scenarioId);
+
+            if (customSolutionOpt.isPresent()) {
+                Solution customSolution = customSolutionOpt.get();
+                Suspect suspect = suspectRepository.findByIdAndScenarioId(customSolution.getCulpritSuspectId(), scenarioId)
+                        .orElseThrow(() -> new AiException(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
 
             List<Long> keyEvidenceIds = customSolution.parseKeyEvidenceIds();
 
@@ -72,6 +79,7 @@ public class DefaultSolutionReader implements SolutionReader {
                     keyEvidenceIds,
                     evidenceTitles
             );
+        }
         }
 
         ScenarioVariant variant = null;
