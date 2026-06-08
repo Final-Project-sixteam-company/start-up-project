@@ -252,4 +252,34 @@ public class CustomScenarioServiceTest {
         Scenario updatedScenario = scenarioRepository.findById(savedScenario.getId()).orElseThrow();
         assertThat(updatedScenario.getUpdatedAt()).isAfterOrEqualTo(beforeUpdate != null ? beforeUpdate : LocalDateTime.MIN);
     }
+
+    @Test
+    @DisplayName("정답 등록 실패 - 타 시나리오 또는 존재하지 않는 증거 ID 포함")
+    void createOrUpdateSolution_fail_invalidKeyEvidence() {
+        // given: 용의자 등록
+        Suspect suspect = suspectRepository.save(Suspect.builder()
+                .scenarioId(savedScenario.getId())
+                .name("진범")
+                .role("원수")
+                .publicProfile("테스트")
+                .alibi("알리바이")
+                .culpritEligible(true)
+                .sortOrder(1)
+                .build());
+
+        CustomSolutionCreateRequest request = new CustomSolutionCreateRequest();
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "culpritSuspectId", suspect.getId());
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "motive", "원한");
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "method", "독살");
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "coverUp", "도주");
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "fullExplanation", "상세 설명");
+        
+        // 9999L 같은 존재하지 않는 증거 ID를 추가
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "keyEvidenceIds", java.util.List.of(9999L));
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createOrUpdateSolution(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("일부 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
+    }
 }

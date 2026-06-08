@@ -287,6 +287,10 @@ public class CustomScenarioService {
 
         String keyEvidenceStr = "";
         if (request.getKeyEvidenceIds() != null && !request.getKeyEvidenceIds().isEmpty()) {
+            long validCount = evidenceRepository.countByIdInAndScenarioId(request.getKeyEvidenceIds(), scenarioId);
+            if (validCount != request.getKeyEvidenceIds().size()) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "일부 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
+            }
             keyEvidenceStr = String.join(",", request.getKeyEvidenceIds().stream().map(String::valueOf).toList());
         }
 
