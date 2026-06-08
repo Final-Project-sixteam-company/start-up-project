@@ -4,14 +4,20 @@ import com.startup.common.error.BusinessException;
 import com.startup.common.error.CommonErrorCode;
 import com.startup.domain.scenario.dto.CustomLocationCreateRequest;
 import com.startup.domain.scenario.dto.CustomLocationCreateResponse;
+import com.startup.domain.scenario.dto.CustomVictimCreateRequest;
+import com.startup.domain.scenario.dto.CustomVictimCreateResponse;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.entity.ScenarioLocation;
+import com.startup.domain.scenario.entity.Victim;
 import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.repository.ScenarioLocationRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
+import com.startup.domain.scenario.repository.VictimRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +26,7 @@ public class CustomScenarioService {
     private final ScenarioRepository scenarioRepository;
     private final ScenarioLocationRepository locationRepository;
     private final ScenarioAccessService scenarioAccessService;
+    private final VictimRepository victimRepository;
 
     @Transactional
     public CustomLocationCreateResponse createLocation(Long userId, Long scenarioId, CustomLocationCreateRequest request) {
@@ -59,4 +66,60 @@ public class CustomScenarioService {
         // 생성된 자식 ID만 DTO로 매핑하여 반환
         return new CustomLocationCreateResponse(savedLocation.getId());
     }
+
+    // 상단에 private final VictimRepository victimRepository; 추가 필요
+
+    @Transactional
+    public CustomVictimCreateResponse createOrUpdateVictim(Long userId, Long scenarioId, CustomVictimCreateRequest request) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+
+        // 상태 방어 (발행된 시나리오는 수정 불가)
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+        }
+
+        // 입력받은 발견 장소가 현재 시나리오 소속인지 검사
+        if (request.getFoundLocationId() != null) {
+            ScenarioLocation location = locationRepository.findById(request.getFoundLocationId())
+                    .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "장소를 찾을 수 없습니다."));
+            if (!location.getScenarioId().equals(scenarioId)) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "다른 시나리오의 장소를 피해자 발견 위치로 지정할 수 없습니다.");
+            }
+        }
+
+        // UPSERT 분기 (이미 있으면 덮어쓰기, 없으면 새로 생성)
+        Victim savedVictim;
+        Optional<Victim> existingVictim = victimRepository.findByScenarioId(scenarioId);
+
+        if (existingVictim.isPresent()) {
+            Victim victim = existingVictim.get();
+            victim.updateInfo(
+                    request.getFoundLocationId(), request.getName(), request.getAge(),
+                    request.getRole(), request.getDescription(), request.getCauseOfDeath(),
+                    request.getFoundCondition()
+            );
+            savedVictim = victim;
+        } else {
+            Victim newVictim = Victim.builder()
+                    .scenarioId(scenarioId)
+                    .foundLocationId(request.getFoundLocationId())
+                    .name(request.getName())
+                    .age(request.getAge())
+                    .role(request.getRole())
+                    .description(request.getDescription())
+                    .causeOfDeath(request.getCauseOfDeath())
+                    .foundCondition(request.getFoundCondition())
+                    .build();
+            savedVictim = victimRepository.save(newVictim);
+        }
+
+        // 부모 시나리오의 updatedAt 강제 갱신 -> AI 논리 검증 우회 전면 차단
+        scenario.forceUpdateModifiedAt();
+
+        return new CustomVictimCreateResponse(savedVictim.getId());
+    }
+
 }

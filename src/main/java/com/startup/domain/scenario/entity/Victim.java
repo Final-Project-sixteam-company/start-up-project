@@ -61,4 +61,16 @@ public class Victim {
         this.causeOfDeath = causeOfDeath;
         this.foundCondition = foundCondition;
     }
+
+    public void updateInfo(Long foundLocationId, String name, Integer age, String role,
+                           String description, String causeOfDeath, String foundCondition) {
+        this.foundLocationId = foundLocationId;
+        this.name = name;
+        this.age = age;
+        this.role = role;
+        this.description = description;
+        this.causeOfDeath = causeOfDeath;
+        this.foundCondition = foundCondition;
+    }
+
 }

@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface VictimRepository extends JpaRepository<Victim, Long> {
 
     Optional<Victim> findFirstByScenarioId(Long scenarioId);
+
+    Optional<Victim> findByScenarioId(Long scenarioId);
 }
