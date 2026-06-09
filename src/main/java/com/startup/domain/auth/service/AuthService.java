@@ -96,7 +96,7 @@ public class AuthService {
     @Transactional
     public AuthTokenResponse refresh(TokenRefreshRequest request) {
         String tokenHash = jwtTokenService.hashRefreshToken(request.refreshToken());
-        AuthRefreshToken refreshToken = authRefreshTokenRepository.findByTokenHash(tokenHash)
+        AuthRefreshToken refreshToken = authRefreshTokenRepository.findByTokenHashForUpdate(tokenHash)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.now();
@@ -155,17 +155,19 @@ public class AuthService {
     private User updateExistingOAuthUser(UserOAuthAccount account, OAuthUserProfile profile) {
         User user = userRepository.findById(account.getUserId())
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
-        String email = normalizeEmailOrNull(profile.email());
-        user.updateProfile(email, profile.nickname(), profile.profileImageUrl());
-        account.updateProfile(email, profile.nickname(), profile.profileImageUrl());
+        String verifiedEmail = verifiedEmailOrNull(profile);
+        user.updateProfile(verifiedEmail == null ? user.getEmail() : verifiedEmail,
+                profile.nickname(), profile.profileImageUrl());
+        account.updateProfile(verifiedEmail == null ? account.getEmail() : verifiedEmail,
+                profile.nickname(), profile.profileImageUrl());
         return user;
     }
 
     private User createOrLinkOAuthUser(OAuthUserProfile profile) {
-        String email = normalizeEmailOrNull(profile.email());
-        User user = findUserByEmail(profile.email())
+        String verifiedEmail = verifiedEmailOrNull(profile);
+        User user = findUserByEmail(verifiedEmail)
                 .orElseGet(() -> userRepository.save(User.builder()
-                        .email(email)
+                        .email(verifiedEmail)
                         .nickname(profile.nickname())
                         .profileImageUrl(profile.profileImageUrl())
                         .build()));
@@ -179,11 +181,12 @@ public class AuthService {
                 .userId(user.getId())
                 .provider(profile.provider())
                 .providerUserId(profile.providerUserId())
-                .email(email)
+                .email(verifiedEmail)
                 .nickname(profile.nickname())
                 .profileImageUrl(profile.profileImageUrl())
                 .build());
-        user.updateProfile(email, profile.nickname(), profile.profileImageUrl());
+        user.updateProfile(verifiedEmail == null ? user.getEmail() : verifiedEmail,
+                profile.nickname(), profile.profileImageUrl());
         return user;
     }
 
@@ -245,6 +248,13 @@ public class AuthService {
     private String normalizeEmailOrNull(String email) {
         String normalized = normalizeBlank(email);
         return normalized == null ? null : normalized.toLowerCase(Locale.ROOT);
+    }
+
+    private String verifiedEmailOrNull(OAuthUserProfile profile) {
+        if (!profile.emailVerified()) {
+            return null;
+        }
+        return normalizeEmailOrNull(profile.email());
     }
 
     private Map<AuthProvider, OAuthProviderClient> providerClientMap() {

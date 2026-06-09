@@ -7,6 +7,7 @@ import com.startup.domain.auth.entity.User;
 import com.startup.domain.auth.error.AuthErrorCode;
 import com.startup.domain.auth.error.AuthException;
 import com.startup.domain.auth.repository.UserRepository;
+import com.startup.domain.auth.support.AuthProperties;
 import com.startup.domain.auth.support.JwtTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -33,7 +34,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenService jwtTokenService;
     private final UserRepository userRepository;
+    private final AuthProperties authProperties;
     private final JsonMapper jsonMapper;
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return isPublicAuthEndpoint(request) || (isCompatibilityMode() && !authProperties.isJwtSecretConfigured());
+    }
 
     @Override
     protected void doFilterInternal(
@@ -69,8 +76,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } catch (AuthException e) {
             SecurityContextHolder.clearContext();
+            if (isCompatibilityMode()) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             writeErrorResponse(response, request, e.getErrorCode(), e.getMessage());
         }
+    }
+
+    private boolean isPublicAuthEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return "/api/auth/dev".equals(path)
+                || "/api/auth/oauth".equals(path)
+                || "/api/auth/refresh".equals(path)
+                || "/api/auth/logout".equals(path);
+    }
+
+    private boolean isCompatibilityMode() {
+        return !authProperties.isRequireAuthentication() && authProperties.isMockFallbackEnabled();
     }
 
     private String resolveBearerToken(HttpServletRequest request) {

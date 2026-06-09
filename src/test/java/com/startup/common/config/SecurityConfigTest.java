@@ -36,4 +36,14 @@ class SecurityConfigTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("C001"));
     }
+
+    @Test
+    void refreshEndpointIgnoresInvalidAccessTokenHeader() throws Exception {
+        mockMvc.perform(post("/api/auth/refresh")
+                        .header("Authorization", "Bearer expired-or-invalid-access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("C001"));
+    }
 }

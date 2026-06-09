@@ -270,6 +270,7 @@ curl -s -X POST http://localhost:8080/api/auth/oauth \
 ```
 
 운영에서는 `GOOGLE_CLIENT_ID` 또는 `GOOGLE_CLIENT_IDS`, `KAKAO_APP_ID`를 secret env로 주입한다. Google은 ID token의 `aud`, Kakao는 access token info의 `app_id`를 서버 설정값과 비교한다.
+기존 계정 email 기반 linking은 provider가 verified email을 제공한 경우에만 수행한다. Google은 `email_verified`, Kakao는 `is_email_valid=true`와 `is_email_verified=true`를 기준으로 한다.
 
 보호 API 전환은 Android가 access token 저장과 `Authorization: Bearer <accessToken>` 첨부를 완료한 뒤 진행한다.
 
@@ -284,7 +285,10 @@ AUTH_REQUIRE_AUTHENTICATION=true
 /api/device-tokens/**
 /api/scenarios write 계열
 /api/ai/scenarios/{scenarioId}/validate
+/api/** 신규 endpoint 기본 인증
 ```
+
+`/api/auth/refresh` 등 auth 공개 endpoint는 만료 access token이 `Authorization` 헤더에 남아 있어도 refresh body 검증까지 도달해야 한다. 클라이언트 interceptor가 refresh 요청에 기존 Bearer token을 자동 첨부할 수 있기 때문이다.
 
 ---
 

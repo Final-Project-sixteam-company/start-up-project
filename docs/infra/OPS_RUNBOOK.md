@@ -155,6 +155,8 @@ KAKAO_APP_ID
 
 1단계에서는 기존 API 호환을 위해 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`를 유지한다.
 Android가 OAuth login과 Bearer token 첨부를 완료한 뒤 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한다.
+보호 모드에서는 명시 public endpoint를 제외한 `/api/**`가 기본 인증 대상이다.
+OAuth email 기반 기존 계정 연결은 provider verified email에만 허용한다.
 
 보호 모드 검증:
 

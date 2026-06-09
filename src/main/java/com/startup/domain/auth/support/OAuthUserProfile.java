@@ -6,6 +6,7 @@ public record OAuthUserProfile(
         AuthProvider provider,
         String providerUserId,
         String email,
+        boolean emailVerified,
         String nickname,
         String profileImageUrl
 ) {

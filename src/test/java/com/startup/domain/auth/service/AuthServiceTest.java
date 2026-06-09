@@ -24,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -92,6 +93,67 @@ class AuthServiceTest {
                         AuthProvider.GOOGLE,
                         "google-sub",
                         "OAUTH@EXAMPLE.COM",
+                        true,
+                        "OAuth User",
+                        "https://example.com/profile.png"
+                );
+            }
+        };
+    }
+
+    @Test
+    void oauthLoginDoesNotLinkExistingUserWhenProviderEmailIsUnverified() {
+        AuthProperties authProperties = properties();
+        JwtTokenService jwtTokenService = new JwtTokenService(authProperties, JsonMapper.builder().build());
+        CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        UserOAuthAccountRepository accountRepository = mock(UserOAuthAccountRepository.class);
+        AuthRefreshTokenRepository refreshTokenRepository = mock(AuthRefreshTokenRepository.class);
+        OAuthProviderClient providerClient = fakeUnverifiedGoogleClient();
+        AuthService authService = new AuthService(
+                authProperties,
+                jwtTokenService,
+                currentUserProvider,
+                userRepository,
+                accountRepository,
+                refreshTokenRepository,
+                List.of(providerClient)
+        );
+
+        when(accountRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub"))
+                .thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            ReflectionTestUtils.setField(user, "id", 11L);
+            return user;
+        });
+        when(accountRepository.findByUserIdAndProvider(11L, AuthProvider.GOOGLE)).thenReturn(Optional.empty());
+        when(accountRepository.save(any(UserOAuthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(refreshTokenRepository.save(any(AuthRefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AuthTokenResponse response = authService.oauthLogin(
+                new OAuthLoginRequest(AuthProvider.GOOGLE, "id-token", null, "android")
+        );
+
+        assertThat(response.user().userId()).isEqualTo(11L);
+        assertThat(response.user().email()).isNull();
+        verify(userRepository, never()).findByEmail("oauth@example.com");
+    }
+
+    private OAuthProviderClient fakeUnverifiedGoogleClient() {
+        return new OAuthProviderClient() {
+            @Override
+            public AuthProvider provider() {
+                return AuthProvider.GOOGLE;
+            }
+
+            @Override
+            public OAuthUserProfile verify(OAuthLoginRequest request) {
+                return new OAuthUserProfile(
+                        AuthProvider.GOOGLE,
+                        "google-sub",
+                        "OAUTH@EXAMPLE.COM",
+                        false,
                         "OAuth User",
                         "https://example.com/profile.png"
                 );

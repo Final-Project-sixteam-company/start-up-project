@@ -69,6 +69,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/api/scenarios/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/scenarios/{scenarioId}/validation-result").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/ai/scenarios/{scenarioId}/validate").authenticated()
+                .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll();
     }
 

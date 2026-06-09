@@ -51,6 +51,8 @@ public class KakaoOAuthProviderClient implements OAuthProviderClient {
                 AuthProvider.KAKAO,
                 kakaoUserId,
                 OAuthJsonSupport.textAt(root, "kakao_account.email"),
+                OAuthJsonSupport.booleanAt(root, "kakao_account.is_email_valid")
+                        && OAuthJsonSupport.booleanAt(root, "kakao_account.is_email_verified"),
                 OAuthJsonSupport.textAt(root, "kakao_account.profile.nickname"),
                 OAuthJsonSupport.textAt(root, "kakao_account.profile.profile_image_url")
         );

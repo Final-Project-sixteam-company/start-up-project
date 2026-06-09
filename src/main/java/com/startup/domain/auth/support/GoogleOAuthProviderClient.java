@@ -58,6 +58,7 @@ public class GoogleOAuthProviderClient implements OAuthProviderClient {
                 AuthProvider.GOOGLE,
                 subject,
                 OAuthJsonSupport.textAt(root, "email"),
+                OAuthJsonSupport.booleanAt(root, "email_verified"),
                 OAuthJsonSupport.textAt(root, "name"),
                 OAuthJsonSupport.textAt(root, "picture")
         );
