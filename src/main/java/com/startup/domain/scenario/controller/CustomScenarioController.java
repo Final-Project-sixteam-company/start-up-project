@@ -106,11 +106,11 @@ public class CustomScenarioController {
 
     @Operation(summary = "커스텀 시나리오 힌트 목록 조회")
     @GetMapping("/{scenarioId}/hints")
-    public ResponseEntity<ApiResponse<java.util.List<CustomHintResponse>>> getHints(
+    public ResponseEntity<ApiResponse<List<CustomHintResponse>>> getHints(
             @PathVariable Long scenarioId
     ) {
         Long userId = mockUserProvider.currentUserId();
-        java.util.List<CustomHintResponse> response = customScenarioService.getHints(userId, scenarioId);
+        List<CustomHintResponse> response = customScenarioService.getHints(userId, scenarioId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -134,6 +134,16 @@ public class CustomScenarioController {
         Long userId = mockUserProvider.currentUserId();
         CustomSolutionCreateResponse response = customScenarioService.createOrUpdateSolution(userId, scenarioId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "커스텀 시나리오 정답 조회 (작성자/관리자 전용)")
+    @GetMapping("/{scenarioId}/solution")
+    public ResponseEntity<ApiResponse<CustomSolutionResponse>> getSolution(
+            @PathVariable Long scenarioId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        CustomSolutionResponse response = customScenarioService.getSolution(userId, scenarioId);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
 }

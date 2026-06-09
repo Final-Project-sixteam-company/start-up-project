@@ -876,4 +876,18 @@ public class CustomScenarioService {
             }
         }
     }
+
+    @Transactional(readOnly = true)
+    public CustomSolutionResponse getSolution(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        if (!scenarioRepository.existsById(scenarioId)) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
+        }
+
+        Solution solution = solutionRepository.findByScenarioId(scenarioId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SOLUTION_NOT_FOUND));
+
+        return CustomSolutionResponse.from(solution);
+    }
 }
