@@ -321,6 +321,8 @@ Refresh rotation note:
 ```text
 Each refresh success revokes the old refresh token.
 The app must persist the new refreshToken immediately.
+Refresh rotation keeps the deviceId from the existing refresh token.
+Do not change deviceId during refresh; if the app installation/device identity changes, run OAuth login again.
 ```
 
 ---

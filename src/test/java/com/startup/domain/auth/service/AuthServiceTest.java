@@ -18,6 +18,7 @@ import com.startup.domain.auth.support.JwtTokenService;
 import com.startup.domain.auth.support.OAuthProviderClient;
 import com.startup.domain.auth.support.OAuthUserProfile;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -353,6 +354,49 @@ class AuthServiceTest {
         verify(refreshTokenRepository).revokeActiveByUserIdAndDeviceId(
                 eq(40L), eq("android"), any(LocalDateTime.class), any(LocalDateTime.class));
         verify(refreshTokenRepository, never()).save(any(AuthRefreshToken.class));
+    }
+
+    @Test
+    void refreshKeepsOriginalDeviceIdEvenWhenRequestSendsDifferentDeviceId() {
+        AuthProperties authProperties = properties();
+        JwtTokenService jwtTokenService = new JwtTokenService(authProperties, JsonMapper.builder().build());
+        CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        UserOAuthAccountRepository accountRepository = mock(UserOAuthAccountRepository.class);
+        AuthRefreshTokenRepository refreshTokenRepository = mock(AuthRefreshTokenRepository.class);
+        AuthService authService = new AuthService(
+                authProperties,
+                jwtTokenService,
+                currentUserProvider,
+                userRepository,
+                accountRepository,
+                refreshTokenRepository,
+                transactionManager(),
+                List.of()
+        );
+        String refreshTokenValue = "active-refresh-token";
+        String tokenHash = jwtTokenService.hashRefreshToken(refreshTokenValue);
+        AuthRefreshToken activeToken = AuthRefreshToken.builder()
+                .userId(41L)
+                .tokenHash(tokenHash)
+                .deviceId("original-device")
+                .expiresAt(LocalDateTime.now().plusDays(1))
+                .build();
+        ReflectionTestUtils.setField(activeToken, "id", 410L);
+        User user = user(41L, "refresh@example.com");
+        when(refreshTokenRepository.findByTokenHashForUpdate(tokenHash)).thenReturn(Optional.of(activeToken));
+        when(userRepository.findById(41L)).thenReturn(Optional.of(user));
+        when(refreshTokenRepository.save(any(AuthRefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ArgumentCaptor<AuthRefreshToken> savedToken = ArgumentCaptor.forClass(AuthRefreshToken.class);
+
+        AuthTokenResponse response = authService.refresh(
+                new TokenRefreshRequest(refreshTokenValue, "changed-device")
+        );
+
+        assertThat(response.refreshToken()).isNotBlank();
+        verify(refreshTokenRepository).save(savedToken.capture());
+        assertThat(savedToken.getValue().getDeviceId()).isEqualTo("original-device");
+        assertThat(savedToken.getValue().getRotatedFromId()).isEqualTo(410L);
     }
 
     private OAuthProviderClient providerClientAssertingNoTransaction(TrackingTransactionManager transactionManager) {

@@ -142,8 +142,7 @@ public class AuthService {
         ensureUserActive(user);
 
         refreshToken.revoke();
-        String deviceId = normalizeBlank(request.deviceId()) == null ? refreshToken.getDeviceId() : request.deviceId();
-        return issueTokenPair(user, deviceId, refreshToken.getId());
+        return issueTokenPair(user, refreshToken.getDeviceId(), refreshToken.getId());
     }
 
     private void burnRefreshTokenChain(AuthRefreshToken reusedToken, LocalDateTime now) {
