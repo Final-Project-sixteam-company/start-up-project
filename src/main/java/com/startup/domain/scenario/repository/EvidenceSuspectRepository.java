@@ -12,4 +12,6 @@ public interface EvidenceSuspectRepository extends JpaRepository<EvidenceSuspect
     List<EvidenceSuspect> findAllBySuspectIdIn(List<Long> suspectIds);
 
     void deleteByEvidenceId(Long evidenceId);
+
+    void deleteBySuspectId(Long suspectId);
 }

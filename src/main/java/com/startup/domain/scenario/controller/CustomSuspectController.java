@@ -29,4 +29,12 @@ public class CustomSuspectController {
         CustomSuspectResponse response = customScenarioService.updateSuspect(userId, suspectId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @Operation(summary = "커스텀 시나리오 용의자 삭제")
+    @DeleteMapping("/{suspectId}")
+    public ResponseEntity<ApiResponse<Void>> deleteSuspect(@PathVariable Long suspectId) {
+        Long userId = mockUserProvider.currentUserId();
+        customScenarioService.deleteSuspect(userId, suspectId);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

@@ -289,6 +289,35 @@ public class CustomScenarioService {
         return CustomSuspectResponse.from(suspect, jsonMapper);
     }
 
+    @Transactional
+    public void deleteSuspect(Long userId, Long suspectId) {
+        Suspect suspect = suspectRepository.findById(suspectId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SUSPECT_NOT_FOUND));
+
+        scenarioAccessService.validateEditable(userId, suspect.getScenarioId());
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(suspect.getScenarioId())
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
+        }
+
+        solutionRepository.findByScenarioId(scenario.getId())
+                .ifPresent(solution -> {
+                    if (solution.getCulpritSuspectId() != null && solution.getCulpritSuspectId().equals(suspectId)) {
+                        throw new ScenarioException(ScenarioErrorCode.SUSPECT_IS_CULPRIT);
+                    }
+                });
+
+        evidenceSuspectRepository.deleteBySuspectId(suspectId);
+        suspectResponsePolicyRepository.deleteBySuspectId(suspectId);
+
+        suspectRepository.delete(suspect);
+
+        scenario.forceUpdateModifiedAt();
+    }
+
 
     @Transactional(readOnly = true)
     public List<CustomEvidenceResponse> getEvidences(Long userId, Long scenarioId) {
