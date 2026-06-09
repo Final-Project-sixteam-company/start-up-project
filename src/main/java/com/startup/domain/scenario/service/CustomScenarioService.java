@@ -618,6 +618,10 @@ public class CustomScenarioService {
                     }
                 });
 
+        if (evidenceUnlockRuleRepository.existsByScenarioIdAndConditionJsonContaining(scenario.getId(), evidence.getCode())) {
+            throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE);
+        }
+
         evidenceSuspectRepository.deleteByEvidenceId(evidenceId);
         evidenceUnlockRuleRepository.deleteByEvidenceId(evidenceId);
 

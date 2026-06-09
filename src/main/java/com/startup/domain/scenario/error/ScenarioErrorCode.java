@@ -23,7 +23,8 @@ public enum ScenarioErrorCode implements ErrorCode {
     SUSPECT_IS_CULPRIT(HttpStatus.BAD_REQUEST, "SCENARIO_012", "정답(범인)으로 지목된 용의자는 삭제할 수 없습니다."),
     SUSPECT_NOT_FOUND(HttpStatus.NOT_FOUND, "SCENARIO_013", "용의자를 찾을 수 없습니다."),
     EVIDENCE_IS_KEY(HttpStatus.BAD_REQUEST, "SCENARIO_014", "정답(핵심 증거)으로 지목된 증거는 삭제할 수 없습니다."),
-    SOLUTION_NOT_FOUND(HttpStatus.NOT_FOUND, "SCENARIO_015", "시나리오 정답을 찾을 수 없습니다.");
+    SOLUTION_NOT_FOUND(HttpStatus.NOT_FOUND, "SCENARIO_015", "시나리오 정답을 찾을 수 없습니다."),
+    EVIDENCE_IS_PREREQUISITE(HttpStatus.BAD_REQUEST, "SCENARIO_016", "다른 증거의 해금 조건으로 사용 중인 증거는 삭제할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

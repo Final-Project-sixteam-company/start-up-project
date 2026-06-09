@@ -13,4 +13,6 @@ public interface EvidenceUnlockRuleRepository extends JpaRepository<EvidenceUnlo
     List<EvidenceUnlockRule> findAllByScenarioIdOrderBySortOrder(Long scenarioId);
 
     void deleteByEvidenceId(Long evidenceId);
+
+    boolean existsByScenarioIdAndConditionJsonContaining(Long scenarioId, String evidenceCode);
 }

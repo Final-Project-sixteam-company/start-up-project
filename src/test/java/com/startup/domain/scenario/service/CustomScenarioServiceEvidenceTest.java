@@ -172,6 +172,45 @@ public class CustomScenarioServiceEvidenceTest {
     }
 
     @Test
+    @DisplayName("증거 삭제 실패 - 다른 증거의 해금 조건으로 사용 중인 경우 예외 발생")
+    void deleteEvidence_fail_when_prerequisite() {
+        // given
+        Evidence evidenceA = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("EVD_A")
+                .title("선행 증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        Evidence evidenceB = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("EVD_B")
+                .title("후행 증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(2)
+                .build());
+
+        evidenceUnlockRuleRepository.save(EvidenceUnlockRule.builder()
+                .scenarioId(savedScenario.getId())
+                .evidenceId(evidenceB.getId())
+                .evidenceCode(evidenceB.getCode())
+                .unlockType(EvidenceUnlockType.EVIDENCE_PRESENTED.name())
+                .conditionJson("{\"requiredPresentedEvidenceCode\": \"EVD_A\"}")
+                .sortOrder(2)
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, evidenceA.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE.getMessage());
+    }
+
+    @Test
     @DisplayName("타인의 시나리오 증거 수정/삭제 시나리오 접근 권한 예외 발생")
     void modifyEvidence_fail_unauthorized() {
         // given
