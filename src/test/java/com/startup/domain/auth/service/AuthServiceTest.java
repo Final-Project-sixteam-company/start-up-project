@@ -357,6 +357,49 @@ class AuthServiceTest {
     }
 
     @Test
+    void refreshWhenExpiredRevokedTokenIsReusedStillBurnsActiveTokenChain() {
+        AuthProperties authProperties = properties();
+        JwtTokenService jwtTokenService = new JwtTokenService(authProperties, JsonMapper.builder().build());
+        CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        UserOAuthAccountRepository accountRepository = mock(UserOAuthAccountRepository.class);
+        AuthRefreshTokenRepository refreshTokenRepository = mock(AuthRefreshTokenRepository.class);
+        AuthService authService = new AuthService(
+                authProperties,
+                jwtTokenService,
+                currentUserProvider,
+                userRepository,
+                accountRepository,
+                refreshTokenRepository,
+                transactionManager(),
+                List.of()
+        );
+        String refreshTokenValue = "expired-rotated-refresh-token";
+        String tokenHash = jwtTokenService.hashRefreshToken(refreshTokenValue);
+        AuthRefreshToken reusedToken = AuthRefreshToken.builder()
+                .userId(40L)
+                .tokenHash(tokenHash)
+                .deviceId("android")
+                .expiresAt(LocalDateTime.now().minusDays(1))
+                .build();
+        reusedToken.revoke();
+        when(refreshTokenRepository.findByTokenHashForUpdate(tokenHash)).thenReturn(Optional.of(reusedToken));
+        when(refreshTokenRepository.revokeActiveByUserIdAndDeviceId(
+                eq(40L), eq("android"), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(1);
+
+        Throwable thrown = catchThrowable(() -> authService.refresh(
+                new TokenRefreshRequest(refreshTokenValue, "android")
+        ));
+
+        assertThat(thrown).isInstanceOfSatisfying(AuthException.class, exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
+        verify(refreshTokenRepository).revokeActiveByUserIdAndDeviceId(
+                eq(40L), eq("android"), any(LocalDateTime.class), any(LocalDateTime.class));
+        verify(refreshTokenRepository, never()).save(any(AuthRefreshToken.class));
+    }
+
+    @Test
     void refreshKeepsOriginalDeviceIdEvenWhenRequestSendsDifferentDeviceId() {
         AuthProperties authProperties = properties();
         JwtTokenService jwtTokenService = new JwtTokenService(authProperties, JsonMapper.builder().build());

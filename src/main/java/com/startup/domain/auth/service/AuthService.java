@@ -129,12 +129,12 @@ public class AuthService {
                 .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.now();
-        if (refreshToken.isExpired(now)) {
-            throw new AuthException(AuthErrorCode.REFRESH_TOKEN_EXPIRED);
-        }
-        if (!refreshToken.isUsable(now)) {
+        if (refreshToken.getRevokedAt() != null) {
             burnRefreshTokenChain(refreshToken, now);
             throw new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND);
+        }
+        if (refreshToken.isExpired(now)) {
+            throw new AuthException(AuthErrorCode.REFRESH_TOKEN_EXPIRED);
         }
 
         User user = userRepository.findById(refreshToken.getUserId())
