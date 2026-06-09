@@ -42,4 +42,9 @@ public abstract class BaseEntity {
     public boolean isDeleted() {
         return this.deletedAt != null;
     }
+
+    // AI 검증 우회 등을 막기 위해 자식 리소스 갱신 시 부모의 updatedAt을 강제로 최신화하는 메서드
+    public void forceUpdateModifiedAt() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

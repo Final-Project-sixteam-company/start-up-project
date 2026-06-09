@@ -28,4 +28,8 @@ public interface EvidenceRepository extends JpaRepository<Evidence, Long> {
 
     long countByIdInAndScenarioId(List<Long> ids, Long scenarioId);
 
+    @Query("SELECT COALESCE(MAX(e.sortOrder), 0) FROM Evidence e WHERE e.scenarioId = :scenarioId")
+    Integer findMaxSortOrderByScenarioId(@Param("scenarioId") Long scenarioId);
+
+
 }

@@ -78,14 +78,14 @@ public class ScenarioPublishValidator {
                         }
                     }
 
-                    if (!StringUtils.hasText(solution.getMotive())) {
-                        errors.add("정답의 동기(motive) 미입력");
+                    if (com.startup.common.util.TextTokenizerUtil.extractValidTokens(solution.getMotive()).isEmpty()) {
+                        errors.add("정답의 동기(motive)는 2글자 이상의 단어가 포함되어야 합니다.");
                     }
-                    if (!StringUtils.hasText(solution.getMethod())) {
-                        errors.add("정답의 방법(method) 미입력");
+                    if (com.startup.common.util.TextTokenizerUtil.extractValidTokens(solution.getMethod()).isEmpty()) {
+                        errors.add("정답의 방법(method)은 2글자 이상의 단어가 포함되어야 합니다.");
                     }
-                    if (!StringUtils.hasText(solution.getCoverUp())) {
-                        errors.add("정답의 은폐 방법(coverUp) 미입력");
+                    if (com.startup.common.util.TextTokenizerUtil.extractValidTokens(solution.getCoverUp()).isEmpty()) {
+                        errors.add("정답의 은폐 방법(coverUp)은 2글자 이상의 단어가 포함되어야 합니다.");
                     }
                 },
                 () -> errors.add("정답 미설정")
@@ -98,7 +98,7 @@ public class ScenarioPublishValidator {
                     .ifPresentOrElse(
                             result -> {
                                 String status = result.getValidationStatus();
-                                if (scenario.getUpdatedAt() != null && result.getCheckedAt().isBefore(scenario.getUpdatedAt())) {
+                                if (scenario.getUpdatedAt() != null && !result.getCheckedAt().isAfter(scenario.getUpdatedAt())) {
                                     errors.add("AI 검증 이후 시나리오가 수정되었습니다. 다시 검증해주세요.");
                                 } else if (!"PASSED".equals(status) && !"PASSED_WITH_WARNINGS".equals(status)) {
                                     errors.add("AI 논리 검증을 통과하지 못함 (최근 상태: " + status + ")");
