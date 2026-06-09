@@ -68,6 +68,10 @@ public class User extends BaseEntity {
         return this.status == UserStatus.ACTIVE;
     }
 
+    public void promoteToAdmin() {
+        this.role = UserRole.ADMIN;
+    }
+
     private static String normalizeNickname(String nickname) {
         if (nickname == null || nickname.isBlank()) {
             return "ClueRoom User";

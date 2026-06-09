@@ -148,6 +148,9 @@ JWT_REFRESH_TOKEN_TTL_DAYS
 AUTH_DEV_LOGIN_ENABLED
 AUTH_MOCK_FALLBACK_ENABLED
 AUTH_REQUIRE_AUTHENTICATION
+AUTH_ADMIN_SEED_ENABLED
+AUTH_ADMIN_SEED_EMAIL
+AUTH_ADMIN_SEED_NICKNAME
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_IDS
 KAKAO_APP_ID
@@ -159,6 +162,46 @@ Android가 OAuth login과 Bearer token 첨부를 완료한 뒤 `AUTH_REQUIRE_AUT
 OAuth email 기반 기존 계정 연결은 provider verified email에만 허용한다.
 보호 모드에서는 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 요청에 `MOCK_USER_ID`를 부여하지 않는다.
 CORS preflight `OPTIONS` 요청은 인증 없이 통과해야 한다.
+AI rate limit 검증용 admin 계정은 `AUTH_ADMIN_SEED_*` 값으로만 생성/승격한다. 실제 admin email은 서버 secret env에만 저장하고 공개 문서/PR에 기록하지 않는다.
+
+Admin seed 설정 예:
+
+```text
+AUTH_ADMIN_SEED_ENABLED=true
+AUTH_ADMIN_SEED_EMAIL=<server-secret-admin-email>
+AUTH_ADMIN_SEED_NICKNAME=ClueRoom Admin
+```
+
+Admin seed 검증:
+
+```bash
+mysql -h 172.26.1.185 -u <user> -p <database> \
+  -e "SELECT id, role, status FROM users WHERE email = '<server-secret-admin-email>';"
+```
+
+기대:
+
+```text
+role=ADMIN
+status=ACTIVE
+```
+
+Admin seed rollback:
+
+```text
+1. AUTH_ADMIN_SEED_ENABLED=false 로 되돌리고 Blue-Green 재배포한다.
+2. 잘못 승격한 계정이 있으면 운영 DB 백업과 승인 후 role을 USER로 되돌린다.
+3. auth_refresh_tokens/user_oauth_accounts/users 테이블 삭제는 하지 않는다.
+```
+
+수동 demotion이 승인된 경우에만 실행:
+
+```sql
+UPDATE users
+SET role = 'USER'
+WHERE email = '<server-secret-admin-email>'
+  AND role = 'ADMIN';
+```
 
 보호 모드 검증:
 

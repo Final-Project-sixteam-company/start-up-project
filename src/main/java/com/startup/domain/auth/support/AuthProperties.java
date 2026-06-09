@@ -15,6 +15,7 @@ public class AuthProperties {
     private boolean requireAuthentication = false;
     private Jwt jwt = new Jwt();
     private OAuth oauth = new OAuth();
+    private AdminSeed adminSeed = new AdminSeed();
 
     public boolean isMockFallbackEnabled() {
         return mockFallbackEnabled;
@@ -54,6 +55,14 @@ public class AuthProperties {
 
     public void setOauth(OAuth oauth) {
         this.oauth = oauth == null ? new OAuth() : oauth;
+    }
+
+    public AdminSeed getAdminSeed() {
+        return adminSeed;
+    }
+
+    public void setAdminSeed(AdminSeed adminSeed) {
+        this.adminSeed = adminSeed == null ? new AdminSeed() : adminSeed;
     }
 
     public boolean isJwtSecretConfigured() {
@@ -191,6 +200,36 @@ public class AuthProperties {
             this.userInfoUri = (userInfoUri == null || userInfoUri.isBlank())
                     ? "https://kapi.kakao.com/v2/user/me"
                     : userInfoUri.trim();
+        }
+    }
+
+    public static class AdminSeed {
+        private boolean enabled = false;
+        private String email = "";
+        private String nickname = "ClueRoom Admin";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email == null ? "" : email.trim();
+        }
+
+        public String getNickname() {
+            return nickname;
+        }
+
+        public void setNickname(String nickname) {
+            this.nickname = (nickname == null || nickname.isBlank()) ? "ClueRoom Admin" : nickname.trim();
         }
     }
 }

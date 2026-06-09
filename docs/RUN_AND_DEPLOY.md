@@ -126,6 +126,9 @@ cp .env.example .env
 | `AUTH_MOCK_FALLBACK_ENABLED` | JWT 전환기 token 없는 기존 API 요청을 `MOCK_USER_ID`로 허용할지 여부 |
 | `AUTH_DEV_LOGIN_ENABLED` | `/api/auth/dev` 개발용 로그인 활성 여부. 운영 기본 `false` |
 | `AUTH_REQUIRE_AUTHENTICATION` | 사용자별 API 인증 강제 여부. Android 전환 전 기본 `false` |
+| `AUTH_ADMIN_SEED_ENABLED` | 운영 secret env에 지정한 admin 테스트 계정을 생성/승격할지 여부. 기본 `false` |
+| `AUTH_ADMIN_SEED_EMAIL` | admin seed 대상 이메일. 실제 값은 서버 secret env에만 저장 |
+| `AUTH_ADMIN_SEED_NICKNAME` | admin seed 신규 생성 시 nickname |
 | `JWT_ISSUER` | JWT issuer. 운영 기본 `https://api.clueroom.xyz` |
 | `JWT_SECRET` | 서버 전용 JWT HMAC secret. 레포/.env.example에는 실제 값 저장 금지 |
 | `JWT_ACCESS_TOKEN_TTL_SECONDS` | access token 유효 시간 |
@@ -250,6 +253,16 @@ curl -s -X POST http://localhost:8080/api/auth/dev \
 ```
 
 운영에서는 `JWT_SECRET`을 `/opt/clueroom/secrets/env.d/oauth.env` 같은 서버 secret env로만 주입한다.
+
+운영/스테이징에서 AI rate limit 검증용 admin 계정이 필요하면 secret env에만 아래 값을 둔다. 실제 이메일은 공개 문서, PR 본문, 코드에 기록하지 않는다.
+
+```properties
+AUTH_ADMIN_SEED_ENABLED=true
+AUTH_ADMIN_SEED_EMAIL=<server-secret-admin-email>
+AUTH_ADMIN_SEED_NICKNAME=ClueRoom Admin
+```
+
+`AUTH_ADMIN_SEED_ENABLED=true`인데 email이 비어 있거나 inactive user를 가리키면 앱 부팅이 실패한다. 정상 부팅 시 해당 email의 `users.role`은 `ADMIN`으로 보장된다. 이후 AI rate limit 정책은 `ADMIN` role을 bypass 대상으로 삼는다.
 
 Android OAuth 로그인은 앱이 provider SDK로 받은 token을 백엔드에 전달하고, 백엔드는 provider 검증 후 ClueRoom JWT를 발급한다.
 
