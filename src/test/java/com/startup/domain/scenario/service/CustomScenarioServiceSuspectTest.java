@@ -34,6 +34,7 @@ public class CustomScenarioServiceSuspectTest {
     @Autowired private SolutionRepository solutionRepository;
     @Autowired private SuspectResponsePolicyRepository suspectResponsePolicyRepository;
     @Autowired private EvidenceSuspectRepository evidenceSuspectRepository;
+    @Autowired private EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
     @Autowired private JsonMapper jsonMapper;
 
     private static final Long OWNER_USER_ID = 100L;
@@ -57,6 +58,7 @@ public class CustomScenarioServiceSuspectTest {
     @AfterEach
     void tearDown() {
         solutionRepository.deleteAllInBatch();
+        evidenceUnlockRuleRepository.deleteAllInBatch();
         suspectResponsePolicyRepository.deleteAllInBatch();
         evidenceSuspectRepository.deleteAllInBatch();
         suspectRepository.deleteAllInBatch();
@@ -197,6 +199,35 @@ public class CustomScenarioServiceSuspectTest {
         assertThatThrownBy(() -> customScenarioService.updateSuspect(OWNER_USER_ID, suspect.getId(), request))
                 .isInstanceOf(ScenarioException.class)
                 .hasMessageContaining(ScenarioErrorCode.SUSPECT_IS_CULPRIT.getMessage());
+    }
+
+    @Test
+    @DisplayName("용의자 삭제 실패 - 특정 증거의 해금 조건(대상 인물)으로 사용 중인 경우 예외 발생")
+    void deleteSuspect_fail_when_prerequisite() {
+        // given
+        Suspect suspect = suspectRepository.save(Suspect.builder()
+                .scenarioId(savedScenario.getId())
+                .code("SUSPECT_001")
+                .name("용의자")
+                .role("역할")
+                .characterType("NPC")
+                .culpritEligible(true)
+                .sortOrder(1)
+                .build());
+
+        evidenceUnlockRuleRepository.save(EvidenceUnlockRule.builder()
+                .scenarioId(savedScenario.getId())
+                .evidenceId(999L)
+                .evidenceCode("EVD_DUMMY")
+                .unlockType(EvidenceUnlockType.INTERROGATION.name())
+                .conditionJson("{\"requiredCharacterCode\": \"SUSPECT_001\"}")
+                .sortOrder(1)
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.deleteSuspect(OWNER_USER_ID, suspect.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SUSPECT_IS_PREREQUISITE.getMessage());
     }
 
     @Test
