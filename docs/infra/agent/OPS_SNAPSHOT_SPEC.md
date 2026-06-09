@@ -49,6 +49,9 @@ The snapshot should collect these categories.
 | memory | detect host pressure |
 | disk | detect disk pressure |
 | Docker disk | detect image/container/log pressure |
+| SERVER_HEALTH heartbeat | source-of-truth prod host resource bridge |
+| DATA_HEALTH heartbeat | source-of-truth data host resource bridge |
+| OPS_HEALTH heartbeat | source-of-truth ops host resource bridge |
 | Nginx config | verify reverse proxy config syntax |
 | Prometheus health | verify metrics stack health |
 | Grafana health | verify dashboard stack health |
@@ -209,8 +212,17 @@ docker system df
 Note:
 
 ```text
-Accurate host disk/cpu/memory alerting requires node_exporter.
-This snapshot is a manual MVP substitute, not a full metrics solution.
+For Ops Snapshot Agent v3, disk severity must prefer heartbeat fields:
+- prod disk: SERVER_HEALTH disk_max_percent
+- data disk: DATA_HEALTH disk_max_percent
+- ops disk: OPS_HEALTH disk_max_percent
+
+Raw snapshot text percentages from df, docker system df, curl, uptime, transfer progress,
+or unrelated logs are fallback only. Do not classify disk risk from arbitrary "%" tokens.
+
+If heartbeat disk_max_percent is present, ignore raw text disk percentages for severity.
+If heartbeat disk_max_percent is absent or stale, raw df parsing may be used as fallback,
+but the output must mark confidence as low/medium and cite the fallback source.
 ```
 
 ### 5.8 Container Resource Snapshot
@@ -308,7 +320,78 @@ Do not assume `/opt/clueroom/logs/deploy.log` exists.
 
 ---
 
-## 6. Normal Example
+## 6. Agent Parser Rules
+
+Ops Snapshot Agent v3 must separate heartbeat metrics from raw snapshot text.
+
+Disk source-of-truth order:
+
+```text
+1. SERVER_HEALTH disk_max_percent for prod
+2. DATA_HEALTH disk_max_percent for data
+3. OPS_HEALTH disk_max_percent for ops
+4. fallback: df output from the matching host section only
+5. never: arbitrary percentage tokens from logs, curl output, docker stats, HTTP headers, or prose
+```
+
+Recommended parser output fields:
+
+```json
+{
+  "resourceSignals": {
+    "prodDisk": {
+      "value": 19,
+      "source": "SERVER_HEALTH.disk_max_percent",
+      "confidence": "high"
+    },
+    "dataDisk": {
+      "value": 24,
+      "source": "DATA_HEALTH.disk_max_percent",
+      "confidence": "high"
+    },
+    "opsDisk": {
+      "value": 31,
+      "source": "OPS_HEALTH.disk_max_percent",
+      "confidence": "high"
+    },
+    "prodMemory": {
+      "availableMb": 412,
+      "source": "snapshot.free.available",
+      "confidence": "medium",
+      "notificationClass": "report"
+    }
+  }
+}
+```
+
+Memory interpretation:
+
+```text
+- Prod memory should be displayed by available memory when present.
+- available memory < 200MB can be CRITICAL only when paired with service impact, OOM, restart loop, or active health failure.
+- available memory < 500MB is WARNING/report-grade by default.
+- WARNING memory alone should go to manual review or a 24h report, not hourly Slack noise.
+```
+
+Notification policy:
+
+```text
+- CRITICAL: Slack immediate notification is allowed.
+- WARNING/INFO: manual execution summary or 24h report is recommended.
+- Event-style alerting is owned by Grafana Alert, not Ops Snapshot Agent.
+- Ops Snapshot Agent is a periodic state/reporting tool, not a page-every-warning tool.
+```
+
+Slack wording must include this role split when automated or semi-automated:
+
+```text
+Grafana Alert: event notifications.
+Ops Snapshot Agent: periodic status reports.
+```
+
+---
+
+## 7. Normal Example
 
 Example summary:
 
@@ -340,8 +423,10 @@ app-green: stopped
 nginx: config ok
 
 ## Resources
-disk: normal
-memory: normal
+prodDisk: 19% source=SERVER_HEALTH.disk_max_percent
+dataDisk: 24% source=DATA_HEALTH.disk_max_percent
+opsDisk: 31% source=OPS_HEALTH.disk_max_percent
+memory: normal available-memory source=snapshot.free.available
 dockerDisk: normal
 
 ## Monitoring
@@ -359,7 +444,7 @@ In this example, `app-green` stopped is not an incident because it is the standb
 
 ---
 
-## 7. Incident Example
+## 8. Incident Example
 
 Example summary:
 
@@ -390,8 +475,10 @@ app-green: stopped
 nginx: config ok
 
 ## Resources
-disk: 92% on root
-memory: low free memory
+prodDisk: 92% source=SERVER_HEALTH.disk_max_percent
+dataDisk: unknown heartbeat stale
+opsDisk: unknown heartbeat stale
+memory: low free memory source=snapshot.free.available
 dockerDisk: high image/cache usage
 
 ## Monitoring
@@ -410,7 +497,7 @@ This example should be treated as incident-level because external health is fail
 
 ---
 
-## 8. Agent Analysis Prompt Example
+## 9. Agent Analysis Prompt Example
 
 Use a prompt like this when sending a human-reviewed snapshot to an AI agent.
 
@@ -421,6 +508,9 @@ Rules:
 - Do not ask for or reveal secrets.
 - Do not recommend destructive commands.
 - In Blue-Green deployment, app-blue or app-green down is not critical by itself. Determine active upstream and external health first.
+- For disk severity, use SERVER_HEALTH/DATA_HEALTH/OPS_HEALTH disk_max_percent as source of truth. Treat raw snapshot percentages as fallback only.
+- For prod memory WARNING, prefer report/manual review unless there is service impact, OOM, restart loop, or active health failure.
+- Distinguish Grafana Alert as event notification from Ops Snapshot Agent as periodic status report.
 - Distinguish confirmed evidence from inference.
 - Return severity, likely cause, immediate read-only checks, and any change that requires human approval.
 
@@ -435,7 +525,7 @@ Output:
 
 ---
 
-## 9. `/opt/clueroom/ops-snapshot.sh` PoC
+## 10. `/opt/clueroom/ops-snapshot.sh` PoC
 
 The repository PoC script lives at:
 
@@ -491,7 +581,7 @@ Install it only after PR review and human approval.
 
 ---
 
-## 10. Alerting Limitations
+## 11. Alerting Limitations
 
 The current MVP monitoring stack is not enough for every alert type.
 
@@ -500,16 +590,18 @@ The current MVP monitoring stack is not enough for every alert type.
 | external API health | possible | existing HTTPS health check |
 | active app slot health | possible | Blue-Green status + health endpoint |
 | app-blue/app-green target down | noisy alone | combine with active upstream or both-target failure |
-| host disk/cpu/memory | manual only | node_exporter |
+| host disk | heartbeat bridge if available; raw df fallback only | node_exporter for full metrics |
+| host cpu/memory | manual/report only | node_exporter |
 | container CPU/RAM | manual only | cAdvisor |
 | MySQL health | manual or app health | mysqld_exporter or health bridge |
 | Redis health | manual or app health | redis_exporter or health bridge |
 
 Do not create critical alerts for `app-blue target down` or `app-green target down` alone.
+Do not create hourly Slack warnings from snapshot memory pressure alone.
 
 ---
 
-## 11. Secret-Safe Review Checklist
+## 12. Secret-Safe Review Checklist
 
 Before sharing an Ops Snapshot:
 
@@ -524,5 +616,7 @@ Before sharing an Ops Snapshot:
 [ ] logs are bounded
 [ ] Blue-Green active/standby interpretation is included
 [ ] external health result is included
+[ ] disk severity cites heartbeat disk_max_percent when available
+[ ] WARNING/INFO output is marked as report/manual-review unless it is a Grafana Alert event
 ```
 

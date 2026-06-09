@@ -238,6 +238,18 @@ Spring Boot actuator disk metrics are app-process oriented or limited.
 They are not a substitute for full host disk monitoring.
 ```
 
+Current health bridge interpretation:
+
+```text
+For Ops Snapshot Agent v3, disk source of truth is heartbeat disk_max_percent:
+- prod: SERVER_HEALTH disk_max_percent
+- data: DATA_HEALTH disk_max_percent
+- ops: OPS_HEALTH disk_max_percent
+
+Raw snapshot text percentages are fallback only.
+Do not page on a disk value parsed from arbitrary "%" text.
+```
+
 Needed later:
 
 ```text
@@ -371,6 +383,29 @@ Pick the active service based on `bg-status.sh` or `X-ClueRoom-Upstream`.
 Slack integration is planned for `INFRA-09`.
 This document only defines the message policy.
 
+Role split:
+
+```text
+Grafana Alert
+→ event notification and immediate incident alerting
+
+Ops Snapshot Agent
+→ periodic status report, manual snapshot summary, and false-positive-aware interpretation
+```
+
+Notification severity policy:
+
+```text
+CRITICAL
+→ Slack immediate notification is allowed.
+
+WARNING / INFO
+→ manual execution summary or 24h report is preferred.
+
+Prod memory WARNING from available-memory alone
+→ report-grade unless paired with health failure, OOM/restart evidence, or user-facing impact.
+```
+
 Candidate channels:
 
 ```text
@@ -394,6 +429,9 @@ Example:
 
 ```text
 [CRITICAL] ClueRoom API health check failed
+
+Source: Grafana Alert
+Role: event notification
 
 Service: api.clueroom.xyz
 Active slot: app-blue / 8081
@@ -430,7 +468,7 @@ Do not paste Slack webhook URLs into PR comments, screenshots, GitHub issues, or
    - Grafana synthetic monitoring
    - Spring health bridge
 4. Choose Slack webhook management method.
-5. Test WARNING-level alerts first.
+5. Test WARNING-level alerts first as non-paging or low-noise reports.
 6. Test CRITICAL alerts during a quiet window.
 7. Start with human-verification alerts only.
 ```

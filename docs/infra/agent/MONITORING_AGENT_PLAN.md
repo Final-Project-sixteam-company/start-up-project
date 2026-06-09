@@ -51,7 +51,8 @@ Recommended input categories:
 - external API health
 - Blue-Green active/standby status
 - Docker container status
-- host memory/disk summary
+- host memory summary
+- heartbeat disk summary from SERVER_HEALTH / DATA_HEALTH / OPS_HEALTH
 - Docker disk summary
 - Nginx syntax result
 - Prometheus health
@@ -104,6 +105,23 @@ Monitoring Agent output should be structured enough for Discord/Slack or a dashb
   "falsePositiveNotes": [
     "app-green target down is expected because standby can be stopped"
   ],
+  "resourceSignals": {
+    "prodDisk": {
+      "value": 19,
+      "source": "SERVER_HEALTH.disk_max_percent",
+      "confidence": "high"
+    },
+    "prodMemory": {
+      "availableMb": 412,
+      "source": "snapshot.free.available",
+      "notificationClass": "report"
+    }
+  },
+  "notificationPolicy": {
+    "immediateSlack": false,
+    "recommendedChannel": "24h_report",
+    "roleSplit": "Grafana Alert handles event notifications; Ops Snapshot Agent handles periodic status reports."
+  },
   "safeReadOnlyChecks": [
     "Run /opt/clueroom/bg-status.sh",
     "Run curl -I https://api.clueroom.xyz/actuator/health"
@@ -124,6 +142,8 @@ Required fields:
 | `evidence` | observed facts only |
 | `likelyCause` | inference, or `null` |
 | `falsePositiveNotes` | alert interpretation caveats |
+| `resourceSignals` | parsed resource facts with source and confidence |
+| `notificationPolicy` | whether the result should page immediately or be reported |
 | `safeReadOnlyChecks` | commands or checks that do not mutate state |
 | `humanApprovedActions` | candidate remediation requiring approval |
 | `rollbackRequired` | whether rollback should be considered |
@@ -148,8 +168,23 @@ Severity rules:
 - app-blue or app-green down alone is not CRITICAL.
 - Both app slots down is CRITICAL.
 - Nginx syntax failure after config edit is WARNING or CRITICAL depending on reload status.
+- Disk severity must come from heartbeat `disk_max_percent` when available.
+- Raw snapshot text percentage parsing is fallback only and must cite low/medium confidence.
 - Disk full or DB unavailable is CRITICAL when it affects runtime.
+- Prod available-memory WARNING alone is report-grade unless paired with OOM, restart loop, active health failure, or user-facing impact.
 ```
+
+Resource parser source-of-truth:
+
+```text
+prod disk: SERVER_HEALTH disk_max_percent
+data disk: DATA_HEALTH disk_max_percent
+ops disk: OPS_HEALTH disk_max_percent
+prod memory: available memory from snapshot/free output
+```
+
+Do not infer disk pressure from arbitrary percentages in raw snapshot text.
+Known false-positive sources include curl progress, HTTP percentages, Docker CPU/memory percentages, log prose, and unrelated threshold text.
 
 ---
 
@@ -275,15 +310,37 @@ Operator manually posts the result in Discord/Slack.
 
 Phase 2 can use a webhook, but still with human-reviewed input.
 
+Notification policy:
+
+```text
+CRITICAL
+→ Slack immediate notification is allowed.
+
+WARNING / INFO
+→ manual execution summary or 24h report is recommended.
+
+Event-style alerting
+→ Grafana Alert owns this.
+
+Periodic state reporting
+→ Ops Snapshot Agent owns this.
+```
+
 Recommended message shape:
 
 ```text
-[ClueRoom Ops] WARNING - external health slow but UP
+[ClueRoom Ops Snapshot] WARNING - external health slow but UP
+
+Role:
+- Grafana Alert: event notifications
+- Ops Snapshot Agent: periodic status reports
 
 Evidence:
 - /actuator/health returned 200 after 4.2s
 - active slot app-blue running
 - app-green stopped as standby
+- prod disk 19% from SERVER_HEALTH.disk_max_percent
+- prod memory available 412MB, report-grade warning
 
 Next read-only checks:
 - /opt/clueroom/bg-status.sh
@@ -370,7 +427,36 @@ The MVP Prometheus setup does not fully cover every infra component.
 
 The Monitoring Agent should mark these as `OBSERVABILITY_GAP` rather than inventing certainty.
 
-### 10.3 AI Cost Defense
+### 10.3 Snapshot Resource Parsing
+
+Ops Snapshot Agent v3 must not treat every `%` in raw text as disk usage.
+
+Disk parser order:
+
+```text
+1. SERVER_HEALTH disk_max_percent for prod
+2. DATA_HEALTH disk_max_percent for data
+3. OPS_HEALTH disk_max_percent for ops
+4. fallback df output only when heartbeat is missing or stale
+```
+
+If fallback parsing is used, include:
+
+```text
+source=fallback.df
+confidence=low or medium
+falsePositiveNotes includes "heartbeat disk_max_percent missing/stale"
+```
+
+Prod memory parser:
+
+```text
+Use available memory when present.
+WARNING memory alone is a report finding, not an hourly Slack alert.
+Escalate only with active health failure, OOM/restart evidence, or user-facing impact.
+```
+
+### 10.4 AI Cost Defense
 
 Nginx IP rate limit is useful but insufficient.
 
@@ -391,7 +477,7 @@ Recommended layered defense:
 4. Monitoring metric or log summary for quota hits and fallback usage.
 ```
 
-### 10.4 Android Kotlin Context
+### 10.5 Android Kotlin Context
 
 Monitoring documents should refer to the client as:
 

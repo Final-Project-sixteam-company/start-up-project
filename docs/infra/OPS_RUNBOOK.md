@@ -1537,6 +1537,9 @@ Ops Snapshot v3 기준:
 - ops Loki ready: http://172.26.15.52:3100/ready
 - Alloy: start-up-alloy running 여부와 제한된 warn/error log만 확인
 - heartbeat: DATA_HEALTH, SERVER_HEALTH, OPS_HEALTH는 Loki sample이 가능할 때 1~3개만 출력
+- Ops Snapshot Agent disk 판단: SERVER_HEALTH/DATA_HEALTH/OPS_HEALTH disk_max_percent가 source of truth
+- raw snapshot text의 임의 percentage는 disk 판단 fallback으로만 사용
+- prod available-memory WARNING은 즉시 Slack 이벤트가 아니라 정기 리포트/수동 검토용
 ```
 
 필요하면 실행 시점에만 아래 값을 override한다. 이 값들은 secret이 아니다.

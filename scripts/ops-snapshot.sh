@@ -390,6 +390,7 @@ else
 fi
 
 printf '\nHeartbeat markers from ops Loki, limited output:\n'
+printf 'parserHint: disk source of truth is SERVER_HEALTH/DATA_HEALTH/OPS_HEALTH disk_max_percent; raw df percentages are fallback only.\n'
 if check_loki_ready >/dev/null; then
     query_loki_marker "DATA_HEALTH"
     query_loki_marker "SERVER_HEALTH"
@@ -437,6 +438,8 @@ cat <<'EOF'
 This snapshot is read-only and bounded.
 Current production app containers use the external data server; local MySQL/Redis are rollback/local-data only.
 Heartbeat freshness is primarily monitored by n8n/Grafana; this script only prints limited Loki samples when available.
+Ops Snapshot Agent should use SERVER_HEALTH/DATA_HEALTH/OPS_HEALTH disk_max_percent as disk source of truth; raw snapshot percentages are fallback only.
+Prod available-memory WARNING is report-grade unless paired with service impact; Grafana Alert owns event notifications.
 Review output before sharing with an AI tool or team chat.
 Do not paste secret values if any command unexpectedly exposed them.
 EOF
