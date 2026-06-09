@@ -76,7 +76,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } catch (AuthException e) {
             SecurityContextHolder.clearContext();
-            if (isCompatibilityMode()) {
+            if (canIgnoreAuthFailureInCompatibilityMode(e)) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -94,6 +94,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isCompatibilityMode() {
         return !authProperties.isRequireAuthentication() && authProperties.isMockFallbackEnabled();
+    }
+
+    private boolean canIgnoreAuthFailureInCompatibilityMode(AuthException e) {
+        return isCompatibilityMode() && e.getErrorCode() == AuthErrorCode.JWT_SECRET_NOT_CONFIGURED;
     }
 
     private String resolveBearerToken(HttpServletRequest request) {
