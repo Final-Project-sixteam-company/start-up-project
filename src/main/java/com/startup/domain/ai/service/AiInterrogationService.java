@@ -18,6 +18,7 @@ import com.startup.domain.ai.prompt.AiPromptBuilder;
 import com.startup.domain.ai.repository.InterrogationLogRepository;
 import com.startup.domain.ai.support.InterrogationContextLoader;
 import com.startup.domain.ai.support.InterrogationLogWriter;
+import com.startup.domain.ai.support.AiPromptContextLogger;
 import com.startup.domain.play.service.InterrogationEvidenceUnlockService;
 import com.startup.domain.play.service.TimeEvidenceUnlockSyncer;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +46,7 @@ public class AiInterrogationService {
     private final TimeEvidenceUnlockSyncer timeEvidenceUnlockSyncer;
     private final InterrogationEvidenceUnlockService interrogationEvidenceUnlockService;
     private final MockUserProvider mockUserProvider;
+    private final AiPromptContextLogger promptContextLogger;
 
     @Value("${caselab.ai.interrogation.temperature:0.3}")
     private double temperature;
@@ -139,6 +141,21 @@ public class AiInterrogationService {
         );
 
         AiRequestParams params = AiRequestParams.interrogation(temperature, maxTokens);
+        promptContextLogger.recordInterrogation(
+                aiCallContext,
+                aiClient.getProviderName(),
+                aiClient.getModelName(),
+                systemPrompt,
+                userPrompt,
+                context.suspect(),
+                context.revealedEvidences(),
+                context.presentedEvidence(),
+                context.policy(),
+                context.history(),
+                request.question(),
+                request.questionType(),
+                promptBuilder.interrogationTemplateHash(request.questionType())
+        );
 
         long startTime = System.currentTimeMillis();
         try {

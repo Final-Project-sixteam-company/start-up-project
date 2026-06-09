@@ -20,6 +20,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -49,6 +51,16 @@ public class AiPromptBuilder {
 
     public String buildSystemPrompt() {
         return loadTemplate(systemPromptResource);
+    }
+
+    public String interrogationTemplateHash(QuestionType questionType) {
+        Resource selectedUserPromptResource = questionType == QuestionType.EVIDENCE_PRESENTED
+                ? evidenceUserPromptResource
+                : userPromptResource;
+        String templateBundle = loadTemplate(systemPromptResource)
+                + "\n---\n"
+                + loadTemplate(selectedUserPromptResource);
+        return sha256Hex(templateBundle).substring(0, 12);
     }
 
     public String buildUserPrompt(SuspectProfile suspect,
@@ -324,6 +336,20 @@ public class AiPromptBuilder {
             return resource.getContentAsString(StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new AiException(AiErrorCode.PROMPT_BUILD_ERROR, e);
+        }
+    }
+
+    private String sha256Hex(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 digest is not available", e);
         }
     }
 
