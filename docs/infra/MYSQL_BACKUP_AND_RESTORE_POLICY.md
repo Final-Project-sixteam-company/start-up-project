@@ -105,6 +105,7 @@ The backup bucket should have:
 - no public object ACLs
 - server-side encryption enabled
 - lifecycle expiration policy
+- incomplete multipart upload abort policy
 - access logs or CloudTrail visibility if available
 ```
 
@@ -122,6 +123,7 @@ mysql/prod
 
 Lifecycle:
 objects under mysql/prod/ expire after 30 days
+incomplete multipart uploads under mysql/prod/ abort after 7 days
 ```
 
 ### IAM Policy
@@ -259,9 +261,10 @@ MVP recommendation:
 
 ```text
 keep it simple: daily backups retained for 30 days in S3
+abort incomplete multipart uploads after 7 days
 ```
 
-Lifecycle should be implemented at the S3 bucket/prefix level, not by committing backup files or manual cleanup lists to git.
+Lifecycle should be implemented at the S3 bucket/prefix level, not by committing backup files or manual cleanup lists to git. Incomplete multipart uploads must also be covered because interrupted `aws s3 cp` uploads can leave chargeable uploaded parts that are not completed backup objects.
 
 ## 7. Restore Rehearsal Principles
 
