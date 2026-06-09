@@ -1,6 +1,6 @@
 # ClueRoom MySQL Backup And Restore Policy
 
-> Status: INFRA-20/21 policy and rehearsal plan.
+> Status: INFRA-20/21 policy, Terraform resource baseline, and rehearsal plan.
 > This document does not create AWS resources, change cron, or restore production data.
 
 ## 1. Purpose
@@ -15,6 +15,8 @@ This document defines:
 - current local backup baseline
 - S3 backup storage policy
 - IAM and bucket separation principles
+- Terraform-managed backup bucket / IAM resources
+- access key handling rules
 - restore rehearsal procedure
 - forbidden operations and secret handling rules
 ```
@@ -72,7 +74,7 @@ separate private backup bucket
 Example:
 
 ```text
-s3://clueroom-backups-{env}/mysql/daily/YYYY/MM/DD/{db}_{timestamp}.sql.gz
+s3://clueroom-prod-db-backups-apne2-<random_suffix>/mysql/prod/daily/YYYY/MM/DD/{db}_{timestamp}.sql.gz
 ```
 
 Acceptable only as a temporary fallback:
@@ -106,9 +108,31 @@ The backup bucket should have:
 - access logs or CloudTrail visibility if available
 ```
 
+Current Terraform target:
+
+```text
+Terraform directory:
+infra/terraform/s3-db-backup
+
+Bucket name:
+clueroom-prod-db-backups-apne2-<random_suffix>
+
+Backup prefix:
+mysql/prod
+
+Lifecycle:
+objects under mysql/prod/ expire after 30 days
+```
+
 ### IAM Policy
 
 Use a dedicated IAM principal for backup upload.
+
+Current IAM principal:
+
+```text
+clueroom-prod-db-backup-uploader
+```
 
 Minimum permissions:
 
@@ -116,10 +140,34 @@ Minimum permissions:
 s3:PutObject
 s3:GetObject
 s3:ListBucket on backup bucket/prefix
-s3:DeleteObject only if lifecycle/manual cleanup requires it
+s3:AbortMultipartUpload
 ```
 
 Do not reuse the public asset upload IAM user if it has public asset management scope.
+
+Do not create `aws_iam_access_key` in Terraform. Terraform state can contain the generated secret access key. Create the access key manually in AWS Console after `terraform apply`, then store it only on the data server.
+
+Data server secret env path:
+
+```text
+/opt/clueroom-data/secrets/aws-backup.env
+```
+
+Expected env keys:
+
+```env
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_DEFAULT_REGION=ap-northeast-2
+S3_BACKUP_BUCKET=clueroom-prod-db-backups-apne2-<random_suffix>
+S3_BACKUP_PREFIX=mysql/prod
+```
+
+Required file mode:
+
+```bash
+chmod 600 /opt/clueroom-data/secrets/aws-backup.env
+```
 
 ### Encryption
 
@@ -140,13 +188,13 @@ SSE-KMS with restricted key policy
 Recommended:
 
 ```text
-s3://clueroom-backups-prod/mysql/daily/2026/06/05/startup_20260605_030000.sql.gz
+s3://clueroom-prod-db-backups-apne2-<random_suffix>/mysql/prod/daily/2026/06/05/startup_20260605_030000.sql.gz
 ```
 
 Alternative with environment prefix:
 
 ```text
-s3://clueroom-backups/mysql/prod/daily/2026/06/05/startup_20260605_030000.sql.gz
+s3://<private-backup-bucket>/mysql/prod/daily/2026/06/05/startup_20260605_030000.sql.gz
 ```
 
 Do not use:
@@ -177,14 +225,14 @@ Potential enhancement sequence:
 Candidate commands for a future script:
 
 ```bash
-aws s3 cp "$BACKUP_FILE" "s3://clueroom-backups-prod/mysql/daily/$DATE_PATH/$(basename "$BACKUP_FILE")" \
+aws s3 cp "$BACKUP_FILE" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/$DATE_PATH/$(basename "$BACKUP_FILE")" \
   --only-show-errors \
   --server-side-encryption AES256
 ```
 
 ```bash
 sha256sum "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
-aws s3 cp "$BACKUP_FILE.sha256" "s3://clueroom-backups-prod/mysql/daily/$DATE_PATH/$(basename "$BACKUP_FILE").sha256" \
+aws s3 cp "$BACKUP_FILE.sha256" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/$DATE_PATH/$(basename "$BACKUP_FILE").sha256" \
   --only-show-errors \
   --server-side-encryption AES256
 ```
@@ -244,7 +292,7 @@ ls -lh /opt/clueroom/backups/mysql
 Or, after S3 upload is implemented:
 
 ```bash
-aws s3 ls s3://clueroom-backups-prod/mysql/daily/ --recursive | tail -n 20
+aws s3 ls "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/" --recursive | tail -n 20
 ```
 
 ### 8-2. Copy To Rehearsal Host
@@ -254,7 +302,7 @@ Prefer testing on a non-production host or disposable container.
 If downloading from S3:
 
 ```bash
-aws s3 cp s3://clueroom-backups-prod/mysql/daily/YYYY/MM/DD/startup_YYYYMMDD_HHMMSS.sql.gz /tmp/
+aws s3 cp "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/YYYY/MM/DD/startup_YYYYMMDD_HHMMSS.sql.gz" /tmp/
 ```
 
 ### 8-3. Start Temporary MySQL Container
@@ -349,30 +397,54 @@ Do not treat Blue-Green app deployment as sufficient rollback protection for DB/
 - Do not commit .sql or .sql.gz backup files.
 - Do not commit DB password.
 - Do not commit AWS access keys.
+- Do not commit terraform.tfstate, terraform.tfvars, tfplan, or local provider cache directories.
+- Do not create aws_iam_access_key in Terraform for the backup uploader.
 - Do not paste backup contents into PRs, Slack, or AI prompts.
 - Do not store database backups in public-read S3 paths.
 - Do not use public asset bucket policies for backups.
 - Do not run restore against production DB during rehearsal.
 ```
 
-## 13. Open Decisions
+## 13. Terraform Provisioning
 
-```text
-- create separate backup-only S3 bucket name
-- choose IAM principal and permission boundary
-- choose S3 retention period
-- choose SSE-S3 vs SSE-KMS
-- decide whether backup uploads run from cron or a separate controlled script
-- decide rehearsal cadence
+Run Terraform from a local operator machine, not from the production or data server.
+
+```bash
+cd infra/terraform/s3-db-backup
+
+terraform init
+terraform fmt
+terraform validate
+terraform plan
+terraform apply
 ```
 
-## 14. Completion Criteria
+After apply:
+
+```bash
+terraform output -raw s3_backup_bucket
+terraform output -raw s3_backup_prefix
+terraform output -raw iam_user_name
+```
+
+Create the IAM access key manually in AWS Console for `clueroom-prod-db-backup-uploader`. Do not commit or paste the key. Store it only in `/opt/clueroom-data/secrets/aws-backup.env`.
+
+## 14. Open Decisions
+
+```text
+- decide whether backup uploads run from cron or a separate controlled script
+- decide restore rehearsal cadence
+- decide whether SSE-KMS is needed after MVP
+```
+
+## 15. Completion Criteria
 
 Policy is complete when:
 
 ```text
-- private S3 backup target is selected
-- backup IAM scope is selected
+- private S3 backup bucket is provisioned by Terraform
+- backup IAM user and policy are provisioned by Terraform
+- IAM access key is manually created and stored only on the data server
 - local + S3 retention policy is selected
 - restore rehearsal command is tested on non-production MySQL
 - production restore guardrails are documented
