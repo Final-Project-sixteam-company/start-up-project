@@ -316,8 +316,17 @@ public class CustomScenarioService {
             }
 
             if (root.has("requiredEvidenceIds") && !root.get("requiredEvidenceIds").isNull()) {
+                JsonNode reqNodes = root.get("requiredEvidenceIds");
+                if (!reqNodes.isArray()) {
+                    throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "requiredEvidenceIds는 배열 형태여야 합니다.");
+                }
+
                 List<String> codes = new ArrayList<>();
-                for (JsonNode idNode : root.get("requiredEvidenceIds")) {
+                for (JsonNode idNode : reqNodes) {
+                    if (!idNode.isNumber()) {
+                        throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "requiredEvidenceIds의 원소는 숫자여야 합니다.");
+                    }
+
                     Long prerequisiteId = idNode.asLong();
                     Evidence prerequisite = evidenceRepository.findById(prerequisiteId)
                             .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "선행 해금 증거를 찾을 수 없습니다."));
