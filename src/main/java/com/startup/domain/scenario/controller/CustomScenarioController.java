@@ -84,6 +84,16 @@ public class CustomScenarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
+    @Operation(summary = "커스텀 시나리오 힌트 목록 조회")
+    @GetMapping("/{scenarioId}/hints")
+    public ResponseEntity<ApiResponse<java.util.List<CustomHintResponse>>> getHints(
+            @PathVariable Long scenarioId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        java.util.List<CustomHintResponse> response = customScenarioService.getHints(userId, scenarioId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @Operation(summary = "커스텀 시나리오 힌트 등록")
     @PostMapping("/{scenarioId}/hints")
     public ResponseEntity<ApiResponse<CustomHintCreateResponse>> createHint(

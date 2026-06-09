@@ -6,6 +6,8 @@ import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.entity.*;
 import com.startup.domain.ai.entity.SuspectResponsePolicy;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
+import com.startup.domain.scenario.error.ScenarioErrorCode;
+import com.startup.domain.scenario.error.ScenarioException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import com.startup.domain.scenario.enums.ScenarioStatus;
@@ -385,15 +387,28 @@ public class CustomScenarioService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<CustomHintResponse> getHints(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        if (!scenarioRepository.existsById(scenarioId)) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
+        }
+
+        return hintRepository.findAllByScenarioIdOrderByHintLevel(scenarioId).stream()
+                .map(CustomHintResponse::from)
+                .toList();
+    }
+
     @Transactional
     public CustomHintCreateResponse createHint(Long userId, Long scenarioId, CustomHintCreateRequest request) {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         Integer maxHintLevel = hintRepository.findMaxHintLevelByScenarioId(scenarioId);
