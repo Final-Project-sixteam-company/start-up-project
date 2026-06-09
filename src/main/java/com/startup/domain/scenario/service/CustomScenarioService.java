@@ -77,7 +77,29 @@ public class CustomScenarioService {
         return new CustomLocationCreateResponse(savedLocation.getId());
     }
 
-    // 상단에 private final VictimRepository victimRepository; 추가 필요
+
+    @Transactional(readOnly = true)
+    public List<CustomLocationResponse> getLocations(Long scenarioId) {
+        List<ScenarioLocation> locations = locationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+        
+        List<Object[]> evidenceCounts = evidenceRepository.countByLocationIdForScenario(scenarioId);
+        java.util.Map<Long, Long> countsMap = evidenceCounts.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+
+        return locations.stream()
+                .map(loc -> new CustomLocationResponse(
+                        loc.getId(),
+                        loc.getName(),
+                        loc.getDescription(),
+                        loc.getMapX(),
+                        loc.getMapY(),
+                        countsMap.getOrDefault(loc.getId(), 0L).intValue()
+                ))
+                .toList();
+    }
 
     @Transactional
     public CustomVictimCreateResponse createOrUpdateVictim(Long userId, Long scenarioId, CustomVictimCreateRequest request) {

@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/scenarios")
 @RequiredArgsConstructor
@@ -28,6 +30,15 @@ public class CustomScenarioController {
         Long userId = mockUserProvider.currentUserId();
         CustomLocationCreateResponse response = customScenarioService.createLocation(userId, scenarioId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "커스텀 시나리오 장소 목록 조회")
+    @GetMapping("/{scenarioId}/locations")
+    public ResponseEntity<ApiResponse<List<CustomLocationResponse>>> getLocations(
+            @PathVariable Long scenarioId
+    ) {
+        List<CustomLocationResponse> response = customScenarioService.getLocations(scenarioId);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @Operation(summary = "커스텀 시나리오 피해자 등록 및 수정(UPSERT)")
