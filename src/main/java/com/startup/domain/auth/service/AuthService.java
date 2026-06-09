@@ -133,6 +133,7 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.REFRESH_TOKEN_EXPIRED);
         }
         if (!refreshToken.isUsable(now)) {
+            burnRefreshTokenChain(refreshToken, now);
             throw new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND);
         }
 
@@ -143,6 +144,23 @@ public class AuthService {
         refreshToken.revoke();
         String deviceId = normalizeBlank(request.deviceId()) == null ? refreshToken.getDeviceId() : request.deviceId();
         return issueTokenPair(user, deviceId, refreshToken.getId());
+    }
+
+    private void burnRefreshTokenChain(AuthRefreshToken reusedToken, LocalDateTime now) {
+        if (reusedToken.getRevokedAt() == null) {
+            return;
+        }
+
+        LocalDateTime revokedAt = LocalDateTime.now();
+        String deviceId = normalizeBlank(reusedToken.getDeviceId());
+        int revokedCount = deviceId == null
+                ? authRefreshTokenRepository.revokeActiveByUserIdAndNullDeviceId(
+                        reusedToken.getUserId(), now, revokedAt)
+                : authRefreshTokenRepository.revokeActiveByUserIdAndDeviceId(
+                        reusedToken.getUserId(), deviceId, now, revokedAt);
+
+        log.warn("Refresh token reuse detected. Active refresh token chain revoked. userId={}, deviceIdPresent={}, revokedCount={}",
+                reusedToken.getUserId(), deviceId != null, revokedCount);
     }
 
     @Transactional
