@@ -536,13 +536,18 @@ public class CustomScenarioService {
             }
         }
 
-        if (request.getUnlockType() != null) {
+        boolean ruleChanged = request.getUnlockType() != null
+                || request.getUnlockConditionJson() != null
+                || request.getUnlockPhase() != null
+                || request.getSortOrder() != null;
+
+        if (ruleChanged) {
             evidenceUnlockRuleRepository.deleteByEvidenceId(evidence.getId());
             evidenceUnlockRuleRepository.flush();
 
-            if (request.getUnlockType() != com.startup.domain.scenario.enums.EvidenceUnlockType.NONE) {
-                String processedConditionJson = request.getUnlockConditionJson();
-                if (request.getUnlockType() == com.startup.domain.scenario.enums.EvidenceUnlockType.EVIDENCE_PRESENTED) {
+            if (evidence.getUnlockType() != com.startup.domain.scenario.enums.EvidenceUnlockType.NONE) {
+                String processedConditionJson = evidence.getUnlockConditionJson();
+                if (evidence.getUnlockType() == com.startup.domain.scenario.enums.EvidenceUnlockType.EVIDENCE_PRESENTED) {
                     processedConditionJson = validateAndTranslateEvidencePresentedCondition(evidence.getScenarioId(), processedConditionJson);
                 }
 
@@ -550,8 +555,8 @@ public class CustomScenarioService {
                         .scenarioId(evidence.getScenarioId())
                         .evidenceId(evidence.getId())
                         .evidenceCode(evidence.getCode())
-                        .unlockType(request.getUnlockType().name())
-                        .requiredPhase(request.getUnlockPhase() != null ? request.getUnlockPhase() : evidence.getUnlockPhase())
+                        .unlockType(evidence.getUnlockType().name())
+                        .requiredPhase(evidence.getUnlockPhase())
                         .conditionJson(processedConditionJson)
                         .sortOrder(evidence.getSortOrder())
                         .build();

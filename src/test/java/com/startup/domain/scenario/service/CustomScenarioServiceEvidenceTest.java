@@ -191,4 +191,44 @@ public class CustomScenarioServiceEvidenceTest {
         assertThatThrownBy(() -> customScenarioService.updateEvidence(OTHER_USER_ID, evidence.getId(), request))
                 .isInstanceOf(ScenarioException.class);
     }
+
+    @Test
+    @DisplayName("증거 수정 시 unlockType 누락되어도 conditionJson 변경 시 rule 재생성 성공")
+    void updateEvidence_rebuildRule_whenConditionChanges() {
+        // given
+        Evidence evidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("EVD_01")
+                .title("기존증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .unlockType(EvidenceUnlockType.TIME)
+                .unlockConditionJson("{\"original\": true}")
+                .sortOrder(1)
+                .build());
+
+        evidenceUnlockRuleRepository.save(EvidenceUnlockRule.builder()
+                .scenarioId(evidence.getScenarioId())
+                .evidenceId(evidence.getId())
+                .evidenceCode(evidence.getCode())
+                .unlockType(evidence.getUnlockType().name())
+                .conditionJson(evidence.getUnlockConditionJson())
+                .sortOrder(evidence.getSortOrder())
+                .build());
+
+        CustomEvidenceUpdateRequest request = new CustomEvidenceUpdateRequest();
+        ReflectionTestUtils.setField(request, "title", "변경증거");
+        // unlockType은 누락 (null)
+        ReflectionTestUtils.setField(request, "unlockConditionJson", "{\"changed\": true}");
+
+        // when
+        customScenarioService.updateEvidence(OWNER_USER_ID, evidence.getId(), request);
+
+        // then
+        List<EvidenceUnlockRule> rules = evidenceUnlockRuleRepository.findAll();
+        assertThat(rules).hasSize(1);
+        assertThat(rules.get(0).getConditionJson()).isEqualTo("{\"changed\": true}");
+    }
+
 }
