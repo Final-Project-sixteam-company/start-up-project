@@ -736,11 +736,12 @@ public class CustomScenarioService {
 
         String keyEvidenceStr = "";
         if (request.getKeyEvidenceIds() != null && !request.getKeyEvidenceIds().isEmpty()) {
-            long validCount = evidenceRepository.countByIdInAndScenarioId(request.getKeyEvidenceIds(), scenarioId);
-            if (validCount != request.getKeyEvidenceIds().size()) {
+            List<Long> uniqueEvidences = request.getKeyEvidenceIds().stream().distinct().toList();
+            long validCount = evidenceRepository.countByIdInAndScenarioId(uniqueEvidences, scenarioId);
+            if (validCount != uniqueEvidences.size()) {
                 throw new ScenarioException(ScenarioErrorCode.INVALID_EVIDENCE_OWNERSHIP);
             }
-            keyEvidenceStr = String.join(",", request.getKeyEvidenceIds().stream().map(String::valueOf).toList());
+            keyEvidenceStr = String.join(",", uniqueEvidences.stream().map(String::valueOf).toList());
         }
 
         // UPSERT 분기
@@ -870,8 +871,9 @@ public class CustomScenarioService {
         }
 
         if (!evidenceIds.isEmpty()) {
-            long validCount = evidenceRepository.countByIdInAndScenarioId(evidenceIds, scenarioId);
-            if (validCount != evidenceIds.size()) {
+            List<Long> uniqueIds = evidenceIds.stream().distinct().toList();
+            long validCount = evidenceRepository.countByIdInAndScenarioId(uniqueIds, scenarioId);
+            if (validCount != uniqueIds.size()) {
                 throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "정책에 포함된 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
             }
         }
