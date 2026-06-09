@@ -62,6 +62,16 @@ public class CustomScenarioController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Operation(summary = "커스텀 시나리오 용의자 목록 조회")
+    @GetMapping("/{scenarioId}/suspects")
+    public ResponseEntity<ApiResponse<List<CustomSuspectResponse>>> getSuspects(
+            @PathVariable Long scenarioId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        List<CustomSuspectResponse> response = customScenarioService.getSuspects(userId, scenarioId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @Operation(summary = "커스텀 시나리오 용의자 등록")
     @PostMapping("/{scenarioId}/suspects")
     public ResponseEntity<ApiResponse<CustomSuspectCreateResponse>> createSuspect(

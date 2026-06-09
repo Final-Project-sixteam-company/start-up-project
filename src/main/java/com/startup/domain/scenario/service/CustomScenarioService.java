@@ -171,6 +171,19 @@ public class CustomScenarioService {
         return CustomVictimResponse.from(victim);
     }
 
+    @Transactional(readOnly = true)
+    public List<CustomSuspectResponse> getSuspects(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        if (!scenarioRepository.existsById(scenarioId)) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
+        }
+
+        return suspectRepository.findAllByScenarioIdOrderBySortOrder(scenarioId).stream()
+                .map(suspect -> CustomSuspectResponse.from(suspect, jsonMapper))
+                .toList();
+    }
+
     @Transactional
     public CustomSuspectCreateResponse createSuspect(Long userId, Long scenarioId, CustomSuspectCreateRequest request) {
         scenarioAccessService.validateEditable(userId, scenarioId);
