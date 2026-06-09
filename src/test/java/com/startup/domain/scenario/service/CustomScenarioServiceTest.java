@@ -16,6 +16,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -74,8 +75,8 @@ public class CustomScenarioServiceTest {
         CustomLocationCreateRequest request = new CustomLocationCreateRequest();
         // 리플렉션을 사용하거나 setter가 없다면 테스트용 객체를 생성하는 방법이 필요. 
         // 일단 필드 주입이나 생성자가 필요한데, DTO에 @Setter가 없으므로 ReflectionTestUtils 사용
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "name", "거실");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "description", "넓은 거실");
+        ReflectionTestUtils.setField(request, "name", "거실");
+        ReflectionTestUtils.setField(request, "description", "넓은 거실");
         
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
 
@@ -97,10 +98,10 @@ public class CustomScenarioServiceTest {
     void createOrUpdateVictim_success() {
         // given
         CustomVictimCreateRequest request = new CustomVictimCreateRequest();
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "name", "김피해");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "role", "사업가");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "description", "사건의 피해자");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "causeOfDeath", "독살");
+        ReflectionTestUtils.setField(request, "name", "김피해");
+        ReflectionTestUtils.setField(request, "role", "사업가");
+        ReflectionTestUtils.setField(request, "description", "사건의 피해자");
+        ReflectionTestUtils.setField(request, "causeOfDeath", "독살");
 
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
 
@@ -113,7 +114,7 @@ public class CustomScenarioServiceTest {
         assertThat(victim.getName()).isEqualTo("김피해");
         
         // UPSERT 로직 테스트 (한 번 더 생성 요청시 같은 ID가 갱신되어야 함)
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "name", "이피해");
+        ReflectionTestUtils.setField(request, "name", "이피해");
         CustomVictimCreateResponse response2 = customScenarioService.createOrUpdateVictim(OWNER_USER_ID, savedScenario.getId(), request);
         assertThat(response2.getVictimId()).isEqualTo(response.getVictimId());
         Victim updatedVictim = victimRepository.findById(response2.getVictimId()).orElseThrow();
@@ -128,12 +129,12 @@ public class CustomScenarioServiceTest {
     void createSuspect_success() {
         // given
         CustomSuspectCreateRequest request = new CustomSuspectCreateRequest();
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "name", "최용의");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "role", "비서");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "publicProfile", "피해자의 비서");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "alibi", "혼자 집에 있었음");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "culpritEligible", true);
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "suspicionLevel", 50);
+        ReflectionTestUtils.setField(request, "name", "최용의");
+        ReflectionTestUtils.setField(request, "role", "비서");
+        ReflectionTestUtils.setField(request, "publicProfile", "피해자의 비서");
+        ReflectionTestUtils.setField(request, "alibi", "혼자 집에 있었음");
+        ReflectionTestUtils.setField(request, "culpritEligible", true);
+        ReflectionTestUtils.setField(request, "suspicionLevel", 50);
         try {
             JsonMapper mapper = JsonMapper.builder().build();
             ReflectionTestUtils.setField(request, "responsePolicyJson", mapper.readTree("{\"tone\":\"aggressive\"}"));
@@ -240,12 +241,12 @@ public class CustomScenarioServiceTest {
                 .build());
 
         CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "title", "피묻은 칼");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "description", "칼입니다.");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "relatedSuspectIds", java.util.List.of(suspect.getId()));
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.EVIDENCE_PRESENTED);
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "unlockConditionJson", "{\"evidenceId\": " + prereqEvidence.getId() + ", \"requiredCharacterId\": " + suspect.getId() + "}");
+        ReflectionTestUtils.setField(request, "title", "피묻은 칼");
+        ReflectionTestUtils.setField(request, "description", "칼입니다.");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "relatedSuspectIds", List.of(suspect.getId()));
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.EVIDENCE_PRESENTED);
+        ReflectionTestUtils.setField(request, "unlockConditionJson", "{\"evidenceId\": " + prereqEvidence.getId() + ", \"requiredCharacterId\": " + suspect.getId() + "}");
 
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
 
@@ -272,12 +273,68 @@ public class CustomScenarioServiceTest {
     }
 
     @Test
+    @DisplayName("EVIDENCE_PRESENTED 조건의 requiredEvidenceIds가 배열이 아니면 실패")
+    void createEvidence_fail_requiredEvidenceIds_notArray() {
+        Evidence prereqEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("E_PREREQ_1")
+                .title("선행 증거")
+                .description("제시용 증거")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(0)
+                .build());
+
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거1");
+        ReflectionTestUtils.setField(request, "description", "설명");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.EVIDENCE_PRESENTED);
+        
+        // requiredEvidenceIds를 단일 문자열로 잘못 보냄
+        ReflectionTestUtils.setField(request, "unlockConditionJson",
+                "{\"evidenceId\": " + prereqEvidence.getId() + ", \"requiredEvidenceIds\": \"not_array\"}");
+
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("배열 형태여야 합니다");
+    }
+
+    @Test
+    @DisplayName("EVIDENCE_PRESENTED 조건의 requiredEvidenceIds 요소가 숫자가 아니면 실패")
+    void createEvidence_fail_requiredEvidenceIds_notNumber() {
+        Evidence prereqEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("E_PREREQ_2")
+                .title("선행 증거")
+                .description("제시용 증거")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(0)
+                .build());
+
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거1");
+        ReflectionTestUtils.setField(request, "description", "설명");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.EVIDENCE_PRESENTED);
+        
+        // 배열 안에 숫자가 아닌 문자열을 넣음
+        ReflectionTestUtils.setField(request, "unlockConditionJson",
+                "{\"evidenceId\": " + prereqEvidence.getId() + ", \"requiredEvidenceIds\": [\"invalid_id\"]}");
+
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("숫자여야 합니다");
+    }
+
+    @Test
     @DisplayName("힌트 등록 성공 및 updatedAt 갱신 확인")
     void createHint_success() {
         // given
         CustomHintCreateRequest request = new CustomHintCreateRequest();
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "content", "이것은 힌트입니다.");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "penaltyScore", 10);
+        ReflectionTestUtils.setField(request, "content", "이것은 힌트입니다.");
+        ReflectionTestUtils.setField(request, "penaltyScore", 10);
 
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
 
@@ -309,12 +366,12 @@ public class CustomScenarioServiceTest {
                 .build());
 
         CustomSolutionCreateRequest request = new CustomSolutionCreateRequest();
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "culpritSuspectId", suspect.getId());
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "motive", "원한");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "method", "독살");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "coverUp", "도주");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "fullExplanation", "상세 설명");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "keyEvidenceIds", java.util.List.of());
+        ReflectionTestUtils.setField(request, "culpritSuspectId", suspect.getId());
+        ReflectionTestUtils.setField(request, "motive", "원한");
+        ReflectionTestUtils.setField(request, "method", "독살");
+        ReflectionTestUtils.setField(request, "coverUp", "도주");
+        ReflectionTestUtils.setField(request, "fullExplanation", "상세 설명");
+        ReflectionTestUtils.setField(request, "keyEvidenceIds", java.util.List.of());
 
         LocalDateTime beforeUpdate = savedScenario.getUpdatedAt();
 
@@ -327,7 +384,7 @@ public class CustomScenarioServiceTest {
         assertThat(solution.getMotive()).isEqualTo("원한");
 
         // UPSERT 확인
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "motive", "금전");
+        ReflectionTestUtils.setField(request, "motive", "금전");
         CustomSolutionCreateResponse response2 = customScenarioService.createOrUpdateSolution(OWNER_USER_ID, savedScenario.getId(), request);
         assertThat(response2.getSolutionId()).isEqualTo(response.getSolutionId());
         
@@ -353,14 +410,14 @@ public class CustomScenarioServiceTest {
                 .build());
 
         CustomSolutionCreateRequest request = new CustomSolutionCreateRequest();
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "culpritSuspectId", suspect.getId());
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "motive", "원한");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "method", "독살");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "coverUp", "도주");
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "fullExplanation", "상세 설명");
+        ReflectionTestUtils.setField(request, "culpritSuspectId", suspect.getId());
+        ReflectionTestUtils.setField(request, "motive", "원한");
+        ReflectionTestUtils.setField(request, "method", "독살");
+        ReflectionTestUtils.setField(request, "coverUp", "도주");
+        ReflectionTestUtils.setField(request, "fullExplanation", "상세 설명");
         
         // 9999L 같은 존재하지 않는 증거 ID를 추가
-        org.springframework.test.util.ReflectionTestUtils.setField(request, "keyEvidenceIds", java.util.List.of(9999L));
+        ReflectionTestUtils.setField(request, "keyEvidenceIds", java.util.List.of(9999L));
 
         // when & then
         assertThatThrownBy(() -> customScenarioService.createOrUpdateSolution(OWNER_USER_ID, savedScenario.getId(), request))
