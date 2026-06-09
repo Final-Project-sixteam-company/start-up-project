@@ -122,6 +122,67 @@ docker-compose.bluegreen.yml
 docker-compose.bluegreen.external-data.yml
 ```
 
+### Auth/JWT schema 반영
+
+Auth 1단계 배포 전 운영 DB에는 아래 migration을 먼저 적용한다.
+
+```bash
+cd /opt/clueroom/app
+mysql -h 172.26.1.185 -u <user> -p <database> < docs/db/migrations/20260609_add_auth_jwt_schema.sql
+```
+
+검증:
+
+```bash
+mysql -h 172.26.1.185 -u <user> -p <database> \
+  -e "SHOW TABLES LIKE 'users'; SHOW TABLES LIKE 'user_oauth_accounts'; SHOW TABLES LIKE 'auth_refresh_tokens';"
+```
+
+운영 env는 `/opt/clueroom/secrets/env.d/oauth.env` 등 secret env로만 주입한다.
+
+```text
+JWT_SECRET
+JWT_ISSUER
+JWT_ACCESS_TOKEN_TTL_SECONDS
+JWT_REFRESH_TOKEN_TTL_DAYS
+AUTH_DEV_LOGIN_ENABLED
+AUTH_MOCK_FALLBACK_ENABLED
+AUTH_REQUIRE_AUTHENTICATION
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_IDS
+KAKAO_APP_ID
+```
+
+1단계에서는 기존 API 호환을 위해 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`를 유지한다.
+Android가 OAuth login과 Bearer token 첨부를 완료한 뒤 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한다.
+
+보호 모드 검증:
+
+```bash
+curl -i https://api.clueroom.xyz/api/play-sessions/active?scenarioId=1
+```
+
+기대:
+
+```text
+HTTP/1.1 401
+code C003
+```
+
+보호 모드 Rollback:
+
+```text
+AUTH_REQUIRE_AUTHENTICATION=false 로 되돌리고 Blue-Green 재배포한다.
+JWT/auth schema는 유지한다.
+```
+
+Auth schema Rollback:
+
+```text
+앱 배포 직후 auth API를 사용하지 않았고 token 데이터가 없으면 이전 app 슬롯으로 Blue-Green rollback한다.
+auth_refresh_tokens/user_oauth_accounts/users 테이블 삭제는 운영 백업과 승인 후에만 수행한다.
+```
+
 ---
 
 ## 2. 절대 하지 말 것

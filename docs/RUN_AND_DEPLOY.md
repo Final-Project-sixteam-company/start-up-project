@@ -123,6 +123,15 @@ cp .env.example .env
 | `REDIS_HOST_PORT` | Docker Redis host port |
 | `SPRING_AI_MODEL_CHAT` | AI Provider 활성 여부 |
 | `OPENAI_API_KEY` | 서버 전용 OpenAI API Key |
+| `AUTH_MOCK_FALLBACK_ENABLED` | JWT 전환기 token 없는 기존 API 요청을 `MOCK_USER_ID`로 허용할지 여부 |
+| `AUTH_DEV_LOGIN_ENABLED` | `/api/auth/dev` 개발용 로그인 활성 여부. 운영 기본 `false` |
+| `AUTH_REQUIRE_AUTHENTICATION` | 사용자별 API 인증 강제 여부. Android 전환 전 기본 `false` |
+| `JWT_ISSUER` | JWT issuer. 운영 기본 `https://api.clueroom.xyz` |
+| `JWT_SECRET` | 서버 전용 JWT HMAC secret. 레포/.env.example에는 실제 값 저장 금지 |
+| `JWT_ACCESS_TOKEN_TTL_SECONDS` | access token 유효 시간 |
+| `JWT_REFRESH_TOKEN_TTL_DAYS` | refresh token 유효 일수 |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_IDS` | Google ID token `aud` 검증용 client id. 여러 개면 comma-separated |
+| `KAKAO_APP_ID` | Kakao access token info `app_id` 검증용 앱 ID |
 | `AWS_REGION` | S3 리전 |
 | `AWS_ACCESS_KEY_ID` | 서버 전용 AWS access key |
 | `AWS_SECRET_ACCESS_KEY` | 서버 전용 AWS secret key |
@@ -220,6 +229,62 @@ docker-compose.bluegreen.external-data.yml
 `docker-compose.external-data.yml`과 `docker-compose.bluegreen.external-data.yml`은 로컬 `mysql/redis` healthcheck 의존성을 제거한다. `app-blue` / `app-green`은 external-data mode에서 `mysql` / `redis`에 `depends_on`하지 않아야 한다. `prometheus`도 legacy `app` service에 `depends_on`하지 않아야 하며, `grafana -> prometheus` 의존성은 유지 가능하다.
 
 운영 Blue-Green에서 `APP_DB_HOST` / `APP_REDIS_HOST`는 compose interpolation 단계에서 필요하다. 따라서 `/opt/clueroom/app/.env` 또는 배포 명령을 실행하는 쉘 환경에 넣어야 하며, service `env_file`로만 추가되는 secret env 파일에만 두면 `DB_HOST` / `REDIS_HOST` 값이 바뀌지 않을 수 있다.
+
+### 3.3 Auth/JWT 1단계 로컬 테스트
+
+1단계 auth는 기존 API 호환을 위해 전역 인증 강제를 아직 켜지 않는다. Bearer token이 있으면 SecurityContext 사용자로 처리하고, token이 없으면 `AUTH_MOCK_FALLBACK_ENABLED=true`일 때 `MOCK_USER_ID`로 fallback한다.
+
+로컬에서 개발용 로그인 플로우를 확인할 때만 아래 값을 `.env`에 둔다.
+
+```properties
+AUTH_DEV_LOGIN_ENABLED=true
+JWT_SECRET=<32자 이상 로컬 테스트용 난수>
+```
+
+검증:
+
+```bash
+curl -s -X POST http://localhost:8080/api/auth/dev \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"dev@example.com","nickname":"Dev User","deviceId":"android-emulator"}'
+```
+
+운영에서는 `JWT_SECRET`을 `/opt/clueroom/secrets/env.d/oauth.env` 같은 서버 secret env로만 주입한다.
+
+Android OAuth 로그인은 앱이 provider SDK로 받은 token을 백엔드에 전달하고, 백엔드는 provider 검증 후 ClueRoom JWT를 발급한다.
+
+Google:
+
+```bash
+curl -s -X POST http://localhost:8080/api/auth/oauth \
+  -H 'Content-Type: application/json' \
+  -d '{"provider":"GOOGLE","idToken":"<google-id-token>","deviceId":"android"}'
+```
+
+Kakao:
+
+```bash
+curl -s -X POST http://localhost:8080/api/auth/oauth \
+  -H 'Content-Type: application/json' \
+  -d '{"provider":"KAKAO","accessToken":"<kakao-access-token>","deviceId":"android"}'
+```
+
+운영에서는 `GOOGLE_CLIENT_ID` 또는 `GOOGLE_CLIENT_IDS`, `KAKAO_APP_ID`를 secret env로 주입한다. Google은 ID token의 `aud`, Kakao는 access token info의 `app_id`를 서버 설정값과 비교한다.
+
+보호 API 전환은 Android가 access token 저장과 `Authorization: Bearer <accessToken>` 첨부를 완료한 뒤 진행한다.
+
+```properties
+AUTH_REQUIRE_AUTHENTICATION=true
+```
+
+전환 후 token 없이 401이 되어야 하는 대표 경로:
+
+```text
+/api/play-sessions/**
+/api/device-tokens/**
+/api/scenarios write 계열
+/api/ai/scenarios/{scenarioId}/validate
+```
 
 ---
 

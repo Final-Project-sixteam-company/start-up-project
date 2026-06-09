@@ -111,13 +111,25 @@ PORTONE_CHANNEL_KEY=...
 
 ```env
 JWT_SECRET=...
+JWT_ISSUER=https://api.clueroom.xyz
+JWT_ACCESS_TOKEN_TTL_SECONDS=1800
+JWT_REFRESH_TOKEN_TTL_DAYS=30
+AUTH_DEV_LOGIN_ENABLED=false
+AUTH_MOCK_FALLBACK_ENABLED=true
+AUTH_REQUIRE_AUTHENTICATION=false
 KAKAO_CLIENT_ID=...
 KAKAO_CLIENT_SECRET=...
+KAKAO_APP_ID=...
 GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_IDS=...
 GOOGLE_CLIENT_SECRET=...
 ```
 
-JWT secret은 충분히 긴 난수로 생성하고 레포에 기록하지 않는다.
+JWT secret은 32자 이상의 충분히 긴 난수로 생성하고 레포에 기록하지 않는다.
+`AUTH_DEV_LOGIN_ENABLED`는 개발/스테이징 token-flow 확인용이며 운영에서는 기본적으로 `false`를 유지한다.
+`AUTH_REQUIRE_AUTHENTICATION`은 Android가 Bearer token 첨부를 완료한 뒤 `true`로 전환한다.
+`GOOGLE_CLIENT_IDS`는 Android/Web 등 여러 client id가 같은 백엔드를 사용할 때 comma-separated로 입력한다.
+`KAKAO_APP_ID`는 Kakao access token info 응답의 `app_id`와 비교하는 값이다.
 
 ## 10. 접속 실패 시 점검
 
