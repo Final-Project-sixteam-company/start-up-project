@@ -154,6 +154,21 @@ public class CustomScenarioService {
         return new CustomVictimCreateResponse(savedVictim.getId());
     }
 
+    @Transactional(readOnly = true)
+    public CustomVictimResponse getVictim(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+        
+        // 시나리오 존재 여부 확인
+        if (!scenarioRepository.existsById(scenarioId)) {
+            throw new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다.");
+        }
+
+        Victim victim = victimRepository.findByScenarioId(scenarioId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "피해자 정보가 등록되지 않았습니다."));
+                
+        return CustomVictimResponse.from(victim);
+    }
+
     @Transactional
     public CustomSuspectCreateResponse createSuspect(Long userId, Long scenarioId, CustomSuspectCreateRequest request) {
         scenarioAccessService.validateEditable(userId, scenarioId);
