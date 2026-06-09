@@ -442,6 +442,116 @@ public class CustomScenarioService {
         return new CustomEvidenceCreateResponse(savedEvidence.getId());
     }
 
+    @Transactional
+    public CustomEvidenceResponse updateEvidence(Long userId, Long evidenceId, CustomEvidenceUpdateRequest request) {
+        Evidence evidence = evidenceRepository.findById(evidenceId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.EVIDENCE_NOT_FOUND));
+
+        scenarioAccessService.validateEditable(userId, evidence.getScenarioId());
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(evidence.getScenarioId())
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
+        }
+
+        if (request.getLocationId() != null) {
+            ScenarioLocation location = locationRepository.findById(request.getLocationId())
+                    .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.LOCATION_NOT_FOUND));
+            if (!location.getScenarioId().equals(evidence.getScenarioId())) {
+                throw new ScenarioException(ScenarioErrorCode.INVALID_LOCATION_OWNERSHIP);
+            }
+        }
+
+        evidence.update(
+                request.getTitle(),
+                request.getDescription(),
+                request.getOneLine(),
+                request.getLocationId(),
+                request.getEvidenceType(),
+                request.getImportance(),
+                request.getImageUrl(),
+                request.getImageAssetKey(),
+                request.getThumbnailAssetKey(),
+                request.getTagsJson(),
+                request.getUnlockPhase(),
+                request.getIsInitialPublic(),
+                request.getUnlockType(),
+                request.getUnlockConditionJson(),
+                request.getUnlockAfterMinutes(),
+                request.getSortOrder()
+        );
+
+        if (request.getRelatedSuspectIds() != null) {
+            evidenceSuspectRepository.deleteByEvidenceId(evidence.getId());
+            evidenceSuspectRepository.flush();
+
+            if (!request.getRelatedSuspectIds().isEmpty()) {
+                List<Long> uniqueSuspectIds = request.getRelatedSuspectIds().stream().distinct().toList();
+                int validCount = suspectRepository.findAllByIdInAndScenarioId(uniqueSuspectIds, evidence.getScenarioId()).size();
+                if (validCount != uniqueSuspectIds.size()) {
+                    throw new ScenarioException(ScenarioErrorCode.INVALID_SUSPECT_OWNERSHIP);
+                }
+
+                List<EvidenceSuspect> evidenceSuspects = uniqueSuspectIds.stream()
+                        .map(suspectId -> EvidenceSuspect.builder()
+                                .evidenceId(evidence.getId())
+                                .suspectId(suspectId)
+                                .relationType(com.startup.domain.scenario.enums.RelationType.RELATED)
+                                .build())
+                        .toList();
+                evidenceSuspectRepository.saveAll(evidenceSuspects);
+            }
+        }
+
+        if (request.getUnlockType() != null) {
+            evidenceUnlockRuleRepository.deleteByEvidenceId(evidence.getId());
+            evidenceUnlockRuleRepository.flush();
+
+            if (request.getUnlockType() != com.startup.domain.scenario.enums.EvidenceUnlockType.NONE) {
+                String processedConditionJson = request.getUnlockConditionJson();
+                if (request.getUnlockType() == com.startup.domain.scenario.enums.EvidenceUnlockType.EVIDENCE_PRESENTED) {
+                    processedConditionJson = validateAndTranslateEvidencePresentedCondition(evidence.getScenarioId(), processedConditionJson);
+                }
+
+                EvidenceUnlockRule rule = EvidenceUnlockRule.builder()
+                        .scenarioId(evidence.getScenarioId())
+                        .evidenceId(evidence.getId())
+                        .evidenceCode(evidence.getCode())
+                        .unlockType(request.getUnlockType().name())
+                        .requiredPhase(request.getUnlockPhase() != null ? request.getUnlockPhase() : evidence.getUnlockPhase())
+                        .conditionJson(processedConditionJson)
+                        .sortOrder(evidence.getSortOrder())
+                        .build();
+                evidenceUnlockRuleRepository.save(rule);
+            }
+        }
+
+        scenario.forceUpdateModifiedAt();
+
+        String locationName = null;
+        if (evidence.getLocationId() != null) {
+            locationName = locationRepository.findById(evidence.getLocationId())
+                    .map(ScenarioLocation::getName)
+                    .orElse(null);
+        }
+
+        List<CustomEvidenceResponse.RelatedSuspectDto> relatedSuspects = java.util.Collections.emptyList();
+        List<EvidenceSuspect> currentMappings = evidenceSuspectRepository.findAllByEvidenceIdIn(java.util.List.of(evidence.getId()));
+        if (!currentMappings.isEmpty()) {
+            List<Long> sIds = currentMappings.stream().map(EvidenceSuspect::getSuspectId).toList();
+            relatedSuspects = suspectRepository.findAllById(sIds).stream()
+                    .map(s -> CustomEvidenceResponse.RelatedSuspectDto.builder()
+                            .suspectId(s.getId())
+                            .name(s.getName())
+                            .build())
+                    .toList();
+        }
+
+        return CustomEvidenceResponse.from(evidence, locationName, relatedSuspects, jsonMapper);
+    }
+
     private String validateAndTranslateEvidencePresentedCondition(Long scenarioId, String conditionJson) {
         if (conditionJson == null || conditionJson.isBlank()) {
             throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "EVIDENCE_PRESENTED 조건은 필수입니다.");

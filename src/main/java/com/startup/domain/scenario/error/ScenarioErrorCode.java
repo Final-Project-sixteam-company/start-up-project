@@ -14,7 +14,12 @@ public enum ScenarioErrorCode implements ErrorCode {
     VARIANT_NOT_FOUND(HttpStatus.NOT_FOUND, "SCENARIO_003", "시나리오 변형(Variant)을 찾을 수 없습니다."),
     VARIANT_SCENARIO_MISMATCH(HttpStatus.BAD_REQUEST, "SCENARIO_004", "해당 Variant는 요청한 시나리오에 속하지 않습니다."),
     SCENARIO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "SCENARIO_005", "해당 시나리오에 대한 접근 권한이 없습니다."),
-    SCENARIO_NOT_MODIFY(HttpStatus.BAD_REQUEST, "SCENARIO_006", "이미 발행된 시나리오는 수정할 수 없습니다.");
+    SCENARIO_NOT_MODIFY(HttpStatus.BAD_REQUEST, "SCENARIO_006", "이미 발행된 시나리오는 수정할 수 없습니다."),
+    EVIDENCE_NOT_FOUND(HttpStatus.NOT_FOUND, "SCENARIO_007", "증거를 찾을 수 없습니다."),
+    LOCATION_NOT_FOUND(HttpStatus.NOT_FOUND, "SCENARIO_008", "장소를 찾을 수 없습니다."),
+    INVALID_LOCATION_OWNERSHIP(HttpStatus.BAD_REQUEST, "SCENARIO_009", "다른 시나리오의 장소를 지정할 수 없습니다."),
+    INVALID_SUSPECT_OWNERSHIP(HttpStatus.BAD_REQUEST, "SCENARIO_010", "다른 시나리오의 용의자를 지정할 수 없습니다."),
+    INVALID_EVIDENCE_OWNERSHIP(HttpStatus.BAD_REQUEST, "SCENARIO_011", "다른 시나리오의 증거를 지정할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
