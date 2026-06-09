@@ -16,6 +16,10 @@ import com.startup.domain.auth.support.OAuthProviderClient;
 import com.startup.domain.auth.support.OAuthUserProfile;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.AbstractPlatformTransactionManager;
+import org.springframework.transaction.support.DefaultTransactionStatus;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
@@ -46,6 +50,7 @@ class AuthServiceTest {
                 userRepository,
                 accountRepository,
                 refreshTokenRepository,
+                transactionManager(),
                 List.of(providerClient)
         );
 
@@ -117,6 +122,7 @@ class AuthServiceTest {
                 userRepository,
                 accountRepository,
                 refreshTokenRepository,
+                transactionManager(),
                 List.of(providerClient)
         );
 
@@ -159,5 +165,106 @@ class AuthServiceTest {
                 );
             }
         };
+    }
+
+    @Test
+    void oauthProviderVerificationRunsOutsideTransaction() {
+        AuthProperties authProperties = properties();
+        JwtTokenService jwtTokenService = new JwtTokenService(authProperties, JsonMapper.builder().build());
+        CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        UserOAuthAccountRepository accountRepository = mock(UserOAuthAccountRepository.class);
+        AuthRefreshTokenRepository refreshTokenRepository = mock(AuthRefreshTokenRepository.class);
+        TrackingTransactionManager transactionManager = new TrackingTransactionManager();
+        OAuthProviderClient providerClient = providerClientAssertingNoTransaction(transactionManager);
+        AuthService authService = new AuthService(
+                authProperties,
+                jwtTokenService,
+                currentUserProvider,
+                userRepository,
+                accountRepository,
+                refreshTokenRepository,
+                transactionManager,
+                List.of(providerClient)
+        );
+
+        when(accountRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub"))
+                .thenAnswer(invocation -> {
+                    assertThat(transactionManager.isActive()).isTrue();
+                    return Optional.empty();
+                });
+        when(userRepository.findByEmail("oauth@example.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            assertThat(transactionManager.isActive()).isTrue();
+            User user = invocation.getArgument(0);
+            ReflectionTestUtils.setField(user, "id", 12L);
+            return user;
+        });
+        when(accountRepository.findByUserIdAndProvider(12L, AuthProvider.GOOGLE)).thenReturn(Optional.empty());
+        when(accountRepository.save(any(UserOAuthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(refreshTokenRepository.save(any(AuthRefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AuthTokenResponse response = authService.oauthLogin(
+                new OAuthLoginRequest(AuthProvider.GOOGLE, "id-token", null, "android")
+        );
+
+        assertThat(response.user().userId()).isEqualTo(12L);
+    }
+
+    private OAuthProviderClient providerClientAssertingNoTransaction(TrackingTransactionManager transactionManager) {
+        return new OAuthProviderClient() {
+            @Override
+            public AuthProvider provider() {
+                return AuthProvider.GOOGLE;
+            }
+
+            @Override
+            public OAuthUserProfile verify(OAuthLoginRequest request) {
+                assertThat(transactionManager.isActive()).isFalse();
+                return new OAuthUserProfile(
+                        AuthProvider.GOOGLE,
+                        "google-sub",
+                        "OAUTH@EXAMPLE.COM",
+                        true,
+                        "OAuth User",
+                        "https://example.com/profile.png"
+                );
+            }
+        };
+    }
+
+    private PlatformTransactionManager transactionManager() {
+        return new TrackingTransactionManager();
+    }
+
+    private static class TrackingTransactionManager extends AbstractPlatformTransactionManager {
+        private final ThreadLocal<Boolean> active = ThreadLocal.withInitial(() -> false);
+
+        boolean isActive() {
+            return active.get();
+        }
+
+        @Override
+        protected Object doGetTransaction() {
+            return new Object();
+        }
+
+        @Override
+        protected void doBegin(Object transaction, TransactionDefinition definition) {
+            active.set(true);
+        }
+
+        @Override
+        protected void doCommit(DefaultTransactionStatus status) {
+        }
+
+        @Override
+        protected void doRollback(DefaultTransactionStatus status) {
+        }
+
+        @Override
+        protected void doCleanupAfterCompletion(Object transaction) {
+            active.remove();
+        }
     }
 }

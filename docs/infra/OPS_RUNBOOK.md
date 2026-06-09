@@ -156,6 +156,8 @@ GOOGLE_CLIENT_IDS
 KAKAO_APP_ID
 ```
 
+`AUTH_REQUIRE_AUTHENTICATION=true`, `AUTH_DEV_LOGIN_ENABLED=true`, `GOOGLE_CLIENT_ID(S)` 또는 `KAKAO_APP_ID`가 설정된 상태에서 `JWT_SECRET`이 비어 있거나 32자 미만이면 앱은 부팅 단계에서 실패한다.
+
 1단계에서는 기존 API 호환을 위해 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`를 유지한다.
 Android가 OAuth login과 Bearer token 첨부를 완료한 뒤 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한다.
 보호 모드에서는 명시 public endpoint를 제외한 `/api/**`가 기본 인증 대상이다.

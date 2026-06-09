@@ -253,6 +253,7 @@ curl -s -X POST http://localhost:8080/api/auth/dev \
 ```
 
 운영에서는 `JWT_SECRET`을 `/opt/clueroom/secrets/env.d/oauth.env` 같은 서버 secret env로만 주입한다.
+`AUTH_REQUIRE_AUTHENTICATION=true`, `AUTH_DEV_LOGIN_ENABLED=true`, `GOOGLE_CLIENT_ID(S)` 또는 `KAKAO_APP_ID`가 설정된 상태에서 `JWT_SECRET`이 비어 있거나 32자 미만이면 서버는 부팅 단계에서 실패한다. 인증 기능을 켜기 전에 secret env 반영 여부를 먼저 확인한다.
 
 운영/스테이징에서 AI rate limit 검증용 admin 계정이 필요하면 secret env에만 아래 값을 둔다. 실제 이메일은 공개 문서, PR 본문, 코드에 기록하지 않는다.
 

@@ -6,11 +6,14 @@ import com.startup.domain.auth.enums.UserStatus;
 import com.startup.domain.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 import java.util.Locale;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -22,8 +25,8 @@ public class AuthAdminSeedService {
 
     private final AuthProperties authProperties;
     private final UserRepository userRepository;
+    private final PlatformTransactionManager transactionManager;
 
-    @Transactional
     public void seedIfEnabled() {
         AuthProperties.AdminSeed seed = authProperties.getAdminSeed();
         if (!seed.isEnabled()) {
@@ -32,8 +35,28 @@ public class AuthAdminSeedService {
 
         String email = normalizeEmail(seed.getEmail());
         String nickname = normalizeNickname(seed.getNickname());
+        ensureAdminWithRetry(email, nickname);
+    }
+
+    private void ensureAdminWithRetry(String email, String nickname) {
+        try {
+            ensureAdminInNewTransaction(email, nickname);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Auth admin seed insert raced with another instance. Retrying by lookup.");
+            ensureAdminInNewTransaction(email, nickname);
+        }
+    }
+
+    private void ensureAdminInNewTransaction(String email, String nickname) {
+        Objects.requireNonNull(new TransactionTemplate(transactionManager).execute(status -> {
+            ensureAdmin(email, nickname);
+            return Boolean.TRUE;
+        }));
+    }
+
+    private void ensureAdmin(String email, String nickname) {
         User user = userRepository.findByEmail(email)
-                .orElseGet(() -> userRepository.save(User.builder()
+                .orElseGet(() -> userRepository.saveAndFlush(User.builder()
                         .email(email)
                         .nickname(nickname)
                         .role(UserRole.ADMIN)

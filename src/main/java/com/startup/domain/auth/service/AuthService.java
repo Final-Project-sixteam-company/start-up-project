@@ -23,12 +23,15 @@ import com.startup.domain.auth.support.OAuthProviderClient;
 import com.startup.domain.auth.support.OAuthUserProfile;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -43,6 +46,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final UserOAuthAccountRepository userOAuthAccountRepository;
     private final AuthRefreshTokenRepository authRefreshTokenRepository;
+    private final PlatformTransactionManager transactionManager;
     private final List<OAuthProviderClient> oAuthProviderClients;
 
     @Transactional
@@ -76,7 +80,6 @@ public class AuthService {
         return issueTokenPair(user, request.deviceId(), null);
     }
 
-    @Transactional
     public AuthTokenResponse oauthLogin(OAuthLoginRequest request) {
         if (request.provider() == AuthProvider.DEV) {
             throw new AuthException(AuthErrorCode.OAUTH_PROVIDER_NOT_SUPPORTED);
@@ -88,9 +91,14 @@ public class AuthService {
         }
 
         OAuthUserProfile profile = providerClient.verify(request);
+        return Objects.requireNonNull(new TransactionTemplate(transactionManager).execute(status ->
+                loginVerifiedOAuthUser(profile, request.deviceId())));
+    }
+
+    private AuthTokenResponse loginVerifiedOAuthUser(OAuthUserProfile profile, String deviceId) {
         User user = loginOrCreateOAuthUser(profile);
         ensureUserActive(user);
-        return issueTokenPair(user, request.deviceId(), null);
+        return issueTokenPair(user, deviceId, null);
     }
 
     @Transactional

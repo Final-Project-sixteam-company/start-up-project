@@ -5,6 +5,10 @@ import com.startup.domain.auth.enums.UserRole;
 import com.startup.domain.auth.enums.UserStatus;
 import com.startup.domain.auth.repository.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.AbstractPlatformTransactionManager;
+import org.springframework.transaction.support.DefaultTransactionStatus;
 
 import java.util.Optional;
 
@@ -21,7 +25,11 @@ class AuthAdminSeedServiceTest {
 
     private final AuthProperties authProperties = new AuthProperties();
     private final UserRepository userRepository = mock(UserRepository.class);
-    private final AuthAdminSeedService authAdminSeedService = new AuthAdminSeedService(authProperties, userRepository);
+    private final AuthAdminSeedService authAdminSeedService = new AuthAdminSeedService(
+            authProperties,
+            userRepository,
+            new NoOpTransactionManager()
+    );
 
     @Test
     void seedIfEnabledDoesNothingWhenDisabled() {
@@ -38,12 +46,12 @@ class AuthAdminSeedServiceTest {
         authProperties.getAdminSeed().setEmail(" ADMIN@EXAMPLE.COM ");
         authProperties.getAdminSeed().setNickname(" Admin Tester ");
         when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.empty());
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         authAdminSeedService.seedIfEnabled();
 
-        verify(userRepository).save(any(User.class));
-        verify(userRepository).save(org.mockito.ArgumentMatchers.argThat(user ->
+        verify(userRepository).saveAndFlush(any(User.class));
+        verify(userRepository).saveAndFlush(org.mockito.ArgumentMatchers.argThat(user ->
                 "admin@example.com".equals(user.getEmail())
                         && "Admin Tester".equals(user.getNickname())
                         && user.getRole() == UserRole.ADMIN
@@ -66,7 +74,7 @@ class AuthAdminSeedServiceTest {
         authAdminSeedService.seedIfEnabled();
 
         assertThat(user.getRole()).isEqualTo(UserRole.ADMIN);
-        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
     }
 
     @Test
@@ -94,5 +102,47 @@ class AuthAdminSeedServiceTest {
         assertThatThrownBy(authAdminSeedService::seedIfEnabled)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("non-active");
+    }
+
+    @Test
+    void seedIfEnabledRetriesWhenConcurrentInsertWins() {
+        authProperties.getAdminSeed().setEnabled(true);
+        authProperties.getAdminSeed().setEmail("admin@example.com");
+        User user = User.builder()
+                .email("admin@example.com")
+                .nickname("Admin Tester")
+                .role(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .build();
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(user));
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate"));
+
+        authAdminSeedService.seedIfEnabled();
+
+        assertThat(user.getRole()).isEqualTo(UserRole.ADMIN);
+        verify(userRepository).saveAndFlush(any(User.class));
+    }
+
+    private static class NoOpTransactionManager extends AbstractPlatformTransactionManager {
+
+        @Override
+        protected Object doGetTransaction() {
+            return new Object();
+        }
+
+        @Override
+        protected void doBegin(Object transaction, TransactionDefinition definition) {
+        }
+
+        @Override
+        protected void doCommit(DefaultTransactionStatus status) {
+        }
+
+        @Override
+        protected void doRollback(DefaultTransactionStatus status) {
+        }
     }
 }
