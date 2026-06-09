@@ -137,7 +137,9 @@ build_runtime_env_file
 
 COMPOSE_ARGS+=(
   -f "$APP_DIR/docker-compose.yml"
+  -f "$APP_DIR/docker-compose.external-data.yml"
   -f "$APP_DIR/docker-compose.bluegreen.yml"
+  -f "$APP_DIR/docker-compose.bluegreen.external-data.yml"
 )
 
 echo "[2/9] Fetch latest code"
@@ -223,7 +225,7 @@ curl -I "$HEALTH_URL" 2>/dev/null | grep -i "X-ClueRoom-Upstream" || true
 
 echo ""
 echo "If everything is stable, you may stop the old service manually:"
-echo "docker compose --env-file $APP_DIR/.env -f $APP_DIR/docker-compose.yml -f $APP_DIR/docker-compose.bluegreen.yml stop $OLD_SERVICE"
+echo "/opt/clueroom/bg-compose stop $OLD_SERVICE"
 
 echo ""
 echo "Rollback command:"

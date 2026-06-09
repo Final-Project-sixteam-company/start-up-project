@@ -195,9 +195,36 @@ Compose readiness:
 - APP_DB_HOST / APP_DB_PORT / APP_REDIS_HOST / APP_REDIS_PORT can be overridden by .env or runtime env.
 - The app container still receives DB_HOST / DB_PORT / REDIS_HOST / REDIS_PORT internally.
 - APP_* inputs are separate so old local JVM values such as DB_HOST=localhost do not break app containers.
-- docker-compose.external-data.yml is the single-app PoC override that removes local mysql/redis depends_on.
-- docker-compose.bluegreen.external-data.yml is the Blue-Green PoC override for app-blue/app-green slots.
-- The default single-server path must keep working without this override.
+- docker-compose.external-data.yml removes local mysql/redis depends_on and resets legacy prometheus -> app dependency.
+- docker-compose.bluegreen.external-data.yml removes local mysql/redis depends_on for app-blue/app-green slots.
+- After production external-data cutover, deploy helpers use docker-compose.yml + docker-compose.external-data.yml + docker-compose.bluegreen.yml + docker-compose.bluegreen.external-data.yml by default.
+- The default local single-server path must keep working when the external-data overrides are not used.
+```
+
+Current production cutover state:
+
+```text
+prod app-blue/app-green
+→ data server 172.26.1.185 MySQL/Redis
+
+prod local MySQL/Redis
+→ temporarily kept for rollback/comparison
+```
+
+Current monitoring/health flow:
+
+```text
+prod Alloy
+→ ships Nginx/app/server-health logs to ops Loki
+
+data server
+→ pushes DATA_HEALTH to ops Loki
+
+ops server
+→ runs n8n/Loki and pushes OPS_HEALTH
+
+ops snapshot v3
+→ checks external data target, app container env, data TCP connectivity, ops Loki ready, Alloy status, and limited heartbeat samples
 ```
 
 External data env example:
@@ -476,11 +503,11 @@ Required mitigations:
 Externalization readiness:
 
 ```text
-- APP_DB_HOST / APP_REDIS_HOST override support is a readiness step only.
-- Actual data migration requires backup/restore rehearsal first.
-- Single-app PoC should use docker-compose.external-data.yml or an equivalent override.
-- Blue-Green PoC should use docker-compose.bluegreen.external-data.yml in addition to docker-compose.bluegreen.yml.
-- Do not remove local MySQL/Redis from the default compose path until production cutover is planned.
+- APP_DB_HOST / APP_REDIS_HOST override support is active in production after cutover.
+- Single-app external-data mode uses docker-compose.external-data.yml or an equivalent override.
+- Blue-Green external-data mode uses docker-compose.external-data.yml and docker-compose.bluegreen.external-data.yml in addition to the base Blue-Green files.
+- Do not stop or remove prod local MySQL/Redis immediately after cutover; keep them for rollback/comparison until helper PR merge, redeploy, team smoke, and data-server backup checks pass.
+- Ops Snapshot v3 treats prod local MySQL/Redis as rollback/local-data only and validates the external data target plus ops Loki/Alloy health.
 ```
 
 ## 11. Verification Checklist

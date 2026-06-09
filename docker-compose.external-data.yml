@@ -1,4 +1,4 @@
-# Optional override for single app / external data server PoC.
+# Optional override for external data server mode.
 #
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.external-data.yml config
@@ -10,7 +10,9 @@
 #   APP_REDIS_HOST=<data-server-private-ip-or-dns>
 #   APP_REDIS_PORT=6379
 #
-# This file does not change the default single-server compose path.
+# Production Blue-Green helpers include this after external-data cutover.
+# The local mysql/redis services remain available behind the local-data profile
+# for rollback/comparison windows, but app containers must not depend on them.
 services:
   mysql:
     profiles:
@@ -21,4 +23,7 @@ services:
       - local-data
 
   app:
+    depends_on: !reset []
+
+  prometheus:
     depends_on: !reset []

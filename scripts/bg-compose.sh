@@ -71,7 +71,9 @@ build_runtime_env_file
 
 COMPOSE_ARGS+=(
   -f docker-compose.yml
+  -f docker-compose.external-data.yml
   -f docker-compose.bluegreen.yml
+  -f docker-compose.bluegreen.external-data.yml
 )
 
 docker compose \
