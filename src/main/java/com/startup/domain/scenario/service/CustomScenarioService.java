@@ -445,23 +445,23 @@ public class CustomScenarioService {
 
         Integer maxSentences = node.has("maxSentences") && !node.get("maxSentences").isNull() ? node.get("maxSentences").asInt() : null;
         if (maxSentences != null) {
-            if (policyBuilder.length() > 0) policyBuilder.append(" ");
+            if (!policyBuilder.isEmpty()) policyBuilder.append(" ");
             policyBuilder.append("답변은 최대 ").append(maxSentences).append("문장으로 제한한다.");
         }
 
         Boolean allowExternalFacts = node.has("allowExternalFacts") && !node.get("allowExternalFacts").isNull() ? node.get("allowExternalFacts").asBoolean() : null;
         if (allowExternalFacts != null && !allowExternalFacts) {
-            if (policyBuilder.length() > 0) policyBuilder.append(" ");
+            if (!policyBuilder.isEmpty()) policyBuilder.append(" ");
             policyBuilder.append("설정에 없는 외부 사실을 임의로 지어내지 않는다.");
         }
 
         String defaultStance = node.has("defaultStance") && !node.get("defaultStance").isNull() ? node.get("defaultStance").asText() : null;
         if (defaultStance != null && basePolicy.isEmpty()) {
-            if (policyBuilder.length() > 0) policyBuilder.append(" ");
+            if (!policyBuilder.isEmpty()) policyBuilder.append(" ");
             policyBuilder.append("기본 태도: ").append(defaultStance).append(".");
         }
 
-        String finalPolicyText = policyBuilder.length() > 0 ? policyBuilder.toString().trim() : "기본 응답";
+        String finalPolicyText = !policyBuilder.isEmpty() ? policyBuilder.toString().trim() : "기본 응답";
         String tone = node.has("tone") && !node.get("tone").isNull() ? node.get("tone").asText() : defaultStance;
 
         SuspectResponsePolicy policy = SuspectResponsePolicy.builder()
