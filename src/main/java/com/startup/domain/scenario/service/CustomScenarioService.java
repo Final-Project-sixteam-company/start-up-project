@@ -464,7 +464,7 @@ public class CustomScenarioService {
         if (request.getUnlockType() != null && request.getUnlockType() != com.startup.domain.scenario.enums.EvidenceUnlockType.NONE) {
             String processedConditionJson = request.getUnlockConditionJson();
             if (request.getUnlockType() == com.startup.domain.scenario.enums.EvidenceUnlockType.EVIDENCE_PRESENTED) {
-                processedConditionJson = validateAndTranslateEvidencePresentedCondition(scenarioId, processedConditionJson);
+                processedConditionJson = validateAndTranslateEvidencePresentedCondition(scenarioId, savedEvidence.getId(), processedConditionJson);
             }
 
             EvidenceUnlockRule rule = EvidenceUnlockRule.builder()
@@ -560,7 +560,7 @@ public class CustomScenarioService {
             if (evidence.getUnlockType() != com.startup.domain.scenario.enums.EvidenceUnlockType.NONE) {
                 String processedConditionJson = evidence.getUnlockConditionJson();
                 if (evidence.getUnlockType() == com.startup.domain.scenario.enums.EvidenceUnlockType.EVIDENCE_PRESENTED) {
-                    processedConditionJson = validateAndTranslateEvidencePresentedCondition(evidence.getScenarioId(), processedConditionJson);
+                    processedConditionJson = validateAndTranslateEvidencePresentedCondition(evidence.getScenarioId(), evidence.getId(), processedConditionJson);
                 }
 
                 EvidenceUnlockRule rule = EvidenceUnlockRule.builder()
@@ -634,7 +634,7 @@ public class CustomScenarioService {
         scenario.forceUpdateModifiedAt();
     }
 
-    private String validateAndTranslateEvidencePresentedCondition(Long scenarioId, String conditionJson) {
+    private String validateAndTranslateEvidencePresentedCondition(Long scenarioId, Long targetEvidenceId, String conditionJson) {
         if (conditionJson == null || conditionJson.isBlank()) {
             throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "EVIDENCE_PRESENTED 조건은 필수입니다.");
         }
@@ -645,6 +645,9 @@ public class CustomScenarioService {
                                        (root.has("evidenceId") ? root.get("evidenceId").asLong() : null);
             if (presentedEvidenceId == null) {
                 throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거 ID(requiredPresentedEvidenceId)가 누락되었습니다.");
+            }
+            if (presentedEvidenceId.equals(targetEvidenceId)) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "자기 자신을 해금 조건으로 설정할 수 없습니다.");
             }
             Evidence presented = evidenceRepository.findById(presentedEvidenceId)
                     .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "제시 대상 증거를 찾을 수 없습니다."));
