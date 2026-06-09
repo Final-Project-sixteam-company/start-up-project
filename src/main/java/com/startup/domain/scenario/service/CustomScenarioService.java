@@ -679,6 +679,9 @@ public class CustomScenarioService {
                     }
 
                     Long prerequisiteId = idNode.asLong();
+                    if (prerequisiteId.equals(targetEvidenceId)) {
+                        throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "자기 자신을 선행 해금 증거로 설정할 수 없습니다.");
+                    }
                     Evidence prerequisite = evidenceRepository.findById(prerequisiteId)
                             .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "선행 해금 증거를 찾을 수 없습니다."));
                     if (!scenarioId.equals(prerequisite.getScenarioId())) {

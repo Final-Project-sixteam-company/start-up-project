@@ -146,6 +146,41 @@ public class CustomScenarioServiceEvidenceTest {
     }
 
     @Test
+    @DisplayName("증거 수정 실패 - 자기 자신을 선행 해금 증거(requiredEvidenceIds)로 설정 시 예외 발생")
+    void updateEvidence_fail_when_self_prerequisite() {
+        // given
+        Evidence existingEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("EVD_01")
+                .title("제시할증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        Evidence evidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("EVD_02")
+                .title("타겟증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(2)
+                .build());
+
+        CustomEvidenceUpdateRequest request = new CustomEvidenceUpdateRequest();
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.EVIDENCE_PRESENTED);
+        ReflectionTestUtils.setField(request, "unlockConditionJson", 
+                "{\"requiredPresentedEvidenceId\": " + existingEvidence.getId() + ", \"requiredEvidenceIds\": [" + evidence.getId() + "]}");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.updateEvidence(OWNER_USER_ID, evidence.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("자기 자신을 선행 해금 증거로 설정할 수 없습니다.");
+    }
+
+    @Test
     @DisplayName("증거 삭제 성공 (고아 데이터 동시 삭제)")
     void deleteEvidence_success() {
         // given
