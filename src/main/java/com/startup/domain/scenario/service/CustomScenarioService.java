@@ -728,7 +728,7 @@ public class CustomScenarioService {
 
         // 진범 용의자가 이 시나리오에 소속되어 있는지 검증
         Suspect culprit = suspectRepository.findByIdAndScenarioId(request.getCulpritSuspectId(), scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.INVALID_REQUEST, "해당 용의자는 이 시나리오 소속이 아닙니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.INVALID_SUSPECT_OWNERSHIP));
         
         if (!culprit.getCulpritEligible()) {
             throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이 용의자는 범인으로 지목될 수 없습니다.");
@@ -738,7 +738,7 @@ public class CustomScenarioService {
         if (request.getKeyEvidenceIds() != null && !request.getKeyEvidenceIds().isEmpty()) {
             long validCount = evidenceRepository.countByIdInAndScenarioId(request.getKeyEvidenceIds(), scenarioId);
             if (validCount != request.getKeyEvidenceIds().size()) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "일부 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
+                throw new ScenarioException(ScenarioErrorCode.INVALID_EVIDENCE_OWNERSHIP);
             }
             keyEvidenceStr = String.join(",", request.getKeyEvidenceIds().stream().map(String::valueOf).toList());
         }

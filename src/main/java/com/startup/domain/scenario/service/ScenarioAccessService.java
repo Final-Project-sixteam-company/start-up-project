@@ -1,7 +1,7 @@
 package com.startup.domain.scenario.service;
 
-import com.startup.common.error.BusinessException;
-import com.startup.common.error.CommonErrorCode;
+import com.startup.domain.scenario.error.ScenarioErrorCode;
+import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.repository.ScenarioRepository;
@@ -44,19 +44,19 @@ public class ScenarioAccessService {
 
     public void validatePlayable(Long userId, Long scenarioId) {
         if (!canPlay(userId, scenarioId)) {
-            throw new BusinessException(CommonErrorCode.ACCESS_DENIED, "Scenario play access is denied.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
     }
 
     public void validateEditable(Long userId, Long scenarioId) {
         if (!canEdit(userId, scenarioId)) {
-            throw new BusinessException(CommonErrorCode.ACCESS_DENIED, "Scenario edit access is denied.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
     }
 
     public void validateViewable(Long userId, Long scenarioId) {
         if (!canView(userId, scenarioId)) {
-            throw new BusinessException(CommonErrorCode.ACCESS_DENIED, "Scenario view access is denied.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
     }
 }
