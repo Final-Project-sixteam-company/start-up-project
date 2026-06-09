@@ -167,6 +167,39 @@ public class CustomScenarioServiceSuspectTest {
     }
 
     @Test
+    @DisplayName("용의자 수정 실패 - 범인으로 지목된 용의자의 culpritEligible을 false로 변경 시 예외 발생")
+    void updateSuspect_fail_when_culprit_and_eligible_false() {
+        // given
+        Suspect suspect = suspectRepository.save(Suspect.builder()
+                .scenarioId(savedScenario.getId())
+                .code("SUSPECT_001")
+                .name("범인")
+                .role("역할")
+                .characterType("NPC")
+                .culpritEligible(true)
+                .sortOrder(1)
+                .build());
+
+        solutionRepository.save(Solution.builder()
+                .scenarioId(savedScenario.getId())
+                .culpritSuspectId(suspect.getId())
+                .motive("동기")
+                .method("수단")
+                .coverUp("은폐")
+                .fullExplanation("전체 설명")
+                .keyEvidenceIds("1")
+                .build());
+
+        CustomSuspectUpdateRequest request = new CustomSuspectUpdateRequest();
+        ReflectionTestUtils.setField(request, "culpritEligible", false);
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.updateSuspect(OWNER_USER_ID, suspect.getId(), request))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SUSPECT_IS_CULPRIT.getMessage());
+    }
+
+    @Test
     @DisplayName("타인의 시나리오 용의자 수정/삭제 시나리오 접근 권한 예외 발생")
     void modifySuspect_fail_unauthorized() {
         // given

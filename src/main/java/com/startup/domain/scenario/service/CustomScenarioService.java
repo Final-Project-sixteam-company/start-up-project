@@ -254,6 +254,14 @@ public class CustomScenarioService {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
+        if (request.getCulpritEligible() != null && !request.getCulpritEligible()) {
+            solutionRepository.findByScenarioId(suspect.getScenarioId()).ifPresent(solution -> {
+                if (suspect.getId().equals(solution.getCulpritSuspectId())) {
+                    throw new ScenarioException(ScenarioErrorCode.SUSPECT_IS_CULPRIT);
+                }
+            });
+        }
+
         suspect.update(
                 request.getName(),
                 request.getRole(),
