@@ -78,7 +78,9 @@ public class CustomScenarioService {
 
 
     @Transactional(readOnly = true)
-    public List<CustomLocationResponse> getLocations(Long scenarioId) {
+    public List<CustomLocationResponse> getLocations(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
         List<ScenarioLocation> locations = locationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
         
         List<Object[]> evidenceCounts = evidenceRepository.countByLocationIdForScenario(scenarioId);

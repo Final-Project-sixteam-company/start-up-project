@@ -37,7 +37,8 @@ public class CustomScenarioController {
     public ResponseEntity<ApiResponse<List<CustomLocationResponse>>> getLocations(
             @PathVariable Long scenarioId
     ) {
-        List<CustomLocationResponse> response = customScenarioService.getLocations(scenarioId);
+        Long userId = mockUserProvider.currentUserId();
+        List<CustomLocationResponse> response = customScenarioService.getLocations(userId, scenarioId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
