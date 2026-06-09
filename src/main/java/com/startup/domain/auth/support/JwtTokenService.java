@@ -89,7 +89,7 @@ public class JwtTokenService {
             }
 
             Long userId = Long.valueOf(asString(claims.get("sub")));
-            String email = asString(claims.get("email"));
+            String email = asNullableString(claims.get("email"));
             return new AuthenticatedUserPrincipal(
                     userId,
                     email,
@@ -167,6 +167,13 @@ public class JwtTokenService {
     private String asString(Object value) {
         if (value == null) {
             throw new AuthException(AuthErrorCode.INVALID_TOKEN);
+        }
+        return String.valueOf(value);
+    }
+
+    private String asNullableString(Object value) {
+        if (value == null) {
+            return null;
         }
         return String.valueOf(value);
     }

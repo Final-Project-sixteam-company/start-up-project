@@ -32,6 +32,23 @@ class JwtTokenServiceTest {
     }
 
     @Test
+    void issueAndParseAccessTokenWithoutEmail() {
+        JwtTokenService tokenService = tokenService("12345678901234567890123456789012");
+        User user = User.builder()
+                .email(null)
+                .nickname("OAuth User")
+                .build();
+        ReflectionTestUtils.setField(user, "id", 8L);
+
+        String token = tokenService.issueAccessToken(user);
+        AuthenticatedUserPrincipal principal = tokenService.parseAccessToken(token);
+
+        assertThat(principal.userId()).isEqualTo(8L);
+        assertThat(principal.email()).isNull();
+        assertThat(principal.role()).isEqualTo(UserRole.USER);
+    }
+
+    @Test
     void issueAccessTokenFailsWhenSecretIsNotConfigured() {
         JwtTokenService tokenService = tokenService("");
         User user = User.builder()
