@@ -7,6 +7,8 @@ import com.startup.domain.auth.entity.AuthRefreshToken;
 import com.startup.domain.auth.entity.User;
 import com.startup.domain.auth.entity.UserOAuthAccount;
 import com.startup.domain.auth.enums.AuthProvider;
+import com.startup.domain.auth.error.AuthErrorCode;
+import com.startup.domain.auth.error.AuthException;
 import com.startup.domain.auth.repository.AuthRefreshTokenRepository;
 import com.startup.domain.auth.repository.UserOAuthAccountRepository;
 import com.startup.domain.auth.repository.UserRepository;
@@ -15,6 +17,7 @@ import com.startup.domain.auth.support.JwtTokenService;
 import com.startup.domain.auth.support.OAuthProviderClient;
 import com.startup.domain.auth.support.OAuthUserProfile;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -26,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -63,7 +67,7 @@ class AuthServiceTest {
             return user;
         });
         when(accountRepository.findByUserIdAndProvider(10L, AuthProvider.GOOGLE)).thenReturn(Optional.empty());
-        when(accountRepository.save(any(UserOAuthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.saveAndFlush(any(UserOAuthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(refreshTokenRepository.save(any(AuthRefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AuthTokenResponse response = authService.oauthLogin(
@@ -75,7 +79,7 @@ class AuthServiceTest {
         assertThat(response.refreshToken()).isNotBlank();
         assertThat(response.user().userId()).isEqualTo(10L);
         assertThat(response.user().email()).isEqualTo("oauth@example.com");
-        verify(accountRepository).save(any(UserOAuthAccount.class));
+        verify(accountRepository).saveAndFlush(any(UserOAuthAccount.class));
         verify(refreshTokenRepository).save(any(AuthRefreshToken.class));
     }
 
@@ -134,7 +138,7 @@ class AuthServiceTest {
             return user;
         });
         when(accountRepository.findByUserIdAndProvider(11L, AuthProvider.GOOGLE)).thenReturn(Optional.empty());
-        when(accountRepository.save(any(UserOAuthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.saveAndFlush(any(UserOAuthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(refreshTokenRepository.save(any(AuthRefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AuthTokenResponse response = authService.oauthLogin(
@@ -201,7 +205,7 @@ class AuthServiceTest {
             return user;
         });
         when(accountRepository.findByUserIdAndProvider(12L, AuthProvider.GOOGLE)).thenReturn(Optional.empty());
-        when(accountRepository.save(any(UserOAuthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.saveAndFlush(any(UserOAuthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(refreshTokenRepository.save(any(AuthRefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AuthTokenResponse response = authService.oauthLogin(
@@ -209,6 +213,100 @@ class AuthServiceTest {
         );
 
         assertThat(response.user().userId()).isEqualTo(12L);
+    }
+
+    @Test
+    void oauthLoginRetriesProviderAccountRace() {
+        AuthProperties authProperties = properties();
+        JwtTokenService jwtTokenService = new JwtTokenService(authProperties, JsonMapper.builder().build());
+        CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        UserOAuthAccountRepository accountRepository = mock(UserOAuthAccountRepository.class);
+        AuthRefreshTokenRepository refreshTokenRepository = mock(AuthRefreshTokenRepository.class);
+        OAuthProviderClient providerClient = fakeGoogleClient();
+        AuthService authService = new AuthService(
+                authProperties,
+                jwtTokenService,
+                currentUserProvider,
+                userRepository,
+                accountRepository,
+                refreshTokenRepository,
+                transactionManager(),
+                List.of(providerClient)
+        );
+
+        User existingUser = user(20L, "oauth@example.com");
+        UserOAuthAccount existingAccount = UserOAuthAccount.builder()
+                .userId(20L)
+                .provider(AuthProvider.GOOGLE)
+                .providerUserId("google-sub")
+                .email("oauth@example.com")
+                .nickname("OAuth User")
+                .profileImageUrl("https://example.com/profile.png")
+                .build();
+        when(accountRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub"))
+                .thenReturn(Optional.empty(), Optional.of(existingAccount));
+        when(userRepository.findByEmail("oauth@example.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            ReflectionTestUtils.setField(user, "id", 20L);
+            return user;
+        });
+        when(accountRepository.findByUserIdAndProvider(20L, AuthProvider.GOOGLE)).thenReturn(Optional.empty());
+        when(accountRepository.saveAndFlush(any(UserOAuthAccount.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate provider account"));
+        when(userRepository.findById(20L)).thenReturn(Optional.of(existingUser));
+        when(refreshTokenRepository.save(any(AuthRefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AuthTokenResponse response = authService.oauthLogin(
+                new OAuthLoginRequest(AuthProvider.GOOGLE, "id-token", null, "android")
+        );
+
+        assertThat(response.user().userId()).isEqualTo(20L);
+        assertThat(response.user().email()).isEqualTo("oauth@example.com");
+    }
+
+    @Test
+    void oauthLoginRejectsVerifiedEmailUpdateWhenEmailBelongsToAnotherUser() {
+        AuthProperties authProperties = properties();
+        JwtTokenService jwtTokenService = new JwtTokenService(authProperties, JsonMapper.builder().build());
+        CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        UserOAuthAccountRepository accountRepository = mock(UserOAuthAccountRepository.class);
+        AuthRefreshTokenRepository refreshTokenRepository = mock(AuthRefreshTokenRepository.class);
+        OAuthProviderClient providerClient = fakeGoogleClient();
+        AuthService authService = new AuthService(
+                authProperties,
+                jwtTokenService,
+                currentUserProvider,
+                userRepository,
+                accountRepository,
+                refreshTokenRepository,
+                transactionManager(),
+                List.of(providerClient)
+        );
+
+        User currentUser = user(30L, null);
+        User otherUser = user(31L, "oauth@example.com");
+        UserOAuthAccount existingAccount = UserOAuthAccount.builder()
+                .userId(30L)
+                .provider(AuthProvider.GOOGLE)
+                .providerUserId("google-sub")
+                .email(null)
+                .nickname("OAuth User")
+                .profileImageUrl("https://example.com/profile.png")
+                .build();
+        when(accountRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub"))
+                .thenReturn(Optional.of(existingAccount));
+        when(userRepository.findById(30L)).thenReturn(Optional.of(currentUser));
+        when(userRepository.findByEmail("oauth@example.com")).thenReturn(Optional.of(otherUser));
+
+        Throwable thrown = catchThrowable(() -> authService.oauthLogin(
+                new OAuthLoginRequest(AuthProvider.GOOGLE, "id-token", null, "android")
+        ));
+
+        assertThat(thrown).isInstanceOfSatisfying(AuthException.class, exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.OAUTH_ACCOUNT_CONFLICT));
     }
 
     private OAuthProviderClient providerClientAssertingNoTransaction(TrackingTransactionManager transactionManager) {
@@ -235,6 +333,15 @@ class AuthServiceTest {
 
     private PlatformTransactionManager transactionManager() {
         return new TrackingTransactionManager();
+    }
+
+    private User user(Long id, String email) {
+        User user = User.builder()
+                .email(email)
+                .nickname("OAuth User")
+                .build();
+        ReflectionTestUtils.setField(user, "id", id);
+        return user;
     }
 
     private static class TrackingTransactionManager extends AbstractPlatformTransactionManager {

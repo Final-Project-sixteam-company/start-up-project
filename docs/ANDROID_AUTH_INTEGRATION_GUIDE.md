@@ -253,6 +253,10 @@ Authorization: Bearer {accessToken}
 
 Attach Bearer token to gameplay/write/user-specific APIs when an access token exists, even before protected mode is enabled.
 
+If the app does not have a real access token, omit the `Authorization` header entirely.
+Do not send dummy values such as `Authorization: Bearer mock_jwt_token_here`.
+Once backend `JWT_SECRET` is configured, malformed or expired Bearer tokens on normal API calls are rejected with 401 instead of falling back to the legacy mock user.
+
 Do not attach Bearer token to these auth endpoints if the HTTP client can exclude them:
 
 ```text

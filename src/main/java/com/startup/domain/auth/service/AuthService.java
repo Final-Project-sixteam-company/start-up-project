@@ -22,6 +22,8 @@ import com.startup.domain.auth.support.JwtTokenService;
 import com.startup.domain.auth.support.OAuthProviderClient;
 import com.startup.domain.auth.support.OAuthUserProfile;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final AuthProperties authProperties;
@@ -91,8 +94,26 @@ public class AuthService {
         }
 
         OAuthUserProfile profile = providerClient.verify(request);
+        try {
+            return loginOAuthUserInTransaction(profile, request.deviceId());
+        } catch (DataIntegrityViolationException e) {
+            log.warn("OAuth login raced with another request. Retrying by provider account lookup. provider={}",
+                    profile.provider());
+            return retryOAuthLoginAfterRace(profile, request.deviceId());
+        }
+    }
+
+    private AuthTokenResponse loginOAuthUserInTransaction(OAuthUserProfile profile, String deviceId) {
         return Objects.requireNonNull(new TransactionTemplate(transactionManager).execute(status ->
-                loginVerifiedOAuthUser(profile, request.deviceId())));
+                loginVerifiedOAuthUser(profile, deviceId)));
+    }
+
+    private AuthTokenResponse retryOAuthLoginAfterRace(OAuthUserProfile profile, String deviceId) {
+        try {
+            return loginOAuthUserInTransaction(profile, deviceId);
+        } catch (DataIntegrityViolationException retryFailure) {
+            throw new AuthException(AuthErrorCode.OAUTH_ACCOUNT_CONFLICT);
+        }
     }
 
     private AuthTokenResponse loginVerifiedOAuthUser(OAuthUserProfile profile, String deviceId) {
@@ -164,6 +185,7 @@ public class AuthService {
         User user = userRepository.findById(account.getUserId())
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
         String verifiedEmail = verifiedEmailOrNull(profile);
+        ensureVerifiedEmailAvailableForUser(user, verifiedEmail);
         user.updateProfile(verifiedEmail == null ? user.getEmail() : verifiedEmail,
                 profile.nickname(), profile.profileImageUrl());
         account.updateProfile(verifiedEmail == null ? account.getEmail() : verifiedEmail,
@@ -185,7 +207,7 @@ public class AuthService {
                     throw new AuthException(AuthErrorCode.OAUTH_ACCOUNT_CONFLICT);
                 });
 
-        userOAuthAccountRepository.save(UserOAuthAccount.builder()
+        userOAuthAccountRepository.saveAndFlush(UserOAuthAccount.builder()
                 .userId(user.getId())
                 .provider(profile.provider())
                 .providerUserId(profile.providerUserId())
@@ -204,6 +226,19 @@ public class AuthService {
             return Optional.empty();
         }
         return userRepository.findByEmail(normalizedEmail);
+    }
+
+    private void ensureVerifiedEmailAvailableForUser(User user, String verifiedEmail) {
+        String normalizedEmail = normalizeEmailOrNull(verifiedEmail);
+        String currentEmail = normalizeEmailOrNull(user.getEmail());
+        if (normalizedEmail == null || Objects.equals(normalizedEmail, currentEmail)) {
+            return;
+        }
+        userRepository.findByEmail(normalizedEmail)
+                .filter(existing -> !Objects.equals(existing.getId(), user.getId()))
+                .ifPresent(existing -> {
+                    throw new AuthException(AuthErrorCode.OAUTH_ACCOUNT_CONFLICT);
+                });
     }
 
     private AuthTokenResponse issueTokenPair(User user, String deviceId, Long rotatedFromId) {
