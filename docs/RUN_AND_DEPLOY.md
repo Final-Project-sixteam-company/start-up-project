@@ -260,8 +260,9 @@ OPENAI_API_KEY=
 
 ```properties
 SPRING_AI_MODEL_CHAT=openai
+OPENAI_BASE_URL=https://api.deepseek.com
 OPENAI_API_KEY=sk-...
-OPENAI_CHAT_MODEL=gpt-4o-mini
+OPENAI_CHAT_MODEL=deepseek-v4-flash
 OPENAI_CHAT_TEMPERATURE=0.4
 ```
 

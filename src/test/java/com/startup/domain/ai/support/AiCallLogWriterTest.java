@@ -22,7 +22,7 @@ class AiCallLogWriterTest {
         ObjectProvider<JdbcTemplate> provider = mockProvider();
         AiCallLogWriter writer = new AiCallLogWriter(provider, false);
 
-        writer.write(context(), "deepseek", "deepseek-chat", "npc_interrogation_v1",
+        writer.write(context(), "deepseek", "deepseek-v4-flash", "npc_interrogation_v1",
                 1234L, true, "none", false, new AiTokenUsage(10, 20, 30));
 
         verifyNoInteractions(provider);
@@ -35,7 +35,7 @@ class AiCallLogWriterTest {
         when(provider.getIfAvailable()).thenReturn(jdbcTemplate);
         AiCallLogWriter writer = new AiCallLogWriter(provider, true);
 
-        writer.write(context(), "deepseek", "deepseek-chat", "npc_interrogation_v1",
+        writer.write(context(), "deepseek", "deepseek-v4-flash", "npc_interrogation_v1",
                 1234L, true, "none", false, new AiTokenUsage(10, 20, 30));
 
         ArgumentCaptor<Object[]> argsCaptor = ArgumentCaptor.forClass(Object[].class);
@@ -45,7 +45,7 @@ class AiCallLogWriterTest {
         assertThat(args).containsExactly(
                 "INTERROGATION",
                 "deepseek",
-                "deepseek-chat",
+                "deepseek-v4-flash",
                 "npc_interrogation_v1",
                 1L,
                 2L,

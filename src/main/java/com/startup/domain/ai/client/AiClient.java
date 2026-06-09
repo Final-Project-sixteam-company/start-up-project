@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -58,10 +59,15 @@ public class AiClient {
         }
 
         try {
-            OpenAiChatOptions options = OpenAiChatOptions.builder()
+            OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
                     .temperature(params.getTemperature())
-                    .maxTokens(params.getMaxTokens())
-                    .build();
+                    .maxTokens(params.getMaxTokens());
+            if (shouldDisableThinking()) {
+                // DeepSeek V4 모델은 기본 thinking ON이라 짧은 NPC 답변에서 CoT가 토큰을 잠식한다.
+                // OpenAI-compat 경로로 thinking:disabled를 실어 비-thinking으로 고정한다(다른 provider 미적용).
+                optionsBuilder.extraBody(Map.of("thinking", Map.of("type", "disabled")));
+            }
+            OpenAiChatOptions options = optionsBuilder.build();
 
             Prompt prompt = new Prompt(
                     List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt)),
@@ -145,6 +151,12 @@ public class AiClient {
             return "openai";
         }
         return "openai-compatible";
+    }
+
+    private boolean shouldDisableThinking() {
+        // thinking 제어는 모델 종속이다. 다른 provider에는 deepseek-v4* 모델이 없어 오염되지 않는다.
+        String model = configuredModel == null ? "" : configuredModel.toLowerCase();
+        return model.startsWith("deepseek-v4");
     }
 
     private String resolveModelName(ChatResponse response) {

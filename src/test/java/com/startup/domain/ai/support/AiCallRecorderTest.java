@@ -29,13 +29,13 @@ class AiCallRecorderTest {
         AiCallLogWriter writer = mock(AiCallLogWriter.class);
         AiCallRecorder recorder = new AiCallRecorder(meterRegistryProvider(registry), writer);
 
-        recorder.record(context(), "deepseek", "deepseek-chat", 1250L,
+        recorder.record(context(), "deepseek", "deepseek-v4-flash", 1250L,
                 true, null, false, new AiTokenUsage(11, 22, 33));
 
         assertThat(registry.get("ai.requests")
                 .tag("feature_type", "INTERROGATION")
                 .tag("provider", "deepseek")
-                .tag("model", "deepseek-chat")
+                .tag("model", "deepseek-v4-flash")
                 .tag("prompt_version", "npc_interrogation_v1")
                 .tag("success", "true")
                 .tag("fallback_used", "false")
