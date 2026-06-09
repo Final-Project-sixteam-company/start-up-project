@@ -18,10 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -85,7 +82,7 @@ public class CustomScenarioService {
         List<ScenarioLocation> locations = locationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
         
         List<Object[]> evidenceCounts = evidenceRepository.countByLocationIdForScenario(scenarioId);
-        java.util.Map<Long, Long> countsMap = evidenceCounts.stream()
+        Map<Long, Long> countsMap = evidenceCounts.stream()
                 .collect(java.util.stream.Collectors.toMap(
                         row -> (Long) row[0],
                         row -> (Long) row[1]
@@ -241,6 +238,62 @@ public class CustomScenarioService {
         return new CustomSuspectCreateResponse(savedSuspect.getId());
     }
 
+
+    @Transactional(readOnly = true)
+    public List<CustomEvidenceResponse> getEvidences(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        if (!scenarioRepository.existsById(scenarioId)) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
+        }
+
+
+        List<Evidence> evidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+        if (evidences.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> evidenceIds = evidences.stream().map(Evidence::getId).toList();
+
+        // 장소 정보 In-Memory 조인을 위한 Map 구축 (N+1 방지)
+        Map<Long, String> locationNameMap = locationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId).stream()
+                .collect(java.util.stream.Collectors.toMap(ScenarioLocation::getId, ScenarioLocation::getName));
+
+        // 증거-용의자 매핑 정보 In-Memory 조인을 위한 구축 (N+1 방지)
+        List<EvidenceSuspect> allMappings = evidenceSuspectRepository.findAllByEvidenceIdIn(evidenceIds);
+        
+        List<Long> suspectIds = allMappings.stream()
+                .map(EvidenceSuspect::getSuspectId)
+                .distinct()
+                .toList();
+
+        Map<Long, String> suspectNameMap = Collections.emptyMap();
+        if (!suspectIds.isEmpty()) {
+            suspectNameMap = suspectRepository.findAllById(suspectIds).stream()
+                    .collect(java.util.stream.Collectors.toMap(Suspect::getId, Suspect::getName));
+        }
+
+        Map<Long, List<CustomEvidenceResponse.RelatedSuspectDto>> evidenceSuspectMap = new java.util.HashMap<>();
+        for (EvidenceSuspect mapping : allMappings) {
+            String suspectName = suspectNameMap.get(mapping.getSuspectId());
+            if (suspectName != null) {
+                evidenceSuspectMap.computeIfAbsent(mapping.getEvidenceId(), k -> new java.util.ArrayList<>())
+                        .add(CustomEvidenceResponse.RelatedSuspectDto.builder()
+                                .suspectId(mapping.getSuspectId())
+                                .name(suspectName)
+                                .build());
+            }
+        }
+
+        // 4. 최종 조립
+        return evidences.stream()
+                .map(evidence -> {
+                    String locationName = evidence.getLocationId() != null ? locationNameMap.get(evidence.getLocationId()) : null;
+                    List<CustomEvidenceResponse.RelatedSuspectDto> relatedSuspects = evidenceSuspectMap.getOrDefault(evidence.getId(), java.util.Collections.emptyList());
+                    return CustomEvidenceResponse.from(evidence, locationName, relatedSuspects, jsonMapper);
+                })
+                .toList();
+    }
 
     @Transactional
     public CustomEvidenceCreateResponse createEvidence(Long userId, Long scenarioId, CustomEvidenceCreateRequest request) {
@@ -401,7 +454,7 @@ public class CustomScenarioService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<CustomHintResponse> getHints(Long userId, Long scenarioId) {
+    public List<CustomHintResponse> getHints(Long userId, Long scenarioId) {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         if (!scenarioRepository.existsById(scenarioId)) {

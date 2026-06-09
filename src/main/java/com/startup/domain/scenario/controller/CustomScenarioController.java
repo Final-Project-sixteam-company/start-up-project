@@ -83,6 +83,16 @@ public class CustomScenarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
+    @Operation(summary = "커스텀 시나리오 증거 목록 조회")
+    @GetMapping("/{scenarioId}/evidences")
+    public ResponseEntity<ApiResponse<List<CustomEvidenceResponse>>> getEvidences(
+            @PathVariable Long scenarioId
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        List<CustomEvidenceResponse> response = customScenarioService.getEvidences(userId, scenarioId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @Operation(summary = "커스텀 시나리오 증거 등록 (관련 용의자 매핑 포함)")
     @PostMapping("/{scenarioId}/evidences")
     public ResponseEntity<ApiResponse<CustomEvidenceCreateResponse>> createEvidence(
