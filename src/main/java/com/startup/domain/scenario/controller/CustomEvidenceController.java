@@ -29,4 +29,12 @@ public class CustomEvidenceController {
         CustomEvidenceResponse response = customScenarioService.updateEvidence(userId, evidenceId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @Operation(summary = "커스텀 시나리오 증거 삭제")
+    @DeleteMapping("/{evidenceId}")
+    public ResponseEntity<ApiResponse<Void>> deleteEvidence(@PathVariable Long evidenceId) {
+        Long userId = mockUserProvider.currentUserId();
+        customScenarioService.deleteEvidence(userId, evidenceId);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

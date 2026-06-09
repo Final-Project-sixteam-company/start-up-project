@@ -21,7 +21,8 @@ public enum ScenarioErrorCode implements ErrorCode {
     INVALID_SUSPECT_OWNERSHIP(HttpStatus.BAD_REQUEST, "SCENARIO_010", "다른 시나리오의 용의자를 지정할 수 없습니다."),
     INVALID_EVIDENCE_OWNERSHIP(HttpStatus.BAD_REQUEST, "SCENARIO_011", "다른 시나리오의 증거를 지정할 수 없습니다."),
     SUSPECT_IS_CULPRIT(HttpStatus.BAD_REQUEST, "SCENARIO_012", "정답(범인)으로 지목된 용의자는 삭제할 수 없습니다."),
-    SUSPECT_NOT_FOUND(HttpStatus.NOT_FOUND, "SCENARIO_013", "용의자를 찾을 수 없습니다.");
+    SUSPECT_NOT_FOUND(HttpStatus.NOT_FOUND, "SCENARIO_013", "용의자를 찾을 수 없습니다."),
+    EVIDENCE_IS_KEY(HttpStatus.BAD_REQUEST, "SCENARIO_014", "정답(핵심 증거)으로 지목된 증거는 삭제할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

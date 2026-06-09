@@ -581,6 +581,36 @@ public class CustomScenarioService {
         return CustomEvidenceResponse.from(evidence, locationName, relatedSuspects, jsonMapper);
     }
 
+    @Transactional
+    public void deleteEvidence(Long userId, Long evidenceId) {
+        Evidence evidence = evidenceRepository.findById(evidenceId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.EVIDENCE_NOT_FOUND));
+
+        scenarioAccessService.validateEditable(userId, evidence.getScenarioId());
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(evidence.getScenarioId())
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
+        }
+
+        solutionRepository.findByScenarioId(scenario.getId())
+                .ifPresent(solution -> {
+                    List<Long> keyEvidenceIds = solution.parseKeyEvidenceIds();
+                    if (keyEvidenceIds.contains(evidenceId)) {
+                        throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_KEY);
+                    }
+                });
+
+        evidenceSuspectRepository.deleteByEvidenceId(evidenceId);
+        evidenceUnlockRuleRepository.deleteByEvidenceId(evidenceId);
+
+        evidenceRepository.delete(evidence);
+
+        scenario.forceUpdateModifiedAt();
+    }
+
     private String validateAndTranslateEvidencePresentedCondition(Long scenarioId, String conditionJson) {
         if (conditionJson == null || conditionJson.isBlank()) {
             throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "EVIDENCE_PRESENTED 조건은 필수입니다.");
