@@ -13,4 +13,5 @@ public class CustomHintCreateRequest {
 
     private Integer unlockAfterMinutes;
     private Integer penaltyScore;
+    private Integer hintLevel;
 }

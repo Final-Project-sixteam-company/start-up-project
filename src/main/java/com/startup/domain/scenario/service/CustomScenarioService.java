@@ -54,7 +54,7 @@ public class CustomScenarioService {
 
         // DB Lock이 걸려있으므로 여러 트랜잭션이 중복된 숫자를 가져갈 수 없음
         Integer maxSortOrder = locationRepository.findMaxSortOrderByScenarioId(scenarioId);
-        int nextSortOrder = maxSortOrder + 1;
+        int nextSortOrder = request.getSortOrder() != null ? request.getSortOrder() : ((maxSortOrder == null ? 0 : maxSortOrder) + 1);
 
         // 엔티티 생성
         ScenarioLocation location = ScenarioLocation.builder()
@@ -351,7 +351,7 @@ public class CustomScenarioService {
         }
 
         Integer maxHintLevel = hintRepository.findMaxHintLevelByScenarioId(scenarioId);
-        int nextHintLevel = maxHintLevel + 1;
+        int nextHintLevel = request.getHintLevel() != null ? request.getHintLevel() : ((maxHintLevel == null ? 0 : maxHintLevel) + 1);
 
         Hint hint = Hint.builder()
                 .scenarioId(scenarioId)
