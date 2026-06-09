@@ -238,6 +238,57 @@ public class CustomScenarioService {
         return new CustomSuspectCreateResponse(savedSuspect.getId());
     }
 
+    @Transactional
+    public CustomSuspectResponse updateSuspect(Long userId, Long suspectId, CustomSuspectUpdateRequest request) {
+        Suspect suspect = suspectRepository.findById(suspectId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "용의자를 찾을 수 없습니다."));
+
+        scenarioAccessService.validateEditable(userId, suspect.getScenarioId());
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(suspect.getScenarioId())
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
+        }
+
+        suspect.update(
+                request.getName(),
+                request.getRole(),
+                request.getCharacterType(),
+                request.getCulpritEligible(),
+                request.getRelationToVictim(),
+                request.getPublicProfile(),
+                request.getPublicStatement(),
+                request.getAlibi(),
+                request.getPersonalityPrompt(),
+                request.getResponsePolicyJson() != null ? request.getResponsePolicyJson().toString() : null,
+                request.getPortraitAssetKey(),
+                request.getSuspicionLevel(),
+                request.getSortOrder()
+        );
+
+        if (request.getResponsePolicyJson() != null) {
+            suspectResponsePolicyRepository.deleteBySuspectId(suspect.getId());
+            suspectResponsePolicyRepository.flush();
+            
+            JsonNode policyNode = request.getResponsePolicyJson();
+            if (policyNode.isArray()) {
+                for (JsonNode node : policyNode) {
+                    validatePolicyEvidenceIds(suspect.getScenarioId(), node);
+                    saveSuspectResponsePolicy(suspect.getId(), node);
+                }
+            } else {
+                validatePolicyEvidenceIds(suspect.getScenarioId(), policyNode);
+                saveSuspectResponsePolicy(suspect.getId(), policyNode);
+            }
+        }
+
+        scenario.forceUpdateModifiedAt();
+
+        return CustomSuspectResponse.from(suspect, jsonMapper);
+    }
+
 
     @Transactional(readOnly = true)
     public List<CustomEvidenceResponse> getEvidences(Long userId, Long scenarioId) {
