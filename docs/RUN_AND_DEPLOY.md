@@ -278,6 +278,8 @@ curl -s -X POST http://localhost:8080/api/auth/oauth \
 AUTH_REQUIRE_AUTHENTICATION=true
 ```
 
+`AUTH_REQUIRE_AUTHENTICATION=true`에서는 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 요청에 `MOCK_USER_ID`를 부여하지 않는다. 공개 시나리오 조회는 anonymous 사용자로 처리하고, 작성자 전용 DRAFT/PRIVATE 시나리오는 노출하지 않는다.
+
 전환 후 token 없이 401이 되어야 하는 대표 경로:
 
 ```text
@@ -289,6 +291,7 @@ AUTH_REQUIRE_AUTHENTICATION=true
 ```
 
 `/api/auth/refresh` 등 auth 공개 endpoint는 만료 access token이 `Authorization` 헤더에 남아 있어도 refresh body 검증까지 도달해야 한다. 클라이언트 interceptor가 refresh 요청에 기존 Bearer token을 자동 첨부할 수 있기 때문이다.
+보호 API에 대한 브라우저/WebView CORS preflight `OPTIONS` 요청은 Bearer token 없이 통과해야 한다.
 
 ---
 

@@ -39,4 +39,14 @@ public class MockUserProvider {
         }
         return mockUserId;
     }
+
+    public Long currentUserIdOrNull() {
+        if (!Objects.equals(mockUserId, defaultMockUserId)) {
+            return mockUserId;
+        }
+        if (currentUserProvider != null) {
+            return currentUserProvider.currentUserIdOrNull();
+        }
+        return mockUserId;
+    }
 }

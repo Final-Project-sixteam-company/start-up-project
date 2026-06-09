@@ -30,6 +30,12 @@ public class CurrentUserProvider {
                 .orElseGet(this::fallbackUserId);
     }
 
+    public Long currentUserIdOrNull() {
+        return authenticatedPrincipal()
+                .map(AuthenticatedUserPrincipal::userId)
+                .orElseGet(() -> isLegacyCompatibilityMode() ? mockUserId : null);
+    }
+
     public AuthenticatedUserPrincipal requireAuthenticatedPrincipal() {
         return authenticatedPrincipal()
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
@@ -48,9 +54,13 @@ public class CurrentUserProvider {
     }
 
     private Long fallbackUserId() {
-        if (!authProperties.isMockFallbackEnabled()) {
+        if (!isLegacyCompatibilityMode()) {
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         }
         return mockUserId;
+    }
+
+    private boolean isLegacyCompatibilityMode() {
+        return !authProperties.isRequireAuthentication() && authProperties.isMockFallbackEnabled();
     }
 }

@@ -157,6 +157,8 @@ KAKAO_APP_ID
 Android가 OAuth login과 Bearer token 첨부를 완료한 뒤 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한다.
 보호 모드에서는 명시 public endpoint를 제외한 `/api/**`가 기본 인증 대상이다.
 OAuth email 기반 기존 계정 연결은 provider verified email에만 허용한다.
+보호 모드에서는 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 요청에 `MOCK_USER_ID`를 부여하지 않는다.
+CORS preflight `OPTIONS` 요청은 인증 없이 통과해야 한다.
 
 보호 모드 검증:
 
