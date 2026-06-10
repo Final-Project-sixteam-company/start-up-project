@@ -1555,12 +1555,14 @@ external-data source of truth 백업 스크립트의 처리 순서는 아래를 
 ```text
 1. data server MySQL 대상 dump 생성
 2. gzip 압축
-3. sha256sum 생성
-4. private S3 backup bucket/prefix에 .sql.gz 업로드
-5. checksum sidecar 업로드
-6. S3 object가 존재하고 size가 0이 아닌지 확인
-7. local retention 유지
-8. S3 lifecycle로 remote retention 관리
+3. pipeline failure를 감지한다 (`set -o pipefail` 또는 명시적 dump status 검증)
+4. gzip 파일이 non-empty이고 `gzip -t`를 통과하는지 확인
+5. sha256sum 생성
+6. private S3 backup bucket/prefix에 .sql.gz 업로드
+7. checksum sidecar 업로드
+8. S3 object가 존재하고 size가 0이 아닌지 확인
+9. local retention 유지
+10. S3 lifecycle로 remote retention 관리
 ```
 
 Candidate S3 upload command:

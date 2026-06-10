@@ -1136,6 +1136,7 @@ prod local compose mysql
 
 ```bash
 cd /opt/clueroom/app
+set -euo pipefail
 set -a
 . ./.env
 set +a
@@ -1146,7 +1147,7 @@ TARGET_DB_USER="${DB_USERNAME:-root}"
 TARGET_DB_NAME="${DB_NAME:-startup}"
 
 test -n "$TARGET_DB_HOST"
-test -n "$DB_PASSWORD"
+test -n "${DB_PASSWORD:-}"
 
 TS="$(date +%Y%m%d_%H%M%S)"
 DATE_PATH="$(date +%Y/%m/%d)"
@@ -1154,6 +1155,8 @@ BACKUP_DIR="/opt/clueroom/backups/mysql"
 BACKUP_FILE="${BACKUP_DIR}/${TARGET_DB_NAME}_external_${TS}.sql.gz"
 
 mkdir -p "$BACKUP_DIR"
+rm -f "$BACKUP_FILE" "$BACKUP_FILE.sha256"
+
 MYSQL_PWD="$DB_PASSWORD" mysqldump \
   -h "$TARGET_DB_HOST" \
   -P "$TARGET_DB_PORT" \
@@ -1164,6 +1167,8 @@ MYSQL_PWD="$DB_PASSWORD" mysqldump \
   --triggers \
   "$TARGET_DB_NAME" | gzip > "$BACKUP_FILE"
 
+test -s "$BACKUP_FILE"
+gzip -t "$BACKUP_FILE"
 chmod 600 "$BACKUP_FILE"
 sha256sum "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
 ls -lh "$BACKUP_FILE" "$BACKUP_FILE.sha256"
