@@ -1663,16 +1663,17 @@ Candidate S3 upload command:
 ```bash
 BACKUP_DIR="$(dirname "$BACKUP_FILE")"
 BACKUP_BASE="$(basename "$BACKUP_FILE")"
+DATE_PATH="$(date +%Y/%m/%d)"
 
 test -s "$BACKUP_FILE"
 gzip -t "$BACKUP_FILE"
 (cd "$BACKUP_DIR" && sha256sum "$BACKUP_BASE" > "$BACKUP_BASE.sha256")
 
-aws s3 cp "$BACKUP_FILE" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/$DATE_PATH/${BACKUP_BASE}" \
+aws s3 cp "$BACKUP_FILE" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/${BACKUP_BASE}" \
   --only-show-errors \
   --server-side-encryption AES256
 
-aws s3 cp "$BACKUP_FILE.sha256" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/$DATE_PATH/${BACKUP_BASE}.sha256" \
+aws s3 cp "$BACKUP_FILE.sha256" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/${BACKUP_BASE}.sha256" \
   --only-show-errors \
   --server-side-encryption AES256
 ```
