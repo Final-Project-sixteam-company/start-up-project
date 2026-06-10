@@ -18,9 +18,21 @@
 
 | Source | 상태 |
 |---|---|
-| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | 1차 흡수 대상. 현재 이 문서의 주요 결론을 아래 상태표로 흡수한다. |
-| `MVP_PLAY_FLOW_QA_2026-06-04.md` | 현재 로컬 untracked 파일이다. 정답/variant 상세 포함 가능성이 있어 별도 검토 전까지 흡수하지 않는다. |
-| PR #55의 2026-06-10 QA 문서 | PR #55 머지 후 이 문서로 흡수한다. |
+| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | 흡수 완료. 현재 파일은 이 문서를 가리키는 얇은 안내 문서로 유지한다. |
+| `MVP_PLAY_FLOW_QA_2026-06-04.md` | 현재 로컬 untracked 파일이다. 정답/variant 상세 포함 가능성이 있어 scrub 전까지 커밋/흡수하지 않는다. |
+| PR #55의 2026-06-10 QA 문서 | PR #55가 아직 open 상태라 미흡수. 머지 후 이 문서로 흡수한다. |
+
+흡수 완료 범위:
+
+| Source section | 흡수 위치 |
+|---|---|
+| 백엔드 / AI 담당 P0/P1/P2 | `Open Issues > Backend / AI`, `Resolved / Verified`, `Re-smoke Checklist` |
+| 인프라 / 운영 담당 | `Open Issues > Infra / Ops / Privacy`, `Ops / Privacy` 재검증 항목 |
+| Android / Frontend 담당 | `Open Issues > Android / Frontend`, `Android / Frontend` 재검증 항목 |
+| Android Implementation Notes / Fix DoD | `Re-smoke Checklist > Android / Frontend` |
+| 2026-06-05 Evidence Presented Smoke | `Resolved / Verified` |
+| 2026-06-05 Demo Variant Final Deduction Smoke | `Resolved / Verified` |
+| 2026-06-05 Codex Local Re-check | `Resolved / Verified`, 남은 이슈는 `Open Issues` |
 
 ## 2. 현재 결론
 

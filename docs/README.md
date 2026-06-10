@@ -87,7 +87,7 @@
 | 문서 | 정본 범위 | 비고 |
 |---|---|---|
 | `QA_HANDOFF.md` | 현재 미해결 QA 이슈, 해결된 이슈, 재검증 항목 | 새 정본이다. 날짜별 QA 문서의 결론을 흡수한다. |
-| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | 2026-06-04 QA 원문과 후속 노트 | QA_HANDOFF로 흡수 중이다. 아직 삭제하지 않는다. |
+| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | 2026-06-04 QA 원문과 후속 노트 | QA_HANDOFF로 흡수 완료. 현재는 임시 redirect이며 제거 후보. |
 
 ## 3. 흡수 예정 문서
 
@@ -97,7 +97,7 @@
 | 흡수 예정 문서 | 흡수처 |
 |---|---|
 | `ANDROID_SCREEN_API_MAPPING.md` | `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` |
-| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `QA_HANDOFF.md` |
+| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `QA_HANDOFF.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `scenarios/README.md` | `scenarios/SCENARIO_YAML_SCHEMA.md`, `README.md` |
 | `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` |
 | `infra/SCALE_OUT_POC_PLAN.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` |

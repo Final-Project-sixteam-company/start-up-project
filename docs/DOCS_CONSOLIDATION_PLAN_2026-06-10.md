@@ -111,9 +111,9 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
-| `docs/MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `docs/QA_HANDOFF.md` | 해결/미해결 상태와 재검증 결과만 active handoff로 유지한다. |
-| `docs/MVP_PLAY_FLOW_QA_2026-06-04.md` | `docs/QA_HANDOFF.md` | 현재는 untracked. 필요한 결론과 재현 절차만 흡수 대상으로 검토한다. |
-| PR #55의 2026-06-10 QA 문서들 | `docs/QA_HANDOFF.md` | PR 머지 후 최신 QA 결과를 같은 문서에 누적한다. |
+| `docs/MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `docs/QA_HANDOFF.md` | 흡수 완료. 기존 파일은 임시 redirect로 유지한다. |
+| `docs/MVP_PLAY_FLOW_QA_2026-06-04.md` | `docs/QA_HANDOFF.md` | 현재는 untracked. 정답/variant 상세 가능성이 있어 scrub 전까지 커밋/흡수하지 않는다. |
+| PR #55의 2026-06-10 QA 문서들 | `docs/QA_HANDOFF.md` | PR #55가 아직 open 상태라 미흡수. 머지 후 최신 QA 결과를 같은 문서에 누적한다. |
 
 흡수 방식:
 
@@ -245,8 +245,9 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 
 ```text
 - docs/QA_HANDOFF.md 생성
-- MVP_QA_ISSUE_HANDOFF_2026-06-04.md의 미해결/해결 이슈 흡수
-- 로컬 untracked MVP_PLAY_FLOW_QA_2026-06-04.md는 포함 여부를 별도 확인 후 흡수
+- MVP_QA_ISSUE_HANDOFF_2026-06-04.md의 미해결/해결 이슈 흡수 완료
+- MVP_QA_ISSUE_HANDOFF_2026-06-04.md는 임시 redirect로 전환
+- 로컬 untracked MVP_PLAY_FLOW_QA_2026-06-04.md는 scrub 전까지 미흡수
 - PR #55 머지 후 2026-06-10 QA 문서들도 최신 상태로 흡수
 ```
 
