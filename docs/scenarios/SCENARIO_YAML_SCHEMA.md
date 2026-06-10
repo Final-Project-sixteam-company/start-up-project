@@ -214,10 +214,63 @@ evidences:
     tags:
       - timeline
     sortOrder: 10
+    guidance:
+      readingPoints:
+        - "What the player should notice in this evidence."
+      compareWithEvidenceCodes:
+        - EVIDENCE_RELATED_SAMPLE
+      suggestedQuestions:
+        - targetCharacterCode: SUSPECT_SAMPLE
+          question: "What should be clarified about this evidence?"
 ```
 
 `baseDetail`은 UI에서 image evidence를 열었을 때 기본으로 보여주는 text다.
 특정 variant에서 다른 wording이 필요하면 `evidenceVariantStates`를 사용한다.
+
+## Evidence Guidance 증거 안내 메타데이터
+
+`guidance`는 증거 상세 API용 player-facing UX metadata다.
+import 시 `evidences.guidance_json`에 저장되고, 현재 증거가 해금되어 상세 조회 가능한 경우에만 응답에 포함된다.
+
+Guidance 규칙:
+
+- `readingPoints`는 플레이어가 이미 해금된 증거에서 읽어야 할 짧은 관찰점이다.
+- `compareWithEvidenceCodes`는 기존 `evidences[].code`만 참조한다.
+- `compareWithEvidenceCodes`는 현재 증거 자신을 참조하지 않는다.
+- `suggestedQuestions[].targetCharacterCode`는 기존 `characters[].code`만 참조한다.
+- `suggestedQuestions[].question`은 player-facing 문장이고 정답을 단정하지 않는다.
+- guidance에는 culprit identity, active variant truth, solution text, private seed note, 정답성 추론을 넣지 않는다.
+- guidance text에 `culprit`, `culpritCode`, `variant`, `activeVariant`, `solution`, `solutionText`, `proofDimensions`, `정답`, `범인` 같은 private/solution marker가 들어가면 validation에서 거부한다.
+
+Guidance와 hint의 역할은 분리한다.
+
+```text
+guidance: 이미 해금된 증거를 어떻게 읽을지 안내한다.
+hint: 플레이어가 막혔을 때 다음 조사 방향을 안내한다.
+```
+
+허용 문장 예:
+
+```text
+이 시간이 행동 시점인지 확인 질문을 해보세요.
+이 증거의 위치가 이전 기록과 같은지 비교해 보세요.
+이 증거만으로 단정하지 말고 관련 증거와 함께 보세요.
+```
+
+금지 문장 예:
+
+```text
+이 인물의 주장은 거짓입니다.
+이 증거가 정답 경로입니다.
+범인은 이 증거와 직접 연결됩니다.
+현재 Variant의 진실을 확인하세요.
+```
+
+Runtime 노출 정책:
+
+- 현재 증거가 잠겨 있으면 기존 증거 상세 정책과 동일하게 상세 응답을 주지 않는다.
+- 비교 대상 증거가 잠겨 있으면 `title`, lock state, `unlockHint` 같은 lock-safe field만 내려주고 `evidenceCode`는 노출하지 않는다.
+- 추천 질문은 UI prefill data다. Android는 자동 전송하지 않고 사용자가 확인 후 직접 제출하게 해야 한다.
 
 ## Timeline Events 타임라인 이벤트
 
@@ -426,6 +479,11 @@ YAML은 stable asset key를 참조해야 한다.
 - `victim.deathLocationCode`가 `locations`에 존재한다.
 - `evidences[].locationCode`가 `locations`에 존재한다.
 - `evidences[].relatedCharacterCodes`가 `characters`에 존재한다.
+- `evidences[].guidance.compareWithEvidenceCodes`가 `evidences`에 존재한다.
+- `evidences[].guidance.compareWithEvidenceCodes`가 현재 증거 자신을 참조하지 않는다.
+- `evidences[].guidance.suggestedQuestions[].targetCharacterCode`가 `characters`에 존재한다.
+- `evidences[].guidance.suggestedQuestions[].question`이 비어 있지 않다.
+- `evidences[].guidance` text에 blocked private/solution marker가 들어가지 않는다.
 - `timelineEvents[].eventOrder` 값이 unique하다.
 - `timelineEvents[].locationCode`가 `locations`에 존재한다.
 - `timelineEvents[].relatedEvidenceCode`가 `evidences`에 존재한다.

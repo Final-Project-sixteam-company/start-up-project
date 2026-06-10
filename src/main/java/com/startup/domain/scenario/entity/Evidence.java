@@ -63,6 +63,9 @@ public class Evidence {
     @Column(name = "tags_json", columnDefinition = "TEXT")
     private String tagsJson;
 
+    @Column(name = "guidance_json", columnDefinition = "TEXT")
+    private String guidanceJson;
+
     @Column(name = "unlock_phase", length = 50)
     private String unlockPhase;
 
@@ -90,6 +93,7 @@ public class Evidence {
     private Evidence(Long scenarioId, String code, Long locationId, String title, String description,
                      String oneLine, EvidenceType evidenceType, EvidenceImportance importance,
                      String imageUrl, String imageAssetKey, String thumbnailAssetKey, String tagsJson,
+                     String guidanceJson,
                      String unlockPhase,
                      Boolean isInitialPublic, EvidenceUnlockType unlockType, String unlockConditionJson,
                      Integer unlockAfterMinutes, Integer sortOrder) {
@@ -105,6 +109,7 @@ public class Evidence {
         this.imageAssetKey = imageAssetKey;
         this.thumbnailAssetKey = thumbnailAssetKey;
         this.tagsJson = tagsJson;
+        this.guidanceJson = guidanceJson;
         this.unlockPhase = unlockPhase;
         this.isInitialPublic = isInitialPublic != null ? isInitialPublic : false;
         this.unlockType = unlockType != null ? unlockType : EvidenceUnlockType.NONE;

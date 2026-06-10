@@ -127,6 +127,18 @@ cp .env.example .env
 | `OPENAI_CHAT_MODEL` | Chat model 이름. 기본 운영 후보는 `deepseek-v4-flash` |
 | `OPENAI_CHAT_TEMPERATURE` | Chat temperature |
 | `AI_LLMOPS_DB_LOGGING_ENABLED` | AI 호출 로그 DB 저장 활성화 여부 |
+| `AUTH_MOCK_FALLBACK_ENABLED` | JWT 전환기 token 없는 기존 API 요청을 `MOCK_USER_ID`로 허용할지 여부 |
+| `AUTH_DEV_LOGIN_ENABLED` | `/api/auth/dev` 개발용 로그인 활성 여부. 운영 기본 `false` |
+| `AUTH_REQUIRE_AUTHENTICATION` | 사용자별 API 인증 강제 여부. Android 전환 전 기본 `false` |
+| `AUTH_ADMIN_SEED_ENABLED` | 운영 secret env에 지정한 admin 테스트 계정을 생성/승격할지 여부. 기본 `false` |
+| `AUTH_ADMIN_SEED_EMAIL` | admin seed 대상 이메일. 실제 값은 서버 secret env에만 저장 |
+| `AUTH_ADMIN_SEED_NICKNAME` | admin seed 신규 생성 시 nickname |
+| `JWT_ISSUER` | JWT issuer. 운영 기본 `https://api.clueroom.xyz` |
+| `JWT_SECRET` | 서버 전용 JWT HMAC secret. 레포/.env.example에는 실제 값 저장 금지 |
+| `JWT_ACCESS_TOKEN_TTL_SECONDS` | access token 유효 시간 |
+| `JWT_REFRESH_TOKEN_TTL_DAYS` | refresh token 유효 일수 |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_IDS` | Google ID token `aud` 검증용 client id. 여러 개면 comma-separated |
+| `KAKAO_APP_ID` | Kakao access token info `app_id` 검증용 앱 ID |
 | `AWS_REGION` | S3 리전 |
 | `AWS_ACCESS_KEY_ID` | 서버 전용 AWS access key |
 | `AWS_SECRET_ACCESS_KEY` | 서버 전용 AWS secret key |
@@ -224,6 +236,80 @@ docker-compose.bluegreen.external-data.yml
 `docker-compose.external-data.yml`과 `docker-compose.bluegreen.external-data.yml`은 로컬 `mysql/redis` healthcheck 의존성을 제거한다. `app-blue` / `app-green`은 external-data mode에서 `mysql` / `redis`에 `depends_on`하지 않아야 한다. `prometheus`도 legacy `app` service에 `depends_on`하지 않아야 하며, `grafana -> prometheus` 의존성은 유지 가능하다.
 
 운영 Blue-Green에서 `APP_DB_HOST` / `APP_REDIS_HOST`는 compose interpolation 단계에서 필요하다. 따라서 `/opt/clueroom/app/.env` 또는 배포 명령을 실행하는 쉘 환경에 넣어야 하며, service `env_file`로만 추가되는 secret env 파일에만 두면 `DB_HOST` / `REDIS_HOST` 값이 바뀌지 않을 수 있다.
+
+### 3.3 Auth/JWT 1단계 로컬 테스트
+
+1단계 auth는 기존 API 호환을 위해 전역 인증 강제를 아직 켜지 않는다. Bearer token이 있으면 SecurityContext 사용자로 처리하고, token이 없으면 `AUTH_MOCK_FALLBACK_ENABLED=true`일 때 `MOCK_USER_ID`로 fallback한다.
+
+로컬에서 개발용 로그인 플로우를 확인할 때만 아래 값을 `.env`에 둔다.
+
+```properties
+AUTH_DEV_LOGIN_ENABLED=true
+JWT_SECRET=<32자 이상 로컬 테스트용 난수>
+```
+
+검증:
+
+```bash
+curl -s -X POST http://localhost:8080/api/auth/dev \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"dev@example.com","nickname":"Dev User","deviceId":"android-emulator"}'
+```
+
+운영에서는 `JWT_SECRET`을 `/opt/clueroom/secrets/env.d/oauth.env` 같은 서버 secret env로만 주입한다.
+`AUTH_REQUIRE_AUTHENTICATION=true`, `AUTH_DEV_LOGIN_ENABLED=true`, `GOOGLE_CLIENT_ID(S)` 또는 `KAKAO_APP_ID`가 설정된 상태에서 `JWT_SECRET`이 비어 있거나 32자 미만이면 서버는 부팅 단계에서 실패한다. 인증 기능을 켜기 전에 secret env 반영 여부를 먼저 확인한다.
+
+운영/스테이징에서 AI rate limit 검증용 admin 계정이 필요하면 secret env에만 아래 값을 둔다. 실제 이메일은 공개 문서, PR 본문, 코드에 기록하지 않는다.
+
+```properties
+AUTH_ADMIN_SEED_ENABLED=true
+AUTH_ADMIN_SEED_EMAIL=<server-secret-admin-email>
+AUTH_ADMIN_SEED_NICKNAME=ClueRoom Admin
+```
+
+`AUTH_ADMIN_SEED_ENABLED=true`인데 email이 비어 있거나 inactive user를 가리키면 앱 부팅이 실패한다. 정상 부팅 시 해당 email의 `users.role`은 `ADMIN`으로 보장된다. 이후 AI rate limit 정책은 `ADMIN` role을 bypass 대상으로 삼는다.
+
+Android OAuth 로그인은 앱이 provider SDK로 받은 token을 백엔드에 전달하고, 백엔드는 provider 검증 후 ClueRoom JWT를 발급한다.
+
+Google:
+
+```bash
+curl -s -X POST http://localhost:8080/api/auth/oauth \
+  -H 'Content-Type: application/json' \
+  -d '{"provider":"GOOGLE","idToken":"<google-id-token>","deviceId":"android"}'
+```
+
+Kakao:
+
+```bash
+curl -s -X POST http://localhost:8080/api/auth/oauth \
+  -H 'Content-Type: application/json' \
+  -d '{"provider":"KAKAO","accessToken":"<kakao-access-token>","deviceId":"android"}'
+```
+
+운영에서는 `GOOGLE_CLIENT_ID` 또는 `GOOGLE_CLIENT_IDS`, `KAKAO_APP_ID`를 secret env로 주입한다. Google은 ID token의 `aud`, Kakao는 access token info의 `app_id`를 서버 설정값과 비교한다.
+기존 계정 email 기반 linking은 provider가 verified email을 제공한 경우에만 수행한다. Google은 `email_verified`, Kakao는 `is_email_valid=true`와 `is_email_verified=true`를 기준으로 한다.
+
+보호 API 전환은 Android가 access token 저장과 `Authorization: Bearer <accessToken>` 첨부를 완료한 뒤 진행한다.
+
+```properties
+AUTH_REQUIRE_AUTHENTICATION=true
+```
+
+`AUTH_REQUIRE_AUTHENTICATION=true`에서는 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 요청에 `MOCK_USER_ID`를 부여하지 않는다. 공개 시나리오 조회는 anonymous 사용자로 처리하고, 작성자 전용 DRAFT/PRIVATE 시나리오는 노출하지 않는다.
+
+전환 후 token 없이 401이 되어야 하는 대표 경로:
+
+```text
+/api/play-sessions/**
+/api/device-tokens/**
+/api/scenarios write 계열
+/api/ai/scenarios/{scenarioId}/validate
+/api/** 신규 endpoint 기본 인증
+```
+
+`/api/auth/refresh` 등 auth 공개 endpoint는 만료 access token이 `Authorization` 헤더에 남아 있어도 refresh body 검증까지 도달해야 한다. 클라이언트 interceptor가 refresh 요청에 기존 Bearer token을 자동 첨부할 수 있기 때문이다.
+보호 API에 대한 브라우저/WebView CORS preflight `OPTIONS` 요청은 Bearer token 없이 통과해야 한다.
 
 ---
 

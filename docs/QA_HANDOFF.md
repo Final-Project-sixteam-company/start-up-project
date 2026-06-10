@@ -20,7 +20,7 @@
 |---|---|
 | `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | 흡수 완료. 최종 링크 정리 후 제거했다. 원문은 Git history에서 확인한다. |
 | `MVP_PLAY_FLOW_QA_2026-06-04.md` | scrub 완료. 정답/variant/증거 ID/운영 marker 상세가 섞여 있어 원문은 커밋하지 않고, public-safe 결론만 이 문서에 흡수한다. |
-| PR #55의 2026-06-10 QA 문서 | PR #55가 아직 open 상태라 미흡수. 머지 후 이 문서로 흡수한다. |
+| PR #55의 2026-06-10 QA 문서 | 흡수 완료. 공개 문서에는 정답/세션 식별자/오답 후보 역할군/solution 원문을 남기지 않는다. |
 
 흡수 완료 범위:
 
@@ -33,6 +33,7 @@
 | 2026-06-05 Evidence Presented Smoke | `Resolved / Verified` |
 | 2026-06-05 Demo Variant Final Deduction Smoke | `Resolved / Verified` |
 | 2026-06-05 Codex Local Re-check | `Resolved / Verified`, 남은 이슈는 `Open Issues` |
+| 2026-06-10 Scenario Play QA | `2026-06-10 Scenario Play QA Absorption`, 남은 이슈는 `Open Issues`와 `Re-smoke Checklist` |
 
 ## 2. 현재 결론
 
@@ -53,6 +54,67 @@
 심문 기본 응답/로그 저장
 최종 추리 제출/결과 조회
 동시 final-deduction lock
+```
+
+## 2.1 2026-06-10 Scenario Play QA Absorption
+
+Android E2E와 운영 API 기준으로 공식 시나리오 2종을 신규 유저 관점에서 플레이한 결과를 흡수한다.
+
+공개 문서 원칙:
+
+```text
+정답 범인명, 정답 수법 원문, private seed, solution 원문, raw session id는 기록하지 않는다.
+제출 후보 라벨, 정오 breakdown, 특정 오답 후보 역할군도 공개 문서에 남기지 않는다.
+상세 raw result와 정답 검증 산출물은 private handoff 또는 로컬 QA 산출물에서만 확인한다.
+```
+
+핵심 결론:
+
+```text
+기본 API와 AI 응답은 동작한다.
+다만 현재 플레이 감각은 "심문으로 후보를 좁혀가는 게임"보다 "시간이 지나 핵심 증거가 열릴 때까지 기다리는 게임"에 가깝다.
+AI 답변은 자백 방지는 잘 지키지만, 핵심 사실 인정과 다음 비교 대상 안내가 약하다.
+30~50회 심문 안에 막히지 않고 최종 후보를 좁히려면 결정론적 guidance layer가 필요하다.
+```
+
+관찰:
+
+```text
+- 이미지/기록형 증거는 모바일에서 판독값을 놓치기 쉽다.
+- 일부 시나리오는 후반 핵심 증거가 열리기 전 체감 난이도가 높다.
+- 증거를 보더라도 무엇과 비교하고 누구에게 물어봐야 하는지 안내가 부족하다.
+- 추천 질문/힌트가 없으면 회피형 AI 답변을 반복해서 캐묻게 된다.
+- 시간 PHASE 해금만으로는 "기다리면 열린다"는 진행감이 생긴다.
+```
+
+후속 방향:
+
+```text
+Backend:
+- evidence detail `guidance` 계약으로 readingPoints / compareEvidences / suggestedQuestions를 제공한다.
+- 별도 recommended-questions API보다 증거 상세 guidance를 우선한다.
+
+Android:
+- 해금된 현재 증거 상세에서 guidance를 표시한다.
+- suggestedQuestions는 심문 화면 prefill까지만 사용하고 자동 전송하지 않는다.
+- target suspect가 현재 플레이에서 유효하지 않으면 chip을 숨기거나 disabled 처리한다.
+
+Scenario seed:
+- 공식 seed에 증거별 판독 포인트, 비교 증거, 추천 질문을 추가한다.
+- 문장은 "보는 방법 안내" 수준으로 제한하고 정답/범인/variant truth를 암시하지 않는다.
+
+AI policy v2:
+- timeline hard guard, responseShape, red herring refutation은 v1 QA 검증 후 별도 설계로 진행한다.
+```
+
+재검증 목표:
+
+```text
+- 신규 플레이에서 30~50회 심문 안에 최종 후보를 1~2명으로 좁힐 수 있는가
+- 앱이 대신 풀어준 느낌 없이 "무엇을 비교할지"만 안내하는가
+- 증거 제시 답변이 다음 비교 대상 1개 이상을 제공하는가
+- 플레이어용 API에 정답성 메타데이터가 남아 있지 않은가
+- 최종 추리 결과가 timeout/network 후에도 result 화면에서 복구되는가
 ```
 
 ## 3. Open Issues
@@ -189,7 +251,6 @@
 다음 문서 다이어트 단계에서 처리한다.
 
 ```text
-1. PR #55 머지 후 2026-06-10 QA 문서들을 이 문서로 흡수한다.
-2. `MVP_PLAY_FLOW_QA_2026-06-04.md` 원문은 정답/variant/증거 ID/운영 marker 상세가 있어 커밋하지 않는다.
-3. `docs/README.md`의 흡수/제거 이력을 최신 상태로 유지한다.
+1. `MVP_PLAY_FLOW_QA_2026-06-04.md` 원문은 정답/variant/증거 ID/운영 marker 상세가 있어 커밋하지 않는다.
+2. `docs/README.md`의 흡수/제거 이력을 최신 상태로 유지한다.
 ```
