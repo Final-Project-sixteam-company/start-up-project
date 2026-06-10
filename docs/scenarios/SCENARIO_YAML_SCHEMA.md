@@ -15,6 +15,7 @@ Public repository may contain:
 - DTO / loader / validator / importer code
 - spoiler-free sample YAML
 - public prompt-boundary documentation
+- non-answer content pipeline notes
 
 Public repository must not contain:
 
@@ -25,6 +26,17 @@ Public repository must not contain:
 - full truth timelines
 - NPC hidden truth
 - complete evidence-role matrix by variant
+
+Private team-only scenario material includes:
+
+```text
+- working brief history
+- implementation canon with culprit / variant truth
+- variant solution
+- proof dimension answer mapping
+- NPC hidden knowledge and forbidden truth
+- final explanation with answer-bearing reasoning
+```
 
 Official scenario YAML with answers is private content and should be loaded
 from a private local/server path such as:
@@ -392,6 +404,16 @@ scoring:
 Actual scoring answer keys live under each variant's solution. Public docs can
 describe the scoring shape, but official mappings are private.
 The default score split in code is culprit 30, method 25, motive 20, coverUp 10, evidence 15.
+
+MVP importer bridge:
+
+```text
+The importer preserves variants[].solution.proofDimensions.
+To remain compatible with the current final deduction scoring path, it also
+converts solution evidence codes into VariantSolution.keyEvidenceIds.
+Proof-dimension-specific scoring should later move to proofDimensionJson as
+the authoritative scoring source.
+```
 
 ## Assets
 

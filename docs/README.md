@@ -51,8 +51,8 @@
 |---|---|---|
 | `AI_NPC_PROMPT_POLICY.md` | AI 지식 경계, prompt 구조, ResponsePolicy, injection 방어 | 실제 prompt template과 drift 정정 필요. |
 | `OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 데모 시나리오 정본, 채점 기준 | 스포일러 포함 문서다. 공개 범위 주의. |
-| `scenarios/SCENARIO_YAML_SCHEMA.md` | YAML import schema, private seed 경계 | `scenarios/README.md` 흡수 대상이다. |
-| `scenarios/README.md` | 시나리오 문서 공개 범위 | 짧은 정책 파일이며 schema/docs index로 흡수 예정이다. |
+| `scenarios/SCENARIO_YAML_SCHEMA.md` | YAML import schema, 공개 범위, private seed 경계, MVP scoring bridge | 시나리오 문서 정본이다. |
+| `scenarios/README.md` | 시나리오 문서 공개 범위 | schema/docs index로 흡수 완료. redirect 문서. |
 
 ### 실행 / 운영 / 인프라
 
@@ -100,7 +100,7 @@
 |---|---|
 | `ANDROID_SCREEN_API_MAPPING.md` | `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `QA_HANDOFF.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `scenarios/README.md` | `scenarios/SCENARIO_YAML_SCHEMA.md`, `README.md` |
+| `scenarios/README.md` | `scenarios/SCENARIO_YAML_SCHEMA.md`, `README.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `infra/SCALE_OUT_POC_PLAN.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | `infra/OPS_RUNBOOK.md`, `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |

@@ -46,7 +46,7 @@ AI: Spring AI 기반 LLM 연동
 | 13 | [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md) | 보안, 트래픽, Rate Limit, GeoIP/Bot, Grafana Alert 정책 |
 | 14 | [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 운영/인프라 Agent, Ops Snapshot, Monitoring Agent, Codex 기준 |
 | 15 | [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) | LLMOps telemetry, smoke, PromQL, agent 기준 |
-| 16 | [docs/scenarios/README.md](docs/scenarios/README.md) | 시나리오 문서 공개 범위와 스포일러 문서 관리 기준 |
+| 16 | [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md) | 시나리오 YAML 구조, 공개 범위, private seed 경계 |
 | 17 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
 
 ### 문서 수정 기준
@@ -68,7 +68,7 @@ AI: Spring AI 기반 LLM 연동
 | 보안, 트래픽, Rate Limit, GeoIP/Bot, Grafana Alert 정책 | [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md) |
 | 운영/인프라 Agent, Snapshot, Monitoring, Codex 계획 | [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) |
 | LLMOps telemetry, smoke, PromQL, agent 계획 | [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) |
-| 시나리오 문서 공개 범위, 내부 스포일러 문서 관리 기준 | [docs/scenarios/README.md](docs/scenarios/README.md) |
+| 시나리오 YAML 구조, 공개 범위, private seed 경계 | [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md) |
 | 공식 시나리오 seed data | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) |
 
 현재 주요 문서는 위 표를 기준으로 관리합니다.

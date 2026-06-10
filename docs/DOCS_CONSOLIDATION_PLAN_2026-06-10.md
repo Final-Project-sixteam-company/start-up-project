@@ -169,7 +169,7 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
-| `docs/scenarios/README.md` | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` 또는 `docs/README.md` | 공개 범위/스포일러 정책은 docs index와 schema 문서 양쪽에 짧게 반영하면 별도 파일이 필요 없다. |
+| `docs/scenarios/README.md` | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` + `docs/README.md` | 흡수 완료. 공개 범위/스포일러 정책은 docs index와 schema 문서 양쪽에 짧게 반영하면 별도 파일이 필요 없다. |
 | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` | 유지 | YAML 구조 정본이다. |
 
 정정할 drift:
@@ -177,6 +177,12 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 ```text
 - CLUEROOM_SCENARIO_IMPORT_PATH -> CLUEROOM_SCENARIO_IMPORT_PATHS
 - scoring 예시가 실제 기본 배점과 다른 경우 "shape only"인지 실제값인지 명확히 한다.
+```
+
+상태:
+
+```text
+완료. SCENARIO_YAML_SCHEMA.md에 공개 범위/private seed 경계와 MVP scoring bridge note를 흡수했고, scenarios/README.md는 redirect로 전환한다.
 ```
 
 ### 4.6 ERD / API / Backend / AI 정책 정리

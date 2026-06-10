@@ -180,7 +180,7 @@ docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md    인프라 선택 이유 / 운�
 docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md 보안 / 트래픽 / 알림 정책
 docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md   운영/인프라 Agent / Snapshot / Monitoring / Codex 기준
 docs/infra/agent/LLMOPS_OPERATING_GUIDE.md  LLMOps telemetry / smoke / PromQL / agent 기준
-docs/scenarios/README.md                    시나리오 문서 공개 범위 / 내부 스포일러 문서 관리 기준
+docs/scenarios/SCENARIO_YAML_SCHEMA.md      시나리오 YAML 구조 / 공개 범위 / private seed 경계
 ```
 
 리뷰 요청 시 **리뷰 지시서**가 함께 전달된다. 지시서에는 작업 목표, 변경 범위, 핵심 결정, 리뷰 초점, 참조 문서가 포함된다.

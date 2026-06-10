@@ -226,7 +226,7 @@ bash scripts/compose-down.sh
 | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 보안, 트래픽, Rate Limit, GeoIP/Bot, Grafana Alert 정책 |
 | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | Infra Agent, Ops Snapshot, Monitoring Agent, Codex 운영 기준 |
 | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | LLMOps telemetry, smoke, PromQL, agent 운영 기준 |
-| `docs/scenarios/README.md` | 시나리오 문서 공개 범위, 내부 스포일러 문서 관리 기준 |
+| `docs/scenarios/SCENARIO_YAML_SCHEMA.md` | 시나리오 YAML 구조, 공개 범위, private seed 경계 |
 | `docs/OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 데모 시나리오 seed 정본 |
 
 권장 읽기 순서:
@@ -245,5 +245,5 @@ CLAUDE.md
 → SECURITY_TRAFFIC_ALERT_POLICY.md
 → INFRA_AGENT_OPERATING_GUIDE.md
 → LLMOPS_OPERATING_GUIDE.md
-→ docs/scenarios/README.md
+→ docs/scenarios/SCENARIO_YAML_SCHEMA.md
 ```
