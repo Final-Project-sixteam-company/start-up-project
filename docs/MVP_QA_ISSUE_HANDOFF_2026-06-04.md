@@ -118,13 +118,12 @@ FREE + evidenceId와 EVIDENCE_PRESENTED + evidenceId 답변 차이가 약함
 
 재현:
 
-```json
-{
-  "selectedCulpritId": 53,
-  "motiveText": "동기 테스트 입력입니다.",
-  "methodText": "방법 테스트 입력입니다.",
-  "selectedEvidenceIds": [261]
-}
+```text
+POST /final-deduction with coverUpText omitted
+selectedCulpritId: <suspectId>
+motiveText: "동기 테스트 입력입니다."
+methodText: "방법 테스트 입력입니다."
+selectedEvidenceIds: [<evidenceId>]
 ```
 
 실제:
@@ -1190,17 +1189,18 @@ AI 답변은 자백하지 않는 방향은 맞지만, 핵심 사실 인정과 �
 
 ```text
 1차 신규 유저 플레이:
-- 최종 제출 D / 32점
-- 범인 지목 오답
-- 일부 핵심 증거는 맞혔지만, 정답 용의자를 특정하지 못함
+- 최종 제출 32점
+- 핵심 후보 특정 실패
+- 일부 핵심 증거는 맞혔지만, 결론 조립에는 실패함
 
 2차 정답 인지 후 정밀 심문:
 - 신규 session 86
 - 심문 105회
 - 증거 해금 7/25 -> 13/25 -> 20/25 -> 25/25
-- 최종 제출 A / 88점
-- 범인/방법/은폐는 맞음
-- 동기 문구만 일부 감점
+- 최종 제출 88점
+- 주요 추리 요소는 대부분 일치
+- 세부 서술 일부 감점
+- 제출 후보 라벨과 정답 구성요소 breakdown은 private QA 산출물에서만 확인
 ```
 
 ### 심문 패턴별 관찰
