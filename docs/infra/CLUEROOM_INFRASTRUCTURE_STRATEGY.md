@@ -2,7 +2,8 @@
 
 > 문서 목적: ClueRoom 프로젝트의 인프라 구성, 선택 이유, 운영 범위, 확장 계획, PoC 계획을 별도 정본으로 관리한다.
 > 기존 기획명 `CaseLab AI`는 레거시 명칭이며, 현재 서비스/도메인 기준 이름은 `ClueRoom`이다.
-> MVP 이후 상세 고도화 순서는 `docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md`를 기준으로 한다.
+> MVP 이후 상세 고도화 순서와 scale-out PoC는 이 문서 하단의 통합 로드맵을 기준으로 한다.
+> 보안/트래픽/알림 정책은 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`, 운영 명령어는 `docs/infra/OPS_RUNBOOK.md`를 기준으로 한다.
 > Monitoring Agent, Infra Codex Agent, LLMOps Agent 운영 기준은 `docs/infra/agent/` 아래 문서를 기준으로 한다.
 
 ---
@@ -12,10 +13,12 @@
 ### 1.0 고도화 문서 기준
 
 현재 문서는 인프라 선택 이유와 운영 구조의 정본이다.
-MVP 이후 세부 고도화 순서와 Agent/LLMOps 계획은 아래 문서로 분리한다.
+MVP 이후 세부 고도화 순서와 PoC 계획은 이 문서 하단으로 흡수했다.
+보안/트래픽/알림 정책과 운영 절차, Agent/LLMOps 계획은 아래 문서로 분리한다.
 
 ```text
-docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md
+docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md
+docs/infra/OPS_RUNBOOK.md
 docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md
 docs/infra/agent/OPS_SNAPSHOT_SPEC.md
 docs/infra/agent/MONITORING_AGENT_PLAN.md
@@ -35,9 +38,8 @@ docs/infra/agent/LLMOPS_AGENT_PLAN.md
 - scale-out PoC
 ```
 
-Rate Limit의 상세 정책과 적용 순서는 `docs/infra/RATE_LIMIT_POLICY.md`를 따른다.
-Grafana/Prometheus alert와 Slack 알림 설계는 `docs/infra/GRAFANA_ALERT_POLICY.md`를 따른다.
-Scale-out PoC의 단계별 구조와 cleanup 기준은 `docs/infra/SCALE_OUT_POC_PLAN.md`를 따른다.
+Rate Limit, GeoIP/Bot traffic, Grafana/Prometheus alert, Slack 알림 설계는 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 따른다.
+Scale-out PoC의 단계별 구조와 cleanup 기준은 이 문서의 `Scale-Out PoC 정본` 절을 따른다.
 
 ### 1.1 실제 운영 MVP
 
@@ -97,7 +99,7 @@ Firebase Cloud Messaging
 
 위 항목은 현재 트래픽과 비용을 고려하면 과설계로 판단한다.
 다만 학습/검증 목적의 PoC로는 별도 구성할 수 있다.
-운영 전환이 아닌 PoC 계획은 `docs/infra/SCALE_OUT_POC_PLAN.md`에서 별도로 관리한다.
+운영 전환이 아닌 PoC 계획은 이 문서의 `Scale-Out PoC 정본` 절에서 관리한다.
 
 ---
 
@@ -1127,3 +1129,310 @@ Nginx를 Reverse Proxy로 사용해 HTTPS와 내부 Blue-Green upstream(app-blue
 
 또한 현재 단일 서버 Blue-Green으로 배포 전환과 rollback 절차를 검증하고, 별도 PoC 환경에서는 Nginx 수동 로드밸런싱과 멀티 인스턴스 확장 가능성을 검증할 수 있다.
 ```
+
+---
+
+## 13. 통합 인프라 고도화 로드맵
+
+이 절은 기존 `CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md`의 단계 계획을 흡수한 것이다.
+운영 명령은 `OPS_RUNBOOK.md`, 보안/트래픽/알림 정책은 `SECURITY_TRAFFIC_ALERT_POLICY.md`를 따른다.
+
+### Phase 0. Frontend E2E Connection Stability
+
+목표:
+
+```text
+- Android가 실제 운영 API와 안정적으로 연결된다.
+- 이미지 URL, active session 복구, timeline, evidence/suspect detail이 더미 없이 동작한다.
+- PR/문서상 미구현 API를 프론트가 호출하지 않는다.
+```
+
+### Phase 1. Security And Traffic Defense
+
+목표:
+
+```text
+- public ingress는 Nginx로 제한한다.
+- secret은 팀원별 제한 계정/ACL로 관리한다.
+- rate limit은 observe -> dry-run -> enforce 순서로만 진행한다.
+- GeoIP/bot blocking은 증거와 rollback 기준 없이 적용하지 않는다.
+```
+
+정본:
+
+```text
+docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md
+docs/infra/OPS_RUNBOOK.md
+```
+
+### Phase 2. Monitoring / Alert
+
+목표:
+
+```text
+- external health, active upstream, 5xx, latency, JVM metric 중심으로 본다.
+- standby Blue-Green target down은 단독 CRITICAL로 보지 않는다.
+- host/DB/Redis alert는 exporter/health bridge가 준비되기 전까지 수동 점검 또는 warning으로 둔다.
+```
+
+### Phase 3. LLMOps
+
+목표:
+
+```text
+- AI_CALL / AI_CALL_CONTEXT 로그로 provider, model, latency, token, fallback, prompt block estimate를 본다.
+- prompt/answer/user question 원문은 운영 로그에 저장하지 않는다.
+- Loki/Prometheus 기반 smoke를 먼저 사용하고, DB persistence는 필요 시 flag로 켠다.
+```
+
+### Phase 4. Agent Introduction
+
+목표:
+
+```text
+- agent는 read-only diagnosis부터 시작한다.
+- 운영 변경은 승인 정책과 rollback을 먼저 둔다.
+- snapshot에는 secret과 raw env를 넣지 않는다.
+```
+
+정본:
+
+```text
+docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md
+docs/infra/agent/LLMOPS_AGENT_PLAN.md
+```
+
+### Phase 5. Backup / Restore Hardening
+
+목표:
+
+```text
+- backup script와 restore rehearsal 절차를 운영 문서화한다.
+- S3 backup storage는 private bucket, encryption, lifecycle, least-privilege IAM을 기준으로 한다.
+- 운영 restore는 rehearsal 성공 후에만 진행한다.
+```
+
+### Phase 6. Scale-Out PoC / Server-Level Blue-Green
+
+목표:
+
+```text
+- 현재 운영에 바로 적용하지 않고 PoC로 검증한다.
+- app은 stateless여야 한다.
+- DB/Redis는 shared external data source여야 한다.
+- S3를 파일 저장소로 사용한다.
+- app server 2대 이상일 때 lock/session/cache는 local memory에 두지 않는다.
+```
+
+### Phase 7. Registry / Commit SHA / DB Migration
+
+목표:
+
+```text
+- image tag 또는 commit SHA 기반 배포 추적을 강화한다.
+- DB migration은 expand-and-contract 원칙을 따른다.
+- 파괴적 migration은 마지막 단계에서만 수행한다.
+```
+
+### Do Not Do
+
+```text
+- 단일 MVP 서버에 n8n, Loki, exporters, workers, rate-limit enforcement를 한 번에 추가하지 않는다.
+- standby Blue-Green target down을 바로 장애로 단정하지 않는다.
+- rate limit enforcement를 dry-run 없이 켜지 않는다.
+- DB/Redis 분리 전 app 서버만 무작정 늘리지 않는다.
+- private seed, DB dump, secret snapshot을 public 문서나 PR에 올리지 않는다.
+```
+
+---
+
+## 14. Scale-Out PoC 정본
+
+이 절은 기존 `SCALE_OUT_POC_PLAN.md`의 핵심 내용을 흡수한 것이다.
+PoC는 운영 적용이 아니라 학습/검증/인증샷 목적이다.
+
+### PoC Rules
+
+```text
+- production traffic과 분리한다.
+- poc-api.clueroom.xyz 같은 별도 도메인을 사용한다.
+- PoC 종료 후 서버와 Static IP를 정리한다.
+- secret은 production 값을 그대로 복사하지 않는다.
+- 데이터는 익명/샘플 데이터를 사용한다.
+```
+
+### Immediate LLMOps Path
+
+Scale-out 전에 LLMOps는 별도 DB migration보다 구조화 로그와 Prometheus/Loki smoke를 먼저 사용한다.
+
+```text
+AI call -> app log AI_CALL / AI_CALL_CONTEXT -> Alloy/Loki -> query/smoke
+```
+
+DB persistence가 필요하면 feature flag로 켜고, 운영 DB 부하와 privacy를 먼저 검토한다.
+
+### Required Application Conditions
+
+Scale-out PoC 전에 애플리케이션은 아래 조건을 만족해야 한다.
+
+```text
+- app instance가 stateless
+- file/image storage가 S3
+- DB/Redis가 app local container에 묶이지 않음
+- session state가 DB/Redis/JWT 등 공유 가능한 저장소 기준
+- lock이 local memory가 아닌 Redis/DB 등 공유 저장소 기준
+- actuator health가 instance별로 확인 가능
+```
+
+### PoC 1. Two-Server Role Separation
+
+목적:
+
+```text
+app server와 data server 분리를 검증한다.
+```
+
+구조:
+
+```text
+app server
+  - Nginx
+  - app-blue/app-green
+
+data server
+  - MySQL
+  - Redis
+```
+
+현재 external-data cutover 구조가 이 PoC의 운영 baseline에 가깝다.
+
+### PoC 2. Manual Nginx Load Balancing
+
+목적:
+
+```text
+Nginx upstream으로 app-01/app-02를 수동 분산하고 한쪽 중지 시 다른 쪽이 응답하는지 확인한다.
+```
+
+구조:
+
+```text
+lb server
+  -> app-01
+  -> app-02
+  -> shared DB/Redis
+```
+
+### PoC 3. Server-Level Blue-Green
+
+목적:
+
+```text
+서버 단위 blue/green 전환을 검증한다.
+```
+
+구조:
+
+```text
+blue app group
+green app group
+shared data server
+Nginx upstream switch
+```
+
+### Shared Data And State
+
+공유되어야 하는 것:
+
+```text
+MySQL
+Redis
+S3
+secret distribution policy
+AI provider config
+monitoring/logging path
+```
+
+공유하면 안 되는 것:
+
+```text
+container local filesystem uploads
+local in-memory lock
+local-only session state
+manual DB dump copy as live sync
+```
+
+### Verification Checklist
+
+```text
+- app-01/app-02 health가 각각 200인지
+- 한 app을 중지해도 LB health가 유지되는지
+- DB write 후 다른 app에서 read 가능한지
+- Redis lock/cache가 공유되는지
+- S3 image URL이 양쪽 app에서 동일하게 동작하는지
+- AI call log와 fallback metric이 instance label로 구분되는지
+- rollback route가 있는지
+```
+
+---
+
+## 15. Backup / Restore Strategy
+
+이 절은 기존 `MYSQL_BACKUP_AND_RESTORE_POLICY.md`의 정책 내용을 흡수한 것이다.
+실행 명령은 `OPS_RUNBOOK.md`의 MySQL 백업/복구 장을 따른다.
+
+### Current Baseline
+
+```text
+- 운영 DB는 MySQL이다.
+- backup-mysql.sh는 로컬 gzip 백업과 보존 정책을 수행한다.
+- external data server가 source of truth다.
+- prod local MySQL은 rollback/local-data copy 용도다.
+```
+
+### S3 Backup Principles
+
+S3 백업 저장소는 아래 원칙을 따른다.
+
+```text
+- private bucket
+- public access block
+- encryption enabled
+- least-privilege IAM
+- lifecycle/retention policy
+- checksum or object metadata for integrity check
+- restore rehearsal before production restore
+```
+
+S3 object layout 후보:
+
+```text
+s3://{private-backup-bucket}/mysql/clueroom/prod/YYYY/MM/DD/startup_YYYYMMDD_HHMMSS.sql.gz
+s3://{private-backup-bucket}/mysql/clueroom/prod/YYYY/MM/DD/startup_YYYYMMDD_HHMMSS.sql.gz.sha256
+```
+
+### Retention Candidate
+
+```text
+local: 7 days
+S3 daily: 30 days
+S3 weekly: 12 weeks
+S3 monthly: 12 months
+```
+
+Retention은 비용과 개인정보 보존 정책을 함께 보고 조정한다.
+
+### Restore Guardrails
+
+```text
+- 운영 restore 전 현재 DB를 다시 백업한다.
+- 임시 MySQL 컨테이너 또는 rehearsal host에서 import를 먼저 검증한다.
+- secret 값을 로그/문서에 남기지 않는다.
+- production restore는 담당자 승인 후 수행한다.
+- restore 후 actuator health, 핵심 API, smoke를 확인한다.
+```
+
+### Terraform Provisioning
+
+S3 backup bucket과 IAM은 Terraform으로 관리하는 방향을 우선한다.
+단, Terraform state에는 secret 값을 넣지 않는다.

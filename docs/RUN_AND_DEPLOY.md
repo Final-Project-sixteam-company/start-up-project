@@ -3,7 +3,7 @@
 > 문서 목적: 로컬 실행, Docker Compose 실행, Android 연결, 운영 서버 배포 명령, 문제 해결을 간단히 정리한다.
 > 상세 운영 명령어, Blue-Green rollback, 장애 대응은 `infra/OPS_RUNBOOK.md`를 기준으로 한다.
 > 인프라 선택 이유, 확장 계획, PoC 계획, ADR 후보는 별도 문서 `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`에서 관리한다.
-> 운영 Agent / Monitoring / LLMOps / 고도화 로드맵은 `infra/agent/`와 `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md`를 참고한다.
+> 보안/트래픽/알림 정책은 `infra/SECURITY_TRAFFIC_ALERT_POLICY.md`, 운영 Agent / Monitoring / LLMOps 기준은 `infra/agent/`를 참고한다.
 
 ---
 
@@ -933,6 +933,7 @@ docker image prune
 |---|---|
 | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 확장 계획, PoC 계획, ADR 후보 |
 | `infra/OPS_RUNBOOK.md` | 운영 상태 확인, Blue-Green rollback, 백업, 장애 대응 |
+| `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | Rate limit, GeoIP/Bot traffic, Grafana alert 정책 |
 | `infra/CLUEROOM_SECRET_INPUT_GUIDE.md` | 운영 secret 입력/ACL/검증 절차 |
 | `CaseLab_AI_PRD.md` | 제품 범위, MVP 우선순위 |
 | `CaseLab_AI_API_Spec.md` | API Request/Response |

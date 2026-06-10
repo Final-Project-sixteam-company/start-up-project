@@ -135,13 +135,13 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
-| `docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 현재 구조/고도화 방향/단계 계획이 겹친다. |
-| `docs/infra/SCALE_OUT_POC_PLAN.md` | `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | scale-out은 전략 문서의 future plan 섹션으로 흡수한다. |
-| `docs/infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | `docs/infra/OPS_RUNBOOK.md` + `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 실행 절차는 runbook, 정책/보존 원칙은 strategy에 둔다. |
-| `docs/infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | `docs/infra/OPS_RUNBOOK.md` | dry-run은 운영 절차다. 별도 문서보다 runbook 섹션이 맞다. |
-| `docs/infra/RATE_LIMIT_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 정책 문서군으로 통합한다. |
-| `docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 트래픽 방어 정책으로 통합한다. |
-| `docs/infra/GRAFANA_ALERT_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 알림 기준도 운영 정책군으로 묶는다. |
+| `docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 흡수 완료. 현재 구조/고도화 방향/단계 계획이 겹친다. |
+| `docs/infra/SCALE_OUT_POC_PLAN.md` | `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 흡수 완료. scale-out은 전략 문서의 future plan 섹션이 맞다. |
+| `docs/infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | `docs/infra/OPS_RUNBOOK.md` + `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 흡수 완료. 실행 절차는 runbook, 정책/보존 원칙은 strategy에 둔다. |
+| `docs/infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | `docs/infra/OPS_RUNBOOK.md` | 흡수 완료. dry-run은 운영 절차다. 별도 문서보다 runbook 섹션이 맞다. |
+| `docs/infra/RATE_LIMIT_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 흡수 완료. 정책 문서군으로 통합한다. |
+| `docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 흡수 완료. 트래픽 방어 정책으로 통합한다. |
+| `docs/infra/GRAFANA_ALERT_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 흡수 완료. 알림 기준도 운영 정책군으로 묶는다. |
 | `docs/infra/CLUEROOM_SECRET_INPUT_GUIDE.md` | 유지 | 작고 보안 민감한 팀원 handoff 문서라 당장 합치지 않는다. 필요 시 OPS_RUNBOOK의 secret 섹션에서 링크한다. |
 
 흡수 전 정정할 drift:
@@ -282,12 +282,19 @@ API 필드 확인은 API Spec, 화면 구현 순서는 frontend guide로 역할�
 - roadmap + scale-out 계획을 infrastructure strategy에 흡수
 - rate limit dry-run과 backup/restore 실행 절차를 OPS_RUNBOOK에 흡수
 - GeoIP/rate limit/Grafana alert 정책을 SECURITY_TRAFFIC_ALERT_POLICY로 통합
+- 기존 세부 문서는 삭제하지 않고 redirect 문서로 전환
 ```
 
 완료 기준:
 
 ```text
 운영자가 명령어가 필요하면 OPS_RUNBOOK, 설계 판단이 필요하면 STRATEGY, 정책 기준이 필요하면 SECURITY_TRAFFIC_ALERT_POLICY를 보면 된다.
+```
+
+상태:
+
+```text
+완료. redirect 문서는 최종 링크 정리 이후 제거 후보로만 남긴다.
 ```
 
 ### Phase 6. Agent/LLMOps 문서 흡수

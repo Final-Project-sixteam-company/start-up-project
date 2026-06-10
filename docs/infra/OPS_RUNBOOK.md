@@ -60,7 +60,7 @@ https://api.clueroom.xyz/actuator/health
 /opt/clueroom/backups/mysql
 → MySQL 백업 파일 저장 위치
 
-MySQL 백업 S3 업로드와 복구 리허설 정책은 `docs/infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md`를 따른다.
+MySQL 백업 S3 업로드와 복구 리허설 정책은 `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`의 backup strategy를 따르고, 실행 절차는 이 runbook의 백업/복구 절을 기준으로 한다.
 
 /opt/clueroom/backups/env
 → .env 백업 파일 이동 위치
@@ -226,11 +226,11 @@ X-ClueRoom-Upstream: 127.0.0.1:8082
 ```
 
 외부에서 허용되는 actuator endpoint는 health check뿐이다.
-Rate Limit 정책은 `docs/infra/RATE_LIMIT_POLICY.md`를 기준으로 설계한다.
-실제 차단 전 관찰 절차는 `docs/infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md`를 따른다.
+Rate Limit 정책은 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 기준으로 설계한다.
+실제 차단 전 관찰 절차는 이 runbook의 `Nginx Rate Limit Dry-run` 절을 따른다.
 프론트 E2E QA가 완료되기 전까지 운영 Nginx에 실제 `429` 차단을 적용하지 않는다.
-Grafana Alert 정책은 `docs/infra/GRAFANA_ALERT_POLICY.md`를 기준으로 설계하며, Slack 알림 실제 연동은 별도 INFRA-09 작업에서 진행한다.
-해외 봇성 트래픽과 국가 기반 차단 PoC는 `docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md`를 기준으로 조사하며, 운영 `api.clueroom.xyz`에 즉시 광역 국가 차단을 적용하지 않는다.
+Grafana Alert 정책은 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 기준으로 설계하며, Slack 알림 실제 연동은 별도 INFRA-09 작업에서 진행한다.
+해외 봇성 트래픽과 국가 기반 차단 PoC는 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 기준으로 조사하며, 운영 `api.clueroom.xyz`에 즉시 광역 국가 차단을 적용하지 않는다.
 
 ```bash
 curl -I https://api.clueroom.xyz/actuator/health
@@ -1106,6 +1106,9 @@ http://localhost:9090
 
 ## 16. MySQL 백업
 
+백업 정책과 S3 보관 원칙은 `CLUEROOM_INFRASTRUCTURE_STRATEGY.md`의 backup/restore 전략을 따른다.
+이 Runbook은 운영자가 실행할 명령어만 관리한다.
+
 ### 수동 백업
 
 ```bash
@@ -1119,6 +1122,9 @@ ls -lh /opt/clueroom/backups/mysql
 ```
 
 ### 백업 로그 확인
+
+현재 `backup-mysql.sh` 자체는 로그 파일을 직접 생성하지 않는다.
+아래 로그는 cron redirect를 설정한 경우에만 존재한다.
 
 ```bash
 tail -f /opt/clueroom/logs/mysql-backup.log
@@ -1142,6 +1148,7 @@ crontab -l
 
 > 복구는 DB를 덮어쓸 수 있으므로 반드시 신중하게 실행한다.
 > 복구 전 현재 DB를 한 번 더 백업하는 것을 권장한다.
+> 운영 DB 직접 복구 전에 rehearsal host 또는 임시 MySQL 컨테이너에서 복구 검증을 먼저 수행한다.
 
 ### 복구 전 백업
 
@@ -1167,9 +1174,144 @@ gunzip -c /opt/clueroom/backups/mysql/startup_20260523_030000.sql.gz | \
   docker compose exec -T -e MYSQL_PWD="$DB_PASSWORD" mysql mysql -uroot
 ```
 
+### 복구 rehearsal 절차
+
+운영 DB를 덮어쓰기 전에 임시 MySQL 컨테이너에서 백업 파일이 복구 가능한지 검증한다.
+
+```bash
+BACKUP=/opt/clueroom/backups/mysql/백업파일명.sql.gz
+test -f "$BACKUP"
+```
+
+```bash
+docker run -d --name clueroom-restore-check \
+  -e MYSQL_ROOT_PASSWORD=restorecheck \
+  -e MYSQL_DATABASE=startup \
+  mysql:8
+```
+
+```bash
+sleep 20
+gunzip -c "$BACKUP" | \
+  docker exec -i clueroom-restore-check \
+  mysql -uroot -prestorecheck startup
+```
+
+```bash
+docker exec -i clueroom-restore-check \
+  mysql -uroot -prestorecheck -e "SHOW TABLES;" startup
+```
+
+검증 후 정리:
+
+```bash
+docker rm -f clueroom-restore-check
+```
+
+복구 rehearsal에서 확인할 것:
+
+```text
+- gzip 파일이 정상 해제되는가?
+- SQL import가 중간에 실패하지 않는가?
+- 주요 테이블이 존재하는가?
+- 운영 DB에 직접 넣기 전에 백업 파일 경로가 맞는가?
+```
+
 ---
 
-## 18. Git 상태 확인
+## 18. Nginx Rate Limit Dry-run
+
+정책 기준은 `SECURITY_TRAFFIC_ALERT_POLICY.md`를 따른다.
+운영 기본 원칙은 observe first, dry-run first다.
+enforcement는 dry-run hit sample과 Android/API smoke를 확인한 뒤 별도 승인으로 진행한다.
+
+### Pre-check
+
+```bash
+ssh clueroom
+sudo nginx -t
+curl -I https://api.clueroom.xyz/actuator/health
+```
+
+현재 active upstream도 확인한다.
+
+```bash
+/opt/clueroom/bg-status.sh
+cat /etc/nginx/conf.d/clueroom-upstream.conf
+```
+
+### 현재 Nginx 설정 백업
+
+```bash
+sudo cp /etc/nginx/sites-available/clueroom-api \
+  /etc/nginx/sites-available/clueroom-api.$(date +%Y%m%d_%H%M%S).bak
+```
+
+### Dry-run zone 예시
+
+```nginx
+# /etc/nginx/conf.d/clueroom-rate-limit-zones.conf
+limit_req_zone $binary_remote_addr zone=clueroom_general:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=clueroom_ai:10m rate=1r/s;
+```
+
+### Dry-run snippet 예시
+
+```nginx
+# /etc/nginx/snippets/clueroom-rate-limit-dry-run.conf
+limit_req_dry_run on;
+limit_req_status 429;
+```
+
+location별 적용 예시는 운영 Nginx 구조에 맞춰 최소 범위부터 넣는다.
+AI cost endpoint는 일반 API보다 낮은 threshold를 사용한다.
+
+### 적용
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### Smoke
+
+```bash
+curl -I https://api.clueroom.xyz/actuator/health
+curl -I https://api.clueroom.xyz/swagger-ui.html
+curl -s https://api.clueroom.xyz/api/scenarios | head
+```
+
+Android E2E 또는 최소 플레이 플로우 smoke도 확인한다.
+
+### Dry-run 로그 확인
+
+```bash
+sudo tail -n 200 /var/log/nginx/error.log
+sudo tail -n 200 /var/log/nginx/access.log
+```
+
+확인할 것:
+
+```text
+- 정상 앱 요청이 과도하게 dry-run hit로 잡히지 않는가?
+- health/swagger/preflight가 깨지지 않는가?
+- AI endpoint burst가 dry-run에 잡히는가?
+- 429가 실제로 반환되지 않는가?
+```
+
+### Rollback
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+문제가 있으면 백업한 site config로 되돌리고 reload한다.
+enforcement를 켠 상태였다면 즉시 dry-run 또는 설정 제거로 되돌린다.
+
+---
+
+## 19. Git 상태 확인
 
 ### 서버 레포 상태 확인
 
@@ -1208,7 +1350,7 @@ git clean -fdx
 
 ---
 
-## 19. 자주 생기는 문제와 대응
+## 20. 자주 생기는 문제와 대응
 
 ### 문제 1. Swagger가 열리지 않음
 
@@ -1517,7 +1659,7 @@ curl -I https://api.clueroom.xyz/actuator/health
 
 ---
 
-## 20. 장애 발생 시 기본 확인 순서
+## 21. 장애 발생 시 기본 확인 순서
 
 장애가 나면 아래 순서로 확인한다.
 
@@ -1599,7 +1741,7 @@ docker compose logs --tail=100 redis
 
 ---
 
-## 21. 운영 중 변경 전 체크리스트
+## 22. 운영 중 변경 전 체크리스트
 
 배포 또는 설정 변경 전에 확인한다.
 
@@ -1620,7 +1762,7 @@ DB 변경이 있거나 위험한 작업 전에는 백업한다.
 
 ---
 
-## 22. AI 에이전트에게 맡길 때 주의사항
+## 23. AI 에이전트에게 맡길 때 주의사항
 
 AI 에이전트가 인프라 명령어를 제안하거나 실행하게 할 때는 아래 원칙을 지킨다.
 
@@ -1637,7 +1779,7 @@ AI 에이전트가 인프라 명령어를 제안하거나 실행하게 할 때�
 
 ---
 
-## 23. 빠른 명령어 요약
+## 24. 빠른 명령어 요약
 
 ### Health
 

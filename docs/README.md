@@ -59,16 +59,17 @@
 | 문서 | 정본 범위 | 비고 |
 |---|---|---|
 | `RUN_AND_DEPLOY.md` | 로컬 실행, Docker, Android 연결, 배포 요약 | 상세 운영 명령은 runbook으로 링크한다. |
-| `infra/OPS_RUNBOOK.md` | 운영 명령어, Blue-Green, 장애 대응, 백업/복구 실행 절차 | 여러 runbook 흡수 대상이다. |
-| `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 현재 구조, 확장 방향 | roadmap/scale-out 계획 흡수 대상이다. |
+| `infra/OPS_RUNBOOK.md` | 운영 명령어, Blue-Green, 장애 대응, 백업/복구, rate limit dry-run 실행 절차 | 운영 절차 정본이다. |
+| `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 현재 구조, 확장 방향, roadmap, scale-out PoC, backup strategy | 인프라 전략 정본이다. |
+| `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | rate limit, GeoIP/bot traffic, Grafana alert 정책 | 보안/트래픽/알림 정책 정본이다. |
 | `infra/CLUEROOM_SECRET_INPUT_GUIDE.md` | 팀원 secret 입력 절차 | 민감 주제라 당장 유지한다. |
-| `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | 인프라 고도화 단계 | strategy로 흡수 예정이다. |
-| `infra/SCALE_OUT_POC_PLAN.md` | scale-out PoC 계획 | strategy로 흡수 예정이다. |
-| `infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | 백업/복구 정책 | 실행 절차는 runbook, 정책은 strategy로 흡수 예정이다. |
-| `infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | rate limit dry-run 실행 절차 | OPS_RUNBOOK으로 흡수 예정이다. |
-| `infra/RATE_LIMIT_POLICY.md` | rate limit 정책 | traffic/security 정책 문서로 흡수 예정이다. |
-| `infra/GEOIP_BOT_TRAFFIC_POLICY.md` | GeoIP/Bot traffic 정책 | traffic/security 정책 문서로 흡수 예정이다. |
-| `infra/GRAFANA_ALERT_POLICY.md` | Grafana alert 정책 | traffic/security 정책 문서로 흡수 예정이다. |
+| `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | 인프라 고도화 단계 | strategy로 흡수 완료. redirect 문서. |
+| `infra/SCALE_OUT_POC_PLAN.md` | scale-out PoC 계획 | strategy로 흡수 완료. redirect 문서. |
+| `infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | 백업/복구 정책 | strategy/runbook으로 흡수 완료. redirect 문서. |
+| `infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | rate limit dry-run 실행 절차 | OPS_RUNBOOK/traffic policy로 흡수 완료. redirect 문서. |
+| `infra/RATE_LIMIT_POLICY.md` | rate limit 정책 | SECURITY_TRAFFIC_ALERT_POLICY로 흡수 완료. redirect 문서. |
+| `infra/GEOIP_BOT_TRAFFIC_POLICY.md` | GeoIP/Bot traffic 정책 | SECURITY_TRAFFIC_ALERT_POLICY로 흡수 완료. redirect 문서. |
+| `infra/GRAFANA_ALERT_POLICY.md` | Grafana alert 정책 | SECURITY_TRAFFIC_ALERT_POLICY로 흡수 완료. redirect 문서. |
 
 ### Agent / LLMOps
 
@@ -99,13 +100,13 @@
 | `ANDROID_SCREEN_API_MAPPING.md` | `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `QA_HANDOFF.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `scenarios/README.md` | `scenarios/SCENARIO_YAML_SCHEMA.md`, `README.md` |
-| `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` |
-| `infra/SCALE_OUT_POC_PLAN.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` |
-| `infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | `infra/OPS_RUNBOOK.md`, `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` |
-| `infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | `infra/OPS_RUNBOOK.md` |
-| `infra/RATE_LIMIT_POLICY.md` | security/traffic 정책 통합 문서 |
-| `infra/GEOIP_BOT_TRAFFIC_POLICY.md` | security/traffic 정책 통합 문서 |
-| `infra/GRAFANA_ALERT_POLICY.md` | security/traffic 정책 통합 문서 |
+| `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/SCALE_OUT_POC_PLAN.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | `infra/OPS_RUNBOOK.md`, `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | `infra/OPS_RUNBOOK.md`, `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/RATE_LIMIT_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/GEOIP_BOT_TRAFFIC_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/GRAFANA_ALERT_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` |
 | `infra/agent/OPS_SNAPSHOT_SPEC.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` |
 | `infra/agent/MONITORING_AGENT_PLAN.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` |
