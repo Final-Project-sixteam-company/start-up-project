@@ -1163,9 +1163,28 @@ crontab -l | grep -E 'backup-mysql|upload-mysql-backup-s3|data-health|s3-backup-
 ### external-data 운영 DB 수동 백업
 
 운영 source of truth를 백업할 때 사용한다.
-아래 명령은 `.env`의 `APP_DB_HOST`/`APP_DB_PORT`를 우선 사용하고, 없으면 `DB_HOST`/`DB_PORT`를 fallback으로 사용한다.
-`mysqldump` client가 설치된 운영 서버 또는 data server에서 실행한다.
-운영 서버에 MySQL client가 없다면 data server에서 같은 환경변수를 기준으로 실행하거나, 별도 백업 스크립트에 client 컨테이너 실행 방식을 명시한다.
+기본 실행 위치는 data server다.
+prod app 서버의 `/opt/clueroom/app` 경로와 `/opt/clueroom/backup-mysql.sh`는 local-data/rollback copy용이므로 source-of-truth 백업 절차의 기본 경로로 쓰지 않는다.
+
+권장: data server에서 직접 실행한다.
+
+```bash
+ssh clueroom-data
+set -euo pipefail
+
+/opt/clueroom-data/backup-mysql.sh
+
+DATE_PATH="$(date +%Y/%m/%d)"
+BACKUP_FILE="$(ls -t /opt/clueroom-data/backups/mysql/*.sql.gz | head -n 1)"
+test -s "$BACKUP_FILE"
+gzip -t "$BACKUP_FILE"
+sha256sum "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
+ls -lh "$BACKUP_FILE" "$BACKUP_FILE.sha256"
+```
+
+대안: `mysqldump` client가 설치된 app/ops host에서 data server를 원격 dump한다.
+이 경로는 app host에 MySQL client가 없으면 사용할 수 없다.
+아래 명령은 prod app `.env`의 `APP_DB_HOST`/`APP_DB_PORT`를 우선 사용하고, 없으면 `DB_HOST`/`DB_PORT`를 fallback으로 사용한다.
 
 ```bash
 cd /opt/clueroom/app
@@ -1184,7 +1203,7 @@ test -n "${DB_PASSWORD:-}"
 
 TS="$(date +%Y%m%d_%H%M%S)"
 DATE_PATH="$(date +%Y/%m/%d)"
-BACKUP_DIR="/opt/clueroom/backups/mysql"
+BACKUP_DIR="/opt/clueroom/backups/mysql/external"
 BACKUP_FILE="${BACKUP_DIR}/${TARGET_DB_NAME}_external_${TS}.sql.gz"
 
 mkdir -p "$BACKUP_DIR"
@@ -1273,6 +1292,15 @@ external-data 운영 백업 cron 예시:
 external-data 운영 source of truth 백업으로 사용하지 않는다.
 
 ### 백업 파일 확인
+
+external-data source of truth 백업 파일은 data server에서 확인한다.
+
+```bash
+ssh clueroom-data
+ls -lh /opt/clueroom-data/backups/mysql
+```
+
+local-data / rollback copy 백업 파일은 prod app 서버에서만 아래 경로로 확인한다.
 
 ```bash
 ls -lh /opt/clueroom/backups/mysql
