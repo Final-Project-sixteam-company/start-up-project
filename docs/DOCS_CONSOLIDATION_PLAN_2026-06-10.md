@@ -158,12 +158,12 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
-| `docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | Codex 실행 위치/허용 작업/금지 작업은 agent 운영 가이드의 하위 섹션이 맞다. |
-| `docs/infra/agent/OPS_SNAPSHOT_SPEC.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | snapshot spec은 agent 입력/출력 계약으로 흡수 가능하다. 너무 길면 appendix로 둔다. |
-| `docs/infra/agent/MONITORING_AGENT_PLAN.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` 또는 `OPS_RUNBOOK.md` | 현행 운영 상태와 맞춰 agent 운영 원칙/모니터링 절차로 나눈다. |
-| `docs/infra/agent/LLMOPS_AGENT_PLAN.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | LLMOps 관련 문서군의 정본으로 합친다. |
-| `docs/infra/agent/LLMOPS_PROMQL_QUERIES.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | 쿼리 후보는 LLMOps 운영 가이드 appendix로 둔다. |
-| `docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | smoke 절차는 LLMOps 운영 가이드의 실행 섹션으로 둔다. |
+| `docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 흡수 완료. Codex 실행 위치/허용 작업/금지 작업은 agent 운영 가이드의 하위 섹션이 맞다. |
+| `docs/infra/agent/OPS_SNAPSHOT_SPEC.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 흡수 완료. snapshot spec은 agent 입력/출력 계약으로 둔다. |
+| `docs/infra/agent/MONITORING_AGENT_PLAN.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 흡수 완료. 현행 운영 상태와 맞춰 agent 운영 원칙/모니터링 절차로 둔다. |
+| `docs/infra/agent/LLMOPS_AGENT_PLAN.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | 흡수 완료. LLMOps 관련 문서군의 정본으로 합친다. |
+| `docs/infra/agent/LLMOPS_PROMQL_QUERIES.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | 흡수 완료. 쿼리 후보는 LLMOps 운영 가이드 appendix로 둔다. |
+| `docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | 흡수 완료. smoke 절차는 LLMOps 운영 가이드의 실행 섹션으로 둔다. |
 
 ### 4.5 시나리오 문서 정리
 
@@ -304,12 +304,19 @@ API 필드 확인은 API Spec, 화면 구현 순서는 frontend guide로 역할�
 ```text
 - INFRA_CODEX_AGENT_PLAYBOOK + OPS_SNAPSHOT_SPEC + MONITORING_AGENT_PLAN을 INFRA_AGENT_OPERATING_GUIDE에 흡수
 - LLMOPS_AGENT_PLAN + LLMOPS_PROMQL_QUERIES + LLMOPS_SMOKE_RUNBOOK을 LLMOPS_OPERATING_GUIDE로 통합
+- 기존 세부 문서는 삭제하지 않고 redirect 문서로 전환
 ```
 
 완료 기준:
 
 ```text
 agent 운영 문서와 LLMOps 운영 문서가 각각 하나의 진입점만 가져야 한다.
+```
+
+상태:
+
+```text
+완료. redirect 문서는 최종 링크 정리 이후 제거 후보로만 남긴다.
 ```
 
 ### Phase 7. 링크/참조 정리

@@ -20,10 +20,7 @@ MVP 이후 세부 고도화 순서와 PoC 계획은 이 문서 하단으로 흡�
 docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md
 docs/infra/OPS_RUNBOOK.md
 docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md
-docs/infra/agent/OPS_SNAPSHOT_SPEC.md
-docs/infra/agent/MONITORING_AGENT_PLAN.md
-docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md
-docs/infra/agent/LLMOPS_AGENT_PLAN.md
+docs/infra/agent/LLMOPS_OPERATING_GUIDE.md
 ```
 
 주요 고도화 항목:
@@ -1199,7 +1196,7 @@ docs/infra/OPS_RUNBOOK.md
 
 ```text
 docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md
-docs/infra/agent/LLMOPS_AGENT_PLAN.md
+docs/infra/agent/LLMOPS_OPERATING_GUIDE.md
 ```
 
 ### Phase 5. Backup / Restore Hardening

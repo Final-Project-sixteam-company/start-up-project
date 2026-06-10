@@ -2,7 +2,7 @@
 
 > 목적: ClueRoom 운영 서버를 유지보수하면서 자주 쓰는 명령어, Blue-Green 배포, CD 후 정리 자동화, 롤백, 로그 확인, 백업/복구, 장애 대응 순서를 빠르게 확인하기 위한 운영 메모입니다.
 > 운영 서버 기준 경로는 `/opt/clueroom`입니다.
-> 운영/인프라 Agent에게 서버 상태를 전달할 때는 `docs/infra/agent/OPS_SNAPSHOT_SPEC.md`를 따릅니다.
+> 운영/인프라 Agent에게 서버 상태를 전달할 때는 `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md`의 Ops Snapshot Contract를 따릅니다.
 > Agent 기반 운영 분석과 자동 조치 제안은 `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md`의 승인 정책을 따릅니다.
 
 ---

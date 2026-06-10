@@ -75,13 +75,14 @@
 
 | 문서 | 정본 범위 | 비고 |
 |---|---|---|
-| `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 인프라 agent 권한, 금지 작업, 승인 기준 | agent 문서군 흡수 대상이다. |
-| `infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | Codex agent 실행 위치와 작업 방식 | INFRA_AGENT_OPERATING_GUIDE로 흡수 예정이다. |
-| `infra/agent/OPS_SNAPSHOT_SPEC.md` | 운영 snapshot 입력/출력 형식 | INFRA_AGENT_OPERATING_GUIDE로 흡수 예정이다. |
-| `infra/agent/MONITORING_AGENT_PLAN.md` | monitoring agent 계획 | 현행 Loki/Alloy 상태 반영 후 흡수 예정이다. |
-| `infra/agent/LLMOPS_AGENT_PLAN.md` | LLMOps agent 계획 | LLMOPS_OPERATING_GUIDE로 흡수 예정이다. |
-| `infra/agent/LLMOPS_PROMQL_QUERIES.md` | LLMOps PromQL 후보 | LLMOPS_OPERATING_GUIDE appendix로 흡수 예정이다. |
-| `infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | LLMOps smoke 절차 | LLMOPS_OPERATING_GUIDE로 흡수 예정이다. |
+| `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 인프라 agent 권한, 금지 작업, 승인 기준, Codex playbook, Ops Snapshot, Monitoring Agent 운영 모델 | infra agent 문서군 정본이다. |
+| `infra/agent/LLMOPS_OPERATING_GUIDE.md` | LLMOps 계획, telemetry safety, smoke 절차, PromQL 후보, agent 역할 | LLMOps 문서군 정본이다. |
+| `infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | Codex agent 실행 위치와 작업 방식 | INFRA_AGENT_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
+| `infra/agent/OPS_SNAPSHOT_SPEC.md` | 운영 snapshot 입력/출력 형식 | INFRA_AGENT_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
+| `infra/agent/MONITORING_AGENT_PLAN.md` | monitoring agent 계획 | INFRA_AGENT_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
+| `infra/agent/LLMOPS_AGENT_PLAN.md` | LLMOps agent 계획 | LLMOPS_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
+| `infra/agent/LLMOPS_PROMQL_QUERIES.md` | LLMOps PromQL 후보 | LLMOPS_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
+| `infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | LLMOps smoke 절차 | LLMOPS_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
 
 ### QA / Handoff
 
@@ -107,12 +108,12 @@
 | `infra/RATE_LIMIT_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `infra/GEOIP_BOT_TRAFFIC_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `infra/GRAFANA_ALERT_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` |
-| `infra/agent/OPS_SNAPSHOT_SPEC.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` |
-| `infra/agent/MONITORING_AGENT_PLAN.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` |
-| `infra/agent/LLMOPS_AGENT_PLAN.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` |
-| `infra/agent/LLMOPS_PROMQL_QUERIES.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` |
-| `infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` |
+| `infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/agent/OPS_SNAPSHOT_SPEC.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/agent/MONITORING_AGENT_PLAN.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/agent/LLMOPS_AGENT_PLAN.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/agent/LLMOPS_PROMQL_QUERIES.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 
 ## 4. 공개 범위와 스포일러 기준
 
