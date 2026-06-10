@@ -32,6 +32,7 @@
 | 현재 QA 이슈와 재검증 항목 확인 | `QA_HANDOFF.md` |
 | 공식 데모 시나리오 확인 | `OFFICIAL_SCENARIO_DEMO_DAY.md` |
 | 시나리오 YAML 스키마 확인 | `scenarios/SCENARIO_YAML_SCHEMA.md` |
+| 증거 안내 UX / 추천 질문 설계 확인 | `scenarios/SCENARIO_GUIDANCE_UX_SPEC.md` |
 
 ## 2. 정본 문서 지도
 
@@ -53,6 +54,7 @@
 | `AI_NPC_PROMPT_POLICY.md` | AI 지식 경계, prompt 구조, ResponsePolicy, injection 방어 | 실제 prompt template과 drift 정정 필요. |
 | `OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 데모 시나리오 정본, 채점 기준 | 스포일러 포함 문서다. 공개 범위 주의. |
 | `scenarios/SCENARIO_YAML_SCHEMA.md` | YAML import schema, 공개 범위, private seed 경계, MVP scoring bridge | 시나리오 문서 정본이다. |
+| `scenarios/SCENARIO_GUIDANCE_UX_SPEC.md` | 증거 판독 포인트, 함께 볼 증거, 추천 질문 UX/API 설계 | 아직 구현 정본이 아닌 proposal이다. |
 
 ### 실행 / 운영 / 인프라
 
