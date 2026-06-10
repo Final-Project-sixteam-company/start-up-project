@@ -1,5 +1,6 @@
 package com.startup.domain.play.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.startup.domain.scenario.entity.Evidence;
 import com.startup.domain.scenario.entity.ScenarioLocation;
 import com.startup.domain.scenario.entity.Suspect;
@@ -30,6 +31,7 @@ public record PlayEvidenceDetailResponse(
             List<CompareEvidenceInfo> compareEvidences,
             List<SuggestedQuestionInfo> suggestedQuestions
     ) {}
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public record CompareEvidenceInfo(
             Long evidenceId,
             String evidenceCode,

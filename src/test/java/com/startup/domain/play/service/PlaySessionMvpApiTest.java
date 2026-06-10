@@ -265,6 +265,8 @@ class PlaySessionMvpApiTest {
                         org.assertj.core.groups.Tuple.tuple(unlockedCompare.getId(), true),
                         org.assertj.core.groups.Tuple.tuple(lockedCompare.getId(), false)
                 );
+        assertThat(response.guidance().compareEvidences().getFirst().evidenceCode()).isEqualTo("EVIDENCE_UNLOCKED");
+        assertThat(response.guidance().compareEvidences().get(1).evidenceCode()).isNull();
         assertThat(response.guidance().compareEvidences().get(1).title()).isEqualTo("잠긴 비교 증거");
         assertThat(response.guidance().compareEvidences().get(1).unlockHint()).isNotBlank();
         assertThat(response.guidance().suggestedQuestions()).hasSize(1);

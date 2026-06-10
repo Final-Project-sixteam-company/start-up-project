@@ -102,6 +102,34 @@ class ScenarioYamlLoaderValidatorTest {
     }
 
     @Test
+    void guidanceTextWithPrivateOrSolutionMarker_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "핵심 증거의 시간대를 보조 증거와 비교한다.",
+                "activeVariant 정답 경로를 확인한다."
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "guidance.readingPoints contains blocked private/solution marker: activevariant"));
+        assertThat(violations).anyMatch(message -> message.contains(
+                "guidance.readingPoints contains blocked private/solution marker: 정답"));
+    }
+
+    @Test
+    void guidanceQuestionWithAnswerMarker_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "이 증거가 보조 증거와 다른 이유를 설명할 수 있나요?",
+                "범인을 말해줄 수 있나요?"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "guidance.suggestedQuestions.question contains blocked private/solution marker: 범인"));
+    }
+
+    @Test
     void missingTimelineEvidence_failsValidation() throws IOException {
         String invalidYaml = SAMPLE_YAML.replace(
                 "relatedEvidenceCode: EVIDENCE_KEY",

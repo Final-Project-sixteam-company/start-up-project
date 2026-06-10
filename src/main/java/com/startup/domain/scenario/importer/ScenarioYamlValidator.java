@@ -20,6 +20,24 @@ public class ScenarioYamlValidator {
     private static final Pattern ASSET_KEY_PATTERN = Pattern.compile("^[A-Za-z0-9._/-]+$");
     private static final Pattern LOCAL_PATH_PATTERN = Pattern.compile("^[A-Za-z]:\\\\|.*\\\\.*");
     private static final Set<String> TIMELINE_EVENT_VISIBILITIES = Set.of("PUBLIC");
+    private static final List<String> GUIDANCE_BLOCKED_MARKERS = List.of(
+            "culpritcode",
+            "culprit",
+            "activevariant",
+            "active variant",
+            "variantcode",
+            "variant truth",
+            "variant",
+            "solutiontext",
+            "solution",
+            "proofdimensions",
+            "proofdimension",
+            "backend-only",
+            "private seed",
+            "정답",
+            "범인",
+            "해설 전문"
+    );
 
     public List<String> validate(ScenarioYaml yaml) {
         List<String> violations = new ArrayList<>();
@@ -176,6 +194,9 @@ public class ScenarioYamlValidator {
         for (String readingPoint : listOf(guidance.readingPoints())) {
             if (!hasText(readingPoint)) {
                 violations.add("evidences[" + evidence.code() + "].guidance.readingPoints contains blank item.");
+            } else {
+                validateGuidanceText(readingPoint,
+                        "evidences[" + evidence.code() + "].guidance.readingPoints", violations);
             }
         }
 
@@ -216,6 +237,18 @@ public class ScenarioYamlValidator {
             if (!hasText(question.question())) {
                 violations.add("evidences[" + evidence.code()
                         + "].guidance.suggestedQuestions.question is required.");
+            } else {
+                validateGuidanceText(question.question(),
+                        "evidences[" + evidence.code() + "].guidance.suggestedQuestions.question", violations);
+            }
+        }
+    }
+
+    private void validateGuidanceText(String value, String field, List<String> violations) {
+        String normalized = value.toLowerCase();
+        for (String marker : GUIDANCE_BLOCKED_MARKERS) {
+            if (normalized.contains(marker)) {
+                violations.add(field + " contains blocked private/solution marker: " + marker);
             }
         }
     }

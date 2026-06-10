@@ -440,7 +440,7 @@ public class PlaySessionService {
                             boolean isUnlocked = isEvidenceVisible(compareEvidence, unlockedEvidenceIds);
                             return new PlayEvidenceDetailResponse.CompareEvidenceInfo(
                                     compareEvidence.getId(),
-                                    compareEvidence.getCode(),
+                                    isUnlocked ? compareEvidence.getCode() : null,
                                     compareEvidence.getTitle(),
                                     isUnlocked,
                                     isUnlocked ? null : buildUnlockHint(compareEvidence)

@@ -3,6 +3,7 @@ package com.startup.domain.play.controller;
 import com.startup.common.auth.MockUserProvider;
 import com.startup.domain.play.dto.ActivePlaySessionResponse;
 import com.startup.domain.play.dto.EvidenceUnlockResponse;
+import com.startup.domain.play.dto.PlayEvidenceDetailResponse;
 import com.startup.domain.play.dto.PlayLocationsResponse;
 import com.startup.domain.play.dto.PlaySuspectDetailResponse;
 import com.startup.domain.play.enums.PlaySessionStatus;
@@ -146,6 +147,58 @@ class PlaySessionControllerTest {
                 org.mockito.ArgumentMatchers.eq(100L),
                 org.mockito.ArgumentMatchers.eq(200L),
                 org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void getEvidenceDetail_omitsEvidenceCodeForLockedGuidanceCompareEvidence() throws Exception {
+        PlaySessionService playSessionService = mock(PlaySessionService.class);
+        MockUserProvider mockUserProvider = mock(MockUserProvider.class);
+        when(mockUserProvider.currentUserId()).thenReturn(1L);
+        when(playSessionService.getEvidenceDetail(1L, 100L, 200L))
+                .thenReturn(PlayEvidenceDetailResponse.builder()
+                        .evidenceId(200L)
+                        .title("현재 증거")
+                        .description("현재 증거 상세")
+                        .importance(null)
+                        .guidance(new PlayEvidenceDetailResponse.EvidenceGuidanceInfo(
+                                List.of("시간대를 비교한다."),
+                                List.of(
+                                        new PlayEvidenceDetailResponse.CompareEvidenceInfo(
+                                                201L,
+                                                "EVIDENCE_UNLOCKED",
+                                                "해금 증거",
+                                                true,
+                                                null
+                                        ),
+                                        new PlayEvidenceDetailResponse.CompareEvidenceInfo(
+                                                202L,
+                                                null,
+                                                "잠긴 증거",
+                                                false,
+                                                "조사 단계 진행 시 공개"
+                                        )
+                                ),
+                                List.of()
+                        ))
+                        .build());
+
+        MockMvc mockMvc = MockMvcBuilders
+                .standaloneSetup(new PlaySessionController(playSessionService, mockUserProvider))
+                .build();
+
+        mockMvc.perform(get("/api/play-sessions/{sessionId}/evidences/{evidenceId}", 100L, 200L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.guidance.compareEvidences[0].evidenceCode")
+                        .value("EVIDENCE_UNLOCKED"))
+                .andExpect(jsonPath("$.data.guidance.compareEvidences[1].evidenceCode").doesNotExist())
+                .andExpect(jsonPath("$.data.guidance.compareEvidences[1].title").value("잠긴 증거"))
+                .andExpect(jsonPath("$.data.guidance.compareEvidences[1].isUnlocked").value(false))
+                .andExpect(jsonPath("$.data.guidance.compareEvidences[1].unlockHint")
+                        .value("조사 단계 진행 시 공개"))
+                .andExpect(jsonPath("$.error").doesNotExist());
+
+        verify(playSessionService).getEvidenceDetail(1L, 100L, 200L);
     }
 
     @Test

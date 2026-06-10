@@ -186,8 +186,23 @@ JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
 | Query | `includeLocked`, `status` |
 | 응답 핵심 | `evidenceId`, `title`, `oneLine`, `description`, `imageAssetKey`, `imageUrl`, `locationName`, `importance`, `isUnlocked`, `unlockHint`, `relatedSuspects` |
 
-현재 별도 증거 상세 API는 없다.
-증거 상세 화면은 목록 응답의 선택된 evidence item을 그대로 사용한다.
+증거 단건 상세는 아래 API를 사용한다.
+
+```text
+GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
+```
+
+증거 상세 응답에는 목록보다 자세한 연관 정보와 optional `guidance`가 포함될 수 있다.
+
+```text
+guidance.readingPoints
+guidance.compareEvidences
+guidance.suggestedQuestions
+```
+
+`guidance`는 현재 해금되어 상세 조회 가능한 증거에서만 사용한다.
+잠긴 비교 증거는 `title`, `isUnlocked`, `unlockHint` 수준으로만 표시하고,
+`evidenceCode`는 기대하지 않는다.
 
 이미지 관련 필드는 아래처럼 처리한다.
 
@@ -325,10 +340,9 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 
 | 예정 API | 현재 대체 방식 |
 |---|---|
-| `GET /api/play-sessions/{sessionId}/evidences/{evidenceId}` | `GET /evidences` 목록에서 선택한 item을 상세에 사용 |
 | `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` | `GET /suspects` 목록에서 선택한 item을 상세에 사용 |
 | `GET /api/play-sessions/{sessionId}/timeline` | 타임라인 화면은 임시 empty/placeholder 유지 |
-| `GET /api/play-sessions/{sessionId}/recommended-questions` | 추천 질문은 프론트 기본 문구 또는 더미로 유지 |
+| `GET /api/play-sessions/{sessionId}/recommended-questions` | 별도 추천 질문 API는 호출하지 않음. 증거 기반 질문은 evidence detail `guidance.suggestedQuestions` 사용 |
 | `GET /api/play-sessions/me` | 내 기록 화면은 인증/기록 API 전까지 더미 또는 empty state |
 | `GET /api/users/me` | 마이페이지는 인증 API 전까지 더미 또는 empty state |
 | `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` | 북마크 UI는 비활성 또는 optimistic action 금지 |
@@ -681,19 +695,26 @@ GET /api/play-sessions/{sessionId}/evidences?includeLocked=true
 
 ### 7.4 증거 상세
 
-현재 별도 증거 상세 API는 없다.
-증거 상세 화면은 증거 탭에서 받은 item을 그대로 사용한다.
+증거 상세 화면은 단건 상세 API를 사용한다.
+
+```text
+GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
+```
 
 | 사용자 액션 | 처리 |
 |---|---|
-| 해금 증거 클릭 | item 데이터로 상세 화면/모달 표시 |
+| 해금 증거 클릭 | 단건 상세 API 조회 후 상세 화면 표시 |
 | 잠긴 증거 클릭 | 상세 진입 차단, `unlockHint` 중심의 잠금 상태 표시 |
 | 이미지 클릭 | `imageUrl`이 있으면 이미지 확대, 없으면 placeholder |
 | 관련 용의자 클릭 | 해당 `suspectId`로 용의자 상세 화면 이동 |
+| guidance 추천 질문 클릭 | 심문 화면으로 이동하고 suspect/question/presentedEvidence를 prefill |
 
 해금 증거는 서버가 `imageAssetKey`를 `imageUrl`로 변환해서 내려준다.
 그래도 `AWS_S3_PUBLIC_BASE_URL` 미설정, asset 누락, 잠긴 증거 마스킹 때문에 `imageUrl`이 `null`일 수 있다.
 이 경우 프론트는 S3 URL을 임의 조립하지 않고 placeholder를 표시한다.
+
+`guidance.compareEvidences`의 잠긴 증거는 `evidenceCode`가 내려오지 않을 수 있다.
+프론트는 잠긴 비교 증거를 code 기반으로 라우팅하지 말고 `isUnlocked=false`와 `unlockHint` 중심으로 표시한다.
 
 ### 7.5 용의자 탭
 
@@ -902,33 +923,35 @@ Content-Type: application/json
 
 ### 8.3 추천 질문
 
-현재 추천 질문 API는 구현되어 있지 않다.
+증거 상세의 `guidance.suggestedQuestions`는 증거 기반 추천 질문 chip으로 사용한다.
+별도 `GET /api/play-sessions/{sessionId}/recommended-questions` API는 아직 호출하지 않는다.
+
+노출 조건:
 
 ```text
-GET /api/play-sessions/{sessionId}/recommended-questions
+현재 증거가 해금되어 있고 상세 조회 가능한 경우에만 표시한다.
+targetSuspectId가 없거나 현재 플레이에서 유효하지 않으면 chip을 숨기거나 disabled 처리한다.
+잠긴 증거 상세에서는 추천 질문을 표시하지 않는다.
 ```
 
-위 API는 호출하지 않는다.
-
-MVP에서는 프론트가 기본 추천 질문 문구를 로컬로 제공할 수 있다.
-
-```text
-사건 당시 어디에 있었습니까?
-피해자와 마지막으로 대화한 때는 언제입니까?
-이 증거에 대해 설명해 주시겠습니까?
-다른 용의자 중 수상한 사람이 있습니까?
-```
-
-추천 질문 버튼을 누르면 입력창에 문구를 채우거나 바로 전송한다.
-바로 전송하는 경우 `questionType`은 `RECOMMENDED`를 사용한다.
+추천 질문 chip을 누르면 심문 화면으로 이동하되 자동 전송하지 않는다.
+입력창에는 질문을 prefill하고 커서는 맨 뒤에 둔다.
+기존 draft가 있으면 추천 질문으로 override하는 것을 기본 정책으로 한다.
 
 ```json
 {
   "suspectId": 1,
-  "questionType": "RECOMMENDED",
-  "question": "피해자와 마지막으로 대화한 때는 언제입니까?",
-  "presentedEvidenceId": null
+  "questionType": "EVIDENCE_PRESENTED",
+  "question": "이 증거와 다른 기록의 차이를 설명할 수 있습니까?",
+  "presentedEvidenceId": 10
 }
+```
+
+작성 기준:
+
+```text
+guidance 추천 질문은 실제 심문 smoke에서 응답 품질을 1회 이상 확인한 문구만 seed에 넣는다.
+질문은 정답 유도 문구가 아니라 증거 비교/확인 질문이어야 한다.
 ```
 
 ### 8.4 증거 제시 모달
@@ -1066,7 +1089,7 @@ AI 답변은 정책상 최대 2문장이다.
 1. 용의자 상세의 "심문하기"에서 sessionId/suspectId를 들고 채팅 화면으로 이동한다.
 2. 채팅 진입 시 GET /interrogations?suspectId=... 로 기존 로그를 조회한다.
 3. 자유 질문은 questionType=FREE, presentedEvidenceId=null로 보낸다.
-4. 추천 질문 API는 없으므로 프론트 로컬 문구를 사용하되 정답 유도 문구는 금지한다.
+4. 증거 상세 guidance 추천 질문은 questionType=EVIDENCE_PRESENTED로 prefill만 하고 자동 전송하지 않는다.
 5. 증거 제시 모달은 evidences?status=unlocked만 사용한다.
 6. 증거 제시 질문은 questionType=EVIDENCE_PRESENTED와 presentedEvidenceId를 함께 보낸다.
 7. 잠긴 증거는 제시하지 않는다.
@@ -1451,10 +1474,10 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 | 기능 | 현재 처리 |
 |---|---|
 | S3 assetKey 직접 변환 | 프론트에서 임의 조립하지 않음 |
-| 증거 상세 API | 목록 item으로 상세 표시 |
+| 증거 상세 API | `GET /api/play-sessions/{sessionId}/evidences/{evidenceId}` 사용 |
 | 용의자 상세 API | 목록 item으로 상세 표시 |
 | 타임라인 API | empty/placeholder |
-| 추천 질문 API | 프론트 로컬 문구 |
+| 추천 질문 API | 별도 API는 호출하지 않음. 증거 기반 질문은 detail `guidance.suggestedQuestions` 사용 |
 | 내 기록 API | empty/mock |
 | 마이페이지 API | empty/mock |
 | 북마크/리뷰 API | 숨김 또는 disabled |
