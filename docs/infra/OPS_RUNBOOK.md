@@ -198,7 +198,8 @@ S3
 FCM
 ```
 
-prod local MySQL/Redis는 external-data cutover 직후 즉시 삭제하거나 중지하지 않는다. rollback/비교용으로 일시 유지하고, helper PR merge, 새 helper 기준 배포 성공, 팀 기능 테스트, data 서버 백업 정상 확인 후 stop만 검토한다.
+prod 서버의 운영 app은 data 서버 MySQL/Redis를 사용한다.
+prod local MySQL/Redis는 운영 source of truth가 아니며, 남아 있더라도 rollback/local-data copy 또는 stop-only 정리 대상이다.
 
 현재 active는 아래 명령어로 확인한다.
 
@@ -216,7 +217,7 @@ X-ClueRoom-Upstream: 127.0.0.1:8082
 
 ### 운영 보안 hardening 적용 상태
 
-운영 서버에는 아래 hardening을 적용한다.
+운영 서버에는 아래 hardening을 적용했다.
 
 ```text
 1. 외부에서 /actuator/prometheus 접근 차단
@@ -224,14 +225,17 @@ X-ClueRoom-Upstream: 127.0.0.1:8082
 3. /.env, /.git, wp-admin, phpmyadmin 등 봇 스캔 경로 차단
 4. legacy app(start-up-app) 중지, Blue-Green 슬롯(app-blue/app-green)만 운영
 5. Fail2Ban sshd jail 적용
+6. Nginx API per-IP rate limit enforced
+7. Nginx per-IP connection limit enforced
+8. CN IPv4 CIDR block 적용
+9. manual blocklist snippet 준비
 ```
 
 외부에서 허용되는 actuator endpoint는 health check뿐이다.
-Rate Limit 정책은 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 기준으로 설계한다.
-실제 차단 전 관찰 절차는 이 runbook의 `Nginx Rate Limit Dry-run` 절을 따른다.
-프론트 E2E QA가 완료되기 전까지 운영 Nginx에 실제 `429` 차단을 적용하지 않는다.
-Grafana Alert 정책은 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 기준으로 설계하며, Slack 알림 실제 연동은 별도 INFRA-09 작업에서 진행한다.
-해외 봇성 트래픽과 국가 기반 차단 PoC는 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 기준으로 조사하며, 운영 `api.clueroom.xyz`에 즉시 광역 국가 차단을 적용하지 않는다.
+Rate Limit, CN block, manual blocklist 정책은 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 기준으로 운영한다.
+현재 운영 Nginx는 dry-run이 아니라 enforcement 상태이며, 403/429는 Grafana/n8n/Slack alert에서 warning으로 본다.
+새로운 threshold 변경, 국가 차단 확대, manual blocklist 추가는 증거와 rollback 경로를 확인한 뒤 적용한다.
+Grafana Alert 정책은 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 기준으로 한다.
 
 ```bash
 curl -I https://api.clueroom.xyz/actuator/health
@@ -1127,6 +1131,35 @@ prod local compose mysql
 `backup-mysql.sh`는 `docker compose exec ... mysql`을 사용한다.
 따라서 external-data 운영에서 local `mysql` 서비스가 `local-data` profile 뒤로 빠졌거나 rollback copy로만 남아 있으면, 이 스크립트는 실 운영 DB가 아닌 local copy를 백업할 수 있다.
 
+### data server 자동 백업 / S3 업로드 기준
+
+현재 운영 source of truth 백업은 data 서버에서 실행한다.
+
+```text
+10 3 * * * /opt/clueroom-data/backup-mysql.sh
+20 3 * * * /opt/clueroom-data/upload-mysql-backup-s3.sh
+* * * * * /opt/clueroom-data/data-health-push.sh
+*/5 * * * * /opt/clueroom-data/s3-backup-health-push.sh
+```
+
+수동 확인:
+
+```bash
+ssh clueroom-data
+crontab -l | grep -E 'backup-mysql|upload-mysql-backup-s3|data-health|s3-backup-health'
+```
+
+백업 성공 기준:
+
+```text
+- /opt/clueroom-data/backups/mysql/*.sql.gz 생성
+- gzip -t 통과
+- .sha256 sidecar 생성
+- S3 daily prefix에 .sql.gz와 .sha256 업로드
+- s3-upload-state.env의 S3_UPLOAD_STATUS=OK
+- S3_BACKUP_HEALTH status=OK가 ops Loki에 push됨
+```
+
 ### external-data 운영 DB 수동 백업
 
 운영 source of truth를 백업할 때 사용한다.
@@ -1370,130 +1403,283 @@ docker rm -f clueroom-restore-check
 
 ---
 
-## 18. Nginx Rate Limit Dry-run
+## 18. Nginx Rate Limit / IP Block 운영
 
 정책 기준은 `SECURITY_TRAFFIC_ALERT_POLICY.md`를 따른다.
-운영 기본 원칙은 observe first, dry-run first다.
-enforcement는 dry-run hit sample과 Android/API smoke를 확인한 뒤 별도 승인으로 진행한다.
+현재 운영 Nginx는 rate limit enforcement 상태다. Dry-run은 신규 threshold 검증이나 rollback 시 참고하는 절차이며, 현재 기본 상태가 아니다.
 
-### Pre-check
+### 현재 방어 구조
+
+```text
+Client
+  ↓
+Nginx
+  ├─ CN IPv4 block
+  ├─ manual blocklist
+  ├─ API per-IP rate limit
+  ├─ per-IP connection limit
+  └─ upstream app-blue/app-green
+```
+
+### 현재 설정 요약
+
+```text
+limit_req_zone clueroom_api_per_ip: 20r/s
+burst=60 nodelay
+limit_req_dry_run off
+limit_req_status 429
+limit_conn per IP: 30
+CN IPv4 CIDR block 적용
+manual blocklist snippet 준비
+```
+
+### 설정 확인
 
 ```bash
 ssh clueroom
-sudo nginx -t
+sudo nginx -T 2>/dev/null | grep -nE 'limit_req_zone|limit_conn_zone|limit_req_dry_run|limit_req zone|limit_conn|limit_req_status|clueroom-blocked-ips|clueroom-cn|clueroom_is_cn_ip'
+```
+
+기대:
+
+```text
+limit_req_dry_run off
+limit_req zone=clueroom_api_per_ip burst=60 nodelay
+limit_conn clueroom_conn_per_ip 30
+geo $clueroom_is_cn_ip
+include /etc/nginx/snippets/clueroom-cn-block.conf
+include /etc/nginx/snippets/clueroom-blocked-ips.conf
+```
+
+dry-run이 켜져 있으면 현재 운영 기준과 다르다.
+
+```bash
+sudo nginx -T 2>/dev/null | grep 'limit_req_dry_run on' || echo "dry-run off confirmed"
+```
+
+### Health / 정상 요청 확인
+
+```bash
 curl -I https://api.clueroom.xyz/actuator/health
+curl https://api.clueroom.xyz/actuator/health
 ```
 
-현재 active upstream도 확인한다.
+반복 health smoke:
 
 ```bash
-/opt/clueroom/bg-status.sh
-cat /etc/nginx/conf.d/clueroom-upstream.conf
+for i in $(seq 1 30); do
+  curl -s -o /dev/null -w "%{http_code}\n" https://api.clueroom.xyz/actuator/health
+done | sort | uniq -c
 ```
 
-### 현재 Nginx 설정 백업
+기대:
+
+```text
+30 200
+```
+
+### 403 / 429 의미
+
+```text
+403
+→ 요청 차단
+→ CN block, manual blocklist, 민감 경로 차단 등이 원인
+
+429
+→ rate limit
+→ 짧은 시간에 너무 많은 요청을 제한
+```
+
+주의:
+
+```text
+rate limit은 자동 ban이 아니다.
+스캐너가 다시 요청하면 제한 범위 안에서는 재시도 가능하다.
+403/429 증가는 보통 방어가 작동 중이라는 의미지만, 정상 사용자 영향 여부를 확인해야 한다.
+```
+
+### 403 / 429 Loki 확인
+
+ops 서버:
 
 ```bash
-sudo cp /etc/nginx/sites-available/clueroom-api \
-  /etc/nginx/sites-available/clueroom-api.$(date +%Y%m%d_%H%M%S).bak
+ssh clueroom-ops
 ```
 
-### Dry-run zone 예시
+최근 403/429:
+
+```bash
+curl -G -s "http://127.0.0.1:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={job="nginx", instance="clueroom-api-prod-01", log_type="access"} |~ ` HTTP/[0-9.]+" (403|429) ` ' \
+  --data-urlencode 'limit=100' \
+  --data-urlencode 'direction=backward' \
+| jq -r '.data.result[] as $s | $s.values[] | "\((.[0][0:10] | tonumber | strftime("%Y-%m-%d %H:%M:%S"))) \(.[1])"'
+```
+
+IP별 집계:
+
+```bash
+curl -G -s "http://127.0.0.1:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={job="nginx", instance="clueroom-api-prod-01", log_type="access"} |~ ` HTTP/[0-9.]+" (403|429) ` ' \
+  --data-urlencode 'limit=200' \
+  --data-urlencode 'direction=backward' \
+| jq -r '.data.result[] as $s | $s.values[] | .[1]' \
+| awk '{print $1}' \
+| sort \
+| uniq -c \
+| sort -nr \
+| head -n 20
+```
+
+### 민감 경로 스캔 확인
+
+```bash
+curl -G -s "http://127.0.0.1:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={job="nginx", instance="clueroom-api-prod-01", log_type="access"} |~ `([.]env|[.]git|wp-admin|wp-login|phpmyadmin|pma|terraform[.]tfvars)`' \
+  --data-urlencode 'limit=100' \
+  --data-urlencode 'direction=backward'
+```
+
+### CN block 확인
+
+CN block 설정 파일:
+
+```text
+/etc/nginx/conf.d/clueroom-cn-geo.conf
+/etc/nginx/snippets/clueroom-cn-block.conf
+/etc/nginx/geoip/cn-aggregated.map
+```
+
+특정 IP가 CN map에 포함되는지 확인:
+
+```bash
+python3 - << 'PY'
+import ipaddress
+
+ips = [
+    "67.205.139.199",
+    "106.75.184.142",
+]
+
+nets = []
+with open("/etc/nginx/geoip/cn-aggregated.map") as f:
+    for line in f:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        cidr = line.split()[0]
+        nets.append(ipaddress.ip_network(cidr, strict=False))
+
+for ip in ips:
+    addr = ipaddress.ip_address(ip)
+    print(ip, "CN_MATCH=", any(addr in net for net in nets))
+PY
+```
+
+### Manual blocklist 추가
+
+반복 악성 IP가 명확한 경우에만 추가한다.
+
+```bash
+sudo nano /etc/nginx/snippets/clueroom-blocked-ips.conf
+```
+
+예:
 
 ```nginx
-# /etc/nginx/conf.d/clueroom-rate-limit-zones.conf
-limit_req_zone $binary_remote_addr zone=clueroom_general:10m rate=10r/s;
-limit_req_zone $binary_remote_addr zone=clueroom_ai:10m rate=1r/s;
+deny 67.205.139.199;
 ```
 
-### Dry-run snippet 예시
-
-```nginx
-# /etc/nginx/snippets/clueroom-rate-limit-general-dry-run.conf
-limit_req zone=clueroom_general burst=20 nodelay;
-limit_req_dry_run on;
-limit_req_status 429;
-```
-
-```nginx
-# /etc/nginx/snippets/clueroom-rate-limit-ai-dry-run.conf
-limit_req zone=clueroom_ai burst=3 nodelay;
-limit_req_dry_run on;
-limit_req_status 429;
-```
-
-`limit_req_dry_run on`은 이미 적용된 `limit_req zone=...` 규칙을 비차단 관찰 모드로 바꾸는 옵션이다.
-snippet에 `limit_req zone=...`가 없으면 Nginx reload는 성공해도 dry-run hit가 평가되지 않을 수 있다.
-
-location별 적용 예시는 운영 Nginx 구조에 맞춰 최소 범위부터 넣는다.
-일반 API는 `clueroom-rate-limit-general-dry-run.conf`, AI cost endpoint는 `clueroom-rate-limit-ai-dry-run.conf`처럼 더 낮은 threshold를 사용한다.
-
-### 적용
+적용:
 
 ```bash
 sudo nginx -t
 sudo systemctl reload nginx
-```
-
-### Smoke
-
-```bash
 curl -I https://api.clueroom.xyz/actuator/health
-curl -I https://api.clueroom.xyz/swagger-ui.html
-curl -s https://api.clueroom.xyz/api/scenarios | head
 ```
 
-Android E2E 또는 최소 플레이 플로우 smoke도 확인한다.
-
-### Dry-run 로그 확인
-
-```bash
-sudo tail -n 200 /var/log/nginx/error.log
-sudo tail -n 200 /var/log/nginx/access.log
-```
-
-확인할 것:
+주의:
 
 ```text
-- 정상 앱 요청이 과도하게 dry-run hit로 잡히지 않는가?
-- health/swagger/preflight가 깨지지 않는가?
-- AI endpoint burst가 dry-run에 잡히는가?
-- 429가 실제로 반환되지 않는가?
+팀원 IP 또는 정상 사용자 IP를 넣지 않는다.
+일회성 스캐너는 굳이 수동 ban하지 않는다.
 ```
 
-### Rollback
+### CN blocklist 업데이트
+
+수동 실행:
+
+```bash
+/opt/clueroom/update-cn-blocklist.sh
+```
+
+cron 확인:
+
+```bash
+crontab -l | grep update-cn-blocklist
+```
+
+예상:
+
+```text
+30 4 * * 1 /opt/clueroom/update-cn-blocklist.sh
+```
+
+로그:
+
+```bash
+tail -n 100 /opt/clueroom/logs/cn-block-update.log
+```
+
+### Rate Limit 완화
+
+정상 사용자가 429를 많이 받으면 threshold를 완화한다. 변경 전에는 현재 설정을 백업한다.
+
+```bash
+sudo cp /etc/nginx/sites-available/clueroom-api \
+  /etc/nginx/sites-available/clueroom-api.before-rate-limit-change-$(date +%Y%m%d_%H%M%S)
+
+sudo cp /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf \
+  /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf.before-rate-limit-change-$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+```
+
+snippet을 수정한다.
+
+```bash
+sudo nano /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf
+```
+
+예:
+
+```nginx
+limit_req zone=clueroom_api_per_ip burst=100 nodelay;
+limit_req_dry_run off;
+limit_req_status 429;
+```
+
+검증:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://api.clueroom.xyz/actuator/health
+```
+
+### 긴급 rollback
 
 백업 파일을 먼저 찾는다.
 
 ```bash
-ls -al /etc/nginx/sites-available | grep before-rate-limit-dryrun || true
-ls -al /etc/nginx/sites-available | grep clueroom-api.*bak || true
-sudo find /etc/nginx -maxdepth 3 -type f -name '*before-rate-limit-dryrun*' -print
+ls -al /etc/nginx/sites-available | grep -E 'before-rate-limit|clueroom-api.*bak' || true
+sudo find /etc/nginx -maxdepth 3 -type f -name '*before-rate-limit*' -print
 ```
 
 백업 파일명은 실제 출력값으로 교체한다.
 
 ```bash
-BACKUP=/etc/nginx/sites-available/clueroom-api.before-rate-limit-dryrun-YYYYMMDD_HHMMSS
+BACKUP=/etc/nginx/sites-available/clueroom-api.before-rate-limit-change-YYYYMMDD_HHMMSS
 test -f "$BACKUP"
 sudo cp "$BACKUP" /etc/nginx/sites-available/clueroom-api
-```
-
-이 runbook의 백업 명령처럼 `.bak` suffix로 백업했다면 해당 파일을 사용한다.
-
-```bash
-BACKUP=/etc/nginx/sites-available/clueroom-api.YYYYMMDD_HHMMSS.bak
-test -f "$BACKUP"
-sudo cp "$BACKUP" /etc/nginx/sites-available/clueroom-api
-```
-
-dry-run zone/snippet 파일을 제거한다.
-
-```bash
-sudo rm -f /etc/nginx/conf.d/clueroom-rate-limit-zones.conf
-sudo rm -f /etc/nginx/snippets/clueroom-rate-limit-general-dry-run.conf
-sudo rm -f /etc/nginx/snippets/clueroom-rate-limit-ai-dry-run.conf
-sudo rm -f /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf
 ```
 
 검증 후 reload한다.
@@ -1504,9 +1690,8 @@ sudo systemctl reload nginx
 curl -I https://api.clueroom.xyz/actuator/health
 ```
 
-enforcement를 켠 상태였다면 우선 위 파일 제거로 차단을 멈춘다.
-site config 경로가 다르면 active config를 먼저 확인하고 그 경로에 맞는 백업을 복구한다.
-
+rate limit 자체를 일시 중단해야 하는 경우에는 snippet include 또는 `limit_req` 라인을 제거/주석 처리한다.
+그 변경은 정상 사용자 영향이 큰 경우에만 수행하고, 변경 전후 403/429와 health를 확인한다.
 ---
 
 ## 19. Git 상태 확인
@@ -1933,8 +2118,10 @@ df -h
 ```
 
 ```bash
-docker compose logs --tail=100 mysql
-docker compose logs --tail=100 redis
+ssh clueroom-data
+docker compose ps
+/opt/clueroom-data/data-health-push.sh
+/opt/clueroom-data/s3-backup-health-push.sh
 ```
 
 ---
@@ -2047,8 +2234,10 @@ cat /etc/nginx/conf.d/clueroom-upstream.conf
 ### Backup
 
 ```bash
-/opt/clueroom/backup-mysql.sh
-ls -lh /opt/clueroom/backups/mysql
+ssh clueroom-data
+/opt/clueroom-data/backup-mysql.sh
+/opt/clueroom-data/upload-mysql-backup-s3.sh
+cat /opt/clueroom-data/backups/mysql/s3-upload-state.env
 ```
 
 ### Resource

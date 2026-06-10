@@ -40,7 +40,8 @@ Scale-out PoC의 단계별 구조와 cleanup 기준은 이 문서의 `Scale-Out 
 
 ### 1.1 실제 운영 MVP
 
-ClueRoom의 실제 운영 MVP는 **단일 Lightsail 서버 기반**으로 유지한다.
+ClueRoom의 실제 운영 MVP는 **저비용 Lightsail 3서버 역할 분리 구조**를 기준으로 한다.
+초기 단일 서버 구조에서 출발했지만, 현재 운영 기준은 prod/app, data, ops를 분리한 external-data baseline이다.
 
 ```text
 Android App
@@ -49,58 +50,72 @@ https://api.clueroom.xyz
   ↓
 Dynadot DNS
   ↓
-AWS Lightsail 단일 서버
-  ↓
-Nginx Reverse Proxy + HTTPS
-  ↓
-Docker Compose
-      ├─ Spring Boot App
-      ├─ MySQL
-      └─ Redis
-  ↓
-AWS S3
-  ↓
-Firebase Cloud Messaging
+AWS Lightsail prod server: clueroom-api-prod-01
+  ├─ Nginx Reverse Proxy + HTTPS
+  ├─ app-blue / app-green Blue-Green slots
+  ├─ Prometheus / Grafana
+  └─ Alloy log shipping
+      ↓
+AWS Lightsail data server: clueroom-data-01
+  ├─ MySQL 8.4 source of truth
+  ├─ Redis 8 source of truth
+  ├─ local MySQL backup
+  ├─ S3 DB backup upload
+  └─ DATA_HEALTH / S3_BACKUP_HEALTH push
+      ↓
+AWS Lightsail ops server: clueroom-ops-01
+  ├─ Loki
+  ├─ n8n
+  ├─ OPS_HEALTH push
+  └─ Slack alert routing
+
+AWS S3: scenario/image assets and private DB backup bucket
+Firebase Cloud Messaging: push notification
 ```
 
 ### 1.2 MVP에서 반드시 포함할 것
 
 ```text
-- Lightsail 단일 서버
+- Lightsail prod/data/ops 3서버 역할 분리
 - Nginx Reverse Proxy
 - HTTPS / Certbot / Let's Encrypt
-- Docker Compose 기반 Spring Boot / MySQL / Redis
+- Docker Compose 기반 Spring Boot app-blue/app-green
+- data server MySQL / Redis
 - Dynadot DNS: api.clueroom.xyz
 - AWS S3 이미지 저장소
+- AWS S3 DB 백업 저장소
 - Firebase Cloud Messaging 푸시 알림
 - Secret 분리 구조
 - deploy.sh Blue-Green 배포 스크립트
 - GitHub Actions CI/CD
-- MySQL 백업 스크립트
+- data server MySQL 백업 / S3 업로드 / 복구 리허설
 - 로그 / 장애 대응 Runbook
 - Prometheus / Grafana 모니터링
-- Blue-Green 무중단 배포 PoC
+- ops Loki / n8n / Slack alert routing
+- Nginx rate limit / CN IPv4 block / manual blocklist
+- Blue-Green 무중단 배포
 - 인프라 의사결정 ADR
-- 트래픽 증가 단계별 확장 계획
+- 트래픽 증가 단계별 확장 계획과 scale-out PoC
 ```
 
 ### 1.3 MVP에서 실제 운영하지 않을 것
 
 ```text
 - 운영용 멀티 인스턴스
-- 운영용 DB 서버 분리
-- 운영용 Redis 서버 분리
 - 운영용 Nginx Load Balancer 서버
 - 운영용 RDS / ElastiCache / ALB / ASG
+- 서버 측 Infra Codex 자동 운영
+- Gemini 실패 시 Codex 실시간 fallback 자동화
 ```
 
 위 항목은 현재 트래픽과 비용을 고려하면 과설계로 판단한다.
 다만 학습/검증 목적의 PoC로는 별도 구성할 수 있다.
 운영 전환이 아닌 PoC 계획은 이 문서의 `Scale-Out PoC 정본` 절에서 관리한다.
+수동 Nginx load balancing과 Terraform app server scale-out은 단기 PoC로 검증하고, PoC 종료 후 리소스를 정리한다.
 
 ---
 
-## 2. 왜 단일 인스턴스로 운영하는가
+## 2. 왜 저비용 Lightsail 3서버로 운영하는가
 
 ### 2.1 현재 서비스 단계
 
@@ -113,7 +128,8 @@ ClueRoom은 현재 부트캠프 최종 프로젝트 MVP 단계다.
 - 운영 비용과 복잡도를 낮추는 것이 중요함
 ```
 
-따라서 초기부터 멀티 인스턴스, DB 분리, Redis 분리, 관리형 로드밸런서를 적용하는 것은 현재 규모 대비 과하다고 판단했다.
+따라서 초기부터 관리형 로드밸런서, RDS, ElastiCache, ASG를 적용하는 것은 현재 규모 대비 과하다고 판단했다.
+대신 단일 prod 서버에 모든 역할을 몰아넣는 구조는 벗어나, 장애 범위와 운영 책임을 prod/data/ops 3서버로 분리했다.
 
 ### 2.2 YAGNI 원칙 적용
 
@@ -123,34 +139,36 @@ YAGNI는 “You Aren't Gonna Need It”의 약자로, 아직 필요하지 않은
 
 ```text
 현재 트래픽:
-단일 서버로 충분
+prod app 서버 1대의 Blue-Green 슬롯으로 충분
 
 현재 핵심 리스크:
-서버 수 부족보다 기능 완성도 / AI 응답 안정성 / 시나리오 품질
+app 서버 수 부족보다 기능 완성도 / AI 응답 안정성 / 시나리오 품질 / 데이터 백업 안정성
 
 현재 비용 전략:
-초기 스타트업처럼 낮은 비용과 단순 운영 우선
+관리형 고가용성보다 낮은 비용과 직접 운영 경험 우선
 ```
 
-따라서 현재 운영은 단일 서버로 시작하고, 실제 사용자 수와 트래픽 지표가 증가할 때 단계적으로 확장한다.
+따라서 현재 운영은 Lightsail prod/data/ops 3서버를 기준으로 하고, 실제 사용자 수와 트래픽 지표가 증가할 때 app 서버 scale-out 또는 관리형 인프라로 단계적으로 확장한다.
 
-### 2.3 단일 서버 운영의 장점
+### 2.3 현재 3서버 운영의 장점
 
 ```text
 - 비용이 낮고 예측 가능함
-- 배포 구조가 단순함
-- 장애 원인 파악이 쉬움
+- prod, data, ops의 책임이 분리됨
+- app Blue-Green 배포와 data source of truth가 분리됨
+- S3 DB 백업과 restore rehearsal로 data server 장애 리스크를 낮춤
+- Loki/n8n/Slack 알림이 prod runtime과 분리됨
 - 리눅스 / Docker / Nginx 운영 경험을 직접 쌓기 좋음
 - 팀 프로젝트 기간 안에 안정적으로 운영 가능
 ```
 
-### 2.4 단일 서버 운영의 한계
+### 2.4 현재 3서버 운영의 한계
 
 ```text
-- 서버 1대 장애 시 전체 서비스 중단
-- App / DB / Redis가 같은 서버 자원을 공유
-- 트래픽 증가 시 병목 발생 가능
-- MySQL / Redis 장애가 곧 전체 장애로 이어질 수 있음
+- prod app 서버는 여전히 1대라 app 서버 장애 시 API 영향이 큼
+- data 서버 MySQL/Redis 장애는 전체 앱 기능에 직접 영향
+- ops 서버 장애 시 중앙 로그/알림이 약해짐
+- 관리형 DB/Redis/ALB가 아니므로 운영자가 직접 복구해야 함
 ```
 
 이 한계는 확장 계획 문서와 PoC로 보완한다.
@@ -229,6 +247,15 @@ ECS는 컨테이너 오케스트레이션에 적합하지만, 이번 프로젝�
 
 ## 4. 현재 운영 인프라 구성
 
+현재 구조 다이어그램은 아래 Mermaid 파일로 보존한다.
+
+```text
+docs/infra/diagrams/current-production-request-flow.mmd
+docs/infra/diagrams/observability-alert-flow.mmd
+docs/infra/diagrams/backup-restore-flow.mmd
+docs/infra/diagrams/planned-scaleout-manual-lb.mmd
+```
+
 ### 4.1 DNS
 
 ```text
@@ -254,20 +281,43 @@ api.clueroom.xyz
 
 ### 4.2 서버
 
+현재 운영 서버는 Lightsail 3대다.
+
+| 서버 | 역할 | 핵심 구성 |
+|---|---|---|
+| `clueroom-api-prod-01` | 운영 API / ingress / app runtime | Nginx, app-blue, app-green, Prometheus, Grafana, Alloy |
+| `clueroom-data-01` | 운영 데이터 source of truth | MySQL, Redis, local backup, S3 upload, DATA_HEALTH, S3_BACKUP_HEALTH |
+| `clueroom-ops-01` | 중앙 로그 / 알림 / 운영 자동화 | Loki, n8n, OPS_HEALTH, Slack alert router |
+
+공통 기준:
+
 ```text
 AWS Lightsail
 Ubuntu
-Static IP
 SSH user: ubuntu
 ```
 
-서버 내부 주요 디렉터리:
+prod 서버 주요 디렉터리:
 
 ```text
 /opt/clueroom/app
 /opt/clueroom/secrets
 /opt/clueroom/backups
 /opt/clueroom/logs
+```
+
+data 서버 주요 디렉터리:
+
+```text
+/opt/clueroom-data
+/opt/clueroom-data/backups/mysql
+/opt/clueroom-data/secrets
+```
+
+ops 서버 주요 디렉터리:
+
+```text
+/opt/clueroom-ops
 ```
 
 ### 4.3 Nginx
@@ -311,26 +361,12 @@ SSL termination은 Nginx에서 수행한다.
 
 ### 4.4 Docker Compose
 
-단일 서버에서 Docker Compose로 실행한다.
-
-```text
-Spring Boot App
-MySQL
-Redis
-```
-
-현재 baseline 구조:
-
-```text
-Docker Compose
-  ├─ app
-  ├─ mysql
-  └─ redis
-```
+prod 서버는 Docker Compose로 app-blue/app-green만 운영 traffic에 연결한다.
+MySQL/Redis는 prod 서버 local container가 아니라 data 서버가 source of truth다.
 
 현재 운영 Blue-Green 구조는 external-data overlay를 포함한다.
 `app-blue` / `app-green`은 local MySQL/Redis가 아니라 data 서버 `172.26.1.185`의 MySQL/Redis를 source of truth로 사용한다.
-prod local MySQL/Redis는 rollback/local-data copy 용도다.
+prod local MySQL/Redis는 운영 DB가 아니며 rollback/local-data copy 용도 또는 stop-only 정리 대상이다.
 
 ```text
 Docker Compose + Blue-Green + external-data overlay
@@ -338,7 +374,7 @@ Docker Compose + Blue-Green + external-data overlay
   ├─ app-green : 127.0.0.1:8082
   ├─ external MySQL : 172.26.1.185
   ├─ external Redis : 172.26.1.185
-  └─ local mysql/redis : rollback/local-data copy
+  └─ local mysql/redis : not source of truth
 ```
 
 기존 단일 app 컨테이너(`start-up-app`)는 legacy 경로로 보고 운영 traffic 대상에서 제외한다.
@@ -365,33 +401,36 @@ Alert 정책은 외부 health와 active upstream을 우선하고, standby app-bl
 
 ### 4.5 데이터베이스
 
-MVP에서는 MySQL을 Docker 컨테이너로 운영한다.
+현재 운영 DB는 data 서버의 MySQL 8.4다.
+prod app-blue/app-green은 아래 private endpoint를 바라본다.
 
 ```text
-MySQL Docker
-Named Volume 사용
-서버 외부에 3306 공개하지 않음
+DB_HOST=172.26.1.185
+DB_PORT=3306
 ```
 
 운영 보안 원칙:
 
 ```text
-- MySQL 포트는 외부 방화벽에서 열지 않음
-- App 컨테이너와 내부 네트워크로 연결
-- 백업 스크립트 필수
+- MySQL 포트는 public internet에 열지 않음
+- prod app 서버에서만 private network로 접근
+- source of truth 백업은 data 서버에서 수행
+- prod local MySQL 백업은 운영 DB 백업으로 간주하지 않음
+- S3 백업과 restore rehearsal을 운영 백업 신뢰 기준으로 둠
 ```
 
 ### 4.6 Redis
 
-MVP에서는 Redis를 Docker 컨테이너로 운영한다.
+현재 운영 Redis는 data 서버의 Redis 8이다.
+prod app-blue/app-green은 아래 private endpoint를 바라본다.
 
 ```text
-Redis Docker
-AI rate limit / lock / cache / 임시 상태에 활용 가능
-서버 외부에 6379 공개하지 않음
+REDIS_HOST=172.26.1.185
+REDIS_PORT=6379
 ```
 
-멀티 인스턴스 확장 시 Redis는 반드시 분리해야 한다.
+Redis는 AI rate limit, lock, cache, 임시 상태에 활용할 수 있다.
+scale-out을 위해 Redis는 app local memory나 app local container에 묶지 않는다.
 
 ### 4.7 S3
 
@@ -641,23 +680,25 @@ Green = 새 배포 버전
 0% Blue / 100% Green
 ```
 
-### 7.2 ClueRoom에서의 적용 계획
+### 7.2 ClueRoom에서의 적용 방식
 
-MVP 운영은 단일 Lightsail 서버를 유지한다. 운영 배포 전환에는 단일 서버 Blue-Green을 사용하지만, 실제 멀티 서버 고가용성은 아니며 같은 서버 안에서 무중단 전환과 rollback 절차를 검증하는 PoC 성격으로 본다.
+MVP 운영은 prod/data/ops 3서버 baseline을 유지한다.
+운영 배포 전환에는 prod 서버 내부의 app-blue/app-green Blue-Green을 사용한다.
+이는 app 배포 rollback을 위한 구조이며, app 서버 자체의 고가용성이나 멀티 서버 load balancing은 아니다.
 
-단일 서버 PoC 구조:
+현재 Blue-Green 구조:
 
 ```text
-Lightsail app 서버 + external data 서버
+prod server + external data server
   ├─ Nginx
   ├─ app-blue  : 8081
   ├─ app-green : 8082
   ├─ external MySQL : 172.26.1.185
   ├─ external Redis : 172.26.1.185
-  └─ local MySQL/Redis : rollback/local-data copy
+  └─ prod local MySQL/Redis : not source of truth
 ```
 
-이 구조는 완전한 멀티 서버 고가용성은 아니지만, Nginx upstream 전환, external-data cutover, rollback 절차를 검증하기에는 충분하다.
+이 구조는 완전한 멀티 서버 고가용성은 아니지만, Nginx upstream 전환, external-data cutover, app deploy rollback 절차를 검증하기에는 충분하다.
 
 전환 방식:
 
@@ -723,10 +764,11 @@ DAU 0~100
 구성:
 
 ```text
-Lightsail 1대
-Nginx
-Docker Compose
-App / MySQL / Redis
+Lightsail prod/data/ops 3대
+prod Nginx
+prod Docker Compose app-blue/app-green
+data MySQL / Redis
+ops Loki / n8n
 S3
 FCM
 ```
@@ -736,7 +778,7 @@ FCM
 ```text
 - 현재 트래픽이 낮음
 - 비용 최소화
-- 운영 단순성 우선
+- app 서버 수평 확장보다 운영 안정성/관측/백업 우선
 ```
 
 ### Phase 2. 운영 안정화
@@ -753,9 +795,12 @@ DAU 100~500
 ```text
 - deploy.sh
 - GitHub Actions CI/CD
-- MySQL 백업 스크립트
+- data server MySQL 백업 스크립트
+- S3 DB 백업 업로드
+- restore rehearsal
 - 로그 Runbook
 - Prometheus / Grafana
+- Loki / n8n / Slack alert routing
 - S3 이미지 업로드 안정화
 - FCM 발송 로그
 - Redis rate limit / lock
@@ -792,32 +837,25 @@ Nginx upstream
 대상:
 
 ```text
-DAU 1,000~3,000 이상
-DB 쿼리 병목
-Redis 사용량 증가
-App 서버 CPU/메모리와 DB 자원 경합 발생
+완료됨: external-data cutover
+향후 app server scale-out의 선행 조건
 ```
 
-확장 구조:
+현재 구조:
 
 ```text
-App Server
+prod app-blue/app-green
   ↓
-DB Server 또는 Managed DB
-Redis Server 또는 Managed Redis
-S3
+data server MySQL / Redis
 ```
 
-선택지:
+검증 결과:
 
 ```text
-PoC:
-- 별도 Lightsail 서버에 MySQL Docker
-- 별도 Lightsail 서버에 Redis Docker
-
-실제 운영:
-- RDS
-- ElastiCache
+- app-blue/app-green의 DB_HOST/REDIS_HOST가 data server를 바라봄
+- external-data compose override가 Blue-Green helper에 반영됨
+- prod local MySQL/Redis는 source of truth가 아님
+- data server 백업/S3 업로드/restore rehearsal까지 연결됨
 ```
 
 ### Phase 5. App 서버 수평 확장
@@ -829,6 +867,16 @@ DAU 3,000~10,000 이상
 API 응답 지연 증가
 App 서버 CPU/메모리 병목
 특정 이벤트/광고로 트래픽 급증
+또는 포트폴리오/학습 목적의 단기 PoC
+```
+
+현재 상태:
+
+```text
+미적용 / PoC 예정
+Terraform으로 app server를 만들고 prod Nginx upstream에 수동으로 붙이는 방식만 검증한다.
+PoC 종료 후 추가 app server와 Static IP는 정리한다.
+기본 운영 구조는 prod 1대 + data 1대 + ops 1대다.
 ```
 
 구성:
@@ -1039,13 +1087,14 @@ PoC는 계속 운영하지 않는다.
 
 ## 11. ADR 후보
 
-### ADR-001. 초기 인프라를 Lightsail 단일 서버로 선택한 이유
+### ADR-001. 초기 인프라를 Lightsail 저비용 구조로 선택한 이유
 
 핵심:
 
 ```text
-현재 MVP 트래픽과 비용을 고려해 단일 서버 구조 선택
+현재 MVP 트래픽과 비용을 고려해 Lightsail 기반 직접 운영 구조 선택
 YAGNI 원칙 적용
+prod/data/ops 역할 분리로 운영 안정성 보완
 추후 확장 계획 문서화
 ```
 
@@ -1059,15 +1108,15 @@ HTTPS termination
 추후 upstream / Blue-Green / Load Balancing 확장 가능
 ```
 
-### ADR-003. 초기 DB/Redis를 Docker Compose로 운영한 이유
+### ADR-003. DB/Redis를 data server로 분리한 이유
 
 핵심:
 
 ```text
-비용 절감
-운영 단순성
-초기 MVP에서는 충분
-추후 트래픽 증가 시 분리
+app 서버 scale-out의 선행 조건
+data source of truth 명확화
+prod app 배포와 데이터 저장소 책임 분리
+RDS/ElastiCache 전환 전 저비용 운영 경험 확보
 ```
 
 ### ADR-004. 파일 저장소를 S3로 선택한 이유
@@ -1089,13 +1138,13 @@ AWS 생태계 관리 편의성
 신규 리소스인 S3부터 IaC 적용
 ```
 
-### ADR-006. 단일 서버 Blue-Green을 고가용성 구조가 아닌 배포 PoC로 보는 이유
+### ADR-006. prod 내부 Blue-Green을 고가용성 구조가 아닌 배포 안정화로 보는 이유
 
 핵심:
 
 ```text
 현재 운영 배포 전환에는 사용
-단일 서버이므로 서버 장애 고가용성은 제공하지 않음
+prod 서버 장애 고가용성은 제공하지 않음
 무중단 배포와 rollback 절차 검증 목적
 ```
 
@@ -1114,17 +1163,17 @@ AWS 생태계 관리 편의성
 ## 12. 발표용 요약
 
 ```text
-ClueRoom은 초기 MVP 단계이므로 단일 Lightsail 서버에 Docker Compose 기반으로 Spring Boot, MySQL, Redis를 배포했다.
+ClueRoom은 초기 MVP 단계이지만 운영 안정성과 포트폴리오 검증을 위해 Lightsail 3서버 역할 분리 구조로 운영한다.
 
-Nginx를 Reverse Proxy로 사용해 HTTPS와 내부 Blue-Green upstream(app-blue 8081 / app-green 8082) 프록시를 처리했고, api.clueroom.xyz 도메인으로 외부 접근을 제공한다.
+prod 서버는 Nginx Reverse Proxy로 HTTPS, rate limit, CN IPv4 block, manual blocklist, 내부 Blue-Green upstream(app-blue 8081 / app-green 8082) 프록시를 처리하고, api.clueroom.xyz 도메인으로 외부 접근을 제공한다.
 
-파일 저장은 서버 로컬이 아니라 S3로 분리해 추후 멀티 인스턴스 확장에 대비했다.
+data 서버는 MySQL/Redis source of truth를 담당하며, prod app은 external-data overlay로 data 서버를 바라본다. prod local MySQL/Redis는 운영 DB가 아니다.
 
-초기부터 멀티 인스턴스 / DB 분리 / Redis 분리를 적용하지 않은 이유는 현재 사용자 규모에서 과설계라고 판단했기 때문이다.
+ops 서버는 Loki/n8n/Slack alert routing을 담당한다. Gemini 분석은 보조이며, 기본 alert는 AI 분석 성공 여부와 무관하게 먼저 전송한다.
 
-대신 트래픽 증가 단계별로 DB/Redis 분리, App 서버 수평 확장, Nginx Load Balancer, RDS/ElastiCache/ALB 전환 계획을 문서화했다.
+파일 저장은 서버 로컬이 아니라 S3로 분리했고, DB 백업도 data 서버 local backup + private S3 backup + restore rehearsal까지 검증했다.
 
-또한 현재 단일 서버 Blue-Green으로 배포 전환과 rollback 절차를 검증하고, 별도 PoC 환경에서는 Nginx 수동 로드밸런싱과 멀티 인스턴스 확장 가능성을 검증할 수 있다.
+아직 운영 기본값이 아닌 것은 서버 측 Infra Codex 자동 운영, Gemini 실패 시 Codex 실시간 fallback, Terraform 기반 수동 load balancing scale-out PoC다.
 ```
 
 ---
@@ -1151,8 +1200,9 @@ Nginx를 Reverse Proxy로 사용해 HTTPS와 내부 Blue-Green upstream(app-blue
 ```text
 - public ingress는 Nginx로 제한한다.
 - secret은 팀원별 제한 계정/ACL로 관리한다.
-- rate limit은 observe -> dry-run -> enforce 순서로만 진행한다.
-- GeoIP/bot blocking은 증거와 rollback 기준 없이 적용하지 않는다.
+- rate limit은 dry-run 검증 후 enforce 상태로 운영한다.
+- CN IPv4 block과 manual blocklist는 운영 Nginx edge에서 관리한다.
+- 새로운 block/rate-limit 변경은 증거와 rollback 기준 없이 적용하지 않는다.
 ```
 
 정본:
@@ -1169,7 +1219,8 @@ docs/infra/OPS_RUNBOOK.md
 ```text
 - external health, active upstream, 5xx, latency, JVM metric 중심으로 본다.
 - standby Blue-Green target down은 단독 CRITICAL로 보지 않는다.
-- host/DB/Redis alert는 exporter/health bridge가 준비되기 전까지 수동 점검 또는 warning으로 둔다.
+- DATA_HEALTH, S3_BACKUP_HEALTH, OPS_HEALTH, SERVER_HEALTH를 Loki/Grafana에서 본다.
+- Grafana alert는 n8n을 통해 Slack으로 보내고, Gemini 분석은 보조로만 사용한다.
 ```
 
 ### Phase 3. LLMOps
@@ -1190,6 +1241,7 @@ docs/infra/OPS_RUNBOOK.md
 - agent는 read-only diagnosis부터 시작한다.
 - 운영 변경은 승인 정책과 rollback을 먼저 둔다.
 - snapshot에는 secret과 raw env를 넣지 않는다.
+- 서버 측 Infra Codex 자동 운영과 Gemini 실패 시 Codex 실시간 fallback은 아직 운영 기본값이 아니다.
 ```
 
 정본:
@@ -1204,8 +1256,8 @@ docs/infra/agent/LLMOPS_OPERATING_GUIDE.md
 목표:
 
 ```text
-- backup script와 restore rehearsal 절차를 운영 문서화한다.
-- S3 backup storage는 private bucket, encryption, lifecycle, least-privilege IAM을 기준으로 한다.
+- data server backup script와 restore rehearsal 절차를 운영 문서화한다.
+- S3 backup storage는 private bucket, encryption, lifecycle, least-privilege IAM을 기준으로 운영한다.
 - 운영 restore는 rehearsal 성공 후에만 진행한다.
 ```
 
@@ -1219,6 +1271,8 @@ docs/infra/agent/LLMOPS_OPERATING_GUIDE.md
 - DB/Redis는 shared external data source여야 한다.
 - S3를 파일 저장소로 사용한다.
 - app server 2대 이상일 때 lock/session/cache는 local memory에 두지 않는다.
+- Terraform으로 추가 app server를 만들고 prod Nginx upstream에 수동으로 붙이는 수준에서 검증한다.
+- PoC 종료 후 추가 서버와 Static IP를 정리한다.
 ```
 
 ### Phase 7. Registry / Commit SHA / DB Migration
@@ -1234,12 +1288,25 @@ docs/infra/agent/LLMOPS_OPERATING_GUIDE.md
 ### Do Not Do
 
 ```text
-- 단일 MVP 서버에 n8n, Loki, exporters, workers, rate-limit enforcement를 한 번에 추가하지 않는다.
+- prod app 서버에 n8n, Loki, workers를 다시 올리지 않는다.
 - standby Blue-Green target down을 바로 장애로 단정하지 않는다.
-- rate limit enforcement를 dry-run 없이 켜지 않는다.
-- DB/Redis 분리 전 app 서버만 무작정 늘리지 않는다.
+- 기존 rate limit/CN block을 근거 없이 변경하지 않는다.
+- data server MySQL/Redis와 S3 백업 상태를 확인하지 않고 app 서버만 무작정 늘리지 않는다.
 - private seed, DB dump, secret snapshot을 public 문서나 PR에 올리지 않는다.
 ```
+
+### PoC Result Summary
+
+이 표는 외부 infra AI 문서의 PoC 결과를 정본 문서로 흡수한 것이다.
+
+| PoC | 상태 | 정본 반영 위치 |
+|---|---|---|
+| POC-001 external-data cutover | 완료 | prod app-blue/app-green이 data server MySQL/Redis를 바라보며, prod local MySQL/Redis는 source of truth가 아님 |
+| POC-002 S3 backup / restore rehearsal | 완료 | data server local backup, S3 upload, sha256 sidecar, S3_BACKUP_HEALTH, 임시 MySQL restore rehearsal |
+| POC-003 observability / alert pipeline | 완료 | prod Alloy, ops Loki, Grafana dashboard/alert, n8n Slack routing, DATA_HEALTH/SERVER_HEALTH/OPS_HEALTH |
+| POC-004 Nginx rate-limit / IP block | 완료 | API per-IP rate limit enforced, dry-run off, CN IPv4 block, manual blocklist, 403/429 warning alert |
+| POC-005 LLMOps observability | 완료 | AI_CALL/AI_CALL_CONTEXT, token/latency/fallback visibility, raw prompt/answer 미저장 |
+| POC-006 Terraform scale-out + manual Nginx LB | 미적용 / 단기 PoC 예정 | Terraform app server 생성, prod Nginx upstream 수동 연결, PoC 후 리소스 정리 |
 
 ---
 
@@ -1470,14 +1537,25 @@ manual DB dump copy as live sync
 ```text
 - 운영 DB는 MySQL이다.
 - external data server가 source of truth다.
-- prod local MySQL은 rollback/local-data copy 용도다.
-- backup-mysql.sh는 prod local compose mysql을 대상으로 하는 local-data/rollback copy 백업 스크립트다.
-- source of truth 백업은 data server MySQL host를 대상으로 mysqldump를 수행해야 한다.
+- data server backup script가 source of truth MySQL을 local .sql.gz로 백업한다.
+- data server upload script가 .sql.gz와 .sha256 sidecar를 private S3 backup bucket에 업로드한다.
+- S3_BACKUP_HEALTH가 Loki/Grafana alert로 관측된다.
+- restore rehearsal은 S3에서 내려받은 백업을 임시 MySQL 컨테이너에 복구해 검증한다.
+- prod local MySQL은 운영 DB가 아니며 rollback/local-data copy 용도 또는 stop-only 정리 대상이다.
+- prod `/opt/clueroom/backup-mysql.sh`는 운영 source of truth 백업으로 간주하지 않는다.
 ```
 
-즉 external-data cutover 이후 `backup-mysql.sh` 결과만으로는 운영 DB 백업 완료로 보지 않는다.
-운영 백업 cron도 data server host를 대상으로 하는지 확인해야 한다.
-cron이 여전히 `backup-mysql.sh`만 실행하면 local rollback copy만 백업하는 상태일 수 있다.
+즉 external-data cutover 이후 prod 서버의 `backup-mysql.sh` 결과만으로는 운영 DB 백업 완료로 보지 않는다.
+운영 source of truth 백업 기준은 data 서버의 `/opt/clueroom-data/backup-mysql.sh`, `/opt/clueroom-data/upload-mysql-backup-s3.sh`, `/opt/clueroom-data/s3-backup-health-push.sh`다.
+
+현재 data 서버 cron 기준:
+
+```text
+10 3 * * * /opt/clueroom-data/backup-mysql.sh
+20 3 * * * /opt/clueroom-data/upload-mysql-backup-s3.sh
+* * * * * /opt/clueroom-data/data-health-push.sh
+*/5 * * * * /opt/clueroom-data/s3-backup-health-push.sh
+```
 
 ### S3 Backup Principles
 

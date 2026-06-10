@@ -1,0 +1,27 @@
+flowchart TD
+    mysql["data: MySQL 8.4<br/>source of truth"] --> local_backup["backup-mysql.sh<br/>atomic .tmp -> gzip -t -> .sql.gz"]
+    local_backup --> local_file["Local backup<br/>/opt/clueroom-data/backups/mysql/*.sql.gz"]
+    local_file --> upload["upload-mysql-backup-s3.sh<br/>gzip check + sha256 sidecar"]
+    upload --> s3["S3 bucket<br/>clueroom-prod-db-backups-apne2-xxxxxx<br/>mysql/prod/daily/YYYY/MM/DD/"]
+    upload --> state["s3-upload-state.env<br/>last status / object / error"]
+    state --> s3_health["s3-backup-health-push.sh<br/>S3_BACKUP_HEALTH"]
+    s3_health --> loki["ops Loki"]
+    loki --> grafana["Grafana S3 backup alerts"]
+    grafana --> n8n["n8n Slack router"]
+    n8n --> slack["Slack"]
+
+    s3 --> download["Restore rehearsal<br/>download .sql.gz + .sha256"]
+    download --> verify["sha256 + gzip -t"]
+    verify --> restore["temporary mysql:8.4 container"]
+    restore --> counts["SHOW TABLES / key table counts"]
+    counts --> cleanup["remove temp container<br/>delete downloaded backup"]
+
+    classDef data fill:#eaffea,stroke:#2b7a2b,stroke-width:1px;
+    classDef ops fill:#f4e8ff,stroke:#7142a6,stroke-width:1px;
+    classDef s3cls fill:#fff4e5,stroke:#b36b00,stroke-width:1px;
+    classDef check fill:#f8f8f8,stroke:#555,stroke-width:1px;
+
+    class mysql,local_backup,local_file,upload,state,s3_health data;
+    class loki,grafana,n8n ops;
+    class s3 s3cls;
+    class download,verify,restore,counts,cleanup check;

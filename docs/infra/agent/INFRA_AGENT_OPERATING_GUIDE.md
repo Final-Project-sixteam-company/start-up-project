@@ -60,9 +60,13 @@ The repository and production server have different roles.
 | Area | Role |
 |---|---|
 | Git repository | Source of truth for code, docs, scripts, compose templates, and reviewable changes |
-| Production server | Runtime host for deployed app, database, Redis, Nginx, monitoring, private secrets, scenario seed files |
+| Prod server | Runtime host for Nginx, app-blue/app-green, Prometheus/Grafana, Alloy, private runtime secrets, scenario seed files |
+| Data server | Runtime host for MySQL/Redis source of truth, local DB backup, S3 DB backup upload, DATA_HEALTH, S3_BACKUP_HEALTH |
+| Ops server | Runtime host for Loki, n8n, OPS_HEALTH, Slack alert routing workflows |
 | `/opt/clueroom/app` | Deployed application working directory |
 | `/opt/clueroom/secrets` | Private runtime secrets and private scenario seed files |
+| `/opt/clueroom-data` | Data server operational scripts and backup files |
+| `/opt/clueroom-ops` | Ops server operational scripts and automation files |
 | `.private/` | Local-only private working material, ignored by git |
 
 The agent must not assume that every production file belongs in git.
@@ -321,7 +325,9 @@ Examples:
 ```bash
 cp .env .env.bak-$(date +%Y%m%d_%H%M%S)
 sudo cp /etc/nginx/sites-available/clueroom-api /etc/nginx/sites-available/clueroom-api.bak-$(date +%Y%m%d_%H%M%S)
-/opt/clueroom/backup-mysql.sh
+ssh clueroom-data
+/opt/clueroom-data/backup-mysql.sh
+/opt/clueroom-data/upload-mysql-backup-s3.sh
 ```
 
 Backup files must not be moved into public git.

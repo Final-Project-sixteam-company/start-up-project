@@ -1,0 +1,52 @@
+flowchart TD
+    subgraph prod["prod server: clueroom-api-prod-01"]
+        nginx_logs["Nginx access/error logs"]
+        app_logs["Docker app logs<br/>AI_CALL / AI_CALL_CONTEXT"]
+        server_health["SERVER_HEALTH heartbeat file"]
+        alloy["Grafana Alloy"]
+        prometheus["Prometheus"]
+        grafana["Grafana"]
+    end
+
+    subgraph data["data server: clueroom-data-01"]
+        data_health["DATA_HEALTH push<br/>MySQL / Redis / disk / local backup"]
+        s3_health["S3_BACKUP_HEALTH push<br/>S3 upload status"]
+    end
+
+    subgraph ops["ops server: clueroom-ops-01"]
+        loki["Loki"]
+        n8n["n8n"]
+        ops_health["OPS_HEALTH push<br/>n8n / Loki / disk / memory"]
+    end
+
+    subgraph slack["Slack"]
+        alerts["Alert channel<br/>WARNING / CRITICAL / @channel"]
+        reports["LLMOps / Infra handoff reports"]
+    end
+
+    nginx_logs --> alloy
+    app_logs --> alloy
+    server_health --> alloy
+    alloy --> loki
+
+    data_health --> loki
+    s3_health --> loki
+    ops_health --> loki
+
+    prometheus --> grafana
+    loki --> grafana
+
+    grafana -->|"Alert webhook"| n8n
+    n8n -->|"Basic alert first"| alerts
+    n8n -->|"Gemini optional analysis<br/>fallback on 429/503"| alerts
+    n8n --> reports
+
+    classDef prod fill:#e8f2ff,stroke:#2f6fb3,stroke-width:1px;
+    classDef data fill:#eaffea,stroke:#2b7a2b,stroke-width:1px;
+    classDef ops fill:#f4e8ff,stroke:#7142a6,stroke-width:1px;
+    classDef out fill:#fff4e5,stroke:#b36b00,stroke-width:1px;
+
+    class nginx_logs,app_logs,server_health,alloy,prometheus,grafana prod;
+    class data_health,s3_health data;
+    class loki,n8n,ops_health ops;
+    class alerts,reports out;

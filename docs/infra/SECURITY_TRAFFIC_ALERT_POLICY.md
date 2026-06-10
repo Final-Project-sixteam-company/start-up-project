@@ -21,12 +21,17 @@ Absorbed source documents:
 - Spring Boot app runs behind Blue-Green slots.
 - Prometheus/Grafana exist for metrics and dashboarding.
 - ops Loki/Alloy can be used for read-only log and heartbeat inspection.
+- n8n routes Grafana alerts to Slack.
+- Nginx API per-IP rate limit is enforced.
+- Nginx CN IPv4 block is applied.
+- Manual blocklist snippet is available for narrow abusive IP blocks.
 - Heavy AI endpoints need extra care because they can create direct LLM cost.
 - Frontend E2E and demo stability are higher priority than aggressive blocking.
 ```
 
 Do not add multiple new enforcement layers at once.
-The default rollout principle is observe first, then dry-run, then enforce only after evidence is stable.
+For new or changed rules, the rollout principle remains observe first, then dry-run, then enforce only after evidence is stable.
+The current API rate-limit and CN block baseline has already passed that gate and is the operating state.
 
 ## 3. Layer Separation
 
@@ -78,66 +83,41 @@ Prefer Cloudflare for broad L7 controls and quick rollback, but do not depend on
 | image/static URLs | prefer CDN/S3 controls, not app Nginx only |
 | health/swagger/preflight | do not break deploy, QA, CORS, or monitoring |
 
-Initial Nginx dry-run groups:
+Current Nginx enforcement baseline:
 
 ```text
-General API:
-- /api/scenarios
-- /api/play-sessions read paths
-
-AI cost APIs:
-- /api/play-sessions/*/interrogations
-- /api/play-sessions/*/final-deduction
-- /api/ai/scenarios/*/validate
-
-Device/FCM:
-- FCM token registration path when implemented
+limit_req_zone clueroom_api_per_ip: 20r/s
+burst=60 nodelay
+limit_req_dry_run off
+limit_req_status 429
+limit_conn per IP: 30
 ```
 
-Initial numeric candidates:
+Operational interpretation:
 
 ```text
-General read APIs:
-- Nginx: 5~10 req/s per IP, burst 20
-- Backend Redis: usually not needed for read-only MVP APIs
-
-AI cost APIs:
-- Nginx: 1 req/s per IP, burst 3~5
-- Backend Redis: user/session/scenario-aware quota
-
-FCM token registration:
-- Nginx: 1~2 req/s per IP, burst 5
-- Backend: upsert by userId + token hash
-
-Health / Swagger / Preflight:
-- Do not apply aggressive limits.
-- Keep health checks and CORS preflight safe during deploy, QA, and monitoring.
+- 429 means Nginx rate limit, not a permanent ban.
+- 403 means CN block, manual blocklist, sensitive path block, or another explicit deny rule.
+- 403/429 alerts are warning-level signals unless normal user impact is confirmed.
+- Health/swagger/preflight must remain safe during deploy, QA, and monitoring.
 ```
 
-Documentation-only Nginx shape:
+Reference Nginx shape:
 
 ```nginx
-limit_req_zone $binary_remote_addr zone=api_per_ip:10m rate=10r/s;
-limit_req_zone $binary_remote_addr zone=ai_per_ip:10m rate=1r/s;
-limit_req_zone $binary_remote_addr zone=device_token_per_ip:10m rate=2r/s;
+limit_req_zone $binary_remote_addr zone=clueroom_api_per_ip:10m rate=20r/s;
+limit_conn_zone $binary_remote_addr zone=clueroom_conn_per_ip:10m;
 
 location /api/ {
-    limit_req zone=api_per_ip burst=20 nodelay;
-    proxy_pass http://clueroom_backend;
-}
-
-location ~ ^/api/(play-sessions/.*/interrogations|ai/scenarios/.*/validate|play-sessions/.*/final-deduction) {
-    limit_req zone=ai_per_ip burst=5;
-    proxy_pass http://clueroom_backend;
-}
-
-location = /api/device-tokens {
-    limit_req zone=device_token_per_ip burst=5 nodelay;
+    limit_req zone=clueroom_api_per_ip burst=60 nodelay;
+    limit_req_dry_run off;
+    limit_req_status 429;
+    limit_conn clueroom_conn_per_ip 30;
     proxy_pass http://clueroom_backend;
 }
 ```
 
-Backend Redis rate-limit key candidates:
+Backend Redis rate-limit key candidates remain useful for future user/session-aware quotas:
 
 ```text
 rate:ai:interrogation:user:{userId}:session:{sessionId}
@@ -164,17 +144,18 @@ The response must not include secret, scenario solution, prompt, AI provider det
 
 ## 5. Rate Limit Rollout
 
-1. Add zone/snippet in dry-run mode only.
+1. Back up current Nginx site and snippet config.
+2. Add or change zone/snippet in dry-run mode first when changing thresholds or new endpoint groups.
 2. Validate Nginx syntax.
 3. Reload Nginx.
 4. Run normal Android/API smoke.
 5. Inspect access/error logs for dry-run hits.
 6. Tune thresholds.
-7. Only then consider enforcement.
+7. Only then switch the changed rule to enforcement.
 
-Do not enforce during frontend E2E QA or before demo without explicit approval.
+Do not expand enforcement during frontend E2E QA or before demo without explicit approval.
 
-Production enforcement requires:
+New production enforcement or threshold change requires:
 
 ```text
 - no normal Android smoke failures
@@ -202,19 +183,20 @@ Correlate with:
 ```
 
 Read-only inspection is allowed.
-Blocking requires evidence and rollback path.
+Current CN IPv4 block is part of the operating baseline.
+New country blocks, manual IP blocks, or wider deny rules still require evidence and rollback path.
 
 ### Blocking Options
 
 | Option | Use when | Notes |
 |---|---|---|
 | Cloudflare WAF custom rules | Cloudflare proxy is active and quick rollback is needed | preferred broad control |
-| Nginx GeoIP2 | country-based logic must live near ingress | adds module/config complexity |
+| Nginx geo map | country/CIDR block must live near ingress | current CN IPv4 block uses an aggregated map |
 | ipset / nftables | severe L3/L4 abuse | higher operational risk, avoid early |
 
 ### Production Enforcement Criteria
 
-Block only if most of these are true:
+For new blocks beyond the current CN baseline, block only if most of these are true:
 
 ```text
 - traffic is clearly abusive or automated
@@ -225,7 +207,7 @@ Block only if most of these are true:
 - infra lead approves
 ```
 
-Do not create permanent country blocking based on a single log sample.
+Do not create additional permanent country blocking based on a single log sample.
 
 ### GeoIP / Bot PoC Appendix
 
@@ -239,27 +221,20 @@ sudo awk -F\" '{print $6}' /var/log/nginx/access.log | sort | uniq -c | sort -nr
 sudo tail -n 100 /var/log/nginx/error.log
 ```
 
-Nginx GeoIP2 conceptual shape, not production-ready:
+Current CN block shape:
 
 ```nginx
-geoip2 /path/to/GeoLite2-Country.mmdb {
-    $geoip2_country_code country iso_code;
-}
-
-map $geoip2_country_code $blocked_country {
+geo $clueroom_is_cn_ip {
     default 0;
-    CN 1;
+    include /etc/nginx/geoip/cn-aggregated.map;
 }
 
-server {
-    if ($blocked_country) {
-        return 403;
-    }
+if ($clueroom_is_cn_ip) {
+    return 403;
 }
 ```
 
-GeoIP2 PoC should use a test host, test server block, or `poc-api.clueroom.xyz` first.
-Rollback means removing the map/location rule, running `nginx -t`, reloading Nginx, and verifying `/actuator/health`.
+Rollback means removing the include/deny rule, running `nginx -t`, reloading Nginx, and verifying `/actuator/health`.
 
 ## 7. Grafana Alert Principles
 
@@ -331,6 +306,51 @@ prometheus
 
 Do not alert critically on one standby Blue-Green target down.
 
+### Data / Backup / Ops Health
+
+Current Loki heartbeat signals:
+
+```text
+DATA_HEALTH
+S3_BACKUP_HEALTH
+OPS_HEALTH
+SERVER_HEALTH
+```
+
+Safe alert examples:
+
+```text
+- DATA_HEALTH reports MySQL or Redis failure
+- S3_BACKUP_HEALTH reports S3 upload failure, missing state, or stale upload
+- OPS_HEALTH reports Loki/n8n critical failure
+- heartbeat missing for the expected window
+```
+
+S3 backup alerts should distinguish:
+
+```text
+backup failed
+S3 upload failed
+S3 backup heartbeat missing
+restore rehearsal not recently verified
+```
+
+### Nginx 403 / 429
+
+Current alert interpretation:
+
+```text
+403 increase
+→ usually block rules working
+→ check normal-user impact and repeated source IPs
+
+429 increase
+→ rate limit working
+→ check normal-user impact and endpoint distribution
+```
+
+403/429 should start as warning. Escalate only if normal user traffic is affected or API availability drops.
+
 ## 9. Alerts Not Safe Yet
 
 Do not make critical alerts yet for these without better exporters or validated bridges:
@@ -338,8 +358,6 @@ Do not make critical alerts yet for these without better exporters or validated 
 ```text
 - host disk low from incomplete source
 - host CPU/RAM high without stable exporter
-- MySQL down without a reliable health bridge
-- Redis down without a reliable health bridge
 - one standby Blue-Green app target down
 ```
 
@@ -376,19 +394,24 @@ These are candidate thresholds only. Confirm actual Prometheus metric names in G
 | AI fallback spike | `sum(increase(ai_fallbacks_total[5m]))` | 5m | tune after baseline | WARNING first |
 | Both Blue-Green targets down | `up{job="clueroom-app-blue"} == 0 and up{job="clueroom-app-green"} == 0` | 1~3m | true | CRITICAL candidate |
 | Prometheus scrape down | `up{job="prometheus"} == 0` | 1~3m | true | CRITICAL candidate |
+| Nginx 403 blocked request | Loki access log query matching HTTP 403 | 5~10m | tune after baseline | WARNING |
+| Nginx 429 rate limit | Loki access log query matching HTTP 429 | 5~10m | tune after baseline | WARNING |
+| S3 backup failed/stale | Loki `{job="s3-backup-health", instance="clueroom-data-01"}` status failure/stale | 10m | failure present | CRITICAL |
+| S3 backup heartbeat missing | Loki S3_BACKUP_HEALTH count | 10m | below 1 | CRITICAL |
 
 Prometheus-exported Micrometer names use underscore form, so Java metric names `ai.failures`, `ai.latency`, and `ai.fallbacks` are expected as `ai_failures_total`, `ai_latency_seconds_*`, and `ai_fallbacks_total`.
 If the bucket series does not exist, do not create a p95 alert until histogram publishing is verified.
 
 ## 11. Notification Policy
 
-Initial notification path:
+Current notification path:
 
 ```text
-1. manual Grafana dashboard review
-2. Slack manual summary
-3. low-severity webhook notification
-4. critical alert only after thresholds are proven
+1. Grafana alert fires
+2. n8n receives alert webhook
+3. n8n sends deterministic Slack alert first
+4. Gemini may add optional analysis
+5. Codex is used for manual handoff/deep analysis, not real-time automatic fallback
 ```
 
 Candidate channels:
@@ -403,12 +426,12 @@ Do not send secrets, raw `.env`, raw user questions, AI answers, DB passwords, p
 ## 12. Do Not Do
 
 ```text
-- Do not enable Nginx enforcement without dry-run evidence.
-- Do not block a country based on one suspicious IP.
+- Do not expand Nginx enforcement without dry-run evidence.
+- Do not block an additional country based on one suspicious IP.
 - Do not page on standby Blue-Green target down by itself.
 - Do not expose Prometheus directly to the public internet.
 - Do not paste raw access logs containing user input into public PRs.
-- Do not add Loki, n8n, exporters, workers, and new rate-limit enforcement all at once on the app server.
+- Do not move Loki/n8n back onto the prod app server.
 - Do not use rate limiting to hide backend 5xx bugs.
 ```
 

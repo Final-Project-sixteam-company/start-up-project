@@ -1,0 +1,27 @@
+flowchart LR
+    user["Client / Frontend<br/>Web or Mobile"] --> dns["api.clueroom.xyz"]
+    dns --> nginx["prod: Nginx<br/>TLS / rate limit / CN block / manual blocklist"]
+    nginx --> active["prod: app-green ACTIVE<br/>127.0.0.1:8082"]
+    nginx -. standby switch .-> standby["prod: app-blue STANDBY<br/>127.0.0.1:8081"]
+
+    active --> data_mysql["data: MySQL 8.4<br/>172.26.1.185:3306"]
+    active --> data_redis["data: Redis 8<br/>172.26.1.185:6379"]
+    standby --> data_mysql
+    standby --> data_redis
+
+    active --> deepseek["DeepSeek API<br/>AI interrogation"]
+    active --> portone["Payment Provider<br/>PortOne/KG Inicis if enabled"]
+    active --> oauth["Google/Kakao OAuth verify<br/>when auth PR enabled"]
+
+    prod_monitor["prod: Prometheus/Grafana<br/>current local monitoring"] -. scrapes .-> active
+    prod_monitor -. scrapes .-> standby
+
+    classDef prod fill:#e8f2ff,stroke:#2f6fb3,stroke-width:1px;
+    classDef data fill:#eaffea,stroke:#2b7a2b,stroke-width:1px;
+    classDef ext fill:#fff4e5,stroke:#b36b00,stroke-width:1px;
+    classDef monitor fill:#f4e8ff,stroke:#7142a6,stroke-width:1px;
+
+    class nginx,active,standby prod;
+    class data_mysql,data_redis data;
+    class deepseek,portone,oauth ext;
+    class prod_monitor monitor;
