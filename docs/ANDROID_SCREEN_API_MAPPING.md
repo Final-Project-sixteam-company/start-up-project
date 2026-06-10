@@ -145,7 +145,7 @@ API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
 | 용의자 상세 | 프로필/알리바이 확인 | `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` | O |
 | 심문 채팅 | AI 용의자 심문 | `POST /api/play-sessions/{sessionId}/interrogations` | O |
 | 심문 로그 | 기존 대화 조회 | `GET /api/play-sessions/{sessionId}/interrogations` | O |
-| 추천 질문 | 질문 버튼 표시 | `GET /api/play-sessions/{sessionId}/recommended-questions` | 선택 |
+| 추천 질문 | 질문 버튼 표시 | `GET /api/play-sessions/{sessionId}/recommended-questions` | 미구현, 로컬 문구 사용 |
 | 증거 제시 모달 | 심문 중 증거 선택 | `GET /api/play-sessions/{sessionId}/evidences` | O |
 | 타임라인 | 사건 시간 흐름 | `GET /api/play-sessions/{sessionId}/timeline` | O |
 | 힌트 | 힌트 조회/사용 | `GET /api/play-sessions/{sessionId}/hints`, `POST /api/play-sessions/{sessionId}/hints/{hintId}/use` | O |
@@ -153,10 +153,10 @@ API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
 | 결과/해설 | 채점 결과 확인 | `GET /api/play-sessions/{sessionId}/result` | O |
 | 커스텀 제작 | 시나리오 제작 | `POST /api/scenarios`, 하위 리소스 API | O |
 | AI 검증 | 시나리오 논리 검증 | `POST /api/ai/scenarios/{scenarioId}/validate` | O |
-| 리뷰 | 리뷰 조회/작성 | `GET/POST /api/scenarios/{scenarioId}/reviews` | O |
-| 북마크 | 시나리오 북마크 | `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` | O |
-| AI 초안 생성 | 시나리오 초안 생성 | `POST /api/ai/scenarios/draft` | 2차 |
-| 내 기록 | 플레이/제작 기록 | `GET /api/play-sessions/me`, `GET /api/scenarios/me`, `GET /api/scenarios/bookmarked` | 2차 |
+| 리뷰 | 리뷰 조회/작성 | `GET/POST /api/scenarios/{scenarioId}/reviews` | 미구현, 후속 |
+| 북마크 | 시나리오 북마크 | `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` | 미구현, 후속 |
+| AI 초안 생성 | 시나리오 초안 생성 | `POST /api/ai/scenarios/draft` | 미구현, 2차 |
+| 내 기록 | 플레이/제작 기록 | `GET /api/play-sessions/me`, `GET /api/scenarios/me`, `GET /api/scenarios/bookmarked` | 미구현, 2차 |
 | 마이페이지 | 내 정보 | `GET /api/users/me` | 인증 후 |
 | 구매/크레딧 | 거래 확장 | 거래/크레딧 API | 후순위 |
 
@@ -211,10 +211,10 @@ API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
 
 | 항목 | 내용 |
 |---|---|
-| 목적 | 사건 정보 확인 후 플레이 시작 또는 북마크/리뷰 확인 |
+| 목적 | 사건 정보 확인 후 플레이 시작 |
 | 호출 API | `GET /api/scenarios/{scenarioId}` |
-| 선택 API | `GET /api/scenarios/{scenarioId}/reviews` |
-| 액션 API | `POST /api/play-sessions`, `POST /api/scenarios/{scenarioId}/bookmarks`, `DELETE /api/scenarios/{scenarioId}/bookmarks` |
+| 선택 API | 리뷰 API는 현재 미구현 |
+| 액션 API | `POST /api/play-sessions` |
 | 필요한 필드 | `scenarioId`, `title`, `description`, `synopsis`, `difficulty`, `estimatedPlayTimeMinutes`, `suspectCount`, `evidenceCount`, `averageRating`, `ratingCount`, `isBookmarked`, `scenarioType`, `visibility`, `canPlay` |
 | API Spec | 6.2 시나리오 상세 조회, 9.1 게임 세션 시작, 12.1~12.4 커뮤니티 API |
 
@@ -301,7 +301,7 @@ API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
 |---|---|
 | 목적 | AI 용의자에게 질문하고 답변 로그 표시 |
 | 진입 API | `GET /api/play-sessions/{sessionId}/interrogations` |
-| 선택 API | `GET /api/play-sessions/{sessionId}/recommended-questions` |
+| 선택 API | 추천 질문 API는 현재 미구현. 로컬 문구 사용 |
 | 질문 API | `POST /api/play-sessions/{sessionId}/interrogations` |
 | 필요한 필드 | `interrogationId`, `suspectId`, `suspectName`, `questionType`, `question`, `answer`, `presentedEvidence`, `unlockedEvidences`, `createdAt` |
 | API Spec | 10.1 AI 용의자 심문, 10.2 증거 제시 심문, 10.3 심문 로그 조회, 10.4 추천 질문 조회 |
@@ -415,7 +415,9 @@ AI 시나리오 초안 생성은 2차 기능이다.
 | 필요한 필드 | `reviewId`, `user`, `rating`, `content`, `isSpoiler`, `createdAt` |
 | API Spec | 12.3 리뷰 작성, 12.4 리뷰 목록 조회 |
 
-스포일러 리뷰는 접어서 표시한다.
+현재 리뷰 컨트롤러는 없다.
+1차 MVP에서는 리뷰 UI를 숨기거나 disabled 상태로 둔다.
+후속 구현 시 스포일러 리뷰는 접어서 표시한다.
 
 ### 8.2 북마크
 
@@ -426,6 +428,9 @@ AI 시나리오 초안 생성은 2차 기능이다.
 | 필요한 필드 | `scenarioId`, `isBookmarked` |
 | API Spec | 12.1 시나리오 북마크, 12.2 북마크 취소 |
 
+현재 북마크 컨트롤러는 없다.
+1차 MVP에서는 북마크 버튼을 숨기거나 disabled 상태로 둔다.
+
 ---
 
 ## 9. 후순위 화면
@@ -434,7 +439,7 @@ AI 시나리오 초안 생성은 2차 기능이다.
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | 2차 기능 |
+| 상태 | 미구현 2차 기능 |
 | 호출 API | `POST /api/ai/scenarios/draft` |
 | 필요한 필드 | `draftId`, `title`, `synopsis`, `suspects`, `evidences`, `warnings` |
 | API Spec | 8.1 AI 시나리오 초안 생성 |

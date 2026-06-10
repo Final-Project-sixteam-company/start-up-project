@@ -320,7 +320,7 @@ MySQL
 Redis
 ```
 
-현재 구조:
+현재 baseline 구조:
 
 ```text
 Docker Compose
@@ -329,14 +329,17 @@ Docker Compose
   └─ redis
 ```
 
-Blue-Green PoC 구조에서는 같은 MySQL/Redis를 공유하고 App 컨테이너만 분리한다.
+현재 운영 Blue-Green 구조는 external-data overlay를 포함한다.
+`app-blue` / `app-green`은 local MySQL/Redis가 아니라 data 서버 `172.26.1.185`의 MySQL/Redis를 source of truth로 사용한다.
+prod local MySQL/Redis는 rollback/local-data copy 용도다.
 
 ```text
-Docker Compose + Blue-Green overlay
+Docker Compose + Blue-Green + external-data overlay
   ├─ app-blue  : 127.0.0.1:8081
   ├─ app-green : 127.0.0.1:8082
-  ├─ mysql
-  └─ redis
+  ├─ external MySQL : 172.26.1.185
+  ├─ external Redis : 172.26.1.185
+  └─ local mysql/redis : rollback/local-data copy
 ```
 
 기존 단일 app 컨테이너(`start-up-app`)는 legacy 경로로 보고 운영 traffic 대상에서 제외한다.
@@ -355,7 +358,8 @@ Alert 정책은 외부 health와 active upstream을 우선하고, standby app-bl
 - Grafana는 팀원별 Viewer 계정 발급
 - Grafana admin 계정 공유 금지
 - 서버 로그 접근은 인프라 담당자 중심으로 제한
-- 로그 공유가 필요해지면 Loki/Promtail 도입
+- ops Loki/Alloy는 운영 snapshot과 log shipping 확인 대상이다.
+- prod API 서버에 Loki/n8n 같은 추가 런타임을 한 번에 올리지 않는다.
 ```
 
 2GB 서버에서 Prometheus / Grafana를 상시 운영할지는 메모리 사용량을 기준으로 판단한다.
@@ -645,15 +649,16 @@ MVP 운영은 단일 Lightsail 서버를 유지한다. 운영 배포 전환에�
 단일 서버 PoC 구조:
 
 ```text
-Lightsail 단일 서버
+Lightsail app 서버 + external data 서버
   ├─ Nginx
   ├─ app-blue  : 8081
   ├─ app-green : 8082
-  ├─ MySQL
-  └─ Redis
+  ├─ external MySQL : 172.26.1.185
+  ├─ external Redis : 172.26.1.185
+  └─ local MySQL/Redis : rollback/local-data copy
 ```
 
-이 구조는 진짜 멀티 서버 고가용성은 아니지만, Nginx upstream 전환과 무중단 배포 개념을 검증하기에는 충분하다.
+이 구조는 완전한 멀티 서버 고가용성은 아니지만, Nginx upstream 전환, external-data cutover, rollback 절차를 검증하기에는 충분하다.
 
 전환 방식:
 

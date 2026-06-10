@@ -22,6 +22,7 @@ API Base URL:
 https://api.clueroom.xyz
 
 Swagger:
+https://api.clueroom.xyz/swagger-ui.html
 https://api.clueroom.xyz/swagger-ui/index.html
 
 Health Check:
@@ -1048,7 +1049,8 @@ https://api.clueroom.xyz/actuator/prometheus 외부 접근은 Nginx에서 차단
 
 서버 로그:
 인프라 담당자가 SSH로 확인
-추후 필요 시 Loki/Promtail 도입
+ops Loki/Alloy는 snapshot 확인 대상
+원문 secret/user input이 노출되지 않도록 query와 공유 범위를 제한
 ```
 
 3000/9090 포트는 운영 서버 방화벽에 열지 않는다. Compose host binding도 `127.0.0.1` 기준으로 유지한다.
@@ -1213,6 +1215,7 @@ git clean -fdx
 확인:
 
 ```bash
+curl -I https://api.clueroom.xyz/swagger-ui.html
 curl -I https://api.clueroom.xyz/swagger-ui/index.html
 curl -I https://api.clueroom.xyz/v3/api-docs
 curl -I https://api.clueroom.xyz/actuator/health

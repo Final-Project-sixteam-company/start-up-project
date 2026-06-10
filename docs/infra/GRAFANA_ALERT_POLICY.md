@@ -22,10 +22,10 @@ Slack notification wiring is deferred to `INFRA-09 Slack Alert Channel PoC`.
 Current Prometheus scrape targets are expected to include:
 
 ```text
-- start-up-app or app:8080
-- app-blue:8080
-- app-green:8080
-- prometheus
+- job_name: clueroom-app        target: app:8080
+- job_name: clueroom-app-blue   target: app-blue:8080
+- job_name: clueroom-app-green  target: app-green:8080
+- job_name: prometheus          target: prometheus:9090
 ```
 
 In the production Blue-Green flow, `app-blue` or `app-green` can be intentionally stopped when it is the standby slot.
@@ -219,7 +219,7 @@ Safe policy:
 Do not create a naive CRITICAL alert for:
 
 ```promql
-up{job=~"app-blue|app-green"} == 0
+up{job=~"clueroom-app-blue|clueroom-app-green"} == 0
 ```
 
 This can page the team when the standby slot is intentionally stopped after deployment.

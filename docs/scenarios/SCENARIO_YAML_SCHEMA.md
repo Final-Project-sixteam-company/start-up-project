@@ -30,8 +30,11 @@ Official scenario YAML with answers is private content and should be loaded
 from a private local/server path such as:
 
 ```text
-CLUEROOM_SCENARIO_IMPORT_PATH=/opt/clueroom/private-scenarios
+CLUEROOM_SCENARIO_IMPORT_PATHS=/opt/clueroom/private-scenarios
 ```
+
+`application.yml`은 복수형 `CLUEROOM_SCENARIO_IMPORT_PATHS`만 바인딩한다.
+단수형 `CLUEROOM_SCENARIO_IMPORT_PATH`는 현재 코드에서 읽지 않는다.
 
 ## Root Shape
 
@@ -351,8 +354,8 @@ npcPolicies:
 ```
 
 The importer may store NPC policy data, but the AI prompt builder must receive
-only the policy selected by `ResponsePolicyResolver` for the current question,
-stage, character, and presented evidence.
+only the policy selected by `ResponsePolicyResolver` for the current suspect,
+unlocked evidence IDs, and presented evidence ID.
 
 Prompt builders must not receive:
 
@@ -375,13 +378,20 @@ scoring:
       maxScore: 30
     - field: method
       proofDimension: METHOD
-      maxScore: 30
-  consistencyScore:
-    maxScore: 10
+      maxScore: 25
+    - field: motive
+      proofDimension: MOTIVE
+      maxScore: 20
+    - field: coverUp
+      proofDimension: COVER_UP
+      maxScore: 10
+  evidenceScore:
+    maxScore: 15
 ```
 
 Actual scoring answer keys live under each variant's solution. Public docs can
 describe the scoring shape, but official mappings are private.
+The default score split in code is culprit 30, method 25, motive 20, coverUp 10, evidence 15.
 
 ## Assets
 
@@ -471,7 +481,7 @@ base evidence
 During interrogation:
 
 ```text
-user question + character + presented evidence
+suspect + unlocked evidence IDs + presented evidence ID
   -> ResponsePolicyResolver
   -> prompt-safe policy only
   -> AiPromptBuilder

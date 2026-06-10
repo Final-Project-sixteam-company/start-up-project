@@ -16,6 +16,25 @@
 
 ---
 
+## 0. 코드 SoT 동기화 노트
+
+이 문서는 초기 ERD 설계와 구현 후보를 함께 포함한다.
+현재 `develop` 코드 기준으로 아래 항목은 구현 상태가 다르므로, 새 구현이나 migration 작성 시 코드 SoT를 우선한다.
+
+| 문서상 항목 | 현재 코드 SoT |
+|---|---|
+| `ScenarioVersion` | JPA 엔티티 없음. 버전은 `Scenario.contentVersion`, `Scenario.contentHash` 인라인 컬럼으로 관리한다. |
+| `Tag` / `ScenarioTag` | JPA 엔티티 없음. 검색/필터 확장 후보로 본다. |
+| `SuspectSecret` | JPA 엔티티 없음. NPC 지식 경계는 `NpcKnowledgeProfile`이 담당한다. |
+| `SolutionEvidence` | JPA 엔티티 없음. 핵심 증거는 `Solution.keyEvidenceIds` 문자열 컬럼을 파싱해 사용한다. |
+| `AiGenerationLog` | JPA 엔티티 없음. AI 호출 로그는 `AiCallRecorder`/`AiCallLogWriter`가 `ai_call_logs`에 raw JDBC로 기록한다. |
+| 누락된 구현 엔티티 | `ScenarioVariant`, `VariantSolution`, `EvidenceVariantState`, `EvidenceUnlockRule`, `ScenarioAsset`, `NpcKnowledgeProfile`이 코드에 존재한다. |
+| asset URL | `thumbnail_url` 중심이 아니라 `coverAssetKey`, `mapAssetKey`, `imageAssetKey`, `portraitAssetKey`를 URL resolver로 변환한다. |
+
+아래 본문에서 위 항목이 별도 엔티티처럼 설명되더라도, 현재 구현 기준으로는 이 표를 우선한다.
+
+---
+
 ## 1단계. 필요한 엔티티 목록
 
 ### 1. 사용자 / 계정
@@ -34,12 +53,15 @@
 | 엔티티 | 설명 |
 |---|---|
 | Scenario | 공식/커스텀 추리 시나리오의 최상위 엔티티. 제목, 설명, 난이도, 공개 상태, 플레이 수, 평점 등을 가진다. |
-| ScenarioVersion | 시나리오 버전 정보. 시나리오 수정 이력과 Case Graph JSON을 관리한다. |
+| ScenarioVersion | 현재 JPA 엔티티 없음. 구현 기준으로는 Scenario의 `contentVersion`/`contentHash` 인라인 컬럼을 사용한다. |
 | ScenarioLocation | 사건 장소. 증거와 피해자 발견 위치가 연결될 수 있다. |
 | Victim | 피해자 정보. 사건의 시작점이 되는 인물이며 시나리오당 1명 이상 존재할 수 있다. |
 | TimelineEvent | 사건 타임라인. 실제 사건 흐름, 알리바이, 공개/비공개 이벤트를 관리한다. |
-| Tag | 시나리오 분류 태그. 장르, 난이도, 분위기 등의 검색/필터에 사용한다. |
-| ScenarioTag | Scenario와 Tag의 N:M 연결 엔티티. |
+| Tag | 현재 JPA 엔티티 없음. 장르/난이도/분위기 검색 확장 후보. |
+| ScenarioTag | 현재 JPA 엔티티 없음. Tag 도입 시 N:M 연결 후보. |
+| ScenarioVariant | 구현 엔티티. 시나리오별 variant, culpritCode, weight를 관리한다. |
+| VariantSolution | 구현 엔티티. variant별 정답 정보를 관리한다. |
+| ScenarioAsset | 구현 엔티티. asset key와 public URL 변환 경계를 관리한다. |
 
 시나리오는 이 서비스의 중심 엔티티다.  
 게임 플레이, AI 심문, 증거, 힌트, 리뷰, 북마크, 신고, 구매/언락 확장이 모두 Scenario를 기준으로 연결된다.
@@ -51,7 +73,7 @@
 | 엔티티 | 설명 |
 |---|---|
 | Suspect | 용의자 정보. 공개 프로필, 공개 진술, 알리바이, 성격 프롬프트, 의심도 등을 가진다. |
-| SuspectSecret | 용의자의 숨겨진 정보. AI에게 직접 넘기면 안 되는 비밀과 핵심 단서를 관리한다. |
+| NpcKnowledgeProfile | 구현 엔티티. AI에게 직접 넘기면 안 되는 금지 지식과 NPC 지식 경계를 관리한다. |
 | SuspectResponsePolicy | 질문 조건별 AI 답변 정책. AI가 어떤 상황에서 무엇을 말할 수 있는지 제한한다. |
 
 AI 용의자 심문 기능의 핵심은 Suspect 자체보다 Response Policy다.  
@@ -65,6 +87,8 @@ AI에게 진범 여부나 전체 정답을 직접 전달하지 않고, 현재 �
 |---|---|
 | Evidence | 증거 카드. 시나리오, 장소, 공개 여부, 해금 조건, 중요도, 이미지 URL 등을 가진다. |
 | EvidenceSuspect | Evidence와 Suspect의 N:M 연결 엔티티. 특정 증거가 어떤 용의자와 관련되는지 표현한다. |
+| EvidenceUnlockRule | 구현 엔티티. PHASE, INTERROGATION, EVIDENCE_PRESENTED 등 해금 조건을 관리한다. |
+| EvidenceVariantState | 구현 엔티티. variant별 증거 설명/상태 차이를 관리한다. |
 | UnlockedEvidence | 플레이 세션별 해금된 증거 기록. 사용자가 현재 볼 수 있는 증거를 판단하는 기준이다. |
 
 Evidence는 시나리오에 속하지만, 실제 플레이 화면에서는 모든 증거를 바로 보여주면 안 된다.  
@@ -89,7 +113,7 @@ Evidence는 시나리오에 속하지만, 실제 플레이 화면에서는 모�
 | 엔티티 | 설명 |
 |---|---|
 | Solution | 시나리오의 정답. 진범, 동기, 범행 방법, 은폐 방법, 전체 해설을 가진다. |
-| SolutionEvidence | Solution과 Evidence의 연결 엔티티. 정답 판단에 중요한 핵심 증거를 관리한다. |
+| SolutionEvidence | 현재 JPA 엔티티 없음. 구현 기준으로는 `Solution.keyEvidenceIds` 문자열 컬럼을 사용한다. |
 | FinalDeduction | 사용자가 제출한 최종 추리. 선택한 범인, 동기/방법/은폐 텍스트, 점수, 등급, 피드백을 가진다. |
 | FinalDeductionEvidence | 사용자가 최종 추리에서 선택한 증거 목록. FinalDeduction과 Evidence의 연결 엔티티다. |
 
@@ -128,7 +152,7 @@ PlaySession은 게임 진행 상태의 기준이다.
 | 엔티티 | 설명 |
 |---|---|
 | ScenarioValidationResult | AI 시나리오 검증 결과. 검증 상태, 점수, 문제 요약, 개선 제안을 저장한다. |
-| AiGenerationLog | AI 호출 로그. 요청 유형, 모델명, 토큰 사용량, 결과 상태, 비용 크레딧 등을 기록한다. |
+| ai_call_logs | 구현 테이블. `AiCallRecorder`/`AiCallLogWriter`가 feature, provider, model, promptVersion, latency, success, token 사용량 등을 기록한다. |
 
 AI 필수 요구사항을 만족하려면 AI 응답을 단순히 반환하는 데서 끝내면 안 된다.  
 검증 결과와 AI 호출 로그를 DB에 저장해야 한다.
@@ -184,7 +208,7 @@ ScenarioAccess
 | User 1:N ScenarioReview | 한 사용자는 여러 리뷰를 작성할 수 있다. |
 | User 1:N ScenarioBookmark | 한 사용자는 여러 시나리오를 북마크할 수 있다. |
 | User 1:N ScenarioReport | 한 사용자는 여러 시나리오를 신고할 수 있다. |
-| User 1:N AiGenerationLog | 한 사용자는 여러 AI 요청 로그를 남길 수 있다. 비회원 또는 시스템 호출은 `user_id`가 null일 수 있다. |
+| User 1:N ai_call_logs | 한 사용자는 여러 AI 요청 로그를 남길 수 있다. 현재는 `AiCallLogWriter`가 raw JDBC로 기록한다. |
 
 초기 MVP에서는 `MockUserProvider`를 사용하더라도 위 관계는 유지한다.
 
@@ -194,7 +218,7 @@ ScenarioAccess
 
 | 관계 | 설명 |
 |---|---|
-| Scenario 1:N ScenarioVersion | 하나의 시나리오는 여러 버전을 가질 수 있다. |
+| Scenario 1:N ScenarioVersion | 현재 JPA 엔티티 없음. 구현 기준으로는 Scenario 인라인 버전 컬럼을 사용한다. |
 | Scenario 1:N ScenarioLocation | 하나의 시나리오는 여러 장소를 가진다. |
 | Scenario 1:N Victim | 하나의 시나리오는 피해자 정보를 가진다. MVP에서는 1명으로 시작할 수 있지만 구조상 1:N이 가능하다. |
 | Scenario 1:N Suspect | 하나의 시나리오는 여러 용의자를 가진다. |
@@ -207,7 +231,7 @@ ScenarioAccess
 | Scenario 1:N ScenarioBookmark | 하나의 시나리오는 여러 북마크를 가질 수 있다. |
 | Scenario 1:N ScenarioReport | 하나의 시나리오는 여러 신고를 받을 수 있다. |
 | Scenario 1:N ScenarioValidationResult | 하나의 시나리오는 여러 번 AI 검증될 수 있다. 최신 결과만 사용할지, 전체 이력을 보관할지는 서비스 정책으로 결정한다. |
-| Scenario 1:N AiGenerationLog | 시나리오 생성/검증/심문/채점 관련 AI 로그가 시나리오에 연결될 수 있다. |
+| Scenario 1:N ai_call_logs | 시나리오 생성/검증/심문/채점 관련 AI 로그가 시나리오에 연결될 수 있다. 현재는 raw JDBC 로그 테이블 기준이다. |
 
 ---
 
@@ -226,14 +250,14 @@ ScenarioAccess
 
 | 관계 | 설명 |
 |---|---|
-| Suspect 1:N SuspectSecret | 하나의 용의자는 여러 숨겨진 정보를 가질 수 있다. |
+| Suspect 1:1 NpcKnowledgeProfile | 현재 구현 기준. 하나의 용의자는 AI에게 넘기면 안 되는 금지 지식과 지식 경계를 가질 수 있다. |
 | Suspect 1:N SuspectResponsePolicy | 하나의 용의자는 여러 답변 정책을 가진다. 질문 의도, 증거 제시 여부, 우선순위에 따라 정책을 선택한다. |
 | Suspect 1:N InterrogationLog | 하나의 용의자는 여러 심문 로그에 등장할 수 있다. |
 | Suspect 1:N TimelineEvent | 타임라인 이벤트가 특정 용의자와 연결될 수 있다. `timeline_events.related_suspect_id`는 nullable이다. |
 | Suspect 1:N Solution | Solution의 `culprit_suspect_id`가 진범 용의자를 가리킨다. 실제로는 시나리오당 하나의 Solution만 존재해야 한다. |
 | Suspect 1:N FinalDeduction | 사용자가 최종 추리에서 선택한 범인을 나타낸다. `final_deductions.selected_culprit_id`는 nullable이다. |
 
-AI 심문에서는 SuspectSecret 전체를 그대로 AI에게 넘기면 안 된다.  
+AI 심문에서는 `NpcKnowledgeProfile`의 금지 지식이나 정답 정보를 그대로 AI에게 넘기면 안 된다.
 백엔드는 현재 공개 가능한 ResponsePolicy만 선별해서 AI에 전달해야 한다.
 
 ---
@@ -243,7 +267,7 @@ AI 심문에서는 SuspectSecret 전체를 그대로 AI에게 넘기면 안 된�
 | 관계 | 연결 엔티티 | 설명 |
 |---|---|---|
 | Evidence N:M Suspect | EvidenceSuspect | 하나의 증거는 여러 용의자와 관련될 수 있고, 한 용의자도 여러 증거와 연결될 수 있다. |
-| Evidence N:M Solution | SolutionEvidence | 정답 판단에 중요한 핵심 증거를 연결한다. |
+| Evidence N:M Solution | 현재 JPA 연결 엔티티 없음 | 구현 기준으로는 `Solution.keyEvidenceIds` 문자열 컬럼을 파싱한다. |
 | Evidence N:M FinalDeduction | FinalDeductionEvidence | 사용자가 최종 추리에서 선택한 증거들을 기록한다. |
 
 증거는 추리 게임의 핵심 데이터다.  
@@ -311,7 +335,7 @@ scenario_reports: reporter_id + scenario_id + reason 또는 정책 기반 중복
 
 | 관계 | 연결 엔티티 | 설명 |
 |---|---|---|
-| Scenario N:M Tag | ScenarioTag | 하나의 시나리오는 여러 태그를 가질 수 있고, 하나의 태그는 여러 시나리오에 붙을 수 있다. |
+| Scenario N:M Tag | ScenarioTag | 현재 JPA 엔티티 없음. 검색/필터 확장 후보로 본다. |
 
 태그는 시나리오 검색/필터에 사용된다.  
 `tags.name`에는 unique 제약이 필요하다.
@@ -322,12 +346,12 @@ scenario_reports: reporter_id + scenario_id + reason 또는 정책 기반 중복
 
 | 관계 | 설명 |
 |---|---|
-| User 1:N AiGenerationLog | 사용자별 AI 호출 기록을 남긴다. |
-| Scenario 1:N AiGenerationLog | 특정 시나리오와 관련된 AI 호출 기록을 남긴다. |
+| User 1:N ai_call_logs | 사용자별 AI 호출 기록을 남긴다. 현재는 raw JDBC 로그 테이블 기준이다. |
+| Scenario 1:N ai_call_logs | 특정 시나리오와 관련된 AI 호출 기록을 남긴다. 현재는 raw JDBC 로그 테이블 기준이다. |
 | Scenario 1:N ScenarioValidationResult | 시나리오 검증 이력을 저장한다. |
 
 AI 과제 요구사항을 만족하려면 토큰 사용량, 모델명, 결과 상태를 추적할 수 있어야 한다.  
-`AiGenerationLog`는 운영 모니터링과 비용 분석에도 사용된다.
+현재 구현의 `ai_call_logs`는 운영 모니터링과 비용 분석에도 사용된다.
 
 ---
 
@@ -429,7 +453,9 @@ Unique Constraint
 | title | 제목 | not null |
 | description | 설명 | nullable |
 | synopsis | 플레이어 공개 시놉시스 | nullable |
-| thumbnail_url | 썸네일 URL | nullable |
+| cover_asset_key, map_asset_key | cover/map asset key | 현재 구현 기준. URL은 `ScenarioAssetUrlResolver`가 변환 |
+| content_version, content_hash | 콘텐츠 버전/해시 | 현재 구현 기준. 별도 ScenarioVersion 엔티티 대신 사용 |
+| genre, culprit_mode, deduction_mode, map_mode, evidence_mode | 시나리오 모드/분류 | 현재 구현 기준 |
 | scenario_type | OFFICIAL, CUSTOM | enum 문자열 |
 | visibility | PRIVATE, UNLISTED, PUBLIC, OFFICIAL | enum 문자열 |
 | status | DRAFT, VALIDATING, PUBLISHED 등 | enum 문자열 |
@@ -452,7 +478,11 @@ play_count, average_rating, rating_count는 Hot Spot 후보.
 
 ---
 
-### 3.3 ScenarioVersion
+### 3.3 ScenarioVersion (현재 JPA 엔티티 없음)
+
+현재 구현에서는 별도 `ScenarioVersion` 엔티티가 없다.
+시나리오 버전은 `Scenario.contentVersion`과 `Scenario.contentHash` 인라인 컬럼으로 관리한다.
+아래 표는 초기 설계 후보로만 본다.
 
 | 속성 | 설명 | 제약 / 동시성 메모 |
 |---|---|---|
@@ -543,7 +573,11 @@ MVP에서는 동시성 제어 필요 낮음.
 
 ---
 
-### 3.7 SuspectSecret
+### 3.7 SuspectSecret (현재 JPA 엔티티 없음)
+
+현재 구현에서는 별도 `SuspectSecret` 엔티티가 없다.
+NPC 지식 경계와 금지 지식은 `NpcKnowledgeProfile`이 담당한다.
+아래 표는 초기 설계 후보로만 본다.
 
 | 속성 | 설명 | 제약 / 동시성 메모 |
 |---|---|---|
@@ -707,7 +741,11 @@ scenario_id unique 제약 필요.
 
 ---
 
-### 3.14 SolutionEvidence
+### 3.14 SolutionEvidence (현재 JPA 엔티티 없음)
+
+현재 구현에서는 별도 `SolutionEvidence` 엔티티가 없다.
+정답 핵심 증거는 `Solution.keyEvidenceIds` 문자열 컬럼에 저장하고 파싱한다.
+아래 표는 초기 설계 후보로만 본다.
 
 | 속성 | 설명 | 제약 / 동시성 메모 |
 |---|---|---|
@@ -961,7 +999,11 @@ user_id + scenario_id unique 제약 필수.
 
 ---
 
-### 3.26 AiGenerationLog
+### 3.26 AiGenerationLog (현재 JPA 엔티티 없음)
+
+현재 구현에서는 별도 `AiGenerationLog` JPA 엔티티가 없다.
+AI 호출 로그는 `AiCallRecorder`와 `AiCallLogWriter`가 `ai_call_logs` 테이블에 raw JDBC로 기록한다.
+아래 표는 초기 설계 후보로만 본다.
 
 | 속성 | 설명 | 제약 / 동시성 메모 |
 |---|---|---|
@@ -1149,7 +1191,10 @@ erDiagram
         varchar title
         text description
         text synopsis
-        varchar thumbnail_url
+        varchar cover_asset_key
+        varchar map_asset_key
+        integer content_version
+        varchar content_hash
         varchar scenario_type
         varchar visibility
         varchar status
@@ -2172,8 +2217,8 @@ MVP에서는 Scenario 필드 유지.
 1. Scenario 중심 도메인 구조가 명확하다.
 2. PlaySession 기준으로 사용자별 진행 상태를 분리했다.
 3. Evidence와 UnlockedEvidence를 나눠 공개/비공개 증거를 제어할 수 있다.
-4. SuspectSecret과 ResponsePolicy가 있어 AI에게 정답을 직접 넘기지 않는 구조를 만들 수 있다.
-5. AI 검증 결과와 AI 호출 로그를 저장할 수 있다.
+4. NpcKnowledgeProfile과 ResponsePolicy가 있어 AI에게 정답을 직접 넘기지 않는 구조를 만들 수 있다.
+5. ScenarioValidationResult와 ai_call_logs로 AI 검증 결과와 AI 호출 로그를 저장할 수 있다.
 ```
 
 보완해야 할 점:

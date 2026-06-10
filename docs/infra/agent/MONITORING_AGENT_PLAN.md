@@ -355,7 +355,9 @@ Do not send secrets or raw `.env` output to Discord/Slack.
 
 ## 9. Loki / n8n Adoption Timing
 
-Do not add Loki and n8n to the current single production app server all at once.
+Do not add Loki and n8n to the current production app server all at once.
+Current ops-side Loki/Alloy can already be used as a read-only signal source in Ops Snapshot checks.
+The caution here is about adding more runtime services to the app server, not about denying the existing ops Loki/Alloy path.
 
 Recommended path:
 
@@ -364,7 +366,7 @@ Phase 1: Manual / Local PoC with human-reviewed Ops Snapshot
 Phase 2: Discord/Slack manual alert summary
 Phase 3: infra server separation
 Phase 4: n8n workflow for scheduled summaries or webhook payloads
-Phase 5: Loki/Promtail for log search if team log sharing becomes necessary
+Phase 5: expand ops Loki/Alloy log search and retention policy if team log sharing becomes necessary
 Phase 6: dedicated worker only if n8n is not enough
 ```
 
@@ -372,7 +374,7 @@ Reason:
 
 ```text
 - n8n adds another runtime service and secret store
-- Loki/Promtail adds storage and retention questions
+- Loki/Alloy storage and retention policy must be controlled on the ops side
 - current single server should preserve API stability for demo/MVP
 ```
 
@@ -382,7 +384,13 @@ Reason:
 
 ### 10.1 Blue-Green Targets
 
-Prometheus may scrape `app`, `app-blue`, and `app-green`.
+Prometheus may scrape these jobs:
+
+```text
+clueroom-app
+clueroom-app-blue
+clueroom-app-green
+```
 
 Blue-Green operation can intentionally stop the standby slot.
 

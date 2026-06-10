@@ -558,11 +558,12 @@ AI 호출 관련 코드는 `domain.ai`에 집중한다.
 
 ```text
 AiClient
-PromptTemplateService
-NpcInterrogationService
-ScenarioValidationAiService
-FinalDeductionScoringAiService
-AiGenerationLogService
+AiPromptBuilder
+AiInterrogationService
+AiScenarioValidationService
+AiDeductionScorer
+AiCallRecorder / AiCallLogWriter
+AiPromptContextLogger
 ResponsePolicyResolver
 ```
 
@@ -602,7 +603,7 @@ ResponsePolicyResolver가 결정한 답변 정책
 → 현재 해금 증거 조회
 → 용의자 조회
 → ResponsePolicyResolver가 답변 정책 결정
-→ PromptTemplateService가 프롬프트 생성
+→ AiPromptBuilder가 프롬프트 생성
 → AiClient 호출
 → InterrogationLog 저장
 → 응답 반환
@@ -615,17 +616,19 @@ ResponsePolicyResolver가 결정한 답변 정책
 입력:
 
 ```text
-sessionId
 suspectId
-question
-presentedEvidenceId
 unlockedEvidenceIds
+presentedEvidenceId
 ```
+
+현재 구현 기준으로 `ResponsePolicyResolver.resolve(...)`는 `sessionId`와 사용자 질문 원문을 직접 받지 않는다.
+정책 선택은 `suspectId`, 현재 해금 증거 ID 목록, 제시 증거 ID 기준으로 수행한다.
 
 출력:
 
 ```text
-responsePolicyText
+conditionKey
+policyText
 allowedFacts
 forbiddenFacts
 tone

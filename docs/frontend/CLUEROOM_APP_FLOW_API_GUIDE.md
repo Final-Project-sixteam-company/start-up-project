@@ -186,8 +186,11 @@ JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
 | Query | `includeLocked`, `status` |
 | 응답 핵심 | `evidenceId`, `title`, `oneLine`, `description`, `imageAssetKey`, `imageUrl`, `locationName`, `importance`, `isUnlocked`, `unlockHint`, `relatedSuspects` |
 
-현재 별도 증거 상세 API는 없다.
-증거 상세 화면은 목록 응답의 선택된 evidence item을 그대로 사용한다.
+증거 단건 상세는 아래 API를 사용한다.
+
+```text
+GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
+```
 
 이미지 관련 필드는 아래처럼 처리한다.
 
@@ -206,8 +209,11 @@ JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
 | 호출 시점 | 용의자 탭 진입, 심문 후 interrogation count 갱신 |
 | 응답 핵심 | `suspectId`, `name`, `role`, `relationToVictim`, `publicStatement`, `alibi`, `portraitImageUrl`, `suspicionLevel`, `interrogationCount` |
 
-현재 별도 용의자 상세 API는 없다.
-용의자 상세 화면은 목록 응답의 선택된 suspect item을 그대로 사용한다.
+용의자 단건 상세는 아래 API를 사용한다.
+
+```text
+GET /api/play-sessions/{sessionId}/suspects/{suspectId}
+```
 
 ### 3.7 심문 로그 조회
 
@@ -325,9 +331,6 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 
 | 예정 API | 현재 대체 방식 |
 |---|---|
-| `GET /api/play-sessions/{sessionId}/evidences/{evidenceId}` | `GET /evidences` 목록에서 선택한 item을 상세에 사용 |
-| `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` | `GET /suspects` 목록에서 선택한 item을 상세에 사용 |
-| `GET /api/play-sessions/{sessionId}/timeline` | 타임라인 화면은 임시 empty/placeholder 유지 |
 | `GET /api/play-sessions/{sessionId}/recommended-questions` | 추천 질문은 프론트 기본 문구 또는 더미로 유지 |
 | `GET /api/play-sessions/me` | 내 기록 화면은 인증/기록 API 전까지 더미 또는 empty state |
 | `GET /api/users/me` | 마이페이지는 인증 API 전까지 더미 또는 empty state |
@@ -344,9 +347,13 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 GET  /api/scenarios
 GET  /api/scenarios/{scenarioId}
 POST /api/play-sessions
+GET  /api/play-sessions/active?scenarioId={scenarioId}
 GET  /api/play-sessions/{sessionId}/dashboard
 GET  /api/play-sessions/{sessionId}/evidences
+GET  /api/play-sessions/{sessionId}/evidences/{evidenceId}
 GET  /api/play-sessions/{sessionId}/suspects
+GET  /api/play-sessions/{sessionId}/suspects/{suspectId}
+GET  /api/play-sessions/{sessionId}/timeline
 GET  /api/play-sessions/{sessionId}/interrogations
 POST /api/play-sessions/{sessionId}/interrogations
 GET  /api/play-sessions/{sessionId}/hints
@@ -586,7 +593,7 @@ GET /api/play-sessions/{sessionId}/dashboard
 | 현장 | 실제 연동 | `GET /api/play-sessions/{sessionId}/locations` |
 | 증거 | 실제 연동 | `GET /api/play-sessions/{sessionId}/evidences` |
 | 용의자 | 실제 연동 | `GET /api/play-sessions/{sessionId}/suspects` |
-| 타임라인 | placeholder | 없음 |
+| 타임라인 | 실제 연동 | `GET /api/play-sessions/{sessionId}/timeline` |
 | 힌트 | 실제 연동 | `GET /api/play-sessions/{sessionId}/hints`, `POST /api/play-sessions/{sessionId}/hints/{hintId}/use` |
 | 추리 제출 | 실제 연동 | `POST /api/play-sessions/{sessionId}/final-deduction` |
 
@@ -681,12 +688,15 @@ GET /api/play-sessions/{sessionId}/evidences?includeLocked=true
 
 ### 7.4 증거 상세
 
-현재 별도 증거 상세 API는 없다.
-증거 상세 화면은 증거 탭에서 받은 item을 그대로 사용한다.
+증거 상세 화면은 단건 상세 API를 호출한다.
+
+```text
+GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
+```
 
 | 사용자 액션 | 처리 |
 |---|---|
-| 해금 증거 클릭 | item 데이터로 상세 화면/모달 표시 |
+| 해금 증거 클릭 | 단건 상세 API 호출 후 상세 화면/모달 표시 |
 | 잠긴 증거 클릭 | 상세 진입 차단, `unlockHint` 중심의 잠금 상태 표시 |
 | 이미지 클릭 | `imageUrl`이 있으면 이미지 확대, 없으면 placeholder |
 | 관련 용의자 클릭 | 해당 `suspectId`로 용의자 상세 화면 이동 |
@@ -708,7 +718,7 @@ GET /api/play-sessions/{sessionId}/evidences?includeLocked=true
 
 | 사용자 액션 | 처리 |
 |---|---|
-| 용의자 카드 클릭 | 목록 item 데이터로 용의자 상세 화면 표시 |
+| 용의자 카드 클릭 | 단건 상세 API 호출 후 용의자 상세 화면 표시 |
 | 검색어 입력 | 현재는 프론트 로컬 필터 가능 |
 | 정렬/필터 | 현재는 프론트 로컬 처리 가능 |
 
@@ -716,8 +726,11 @@ GET /api/play-sessions/{sessionId}/evidences?includeLocked=true
 
 ### 7.6 용의자 상세
 
-현재 별도 용의자 상세 API는 없다.
-용의자 상세 화면은 용의자 목록에서 받은 item을 그대로 사용한다.
+용의자 상세 화면은 단건 상세 API를 호출한다.
+
+```text
+GET /api/play-sessions/{sessionId}/suspects/{suspectId}
+```
 
 | 영역 | 사용 필드 |
 |---|---|
@@ -741,20 +754,19 @@ GET /api/play-sessions/{sessionId}/evidences?includeLocked=true
 
 ### 7.7 타임라인 탭
 
-현재 타임라인 API는 구현되어 있지 않다.
+타임라인 탭은 서버 timeline API를 호출한다.
 
 ```text
 GET /api/play-sessions/{sessionId}/timeline
 ```
 
-위 API는 문서상 예정 API지만 현재 컨트롤러에는 없다.
-따라서 MVP에서는 아래 중 하나로 처리한다.
+응답이 비어 있으면 empty state를 보여준다.
 
 | 방식 | 설명 |
 |---|---|
-| 권장 | empty state: `타임라인은 수사 기록이 쌓이면 제공됩니다.` |
-| 임시 | 프론트 더미 타임라인 표시 |
-| 후속 | 백엔드 timeline API 구현 후 실제 연동 |
+| 정상 | 서버 timeline event 목록 표시 |
+| empty | `타임라인은 수사 기록이 쌓이면 제공됩니다.` |
+| 금지 | 정답/범인/숨겨진 실제 사건 순서를 프론트 더미로 노출 |
 
 타임라인 더미를 쓰더라도 정답/범인/숨겨진 실제 사건 순서를 노출하면 안 된다.
 유저가 이미 확인한 공개 사건 흐름만 표시한다.
@@ -818,9 +830,9 @@ MVP에서는 30~60초 간격 또는 탭 재진입 시 갱신으로 충분하다.
 1. 게임 화면 공통 상태는 dashboard를 기준으로 한다.
 2. 현장 탭은 locations API를 기본 호출로 사용하고, 피해자/발견 장소 briefing은 dashboard를 보조로 사용한다.
 3. 증거 탭은 evidences?includeLocked=true를 기본 호출로 사용한다.
-4. 증거 상세는 별도 API 없이 목록 item을 사용한다.
-5. 용의자 상세도 별도 API 없이 목록 item을 사용한다.
-6. 타임라인은 현재 placeholder로 둔다.
+4. 증거 상세는 `GET /api/play-sessions/{sessionId}/evidences/{evidenceId}`를 사용한다.
+5. 용의자 상세는 `GET /api/play-sessions/{sessionId}/suspects/{suspectId}`를 사용한다.
+6. 타임라인은 `GET /api/play-sessions/{sessionId}/timeline`을 사용하고, 빈 응답만 empty state로 처리한다.
 7. 힌트는 목록 조회와 사용 API를 실제 연동한다.
 8. dashboard/evidences 조회가 자동 증거 해금 동기화 지점이라는 점을 고려해 탭 복귀 시 갱신한다.
 ```
@@ -1396,7 +1408,7 @@ missedParts
 | 잠긴 증거 필터 | 잠긴 증거가 없음 | 모든 증거가 해금되었거나 조건 없음 표시 |
 | 용의자 목록 | 배열이 비어 있음 | 시나리오 데이터 문제로 표시 |
 | 힌트 목록 | 배열이 비어 있음 | 사용 가능한 힌트 없음 |
-| 타임라인 | API 없음 | placeholder 유지 |
+| 타임라인 | 응답 배열이 비어 있음 | 공개된 사건 흐름이 아직 없음을 안내 |
 | 결과 조회 | 결과 없음 | 아직 최종 추리가 제출되지 않았음을 안내 |
 
 empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는다.
@@ -1451,9 +1463,9 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 | 기능 | 현재 처리 |
 |---|---|
 | S3 assetKey 직접 변환 | 프론트에서 임의 조립하지 않음 |
-| 증거 상세 API | 목록 item으로 상세 표시 |
-| 용의자 상세 API | 목록 item으로 상세 표시 |
-| 타임라인 API | empty/placeholder |
+| 증거 상세 API | 실제 API 연동 |
+| 용의자 상세 API | 실제 API 연동 |
+| 타임라인 API | 실제 API 연동, 빈 응답만 empty state |
 | 추천 질문 API | 프론트 로컬 문구 |
 | 내 기록 API | empty/mock |
 | 마이페이지 API | empty/mock |

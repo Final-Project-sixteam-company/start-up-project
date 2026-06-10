@@ -234,11 +234,11 @@ FAILED
 | 2 | GET | `/api/scenarios/{scenarioId}` | 시나리오 상세 조회 | 선택 | O |
 | 3 | POST | `/api/scenarios` | 커스텀 시나리오 생성 | O | O |
 | 4 | PATCH | `/api/scenarios/{scenarioId}` | 시나리오 기본 정보 수정 | O | O |
-| 5 | DELETE | `/api/scenarios/{scenarioId}` | 시나리오 삭제 | O | △ |
+| 5 | DELETE | `/api/scenarios/{scenarioId}` | 시나리오 삭제 | O | △ 미구현 |
 | 6 | POST | `/api/scenarios/{scenarioId}/publish` | 시나리오 공개 등록 | O | O |
-| 7 | POST | `/api/scenarios/{scenarioId}/hide` | 시나리오 비공개/숨김 | O | △ |
-| 8 | GET | `/api/scenarios/me` | 내가 만든 시나리오 조회 | O | △ |
-| 9 | GET | `/api/scenarios/bookmarked` | 북마크한 시나리오 조회 | O | △ |
+| 7 | POST | `/api/scenarios/{scenarioId}/hide` | 시나리오 비공개/숨김 | O | △ 미구현 |
+| 8 | GET | `/api/scenarios/me` | 내가 만든 시나리오 조회 | O | △ 미구현 |
+| 9 | GET | `/api/scenarios/bookmarked` | 북마크한 시나리오 조회 | O | △ 미구현 |
 
 ---
 
@@ -247,21 +247,24 @@ FAILED
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/scenarios/{scenarioId}/locations` | 장소 등록 | O | O |
-| 2 | GET | `/api/scenarios/{scenarioId}/locations` | 장소 목록 조회 | O | O |
+| 2 | GET | `/api/scenarios/{scenarioId}/locations` | 장소 목록 조회 | O | △ 미구현 |
 | 3 | POST | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 등록/수정 | O | O |
-| 4 | GET | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 조회 | O | O |
+| 4 | GET | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 조회 | O | △ 미구현 |
 | 5 | POST | `/api/scenarios/{scenarioId}/suspects` | 용의자 등록 | O | O |
-| 6 | GET | `/api/scenarios/{scenarioId}/suspects` | 용의자 목록 조회 | O | O |
-| 7 | PATCH | `/api/suspects/{suspectId}` | 용의자 수정 | O | O |
-| 8 | DELETE | `/api/suspects/{suspectId}` | 용의자 삭제 | O | △ |
+| 6 | GET | `/api/scenarios/{scenarioId}/suspects` | 용의자 목록 조회 | O | △ 미구현 |
+| 7 | PATCH | `/api/suspects/{suspectId}` | 용의자 수정 | O | △ 미구현 |
+| 8 | DELETE | `/api/suspects/{suspectId}` | 용의자 삭제 | O | △ 미구현 |
 | 9 | POST | `/api/scenarios/{scenarioId}/evidences` | 증거 등록 | O | O |
-| 10 | GET | `/api/scenarios/{scenarioId}/evidences` | 증거 목록 조회 | O | O |
-| 11 | PATCH | `/api/evidences/{evidenceId}` | 증거 수정 | O | O |
-| 12 | DELETE | `/api/evidences/{evidenceId}` | 증거 삭제 | O | △ |
+| 10 | GET | `/api/scenarios/{scenarioId}/evidences` | 증거 목록 조회 | O | △ 미구현 |
+| 11 | PATCH | `/api/evidences/{evidenceId}` | 증거 수정 | O | △ 미구현 |
+| 12 | DELETE | `/api/evidences/{evidenceId}` | 증거 삭제 | O | △ 미구현 |
 | 13 | POST | `/api/scenarios/{scenarioId}/hints` | 힌트 등록 | O | O |
-| 14 | GET | `/api/scenarios/{scenarioId}/hints` | 힌트 목록 조회 | O | O |
+| 14 | GET | `/api/scenarios/{scenarioId}/hints` | 힌트 목록 조회 | O | △ 미구현 |
 | 15 | POST | `/api/scenarios/{scenarioId}/solution` | 정답 등록/수정 | O/작성자·관리자 | O |
-| 16 | GET | `/api/scenarios/{scenarioId}/solution` | 정답 조회 | O/작성자·관리자 전용, Android 플레이 화면 호출 금지 | △ |
+| 16 | GET | `/api/scenarios/{scenarioId}/solution` | 정답 조회 | O/작성자·관리자 전용, Android 플레이 화면 호출 금지 | △ 미구현 |
+
+현재 `develop` 기준 커스텀 시나리오 컨트롤러는 POST create/upsert 6종만 구현되어 있다.
+GET/PATCH/DELETE 계열은 후속 구현 대상으로 본다.
 
 ---
 
@@ -269,10 +272,13 @@ FAILED
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/api/ai/scenarios/draft` | AI 시나리오 초안 생성 | O | △ |
+| 1 | POST | `/api/ai/scenarios/draft` | AI 시나리오 초안 생성 | O | △ 미구현 |
 | 2 | POST | `/api/ai/scenarios/{scenarioId}/validate` | 시나리오 논리 검증 | O | O |
 | 3 | GET | `/api/scenarios/{scenarioId}/validation-result` | 검증 결과 조회 | O | O |
-| 4 | GET | `/api/ai/logs` | 내 AI 요청 로그 조회 | O | △ |
+| 4 | GET | `/api/ai/logs` | 내 AI 요청 로그 조회 | O | △ 미구현 |
+
+현재 공개 AI 컨트롤러는 시나리오 검증 요청과 검증 결과 조회만 제공한다.
+AI draft 생성과 AI log 조회 REST API는 아직 없다.
 
 ---
 
@@ -304,7 +310,7 @@ FAILED
 | 1 | POST | `/api/play-sessions/{sessionId}/interrogations` | AI 용의자 심문 | O | O |
 | 2 | GET | `/api/play-sessions/{sessionId}/interrogations` | 심문 로그 조회 | O | O |
 | 3 | GET | `/api/play-sessions/{sessionId}/interrogations?suspectId={suspectId}` | 특정 용의자 심문 로그 조회 | O | △ |
-| 4 | GET | `/api/play-sessions/{sessionId}/recommended-questions` | 추천 질문 조회 | O | △ |
+| 4 | GET | `/api/play-sessions/{sessionId}/recommended-questions` | 추천 질문 조회 | O | △ 미구현 |
 
 ---
 
@@ -322,12 +328,12 @@ FAILED
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/api/scenarios/{scenarioId}/bookmarks` | 시나리오 북마크 | O | O |
-| 2 | DELETE | `/api/scenarios/{scenarioId}/bookmarks` | 북마크 취소 | O | O |
-| 3 | POST | `/api/scenarios/{scenarioId}/reviews` | 리뷰 작성 | O | O |
-| 4 | GET | `/api/scenarios/{scenarioId}/reviews` | 리뷰 목록 조회 | 선택 | O |
-| 5 | PATCH | `/api/reviews/{reviewId}` | 리뷰 수정 | O | △ |
-| 6 | DELETE | `/api/reviews/{reviewId}` | 리뷰 삭제 | O | △ |
+| 1 | POST | `/api/scenarios/{scenarioId}/bookmarks` | 시나리오 북마크 | O | △ 미구현 |
+| 2 | DELETE | `/api/scenarios/{scenarioId}/bookmarks` | 북마크 취소 | O | △ 미구현 |
+| 3 | POST | `/api/scenarios/{scenarioId}/reviews` | 리뷰 작성 | O | △ 미구현 |
+| 4 | GET | `/api/scenarios/{scenarioId}/reviews` | 리뷰 목록 조회 | 선택 | △ 미구현 |
+| 5 | PATCH | `/api/reviews/{reviewId}` | 리뷰 수정 | O | △ 미구현 |
+| 6 | DELETE | `/api/reviews/{reviewId}` | 리뷰 삭제 | O | △ 미구현 |
 | 7 | POST | `/api/scenarios/{scenarioId}/reports` | 시나리오 신고 | O | △ |
 
 ---
@@ -939,6 +945,9 @@ POST /api/scenarios/{scenarioId}/solution
 # 8. AI 시나리오 생성 / 검증 API
 
 ## 8.1 AI 시나리오 초안 생성 (2차)
+
+현재 `develop` 기준 컨트롤러가 없는 후속 API다.
+아래 request/response는 2차 MVP 후보 계약으로만 본다.
 
 ```http
 POST /api/ai/scenarios/draft
@@ -1585,6 +1594,9 @@ GET /api/play-sessions/{sessionId}/interrogations
 
 ## 10.4 추천 질문 조회
 
+현재 `develop` 기준 컨트롤러가 없는 후속 API다.
+프론트는 로컬 추천 문구를 사용하거나 숨김 처리한다.
+
 ```http
 GET /api/play-sessions/{sessionId}/recommended-questions
 ```
@@ -1765,6 +1777,9 @@ GET /api/play-sessions/me
 
 # 12. 커뮤니티 API
 
+현재 `develop` 기준 리뷰/북마크 컨트롤러는 없다.
+이 절의 북마크/리뷰 API는 1차 MVP 구현 계약이 아니라 후속 커뮤니티 기능 후보로 본다.
+
 ## 12.1 시나리오 북마크
 
 ```http
@@ -1921,7 +1936,7 @@ POST /api/scenarios/{scenarioId}/reports
 | 회원가입(인증 도입 후) | `POST /api/auth/signup` |
 | 홈 | `GET /api/scenarios?sort=popular` |
 | 시나리오 라이브러리 | `GET /api/scenarios` |
-| 시나리오 상세 | `GET /api/scenarios/{scenarioId}`, `GET /api/scenarios/{scenarioId}/reviews` |
+| 시나리오 상세 | `GET /api/scenarios/{scenarioId}` |
 | 사건 시작 | `POST /api/play-sessions` |
 | 사건 브리핑 | `GET /api/scenarios/{scenarioId}`, `GET /api/play-sessions/{sessionId}/dashboard` |
 | 탐정 대시보드 | `GET /api/play-sessions/{sessionId}/dashboard` |
@@ -1937,11 +1952,11 @@ POST /api/scenarios/{scenarioId}/reports
 | 최종 추리 제출 | `POST /api/play-sessions/{sessionId}/final-deduction` |
 | 결과 / 해설 | `GET /api/play-sessions/{sessionId}/result` |
 | 커스텀 제작 | `POST /api/scenarios`, `POST /api/scenarios/{scenarioId}/suspects`, `POST /api/scenarios/{scenarioId}/evidences` |
-| AI 초안 생성 | `POST /api/ai/scenarios/draft` |
+| AI 초안 생성 | 후속 API 후보. 현재 호출 금지 |
 | AI 검증 | `POST /api/ai/scenarios/{scenarioId}/validate` |
-| 내 기록 | `GET /api/play-sessions/me`, `GET /api/scenarios/me`, `GET /api/scenarios/bookmarked` |
-| 리뷰 작성 | `POST /api/scenarios/{scenarioId}/reviews` |
-| 북마크 | `POST /api/scenarios/{scenarioId}/bookmarks` |
+| 내 기록 | 후속 API 후보. 현재 empty/mock |
+| 리뷰 작성 | 후속 API 후보. 현재 숨김 또는 disabled |
+| 북마크 | 후속 API 후보. 현재 숨김 또는 disabled |
 
 ---
 
@@ -1957,9 +1972,12 @@ GET /api/play-sessions/active
 GET /api/play-sessions/{sessionId}/dashboard
 GET /api/play-sessions/{sessionId}/locations
 GET /api/play-sessions/{sessionId}/evidences
+GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 GET /api/play-sessions/{sessionId}/suspects
 GET /api/play-sessions/{sessionId}/suspects/{suspectId}
+GET /api/play-sessions/{sessionId}/timeline
 POST /api/play-sessions/{sessionId}/interrogations
+GET /api/play-sessions/{sessionId}/interrogations
 GET /api/play-sessions/{sessionId}/hints
 POST /api/play-sessions/{sessionId}/hints/{hintId}/use
 POST /api/play-sessions/{sessionId}/final-deduction
@@ -1974,11 +1992,10 @@ POST /api/scenarios/{scenarioId}/hints
 POST /api/scenarios/{scenarioId}/solution
 POST /api/ai/scenarios/{scenarioId}/validate
 POST /api/scenarios/{scenarioId}/publish
-GET /api/scenarios/{scenarioId}/reviews
-POST /api/scenarios/{scenarioId}/reviews
-POST /api/scenarios/{scenarioId}/bookmarks
-DELETE /api/scenarios/{scenarioId}/bookmarks
 ```
+
+커뮤니티 API는 현재 컨트롤러가 없으므로 1차 MVP 필수 목록에서 제외한다.
+시나리오 상세의 `isBookmarked`, `rating`, `ratingCount` 같은 표시 필드는 응답에 있을 수 있지만, 쓰기 API가 있다는 뜻은 아니다.
 
 ---
 

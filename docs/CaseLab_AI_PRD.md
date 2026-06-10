@@ -1041,16 +1041,21 @@ AI 호출 로그
 ```text
 User
 Scenario
-ScenarioVersion
+Scenario contentVersion/contentHash
 ScenarioLocation
 Victim
 Suspect
-SuspectSecret
+NpcKnowledgeProfile
 SuspectResponsePolicy
 Evidence
+EvidenceUnlockRule
+EvidenceVariantState
 TimelineEvent
 Hint
 Solution
+ScenarioVariant
+VariantSolution
+ScenarioAsset
 PlaySession
 UnlockedEvidence
 UsedHint
@@ -1059,7 +1064,7 @@ FinalDeduction
 ScenarioReview
 ScenarioBookmark
 ScenarioReport
-AiGenerationLog
+ai_call_logs
 ```
 
 ---

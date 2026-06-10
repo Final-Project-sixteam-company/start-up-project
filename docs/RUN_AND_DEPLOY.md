@@ -123,6 +123,10 @@ cp .env.example .env
 | `REDIS_HOST_PORT` | Docker Redis host port |
 | `SPRING_AI_MODEL_CHAT` | AI Provider 활성 여부 |
 | `OPENAI_API_KEY` | 서버 전용 OpenAI API Key |
+| `OPENAI_BASE_URL` | OpenAI-compatible API base URL. DeepSeek 사용 시 `https://api.deepseek.com` |
+| `OPENAI_CHAT_MODEL` | Chat model 이름. 기본 운영 후보는 `deepseek-v4-flash` |
+| `OPENAI_CHAT_TEMPERATURE` | Chat temperature |
+| `AI_LLMOPS_DB_LOGGING_ENABLED` | AI 호출 로그 DB 저장 활성화 여부 |
 | `AWS_REGION` | S3 리전 |
 | `AWS_ACCESS_KEY_ID` | 서버 전용 AWS access key |
 | `AWS_SECRET_ACCESS_KEY` | 서버 전용 AWS secret key |
@@ -493,7 +497,10 @@ bash -n /opt/clueroom/ops-snapshot.sh
 /opt/clueroom/ops-snapshot.sh | tee /tmp/clueroom-ops-snapshot.txt
 ```
 
-snapshot v3는 app-blue/app-green 컨테이너의 `DB_HOST` / `REDIS_HOST`가 data 서버 `172.26.1.185`를 보는지, data MySQL/Redis TCP 연결이 가능한지, ops Loki ready와 `start-up-alloy` 실행 여부를 확인한다. prod local MySQL/Redis는 source of truth가 아니라 rollback/local-data copy로만 표시한다.
+Ops Snapshot v3는 운영 합의 라벨이다.
+현재 `ops-snapshot.sh` 출력에 `snapshotVersion: v3` 필드가 직접 찍히는 구조는 아니다.
+스크립트는 app-blue/app-green 컨테이너의 `DB_HOST` / `REDIS_HOST`가 data 서버 `172.26.1.185`를 보는지, data MySQL/Redis TCP 연결이 가능한지, ops Loki ready와 `start-up-alloy` 실행 여부를 확인한다.
+prod local MySQL/Redis는 source of truth가 아니라 rollback/local-data copy로만 표시한다.
 
 레포 원본 스크립트를 서버 실행 위치로 배치한다.
 
@@ -708,9 +715,9 @@ http://localhost:9090
 Blue-Green target:
 
 ```text
-app:8080
-app-blue:8080
-app-green:8080
+job_name: clueroom-app        target: app:8080
+job_name: clueroom-app-blue   target: app-blue:8080
+job_name: clueroom-app-green  target: app-green:8080
 ```
 
 standby app을 중지하면 `app-blue` 또는 `app-green` target이 `DOWN`으로 보일 수 있다. 단일 서버 Blue-Green PoC에서는 active app과 외부 health check가 정상이라면 허용 가능한 상태다.
