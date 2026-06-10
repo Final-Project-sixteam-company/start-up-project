@@ -1258,13 +1258,24 @@ limit_req_zone $binary_remote_addr zone=clueroom_ai:10m rate=1r/s;
 ### Dry-run snippet 예시
 
 ```nginx
-# /etc/nginx/snippets/clueroom-rate-limit-dry-run.conf
+# /etc/nginx/snippets/clueroom-rate-limit-general-dry-run.conf
+limit_req zone=clueroom_general burst=20 nodelay;
 limit_req_dry_run on;
 limit_req_status 429;
 ```
 
+```nginx
+# /etc/nginx/snippets/clueroom-rate-limit-ai-dry-run.conf
+limit_req zone=clueroom_ai burst=3 nodelay;
+limit_req_dry_run on;
+limit_req_status 429;
+```
+
+`limit_req_dry_run on`은 이미 적용된 `limit_req zone=...` 규칙을 비차단 관찰 모드로 바꾸는 옵션이다.
+snippet에 `limit_req zone=...`가 없으면 Nginx reload는 성공해도 dry-run hit가 평가되지 않을 수 있다.
+
 location별 적용 예시는 운영 Nginx 구조에 맞춰 최소 범위부터 넣는다.
-AI cost endpoint는 일반 API보다 낮은 threshold를 사용한다.
+일반 API는 `clueroom-rate-limit-general-dry-run.conf`, AI cost endpoint는 `clueroom-rate-limit-ai-dry-run.conf`처럼 더 낮은 threshold를 사용한다.
 
 ### 적용
 
