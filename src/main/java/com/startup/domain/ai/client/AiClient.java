@@ -139,6 +139,10 @@ public class AiClient {
         return mockMode ? "MOCK" : configuredModel;
     }
 
+    public String getProviderName() {
+        return providerName();
+    }
+
     private String providerName() {
         if (mockMode) {
             return "mock";
