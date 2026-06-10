@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class CustomVictimResponse {
-    private Long id;
+    private Long victimId;
     private Long scenarioId;
     private Long foundLocationId;
     private String name;
@@ -28,7 +28,7 @@ public class CustomVictimResponse {
     public static CustomVictimResponse from(Victim victim) {
         if (victim == null) return null;
         return CustomVictimResponse.builder()
-                .id(victim.getId())
+                .victimId(victim.getId())
                 .scenarioId(victim.getScenarioId())
                 .foundLocationId(victim.getFoundLocationId())
                 .name(victim.getName())

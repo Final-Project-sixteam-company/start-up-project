@@ -9,7 +9,7 @@ import java.util.List;
 @Getter
 @Builder
 public class CustomSolutionResponse {
-    private Long id;
+    private Long solutionId;
     private Long scenarioId;
     private Long culpritSuspectId;
     private String motive;
@@ -20,7 +20,7 @@ public class CustomSolutionResponse {
 
     public static CustomSolutionResponse from(Solution solution) {
         return CustomSolutionResponse.builder()
-                .id(solution.getId())
+                .solutionId(solution.getId())
                 .scenarioId(solution.getScenarioId())
                 .culpritSuspectId(solution.getCulpritSuspectId())
                 .motive(solution.getMotive())

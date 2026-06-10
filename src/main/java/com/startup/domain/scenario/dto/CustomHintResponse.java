@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class CustomHintResponse {
-    private Long id;
+    private Long hintId;
     private Long scenarioId;
     private Integer hintLevel;
     private String content;
@@ -25,7 +25,7 @@ public class CustomHintResponse {
     public static CustomHintResponse from(Hint hint) {
         if (hint == null) return null;
         return CustomHintResponse.builder()
-                .id(hint.getId())
+                .hintId(hint.getId())
                 .scenarioId(hint.getScenarioId())
                 .hintLevel(hint.getHintLevel())
                 .content(hint.getContent())
