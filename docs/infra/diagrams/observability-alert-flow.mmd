@@ -1,7 +1,7 @@
 flowchart TD
     subgraph prod["prod server: clueroom-api-prod-01"]
         nginx_logs["Nginx access/error logs"]
-        app_logs["Docker app logs<br/>AI_CALL / AI_CALL_CONTEXT"]
+        app_logs["Docker app logs<br/>AI_CALL"]
         server_health["SERVER_HEALTH heartbeat file"]
         alloy["Grafana Alloy"]
         prometheus["Prometheus"]

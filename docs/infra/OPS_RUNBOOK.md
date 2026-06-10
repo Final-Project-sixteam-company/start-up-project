@@ -1355,7 +1355,10 @@ external-data 운영에서는 위 target이 data server private IP 또는 내부
 담당자 승인, 쓰기 트래픽 차단 또는 점검창 확보, rehearsal 성공 후에만 실행한다.
 
 ```bash
-BACKUP=/opt/clueroom/backups/mysql/백업파일명.sql.gz
+# 기본 source-of-truth 백업 파일 위치는 data server다.
+BACKUP=/opt/clueroom-data/backups/mysql/백업파일명.sql.gz
+# app/ops host에서 실행한다면, 검증된 data-server dump를 먼저 복사한 뒤 아래처럼 명시 경로를 바꾼다.
+# BACKUP=/tmp/clueroom-restore/백업파일명.sql.gz
 test -f "$BACKUP"
 
 gunzip -c "$BACKUP" | MYSQL_PWD="$DB_PASSWORD" mysql \
@@ -1391,7 +1394,10 @@ gunzip -c /opt/clueroom/backups/mysql/startup_20260523_030000.sql.gz | \
 운영 DB를 덮어쓰기 전에 임시 MySQL 컨테이너에서 백업 파일이 복구 가능한지 검증한다.
 
 ```bash
-BACKUP=/opt/clueroom/backups/mysql/백업파일명.sql.gz
+# 기본 rehearsal 대상은 data server source-of-truth 백업 파일이다.
+BACKUP=/opt/clueroom-data/backups/mysql/백업파일명.sql.gz
+# app/ops host에서 rehearsal한다면, 검증된 data-server dump를 먼저 복사한 뒤 아래처럼 명시 경로를 바꾼다.
+# BACKUP=/tmp/clueroom-restore/백업파일명.sql.gz
 test -f "$BACKUP"
 ```
 

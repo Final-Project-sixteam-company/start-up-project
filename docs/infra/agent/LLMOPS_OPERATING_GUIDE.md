@@ -856,7 +856,12 @@ Feature별 failure ratio:
 ```promql
 sum by (feature_type) (increase(ai_failures_total[5m]))
 /
-sum by (feature_type) (increase(ai_requests_total{fallback_used="false"}[5m]))
+clamp_min(
+  sum by (feature_type) (
+    increase(ai_requests_total{fallback_used="false", provider!="mock"}[5m])
+  ),
+  1
+)
 ```
 
 Feature별 fallback ratio:
@@ -864,7 +869,12 @@ Feature별 fallback ratio:
 ```promql
 sum by (feature_type) (increase(ai_fallbacks_total[5m]))
 /
-sum by (feature_type) (increase(ai_requests_total[5m]))
+clamp_min(
+  sum by (feature_type) (
+    increase(ai_requests_total{fallback_used="false", provider!="mock"}[5m])
+  ),
+  1
+)
 ```
 
 Error code별 failure:
