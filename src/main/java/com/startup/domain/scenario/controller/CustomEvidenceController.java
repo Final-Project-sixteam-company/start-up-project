@@ -35,6 +35,6 @@ public class CustomEvidenceController {
     public ResponseEntity<ApiResponse<Void>> deleteEvidence(@PathVariable Long evidenceId) {
         Long userId = mockUserProvider.currentUserId();
         customScenarioService.deleteEvidence(userId, evidenceId);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(ApiResponse.empty());
     }
 }

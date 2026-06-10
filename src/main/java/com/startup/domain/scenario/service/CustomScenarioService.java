@@ -161,11 +161,6 @@ public class CustomScenarioService {
     public CustomVictimResponse getVictim(Long userId, Long scenarioId) {
         scenarioAccessService.validateEditable(userId, scenarioId);
         
-        // 시나리오 존재 여부 확인
-        if (!scenarioRepository.existsById(scenarioId)) {
-            throw new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다.");
-        }
-
         Victim victim = victimRepository.findByScenarioId(scenarioId)
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "피해자 정보가 등록되지 않았습니다."));
                 
@@ -175,10 +170,6 @@ public class CustomScenarioService {
     @Transactional(readOnly = true)
     public List<CustomSuspectResponse> getSuspects(Long userId, Long scenarioId) {
         scenarioAccessService.validateEditable(userId, scenarioId);
-
-        if (!scenarioRepository.existsById(scenarioId)) {
-            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
-        }
 
         return suspectRepository.findAllByScenarioIdOrderBySortOrder(scenarioId).stream()
                 .map(suspect -> CustomSuspectResponse.from(suspect, jsonMapper))
@@ -338,11 +329,6 @@ public class CustomScenarioService {
     @Transactional(readOnly = true)
     public List<CustomEvidenceResponse> getEvidences(Long userId, Long scenarioId) {
         scenarioAccessService.validateEditable(userId, scenarioId);
-
-        if (!scenarioRepository.existsById(scenarioId)) {
-            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
-        }
-
 
         List<Evidence> evidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
         if (evidences.isEmpty()) {
@@ -710,10 +696,6 @@ public class CustomScenarioService {
     public List<CustomHintResponse> getHints(Long userId, Long scenarioId) {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
-        if (!scenarioRepository.existsById(scenarioId)) {
-            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
-        }
-
         return hintRepository.findAllByScenarioIdOrderByHintLevel(scenarioId).stream()
                 .map(CustomHintResponse::from)
                 .toList();
@@ -915,10 +897,6 @@ public class CustomScenarioService {
     @Transactional(readOnly = true)
     public CustomSolutionResponse getSolution(Long userId, Long scenarioId) {
         scenarioAccessService.validateEditable(userId, scenarioId);
-
-        if (!scenarioRepository.existsById(scenarioId)) {
-            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
-        }
 
         Solution solution = solutionRepository.findByScenarioId(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SOLUTION_NOT_FOUND));

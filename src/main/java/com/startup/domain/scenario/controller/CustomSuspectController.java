@@ -35,6 +35,6 @@ public class CustomSuspectController {
     public ResponseEntity<ApiResponse<Void>> deleteSuspect(@PathVariable Long suspectId) {
         Long userId = mockUserProvider.currentUserId();
         customScenarioService.deleteSuspect(userId, suspectId);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(ApiResponse.empty());
     }
 }
