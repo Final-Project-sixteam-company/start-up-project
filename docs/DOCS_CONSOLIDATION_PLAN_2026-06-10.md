@@ -75,7 +75,7 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 | 문서 진입점 | `docs/README.md` | 새로 만든다. 문서 지도, 정본 목록, 흡수 이력, 스포일러/secret 경계를 관리한다. |
 | 제품/요구사항 | `docs/CaseLab_AI_PRD.md` | 제품 목적, MVP 범위, 역할만 남긴다. API/인프라 상세는 링크로 이동한다. |
 | API 계약 | `docs/CaseLab_AI_API_Spec.md` | API request/response 정본으로 유지한다. 화면별 사용법은 frontend 문서로 보낸다. |
-| Android/Frontend 연동 | `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | `ANDROID_SCREEN_API_MAPPING.md`를 흡수하는 방향이 적합하다. 화면 흐름 + API 사용 순서를 여기에 집중한다. |
+| Android/Frontend 연동 | `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | `ANDROID_SCREEN_API_MAPPING.md` 흡수 완료. 화면 흐름 + API 사용 순서를 여기에 집중한다. |
 | 백엔드 구현 규칙 | `docs/BACKEND_IMPLEMENTATION_GUIDE.md` | 패키지, 계층, 트랜잭션, 예외, MockUser 규칙 정본으로 유지한다. |
 | AI 프롬프트 정책 | `docs/AI_NPC_PROMPT_POLICY.md` | AI 지식 경계, prompt 구조, injection 방어, ResponsePolicy 규칙 정본으로 유지한다. |
 | DB/ERD | `docs/CaseLab_AI_ERD_Design.md` | 코드 SoT 기준 drift를 먼저 정정한 뒤 DB 설계 정본으로 유지한다. |
@@ -96,8 +96,8 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
-| `docs/ANDROID_SCREEN_API_MAPPING.md` | `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | 둘 다 화면 흐름과 API 매핑을 다룬다. root 문서는 짧은 링크 문서로 남기거나 최종 제거한다. |
-| `docs/CaseLab_AI_API_Spec.md`의 화면별 사용 설명 | `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | API Spec은 계약만, 화면 흐름은 frontend 문서가 맡는 편이 중복이 줄어든다. |
+| `docs/ANDROID_SCREEN_API_MAPPING.md` | `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | 흡수 완료. root 문서는 임시 redirect로 유지한다. |
+| `docs/CaseLab_AI_API_Spec.md`의 화면별 사용 설명 | `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | 흡수 완료. API Spec은 계약만, 화면 흐름은 frontend 문서가 맡는다. |
 
 흡수 시 주의할 drift:
 
@@ -265,6 +265,7 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 - ANDROID_SCREEN_API_MAPPING.md 내용을 frontend guide로 흡수
 - API Spec은 계약 중심으로 정리
 - frontend guide는 화면 흐름과 호출 순서 중심으로 정리
+- ANDROID_SCREEN_API_MAPPING.md는 임시 redirect로 전환
 ```
 
 완료 기준:

@@ -39,8 +39,8 @@
 | 문서 | 정본 범위 | 비고 |
 |---|---|---|
 | `CaseLab_AI_PRD.md` | 제품 목적, MVP 범위, 사용자 가치, 팀 역할 | API/운영 상세는 링크로만 둔다. |
-| `CaseLab_AI_API_Spec.md` | API path, method, request, response, error contract | 화면별 사용 순서는 frontend 문서로 분리한다. |
-| `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | Android/Frontend 화면 흐름, 호출 순서, E2E 사용법 | `ANDROID_SCREEN_API_MAPPING.md` 흡수 대상이다. |
+| `CaseLab_AI_API_Spec.md` | API path, method, request, response, error contract | 화면별 사용 순서는 frontend 문서로 분리 완료. |
+| `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | Android/Frontend 화면 흐름, 호출 순서, E2E 사용법 | `ANDROID_SCREEN_API_MAPPING.md` 흡수 완료. |
 | `BACKEND_IMPLEMENTATION_GUIDE.md` | 백엔드 계층, 패키지, 예외, 트랜잭션, MockUser 규칙 | API/ERD 상세는 정본 링크를 둔다. |
 | `CaseLab_AI_ERD_Design.md` | 엔티티, 테이블, 관계, 컬럼 설계 | 코드 SoT와 drift 정정 필요. |
 | `ADR.md` | 이미 결정된 주요 아키텍처 결정 목록 | 상세 설명은 각 정본 문서로 링크한다. |
@@ -96,7 +96,7 @@
 
 | 흡수 예정 문서 | 흡수처 |
 |---|---|
-| `ANDROID_SCREEN_API_MAPPING.md` | `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` |
+| `ANDROID_SCREEN_API_MAPPING.md` | `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `QA_HANDOFF.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
 | `scenarios/README.md` | `scenarios/SCENARIO_YAML_SCHEMA.md`, `README.md` |
 | `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` |

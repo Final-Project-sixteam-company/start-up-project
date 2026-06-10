@@ -1927,36 +1927,17 @@ POST /api/scenarios/{scenarioId}/reports
 
 ---
 
-# 13. Android 화면별 API 매핑
+# 13. Android / Frontend 화면별 API 매핑
 
-| Android 화면 | 주요 API |
-|---|---|
-| 스플래시 / 온보딩 | 없음 |
-| 로그인(인증 도입 후) | `POST /api/auth/login` |
-| 회원가입(인증 도입 후) | `POST /api/auth/signup` |
-| 홈 | `GET /api/scenarios?sort=popular` |
-| 시나리오 라이브러리 | `GET /api/scenarios` |
-| 시나리오 상세 | `GET /api/scenarios/{scenarioId}` |
-| 사건 시작 | `POST /api/play-sessions` |
-| 사건 브리핑 | `GET /api/scenarios/{scenarioId}`, `GET /api/play-sessions/{sessionId}/dashboard` |
-| 탐정 대시보드 | `GET /api/play-sessions/{sessionId}/dashboard` |
-| 현장 정보 | `GET /api/play-sessions/{sessionId}/locations` |
-| 증거 보드 | `GET /api/play-sessions/{sessionId}/evidences` |
-| 증거 상세 | `GET /api/play-sessions/{sessionId}/evidences/{evidenceId}` |
-| 용의자 목록 | `GET /api/play-sessions/{sessionId}/suspects` |
-| 용의자 상세 | `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` |
-| 심문 채팅 | `POST /api/play-sessions/{sessionId}/interrogations` |
-| 심문 로그 | `GET /api/play-sessions/{sessionId}/interrogations` |
-| 타임라인 | `GET /api/play-sessions/{sessionId}/timeline` |
-| 힌트 | `GET /api/play-sessions/{sessionId}/hints`, `POST /api/play-sessions/{sessionId}/hints/{hintId}/use` |
-| 최종 추리 제출 | `POST /api/play-sessions/{sessionId}/final-deduction` |
-| 결과 / 해설 | `GET /api/play-sessions/{sessionId}/result` |
-| 커스텀 제작 | `POST /api/scenarios`, `POST /api/scenarios/{scenarioId}/suspects`, `POST /api/scenarios/{scenarioId}/evidences` |
-| AI 초안 생성 | 후속 API 후보. 현재 호출 금지 |
-| AI 검증 | `POST /api/ai/scenarios/{scenarioId}/validate` |
-| 내 기록 | 후속 API 후보. 현재 empty/mock |
-| 리뷰 작성 | 후속 API 후보. 현재 숨김 또는 disabled |
-| 북마크 | 후속 API 후보. 현재 숨김 또는 disabled |
+화면별 호출 순서와 Android/Frontend 상태 처리는 아래 정본 문서로 분리한다.
+이 API Spec은 request/response 계약과 에러 코드만 관리한다.
+
+```text
+docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
+```
+
+화면 흐름 표를 이 문서에 다시 복제하지 않는다.
+같은 API가 계약 문서와 화면 문서에 서로 다른 상태로 남는 것을 막기 위해서다.
 
 ---
 

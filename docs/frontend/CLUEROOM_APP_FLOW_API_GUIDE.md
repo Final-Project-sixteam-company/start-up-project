@@ -1,9 +1,9 @@
 # ClueRoom App Flow API Guide
 
-> 작성 범위: 1~6단계 - 현재 백엔드 구현 기준 API 표준화, 게임 시작 전 사용자 흐름, 게임 내부 탭 흐름, 심문/증거 제시 흐름, 최종 추리/결과 흐름, 로딩/오류/미구현 기능 처리
+> 작성 범위: 현재 백엔드 구현 기준 API 표준화, Android/Frontend 화면 구조, 게임 시작 전 사용자 흐름, 게임 내부 탭 흐름, 심문/증거 제시 흐름, 최종 추리/결과 흐름, 로딩/오류/미구현 기능 처리
 >
 > 이 문서는 Android/Frontend가 "어떤 화면에서 어떤 API를 호출해야 하는지"를 실제 백엔드 구현 기준으로 정리한다.
-> `docs/ANDROID_SCREEN_API_MAPPING.md`보다 현재 백엔드 구현 상태를 우선 반영한다.
+> `docs/ANDROID_SCREEN_API_MAPPING.md`의 고유 내용은 이 문서로 흡수됐고, 해당 문서는 임시 redirect로 유지한다.
 
 ---
 
@@ -34,7 +34,7 @@ src/main/java/com/startup/domain/ai/controller/AiDeductionController.java
 
 | 문서 | 사용 방식 |
 |---|---|
-| `docs/ANDROID_SCREEN_API_MAPPING.md` | 기존 화면/API 매핑 초안 |
+| `docs/ANDROID_SCREEN_API_MAPPING.md` | 흡수 완료 redirect. 새 기준은 이 문서 |
 | `docs/CaseLab_AI_API_Spec.md` | 계획 API와 DTO 설계 참고 |
 | `docs/CaseLab_AI_PRD.md` | 사용자 진행 흐름과 MVP 기능 참고 |
 | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` | 공식 시나리오 표시 필드 기준 |
@@ -107,6 +107,50 @@ Authorization Header 없이 호출 가능
 ```
 
 JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
+
+### 2.4 ID 필드명 규칙
+
+API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
+엔티티 내부 PK가 `id`여도 Android 응답 DTO에서는 아래 이름을 우선 사용한다.
+
+| 대상 | API DTO 필드명 |
+|---|---|
+| User | `userId` |
+| Scenario | `scenarioId` |
+| PlaySession | `sessionId` |
+| Suspect | `suspectId` |
+| Evidence | `evidenceId` |
+| Hint | `hintId` |
+| Review | `reviewId` |
+
+프론트 모델에서 `id` 별칭을 추가할 수는 있지만, API boundary와 navigation argument에서는 위 필드명을 유지한다.
+
+### 2.5 Android 화면 구조
+
+Bottom Navigation 기본 구조:
+
+```text
+홈
+시나리오
+제작
+내 기록
+마이페이지
+```
+
+`내 기록`, `마이페이지`는 인증 도입 후 완성한다.
+MVP에서는 mock 또는 비활성 상태로 둘 수 있다.
+
+플레이 세션이 시작된 뒤 게임 내부 탭은 아래 구조를 기준으로 한다.
+
+```text
+현장
+증거
+용의자
+타임라인
+추리 제출
+```
+
+탭별 API 기준은 7절을 따른다.
 
 ---
 
@@ -1370,12 +1414,11 @@ missedParts
 ```text
 1. 현재 백엔드 컨트롤러 구현
 2. 이 문서: docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
-3. docs/ANDROID_SCREEN_API_MAPPING.md
-4. docs/CaseLab_AI_API_Spec.md
-5. docs/CaseLab_AI_PRD.md
+3. docs/CaseLab_AI_API_Spec.md
+4. docs/CaseLab_AI_PRD.md
 ```
 
-`ANDROID_SCREEN_API_MAPPING.md`와 `CaseLab_AI_API_Spec.md`에는 계획 API가 포함되어 있다.
+`CaseLab_AI_API_Spec.md`에는 계획 API가 포함되어 있다.
 따라서 실제 구현 여부가 애매하면 이 문서의 "현재 구현되지 않은 문서상 예정 API" 표를 우선 확인한다.
 
 ### 10.2 공통 로딩 상태
@@ -1526,7 +1569,48 @@ placeholder는 "아직 구현 전"이라는 내부 표현보다 유저 관점의
 11. GET result로 점수/해설이 표시된다.
 ```
 
-### 10.9 프론트 구현 금지사항
+### 10.9 Android 구현 우선순위
+
+1순위는 공식 시나리오 플레이 전체 흐름이다.
+
+```text
+시나리오 목록
+시나리오 상세
+게임 세션 시작
+탐정 대시보드
+현장 정보
+증거 목록 / 상세
+용의자 목록 / 상세
+심문 채팅
+힌트
+최종 추리 제출
+결과 / 해설
+```
+
+2순위는 커스텀 제작 기본형이다.
+
+```text
+시나리오 생성 / 수정
+장소 / 피해자 / 용의자 / 증거 / 힌트 / 정답 등록
+AI 검증
+공개 등록
+```
+
+3순위 이후는 커뮤니티/계정/거래 기능이다.
+
+```text
+리뷰 조회 / 작성
+북마크 추가 / 해제
+내 기록
+마이페이지
+AI 시나리오 초안 생성
+인증 / JWT
+구매 / 크레딧
+```
+
+현재 컨트롤러가 없는 API는 UI를 숨기거나 disabled/mock 상태로 둔다.
+
+### 10.10 프론트 구현 금지사항
 
 아래 처리는 하지 않는다.
 
@@ -1537,9 +1621,23 @@ S3 object key를 조합해서 임의 URL 만들기
 추천 질문에 정답 유도 문구 넣기
 결과 화면 데이터를 진행 중 화면에 섞어서 보여주기
 미구현 API를 실제 API처럼 호출하기
+DTO ID 필드명을 navigation/API boundary에서 임의로 id로 축약하기
+API 응답 JSON 예시를 프론트 문서에 새로 복제하기
 ```
 
-### 10.10 6단계 결정사항
+Android 개발 AI는 다음 기준을 따른다.
+
+```text
+1. Request/Response JSON 예시는 CaseLab_AI_API_Spec.md를 기준으로 한다.
+2. DTO 필드명은 CaseLab_AI_API_Spec.md를 기준으로 한다.
+3. 화면 목적과 MVP 범위는 CaseLab_AI_PRD.md를 기준으로 한다.
+4. AI 심문 화면은 AI_NPC_PROMPT_POLICY.md의 답변 제약을 따른다.
+5. 공식 시나리오 데이터는 OFFICIAL_SCENARIO_DEMO_DAY.md를 기준으로 한다.
+6. 1차 MVP에서는 인증/거래/크레딧을 필수 흐름으로 만들지 않는다.
+7. sessionId, scenarioId, evidenceId, suspectId 필드명을 임의로 id로 축약하지 않는다.
+```
+
+### 10.11 최종 결정사항
 
 최종 프론트 연동 기준은 아래로 고정한다.
 

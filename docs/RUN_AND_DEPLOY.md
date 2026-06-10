@@ -936,6 +936,6 @@ docker image prune
 | `infra/CLUEROOM_SECRET_INPUT_GUIDE.md` | 운영 secret 입력/ACL/검증 절차 |
 | `CaseLab_AI_PRD.md` | 제품 범위, MVP 우선순위 |
 | `CaseLab_AI_API_Spec.md` | API Request/Response |
-| `ANDROID_SCREEN_API_MAPPING.md` | Android 화면별 API 매핑 |
+| `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | Android/Frontend 화면별 API 매핑 |
 | `BACKEND_IMPLEMENTATION_GUIDE.md` | 백엔드 구현 규칙 |
 | `AI_NPC_PROMPT_POLICY.md` | AI 프롬프트 정책 |

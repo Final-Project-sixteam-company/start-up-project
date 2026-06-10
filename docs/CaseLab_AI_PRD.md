@@ -797,7 +797,7 @@ AI 검증 결과 화면
 
 ### 9.5 Android 화면별 핵심 요구사항
 
-화면별 API 상세와 응답 필드 매핑은 `ANDROID_SCREEN_API_MAPPING.md`를 따른다.
+화면별 API 상세와 응답 필드 매핑은 `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md`를 따른다.
 이 절은 제품 관점에서 화면에 반드시 필요한 구성 요소만 정의한다.
 
 #### 홈 화면
@@ -1337,7 +1337,7 @@ AI 시나리오 초안 생성
 
 ```text
 CaseLab_AI_API_Spec.md
-ANDROID_SCREEN_API_MAPPING.md
+frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
 CaseLab_AI_ERD_Design.md
 CaseLab_AI_ERDCloud.sql
 AI_NPC_PROMPT_POLICY.md
@@ -1349,7 +1349,7 @@ OFFICIAL_SCENARIO_DEMO_DAY.md
 ```text
 1. CaseLab_AI_PRD.md
 2. CaseLab_AI_API_Spec.md
-3. ANDROID_SCREEN_API_MAPPING.md
+3. frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
 4. CaseLab_AI_ERD_Design.md
 5. CaseLab_AI_ERDCloud.sql
 6. AI_NPC_PROMPT_POLICY.md
