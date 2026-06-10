@@ -254,9 +254,9 @@ AI는 백엔드가 제공한 정보와 정책을 바탕으로 짧은 답변만 �
 ```text
 사용자 질문
   ↓
-InterrogationController
+AiInterrogationController
   ↓
-InterrogationService
+AiInterrogationService
   ↓
 GameSession 조회
   ↓
@@ -302,12 +302,15 @@ ResponsePolicy는 다음 요소를 기준으로 선택한다.
 
 ```text
 1. 질문 대상 용의자
-2. 사용자 질문 의도
-3. 제시한 증거
-4. 현재 해금된 증거
-5. 현재 플레이 진행 상태
+2. 현재 해금된 증거 ID 목록
+3. 사용자가 제시한 증거 ID
+4. requiredEvidenceIds / excludedEvidenceIds 조건
+5. presentedEvidenceId 조건
 6. 정책 우선순위
 ```
+
+현재 구현의 `ResponsePolicyResolver.resolve(...)`는 `sessionId`, 사용자 질문 원문, 질문 의도를 직접 받지 않는다.
+질문 유형과 원문은 prompt 구성과 로그/분석에는 사용되지만 정책 선택 조건은 아니다.
 
 ---
 
@@ -320,7 +323,7 @@ Policy 1
 조건:
 카페 결제 내역이 공개되지 않음
 
-사용자 의도:
+분류 메모(userIntent, 현재 resolver 조건 아님):
 커피 구매 여부 질문
 
 답변 정책:
@@ -332,7 +335,7 @@ Policy 2
 조건:
 카페 결제 내역이 공개됨
 
-사용자 의도:
+분류 메모(userIntent, 현재 resolver 조건 아님):
 커피 구매 여부 질문
 
 답변 정책:
@@ -344,7 +347,7 @@ Policy 3
 조건:
 찢긴 컵 라벨과 결제 내역이 모두 공개됨
 
-사용자 의도:
+분류 메모(userIntent, 현재 resolver 조건 아님):
 피해자가 마신 음료 추궁
 
 답변 정책:
@@ -880,36 +883,31 @@ user_id
 
 ## 18. Prompt Version 관리
 
-프롬프트는 코드 안에 하드코딩하지 않는 것을 권장한다.
+프롬프트 본문은 코드 안에 하드코딩하지 않고 파일 기반 template을 사용한다.
 
-가능한 방식:
-
-```text
-1. resources/prompts/*.txt
-2. DB prompt_templates
-3. application 설정
-```
-
-MVP에서는 파일 기반으로 시작해도 된다.
-
-예시 구조:
+현재 구현 기준:
 
 ```text
 src/main/resources/prompts/
  ├─ interrogation_system_prompt.txt
  ├─ interrogation_user_prompt.txt
- ├─ scenario_generation_prompt.txt
- ├─ scenario_validation_prompt.txt
- └─ final_deduction_scoring_prompt.txt
+ ├─ evidence_interrogation_user_prompt.txt
+ ├─ final_deduction_scoring_prompt.txt
+ └─ scenario_validation_prompt.txt
 ```
 
-프롬프트가 바뀌면 버전을 남긴다.
+현재 서비스별 prompt version:
 
 ```text
-v1: 기본 심문 프롬프트
-v2: 답변 2문장 제한 추가
-v3: 프롬프트 인젝션 방어 문구 추가
+npc_interrogation_v1
+final_deduction_scoring_v1
+scenario_validation_v1
 ```
+
+심문 template hash는 사용자 질문/시나리오 값이 아니라 template bundle 기준으로 계산한다.
+`AI_CALL_CONTEXT`에는 block-level token estimate와 templateHash만 남기고 raw prompt, raw answer, 사용자 질문 전문은 남기지 않는다.
+
+DB `prompt_templates`나 application 설정 기반 prompt registry는 현재 구현이 아니라 후속 확장 후보로 둔다.
 
 ---
 
@@ -938,7 +936,7 @@ v3: 프롬프트 인젝션 방어 문구 추가
 ```text
 AI 용의자 심문 프롬프트
 ResponsePolicyResolver
-InterrogationService
+AiInterrogationService
 InterrogationLog 저장
 Fallback 응답
 ```
@@ -947,7 +945,7 @@ Fallback 응답
 
 ```text
 최종 추리 채점 프롬프트
-FinalDeductionService
+AiDeductionScorer
 점수 계산
 결과 해설
 ```

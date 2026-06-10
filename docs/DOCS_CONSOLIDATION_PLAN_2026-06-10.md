@@ -210,6 +210,12 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 - /api/ai/logs, /recommended-questions, draft API 등 미구현 상태 명확화
 ```
 
+상태:
+
+```text
+완료. ERD/API/Backend/AI 정책 문서는 삭제하지 않고 역할을 유지하며 코드 SoT와 충돌하던 서비스명, 로그 테이블명, prompt 파일명, 정책 선택 조건만 정정했다.
+```
+
 ## 5. 작업 순서 제안
 
 ### Phase 1. 문서 index와 정본 지도 생성

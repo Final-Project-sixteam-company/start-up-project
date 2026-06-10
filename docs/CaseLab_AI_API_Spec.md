@@ -2024,21 +2024,23 @@ AuthService
 UserService
 
 ScenarioService
-ScenarioEditorService
-ScenarioValidationService
+CustomScenarioService
+ScenarioAccessService
+ScenarioVariantService
 ScenarioRankingService
 
 PlaySessionService
-EvidenceUnlockService
-InterrogationService
+InterrogationEvidenceUnlockService
+TimeEvidenceUnlockSyncer
+AiInterrogationService
 ResponsePolicyResolver
 HintService
-FinalDeductionService
-ScoringService
+AiDeductionScorer
+RuleBasedScorer
 
-AiGenerationService
-AiValidationService
-AiInterrogationService
+AiScenarioValidationService
+AiCallRecorder / AiCallLogWriter
+AiPromptContextLogger
 ```
 
 ---
@@ -2078,23 +2080,31 @@ interrogation_logs 저장
 ```text
 사용자 최종 추리 제출
   ↓
-PlaySession Pessimistic Lock 또는 @Version으로 상태 확인
+세션 소유자 확인
   ↓
-이미 COMPLETED이면 중복 제출 오류
+중복 제출 확인 + final deduction lock 획득
   ↓
-solution 조회
+세션 시나리오/active variant 확인
   ↓
-범인 일치 여부 확인
+시간 기반 증거 해금 동기화
   ↓
-동기 / 방법 / 은폐 텍스트 AI 또는 규칙 기반 평가
+선택한 용의자가 해당 시나리오 소속인지 확인
   ↓
-결정적 증거 선택 여부 확인
+선택한 증거가 모두 해금됐는지 확인
   ↓
-점수 계산
+active variant의 VariantSolution 조회
   ↓
-final_deductions 저장
+variant 정답이 없으면 legacy Solution 조회 경로로 fallback
   ↓
-play_session COMPLETED 처리
+RuleBasedScorer가 범인/동기/방법/은폐/증거 점수 계산
+  ↓
+힌트 사용 penalty 반영
+  ↓
+AI feedback 생성, 실패 시 fallback feedback 사용
+  ↓
+final_deductions와 final_deduction_evidences 저장
+  ↓
+저장 성공 시 play_session COMPLETED 처리
   ↓
 결과 해설 반환
 ```
@@ -2106,17 +2116,21 @@ play_session COMPLETED 처리
 ```text
 시나리오 작성 완료
   ↓
-기본 필수 항목 검사
+DRAFT 상태 확인
   ↓
-범인 설정 여부 검사
+시나리오 검증 lock 획득
   ↓
-증거 / 힌트 / 용의자 존재 여부 검사
+ScenarioDataReader가 검증용 데이터 로드
   ↓
-AI 검증 요청
+RuleBasedScenarioValidator가 필수 항목 / 범인 / 증거 / 힌트 / 정책 구조 검사
   ↓
-논리적 문제와 보완 제안 저장
+hard blocker가 있으면 AI 호출 없이 rule-only 결과 저장
   ↓
-검증 통과 시 공개 가능
+hard blocker가 없으면 AI 검증 호출
+  ↓
+ScenarioValidationResult 저장
+  ↓
+validationStatus / validationScore / checkItems 반환
 ```
 
 ---

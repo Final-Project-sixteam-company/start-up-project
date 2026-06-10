@@ -2041,7 +2041,7 @@ Community Service
 
 문제:
 
-`ai_generation_logs`는 AI 호출 비용/성능 모니터링용이고, `interrogation_logs`는 게임 플레이 기록이다.  
+`ai_call_logs`는 AI 호출 비용/성능 모니터링용이고, `interrogation_logs`는 게임 플레이 기록이다.
 둘 다 AI 심문과 연결되지만 목적이 다르다.
 
 개선:
@@ -2050,14 +2050,16 @@ Community Service
 interrogation_logs:
 - 사용자 질문/AI 답변의 게임 기록
 
-ai_generation_logs:
-- 모델명, 토큰, 비용, latency, 실패 유형 등 운영 기록
+ai_call_logs:
+- feature_type, provider, model, prompt_version, latency_ms, success, error_code, fallback_used, token 사용량 등 운영 기록
+- 현재 구현은 JPA 엔티티가 아니라 AiCallRecorder / AiCallLogWriter의 raw JDBC 기록 경로를 사용한다
 ```
 
 추가 검토:
 
 ```text
-ai_generation_logs에 latency_ms, error_code, request_id 추가 권장.
+ai_call_logs에 request_id를 추가할지는 추후 검토한다.
+Prometheus label에는 sessionId/scenarioId/suspectId/npcCode 같은 고카디널리티 값을 넣지 않는다.
 ```
 
 ---

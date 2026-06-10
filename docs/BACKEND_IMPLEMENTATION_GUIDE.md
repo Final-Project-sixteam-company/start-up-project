@@ -604,6 +604,7 @@ ResponsePolicyResolver가 결정한 답변 정책
 → 용의자 조회
 → ResponsePolicyResolver가 답변 정책 결정
 → AiPromptBuilder가 프롬프트 생성
+→ AI_CALL_CONTEXT 로그를 best-effort로 기록
 → AiClient 호출
 → InterrogationLog 저장
 → 응답 반환
