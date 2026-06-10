@@ -631,31 +631,46 @@ curl -I https://api.clueroom.xyz/actuator/health
 
 ## 12. MySQL 백업
 
-운영 서버 백업 스크립트:
+현재 운영 source of truth는 data 서버 MySQL이다.
+따라서 운영 백업 완료 기준은 data 서버의 `/opt/clueroom-data` 경로에서 수행되는 백업과 S3 업로드다.
 
 ```bash
-/opt/clueroom/backup-mysql.sh
+ssh clueroom-data
+/opt/clueroom-data/backup-mysql.sh
+/opt/clueroom-data/upload-mysql-backup-s3.sh
 ```
 
 백업 위치:
 
 ```text
-/opt/clueroom/backups/mysql
+/opt/clueroom-data/backups/mysql
 ```
 
 확인:
 
 ```bash
+ls -lh /opt/clueroom-data/backups/mysql
+cat /opt/clueroom-data/backups/mysql/*.sha256 | tail -n 5
+cat /opt/clueroom-data/backups/mysql/s3-upload-state.env
+```
+
+prod app 서버의 local-data 백업 스크립트는 rollback/local copy 확인용이다.
+external-data 운영에서 아래 결과만으로 source-of-truth 백업 완료로 보지 않는다.
+
+```bash
+ssh clueroom
+/opt/clueroom/backup-mysql.sh
 ls -lh /opt/clueroom/backups/mysql
 ```
 
-레포 원본:
+레포 원본 local-data script:
 
 ```text
 scripts/backup-mysql.sh
 ```
 
 백업 파일(`*.sql.gz`)은 Git에 커밋하지 않는다.
+상세 절차와 restore rehearsal는 [docs/infra/OPS_RUNBOOK.md](infra/OPS_RUNBOOK.md)의 external-data 백업/복구 절차를 따른다.
 
 ---
 
@@ -885,6 +900,29 @@ AI Provider 설정 오류
 
 ### 16.3 DB 연결 실패
 
+external-data 운영 기준 확인:
+
+```bash
+ssh clueroom
+cd /opt/clueroom/app
+/opt/clueroom/bg-compose exec app-blue printenv DB_HOST
+/opt/clueroom/bg-compose exec app-green printenv DB_HOST
+nc -vz 172.26.1.185 3306
+nc -vz 172.26.1.185 6379
+```
+
+data 서버 직접 확인:
+
+```bash
+ssh clueroom-data
+docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+DATA_MYSQL_CONTAINER="$(docker ps --format '{{.Names}} {{.Image}}' | awk '/mysql/ {print $1; exit}')"
+docker logs --tail=100 "$DATA_MYSQL_CONTAINER"
+docker exec -it "$DATA_MYSQL_CONTAINER" mysql -uroot -p
+```
+
+local-data/rollback copy 확인이 필요할 때만 compose `mysql` 서비스를 본다.
+
 ```bash
 cd /opt/clueroom/app
 docker compose logs mysql
@@ -904,7 +942,8 @@ sudo systemctl reload nginx
 ```bash
 df -h
 docker system df
-du -sh /opt/clueroom/backups/mysql
+du -sh /opt/clueroom/backups/mysql 2>/dev/null || true
+ssh clueroom-data 'du -sh /opt/clueroom-data/backups/mysql 2>/dev/null || true'
 docker image prune
 ```
 
