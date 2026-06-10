@@ -1,11 +1,17 @@
 package com.startup.domain.ai.support;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import com.startup.domain.ai.client.AiCallContext;
 import com.startup.domain.ai.dto.ChatTurn;
 import com.startup.domain.ai.dto.EvidenceInfo;
 import com.startup.domain.ai.dto.ResponsePolicyResult;
 import com.startup.domain.ai.dto.SuspectProfile;
+import com.startup.domain.ai.enums.AiFeatureType;
 import com.startup.domain.ai.enums.QuestionType;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -14,6 +20,80 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AiPromptContextLoggerTest {
 
     private final AiPromptContextLogger logger = new AiPromptContextLogger();
+
+    @Test
+    void recordInterrogation_doesNotLogRawPromptAnswerOrQuestion() {
+        Logger testLogger = (Logger) LoggerFactory.getLogger(AiPromptContextLogger.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        testLogger.addAppender(appender);
+
+        try {
+            logger.recordInterrogation(
+                    new AiCallContext(
+                            AiFeatureType.INTERROGATION,
+                            "npc_interrogation_v1",
+                            10L,
+                            20L,
+                            30L,
+                            "NPC_SENTINEL_CODE"
+                    ),
+                    "deepseek",
+                    "deepseek-v4-flash",
+                    "RAW_SYSTEM_PROMPT_SENTINEL",
+                    "RAW_USER_PROMPT_SENTINEL",
+                    new SuspectProfile(
+                            30L,
+                            "NPC_SENTINEL_CODE",
+                            "NPC_NAME_SENTINEL",
+                            "역할",
+                            "관계",
+                            "프로필",
+                            "진술",
+                            "알리바이"
+                    ),
+                    List.of(new EvidenceInfo(1L, "EVIDENCE_TITLE_SENTINEL", "EVIDENCE_DESCRIPTION_SENTINEL")),
+                    null,
+                    new ResponsePolicyResult(
+                            "DEFAULT",
+                            "POLICY_TEXT_SENTINEL",
+                            List.of("ALLOWED_FACT_SENTINEL"),
+                            List.of("FORBIDDEN_FACT_SENTINEL"),
+                            "TONE_SENTINEL"
+                    ),
+                    List.of(new ChatTurn("HISTORY_QUESTION_SENTINEL", "HISTORY_ANSWER_SENTINEL")),
+                    "USER_QUESTION_SENTINEL",
+                    QuestionType.FREE,
+                    "template123"
+            );
+        } finally {
+            testLogger.detachAppender(appender);
+        }
+
+        assertThat(appender.list).hasSize(1);
+        String message = appender.list.get(0).getFormattedMessage();
+        assertThat(message).contains("AI_CALL_CONTEXT");
+        assertThat(message).contains("featureType=INTERROGATION");
+        assertThat(message).contains("promptVersion=npc_interrogation_v1");
+        assertThat(message).contains("templateHash=template123");
+        assertThat(message).doesNotContain(
+                "RAW_SYSTEM_PROMPT_SENTINEL",
+                "RAW_USER_PROMPT_SENTINEL",
+                "USER_QUESTION_SENTINEL",
+                "HISTORY_QUESTION_SENTINEL",
+                "HISTORY_ANSWER_SENTINEL",
+                "EVIDENCE_TITLE_SENTINEL",
+                "EVIDENCE_DESCRIPTION_SENTINEL",
+                "POLICY_TEXT_SENTINEL",
+                "ALLOWED_FACT_SENTINEL",
+                "FORBIDDEN_FACT_SENTINEL",
+                "NPC_NAME_SENTINEL",
+                "NPC_SENTINEL_CODE",
+                "scenarioId=10",
+                "sessionId=20",
+                "suspectId=30"
+        );
+    }
 
     @Test
     void summarizeInterrogation_countsPromptBlocksWithoutRawText() {

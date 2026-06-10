@@ -24,6 +24,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,6 +37,7 @@ public class AiPromptBuilder {
     private final Resource evidenceUserPromptResource;
     private final Resource deductionScoringPromptResource;
     private final Resource scenarioValidationPromptResource;
+    private final ConcurrentMap<QuestionType, String> interrogationTemplateHashCache = new ConcurrentHashMap<>();
 
     public AiPromptBuilder(
             @Value("classpath:prompts/interrogation_system_prompt.txt") Resource systemPromptResource,
@@ -54,6 +57,13 @@ public class AiPromptBuilder {
     }
 
     public String interrogationTemplateHash(QuestionType questionType) {
+        QuestionType templateType = questionType == QuestionType.EVIDENCE_PRESENTED
+                ? QuestionType.EVIDENCE_PRESENTED
+                : QuestionType.FREE;
+        return interrogationTemplateHashCache.computeIfAbsent(templateType, this::buildInterrogationTemplateHash);
+    }
+
+    private String buildInterrogationTemplateHash(QuestionType questionType) {
         Resource selectedUserPromptResource = questionType == QuestionType.EVIDENCE_PRESENTED
                 ? evidenceUserPromptResource
                 : userPromptResource;

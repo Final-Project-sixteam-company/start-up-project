@@ -618,7 +618,7 @@ Android:
 
 ```text
 서월채 브리핑:
-- 사건 개요 본문에는 차민혁이 피해자로 명시됨
+- 사건 개요 본문에는 피해자가 명시됨
 - 바로 아래 피해자 정보 카드는 "미상"으로 표시됨
 - 탐정 목표에 "결정적 증거 3개를 수집하라"가 하드코딩되어 있음
 ```
@@ -1002,7 +1002,7 @@ PASS 기준:
 
 ```text
 PASS:
-- 문하연에게 제보 초안 제시 시 상태 로그 원시 데이터가 unlockedEvidences에 포함됨
+- 특정 용의자에게 특정 증거 제시 시 target evidence가 unlockedEvidences에 포함됨
 - evidence board unlocked count가 20 -> 21로 증가
 - locked evidence를 presentedEvidenceId로 보내면 400(AI009)
 - FREE에 presentedEvidenceId를 보내면 400(C001)
@@ -1026,10 +1026,10 @@ PASS:
 준비:
 
 ```text
-scenarioId: 10
-sessionId: 75
-selected variant: VARIANT_SECRETARY
-variant active state: VARIANT_SECRETARY만 active, 나머지 inactive
+scenarioId: demo scenario
+sessionId: redacted
+selected variant: redacted active demo variant
+variant active state: one active demo variant, others inactive
 phase elapsed: 16분 경과 상태로 조정
 ```
 
@@ -1037,16 +1037,16 @@ phase elapsed: 16분 경과 상태로 조정
 
 ```text
 PASS:
-- 새 세션이 VARIANT_SECRETARY로 생성됨
-- 문하연에게 제보 초안 제시 후 상태 로그 원시 데이터 해금
+- 새 세션이 active demo variant로 생성됨
+- 특정 용의자에게 특정 증거 제시 후 target evidence 해금
 - unlocked evidence count: 24 -> 25
-- 정답 캐릭터 + 핵심 증거 전체로 final-deduction 제출
+- 정답 상세를 사용한 final-deduction smoke 제출
 - POST /final-deduction HTTP 200
 - GET /result HTTP 200
 - score=100
 - grade=S
-- matched.culprit/motive/method/coverUp=true
-- matched.keyEvidences=11
+- matched fields all true
+- matched key evidences count matched expected demo variant
 ```
 
 로그 확인:
