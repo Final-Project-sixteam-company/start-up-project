@@ -35,7 +35,7 @@ AI: Spring AI 기반 LLM 연동
 | 2 | [AGENTS.md](AGENTS.md) | Codex 리뷰 기준 |
 | 3 | [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md) | 제품 요구사항, MVP 범위, 구현 우선순위 |
 | 4 | [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md) | API 경로, Request/Response, DTO 필드명 정본 |
-| 5 | [docs/ANDROID_SCREEN_API_MAPPING.md](docs/ANDROID_SCREEN_API_MAPPING.md) | Android 화면별 호출 API 매핑 |
+| 5 | [docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) | Android/Frontend 화면 흐름, 호출 순서, E2E API 매핑 |
 | 6 | [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md) | ERD 설계, 엔티티, 관계, Enum |
 | 7 | [docs/CaseLab_AI_ERDCloud.sql](docs/CaseLab_AI_ERDCloud.sql) | ERDCloud import SQL |
 | 8 | [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) | AI NPC 프롬프트 정책과 정답 누설 방지 |
@@ -43,16 +43,11 @@ AI: Spring AI 기반 LLM 연동
 | 10 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 |
 | 11 | [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) | 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 |
 | 12 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
-| 13 | [docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md](docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md) | MVP 이후 인프라 고도화 로드맵 |
-| 14 | [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 운영/인프라 Agent 권한, 금지, 승인 정책 |
-| 15 | [docs/infra/agent/OPS_SNAPSHOT_SPEC.md](docs/infra/agent/OPS_SNAPSHOT_SPEC.md) | Agent에게 전달할 secret-safe 운영 상태 snapshot 형식 |
-| 16 | [docs/infra/agent/MONITORING_AGENT_PLAN.md](docs/infra/agent/MONITORING_AGENT_PLAN.md) | Monitoring Agent 도입 계획 |
-| 17 | [docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md](docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md) | Infra Codex Agent 작업 플레이북 |
-| 18 | [docs/infra/agent/LLMOPS_AGENT_PLAN.md](docs/infra/agent/LLMOPS_AGENT_PLAN.md) | LLMOps Agent 도입 계획 |
-| 19 | [docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md](docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md) | LLMOps metric/log/DB persistence smoke 절차 |
-| 20 | [docs/infra/agent/LLMOPS_PROMQL_QUERIES.md](docs/infra/agent/LLMOPS_PROMQL_QUERIES.md) | LLMOps PromQL/Grafana 패널 후보 |
-| 21 | [docs/scenarios/README.md](docs/scenarios/README.md) | 시나리오 문서 공개 범위와 스포일러 문서 관리 기준 |
-| 22 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
+| 13 | [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md) | 보안, 트래픽, Rate Limit, GeoIP/Bot, Grafana Alert 정책 |
+| 14 | [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 운영/인프라 Agent, Ops Snapshot, Monitoring Agent, Codex 기준 |
+| 15 | [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) | LLMOps telemetry, smoke, PromQL, agent 기준 |
+| 16 | [docs/scenarios/README.md](docs/scenarios/README.md) | 시나리오 문서 공개 범위와 스포일러 문서 관리 기준 |
+| 17 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
 
 ### 문서 수정 기준
 
@@ -62,7 +57,7 @@ AI: Spring AI 기반 LLM 연동
 |---|---|
 | MVP 범위, Phase, 기능 우선순위 | [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md) |
 | API 경로, Request/Response, DTO 필드명 | [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md) |
-| Android 화면별 호출 API | [docs/ANDROID_SCREEN_API_MAPPING.md](docs/ANDROID_SCREEN_API_MAPPING.md) |
+| Android/Frontend 화면 흐름, 호출 순서, E2E API 매핑 | [docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) |
 | 엔티티, 관계, Enum, DB 제약 | [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md) |
 | ERDCloud import SQL | [docs/CaseLab_AI_ERDCloud.sql](docs/CaseLab_AI_ERDCloud.sql) |
 | AI 프롬프트, 답변 정책, 정답 누설 방지 | [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) |
@@ -70,8 +65,9 @@ AI: Spring AI 기반 LLM 연동
 | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) |
 | 상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 | [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) |
 | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) |
-| MVP 이후 인프라 고도화 순서 | [docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md](docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md) |
-| 운영/인프라 Agent 권한, Snapshot, Monitoring, Codex, LLMOps 계획 | [docs/infra/agent/](docs/infra/agent/) |
+| 보안, 트래픽, Rate Limit, GeoIP/Bot, Grafana Alert 정책 | [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md) |
+| 운영/인프라 Agent, Snapshot, Monitoring, Codex 계획 | [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) |
+| LLMOps telemetry, smoke, PromQL, agent 계획 | [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) |
 | 시나리오 문서 공개 범위, 내부 스포일러 문서 관리 기준 | [docs/scenarios/README.md](docs/scenarios/README.md) |
 | 공식 시나리오 seed data | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) |
 
@@ -100,7 +96,8 @@ Gradle task:
 실행과 배포 명령은 [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md)를 따릅니다.
 상세 운영 명령어와 장애 대응은 [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md)를 따릅니다.
 인프라 선택 이유와 확장 계획은 [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md)를 따릅니다.
-MVP 이후 인프라 고도화와 Agent/LLMOps 계획은 [docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md](docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md)와 [docs/infra/agent/](docs/infra/agent/)를 따릅니다.
+보안/트래픽/알림 정책은 [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md)를 따릅니다.
+Agent 운영 기준은 [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md), LLMOps 기준은 [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md)를 따릅니다.
 
 ---
 

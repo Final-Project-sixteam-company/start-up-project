@@ -63,7 +63,9 @@ bash scripts/compose-up.sh     # Docker 빌드 + 실행
 실행, Android 연결, Docker Compose, 배포 명령 요약은 `docs/RUN_AND_DEPLOY.md`를 따른다.
 상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응은 `docs/infra/OPS_RUNBOOK.md`를 따른다.
 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보는 `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`를 따른다.
-운영/인프라 Agent 권한, Snapshot, Monitoring, Codex, LLMOps 기준은 `docs/infra/agent/`와 `docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md`를 따른다.
+보안/트래픽/알림 정책은 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 따른다.
+운영/인프라 Agent 권한, Snapshot, Monitoring, Codex 기준은 `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md`를 따른다.
+LLMOps 기준은 `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md`를 따른다.
 
 ---
 
@@ -167,7 +169,7 @@ AI가 설정에 없는 사실을 만드는 구조를 허용하지 않는다.
 CLAUDE.md                                   프로젝트 전체 컨텍스트
 docs/CaseLab_AI_PRD.md                      제품 요구사항
 docs/CaseLab_AI_API_Spec.md                 API 명세 (Request/Response 포함)
-docs/ANDROID_SCREEN_API_MAPPING.md          Android 화면-API 매핑
+docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md Android/Frontend 화면 흐름 / API 매핑
 docs/AI_NPC_PROMPT_POLICY.md                AI 심문 프롬프트 정책 정본
 docs/OFFICIAL_SCENARIO_DEMO_DAY.md          공식 데모 시나리오 정본 (채점 기준 포함)
 docs/BACKEND_IMPLEMENTATION_GUIDE.md        백엔드 구현 규칙 정본
@@ -175,12 +177,9 @@ docs/CaseLab_AI_ERD_Design.md               ERD 설계 / 비판적 리뷰
 docs/RUN_AND_DEPLOY.md                      실행 / Android 연결 / Docker Compose / 배포 명령 요약
 docs/infra/OPS_RUNBOOK.md                   운영 명령어 / Blue-Green rollback / 백업 / 장애 대응
 docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md    인프라 선택 이유 / 운영 구조 / 확장 계획
-docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md  MVP 이후 인프라 고도화 로드맵
-docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md   운영/인프라 Agent 권한 / 금지 / 승인 정책
-docs/infra/agent/OPS_SNAPSHOT_SPEC.md       Agent 전달용 secret-safe 운영 snapshot 형식
-docs/infra/agent/MONITORING_AGENT_PLAN.md   Monitoring Agent 계획
-docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md    Infra Codex Agent 작업 플레이북
-docs/infra/agent/LLMOPS_AGENT_PLAN.md       LLMOps Agent 계획
+docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md 보안 / 트래픽 / 알림 정책
+docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md   운영/인프라 Agent / Snapshot / Monitoring / Codex 기준
+docs/infra/agent/LLMOPS_OPERATING_GUIDE.md  LLMOps telemetry / smoke / PromQL / agent 기준
 docs/scenarios/README.md                    시나리오 문서 공개 범위 / 내부 스포일러 문서 관리 기준
 ```
 

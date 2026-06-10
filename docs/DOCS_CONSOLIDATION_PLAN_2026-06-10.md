@@ -333,7 +333,20 @@ agent 운영 문서와 LLMOps 운영 문서가 각각 하나의 진입점만 가
 검증:
 
 ```powershell
-git grep -n "ANDROID_SCREEN_API_MAPPING\|MVP_QA_ISSUE_HANDOFF\|RATE_LIMIT_DRY_RUN_RUNBOOK\|LLMOPS_PROMQL_QUERIES" -- .
+git grep -n "ANDROID_SCREEN_API_MAPPING\|MVP_QA_ISSUE_HANDOFF\|RATE_LIMIT_DRY_RUN_RUNBOOK\|LLMOPS_PROMQL_QUERIES" -- . ':!docs/DOCS_CONSOLIDATION_PLAN_2026-06-10.md'
+```
+
+완료 기준:
+
+```text
+AGENTS.md, CLAUDE.md, root README.md는 active 정본 문서만 가리킨다.
+예전 문서명 검색 결과는 redirect 문서, 흡수 이력, 제거 후보 목록에만 남는다.
+```
+
+상태:
+
+```text
+완료. active 진입 문서는 새 정본 링크로 교체했고, 예전 파일명은 redirect/흡수 이력/제거 후보 맥락에만 남긴다.
 ```
 
 ## 6. 예상 결과

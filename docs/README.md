@@ -141,7 +141,10 @@ public 문서에 넣으면 안 되는 것:
 
 ```powershell
 git diff --check
-git grep -n "ANDROID_SCREEN_API_MAPPING\|MVP_QA_ISSUE_HANDOFF\|RATE_LIMIT_DRY_RUN_RUNBOOK\|LLMOPS_PROMQL_QUERIES" -- .
+git grep -n "ANDROID_SCREEN_API_MAPPING\|MVP_QA_ISSUE_HANDOFF\|RATE_LIMIT_DRY_RUN_RUNBOOK\|LLMOPS_PROMQL_QUERIES" -- . ':!docs/DOCS_CONSOLIDATION_PLAN_2026-06-10.md'
 ```
+
+검색 결과가 나오면 redirect 문서, 흡수 이력, 제거 후보 목록인지 확인한다.
+active 정본을 안내해야 하는 문서에서 예전 파일명을 정본처럼 가리키면 안 된다.
 
 문서를 삭제하는 PR에서는 삭제 파일의 고유 내용이 어느 정본 문서로 흡수됐는지 PR 본문에 적는다.

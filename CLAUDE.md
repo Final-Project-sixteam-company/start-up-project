@@ -215,7 +215,7 @@ bash scripts/compose-down.sh
 |---|---|
 | `docs/CaseLab_AI_PRD.md` | 제품 요구사항, MVP 범위, 구현 우선순위 |
 | `docs/CaseLab_AI_API_Spec.md` | API 경로, Request/Response, DTO 필드명 정본 |
-| `docs/ANDROID_SCREEN_API_MAPPING.md` | Android 화면별 호출 API 매핑 |
+| `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | Android/Frontend 화면 흐름, 호출 순서, E2E API 매핑 |
 | `docs/CaseLab_AI_ERD_Design.md` | ERD 설계, 엔티티, 관계, Enum |
 | `docs/CaseLab_AI_ERDCloud.sql` | ERDCloud import SQL |
 | `docs/AI_NPC_PROMPT_POLICY.md` | AI NPC 프롬프트 정책 정본 |
@@ -223,6 +223,9 @@ bash scripts/compose-down.sh
 | `docs/RUN_AND_DEPLOY.md` | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 |
 | `docs/infra/OPS_RUNBOOK.md` | 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 |
 | `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
+| `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 보안, 트래픽, Rate Limit, GeoIP/Bot, Grafana Alert 정책 |
+| `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | Infra Agent, Ops Snapshot, Monitoring Agent, Codex 운영 기준 |
+| `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | LLMOps telemetry, smoke, PromQL, agent 운영 기준 |
 | `docs/scenarios/README.md` | 시나리오 문서 공개 범위, 내부 스포일러 문서 관리 기준 |
 | `docs/OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 데모 시나리오 seed 정본 |
 
@@ -232,12 +235,15 @@ bash scripts/compose-down.sh
 CLAUDE.md
 → CaseLab_AI_PRD.md
 → CaseLab_AI_API_Spec.md
-→ ANDROID_SCREEN_API_MAPPING.md
+→ frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
 → CaseLab_AI_ERD_Design.md
 → AI_NPC_PROMPT_POLICY.md
 → BACKEND_IMPLEMENTATION_GUIDE.md
 → RUN_AND_DEPLOY.md
 → OPS_RUNBOOK.md
 → CLUEROOM_INFRASTRUCTURE_STRATEGY.md
+→ SECURITY_TRAFFIC_ALERT_POLICY.md
+→ INFRA_AGENT_OPERATING_GUIDE.md
+→ LLMOPS_OPERATING_GUIDE.md
 → docs/scenarios/README.md
 ```
