@@ -55,7 +55,7 @@
 |---|---|---|
 | [AI_NPC_PROMPT_POLICY.md](AI_NPC_PROMPT_POLICY.md) | AI 지식 경계, prompt 구조, ResponsePolicy, injection 방어, AI_CALL/AI_CALL_CONTEXT logging | 실제 prompt template 기준으로 유지한다. |
 | [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 정본, 채점 기준 | 스포일러 포함 문서다. 공개 범위 주의. |
-| [scenarios/SCENARIO_YAML_SCHEMA.md](scenarios/SCENARIO_YAML_SCHEMA.md) | YAML import schema, 공개 범위, private seed 경계, MVP scoring bridge | 시나리오 문서 정본이다. |
+| [scenarios/SCENARIO_YAML_SCHEMA.md](scenarios/SCENARIO_YAML_SCHEMA.md) | YAML import schema, 공개 범위, private seed 경계, MVP scoring bridge | 시나리오 문서 정본이다. 기존 seed hotfix 절차는 [RUN_AND_DEPLOY.md](RUN_AND_DEPLOY.md#101-공식-시나리오-guidance-seed-hotfix)로 연결한다. |
 | [scenarios/SCENARIO_GUIDANCE_UX_SPEC.md](scenarios/SCENARIO_GUIDANCE_UX_SPEC.md) | 증거 판독 포인트, 함께 볼 증거, 추천 질문 UX/API 설계 | backend guidance contract는 구현 완료. seed/Android 적용은 별도 PR에서 추적한다. |
 
 ### 실행 / 운영 / 인프라

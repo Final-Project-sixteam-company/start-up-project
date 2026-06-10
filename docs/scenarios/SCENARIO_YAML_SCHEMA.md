@@ -139,6 +139,25 @@ scenario:
 `scenario.code`와 `scenario.version`은 stable import identity다.
 `contentHash`는 작성자가 직접 쓰지 않고 importer가 계산해야 한다.
 
+### Existing Official Seed Hotfix 기존 공식 seed hotfix
+
+공식 시나리오가 이미 운영 DB에 import된 뒤 `evidences[].guidance` 같은 보조 UX 데이터만 보강하는 경우에는 일반 신규 버전 import와 hotfix 절차를 구분한다.
+
+Hotfix 기준:
+
+- 기존 운영 row와 같은 `scenario.code + scenario.version`을 유지한다.
+- `guidance_json`처럼 대상이 명확한 DB column만 별도 SQL로 patch한다.
+- 서버 private YAML의 SHA-256과 DB `scenarios.content_hash`를 같은 값으로 맞춘다.
+- 배포 후 importer 로그가 `SKIPPED <scenario>@<version>`인지 확인한다.
+
+주의:
+
+- `scenario.version`만 올리고 기존 `assetKey`를 재사용한 full import를 시도하지 않는다.
+- 현재 운영 schema에서는 `scenario_assets.asset_key`가 unique이므로, 같은 asset key를 쓰는 새 scenario version import가 실패할 수 있다.
+- 이 절차는 private seed 운영 절차이며 실제 YAML/SQL 내용은 public repository에 커밋하지 않는다.
+
+명령형 절차는 [Run and Deploy Guide의 공식 시나리오 guidance seed hotfix](../RUN_AND_DEPLOY.md#101-공식-시나리오-guidance-seed-hotfix)를 따른다.
+
 ## Victim 피해자
 
 ```yaml

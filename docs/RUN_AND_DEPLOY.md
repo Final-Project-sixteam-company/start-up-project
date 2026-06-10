@@ -679,6 +679,302 @@ scripts/rollback-bluegreen.sh
 docker-compose.bluegreen.yml
 ```
 
+### 10.1 공식 시나리오 guidance seed hotfix
+
+이 절차는 이미 운영 DB에 들어간 공식 시나리오 `1.1.0`의 player-facing `evidences.guidance_json`만 보강할 때 사용한다.
+정식 신규 버전 import 절차가 아니라, 기존 공개 시나리오 row를 안전하게 patch하고 서버 YAML hash를 맞춰 importer가 skip하게 만드는 hotfix 절차다.
+
+적용 조건:
+
+```text
+- 증거 guidance처럼 기존 시나리오의 보조 UX 데이터만 추가/수정한다.
+- `scenario.code + scenario.version`은 기존 운영 row와 동일하게 유지한다.
+- 운영 YAML 파일과 DB `scenarios.content_hash`를 같은 SHA-256으로 맞춘다.
+- deploy 후 `[ScenarioImport] SKIPPED ...@1.1.0` 로그를 확인한다.
+```
+
+하지 말 것:
+
+```text
+- guidance만 추가하는데 `scenario.version`을 올리지 않는다.
+- 기존 assetKey를 그대로 둔 채 신규 scenario version을 full import하지 않는다.
+- private seed YAML, SQL, DB password, SSH key를 GitHub/Slack/ChatGPT에 붙이지 않는다.
+```
+
+주의 이유:
+
+```text
+현재 importer는 `scenario.code + scenario.version`이 없으면 새 시나리오 graph를 import한다.
+공식 seed가 기존 assetKey를 재사용한 상태에서 version만 올리면 `scenario_assets.asset_key` unique 제약에 걸릴 수 있다.
+따라서 기존 운영 row hotfix는 DB patch + content_hash sync 방식으로 처리한다.
+```
+
+#### 10.1.1 로컬 검증
+
+Git Bash 기준으로 프로젝트 루트에서 실행한다.
+
+```bash
+cd /c/java/assignment/spring/start-up
+
+sha256sum .private/deploy/scenarios/seowolchae.v1.yaml
+sha256sum .private/deploy/scenarios/studio9.v1.yaml
+```
+
+YAML은 기존 운영 row와 같은 version이어야 한다.
+
+```bash
+grep -n '^  version:' .private/deploy/scenarios/seowolchae.v1.yaml
+grep -n '^  version:' .private/deploy/scenarios/studio9.v1.yaml
+```
+
+기대:
+
+```text
+version: "1.1.0"
+```
+
+`guidance_json` patch SQL은 `.private/deploy/` 아래에 둔다. 이 파일은 Git에 커밋하지 않는다.
+
+권장 SQL 조건:
+
+```sql
+START TRANSACTION;
+
+UPDATE evidences e
+JOIN scenarios s ON s.id = e.scenario_id
+SET e.guidance_json = '<guidance json>'
+WHERE s.code = 'SCENARIO_...'
+  AND s.content_version = '1.1.0'
+  AND s.status = 'PUBLISHED'
+  AND s.visibility = 'PUBLIC'
+  AND e.code = 'EVIDENCE_...';
+
+SELECT ROW_COUNT() AS updated_rows;
+
+COMMIT;
+```
+
+#### 10.1.2 접속 변수
+
+Git Bash에서 사용한다. SSH alias를 쓸 수 있으면 `APP=clueroom`, `DATA=clueroom-data`로 둬도 된다.
+
+```bash
+KEY="/path/to/LightsailDefaultKey-ap-northeast-2.pem"
+APP="ubuntu@<prod-app-public-ip-or-ssh-alias>"
+DATA="ubuntu@<data-server-public-ip-or-ssh-alias>"
+
+SQL_SCRIPT=".private/deploy/apply_guidance_json_YYYYMMDD.sql"
+```
+
+#### 10.1.3 실패한 standby 정리
+
+이전 배포 실패로 standby slot이 남아 있으면 먼저 제거한다. active upstream은 건드리지 않는다.
+
+```bash
+ssh -i "$KEY" "$APP" 'bash -s' <<'EOF'
+set -euo pipefail
+
+ACTIVE_UPSTREAM="$(grep -oE '127\.0\.0\.1:808[12]' /etc/nginx/conf.d/clueroom-upstream.conf | head -n 1)"
+
+case "$ACTIVE_UPSTREAM" in
+  127.0.0.1:8081)
+    docker rm -f start-up-app-green 2>/dev/null || true
+    ;;
+  127.0.0.1:8082)
+    docker rm -f start-up-app-blue 2>/dev/null || true
+    ;;
+  *)
+    echo "Unknown active upstream: $ACTIVE_UPSTREAM" >&2
+    exit 1
+    ;;
+esac
+
+/opt/clueroom/bg-status.sh || true
+curl -I https://api.clueroom.xyz/actuator/health
+EOF
+```
+
+예를 들어 active upstream이 `127.0.0.1:8082`이면 `app-green`이 active이므로 `start-up-app-blue`만 제거한다.
+
+#### 10.1.4 서버 seed YAML 교체
+
+```bash
+scp -i "$KEY" .private/deploy/scenarios/seowolchae.v1.yaml "$APP:/tmp/seowolchae.v1.yaml"
+scp -i "$KEY" .private/deploy/scenarios/studio9.v1.yaml "$APP:/tmp/studio9.v1.yaml"
+```
+
+```bash
+ssh -i "$KEY" "$APP" 'bash -s' <<'EOF'
+set -euo pipefail
+
+cd /opt/clueroom/secrets/scenarios
+
+TS="$(date +%Y%m%d_%H%M%S)"
+sudo cp seowolchae.v1.yaml "seowolchae.v1.yaml.bak-$TS"
+sudo cp studio9.v1.yaml "studio9.v1.yaml.bak-$TS"
+
+sudo cp /tmp/seowolchae.v1.yaml /opt/clueroom/secrets/scenarios/seowolchae.v1.yaml
+sudo cp /tmp/studio9.v1.yaml /opt/clueroom/secrets/scenarios/studio9.v1.yaml
+
+sudo chown root:root seowolchae.v1.yaml studio9.v1.yaml
+sudo chmod 600 seowolchae.v1.yaml studio9.v1.yaml
+
+sudo grep -n '^  version:' seowolchae.v1.yaml studio9.v1.yaml
+sudo sha256sum seowolchae.v1.yaml studio9.v1.yaml
+EOF
+```
+
+#### 10.1.5 data 서버 백업
+
+source of truth DB는 data 서버 MySQL이다. patch 전 data 서버에서 백업한다.
+
+```bash
+ssh -i "$KEY" "$DATA" 'bash -s' <<'EOF'
+set -euo pipefail
+
+/opt/clueroom-data/backup-mysql.sh
+ls -lh /opt/clueroom-data/backups/mysql | tail
+EOF
+```
+
+#### 10.1.6 guidance SQL 적용과 content_hash 동기화
+
+```bash
+scp -i "$KEY" "$SQL_SCRIPT" "$DATA:/tmp/$(basename "$SQL_SCRIPT")"
+```
+
+서버 YAML hash를 읽는다.
+
+```bash
+SEOWOL_HASH="$(ssh -i "$KEY" "$APP" "sudo sha256sum /opt/clueroom/secrets/scenarios/seowolchae.v1.yaml | awk '{print \$1}'")"
+STUDIO_HASH="$(ssh -i "$KEY" "$APP" "sudo sha256sum /opt/clueroom/secrets/scenarios/studio9.v1.yaml | awk '{print \$1}'")"
+
+echo "$SEOWOL_HASH"
+echo "$STUDIO_HASH"
+```
+
+data 서버에서 SQL patch와 hash sync를 실행한다.
+
+```bash
+REMOTE_SQL="/tmp/$(basename "$SQL_SCRIPT")"
+
+ssh -i "$KEY" "$DATA" 'bash -s' <<EOF
+set -euo pipefail
+
+DB_PASSWORD="\$(docker exec clueroom-data-mysql printenv MYSQL_ROOT_PASSWORD)"
+
+docker exec -i \
+  -e MYSQL_PWD="\$DB_PASSWORD" \
+  clueroom-data-mysql \
+  mysql --default-character-set=utf8mb4 -uroot startup < "$REMOTE_SQL"
+
+docker exec -i \
+  -e MYSQL_PWD="\$DB_PASSWORD" \
+  clueroom-data-mysql \
+  mysql --default-character-set=utf8mb4 -uroot startup <<SQL
+UPDATE scenarios
+SET content_hash = '$SEOWOL_HASH'
+WHERE code = 'SCENARIO_SEOWOLCHAE_LAST_PRESCRIPTION'
+  AND content_version = '1.1.0'
+  AND status = 'PUBLISHED'
+  AND visibility = 'PUBLIC';
+
+SELECT ROW_COUNT() AS seowol_hash_updated;
+
+UPDATE scenarios
+SET content_hash = '$STUDIO_HASH'
+WHERE code = 'SCENARIO_STUDIO9'
+  AND content_version = '1.1.0'
+  AND status = 'PUBLISHED'
+  AND visibility = 'PUBLIC';
+
+SELECT ROW_COUNT() AS studio_hash_updated;
+
+SELECT id, code, content_version, status, visibility, content_hash
+FROM scenarios
+WHERE code IN ('SCENARIO_SEOWOLCHAE_LAST_PRESCRIPTION', 'SCENARIO_STUDIO9')
+ORDER BY code, id;
+SQL
+EOF
+```
+
+`seowol_hash_updated`와 `studio_hash_updated`는 각각 `1`이어야 한다.
+
+#### 10.1.7 DB patch 확인
+
+```bash
+ssh -i "$KEY" "$DATA" 'bash -s' <<'EOF'
+set -euo pipefail
+
+DB_PASSWORD="$(docker exec clueroom-data-mysql printenv MYSQL_ROOT_PASSWORD)"
+
+docker exec -i \
+  -e MYSQL_PWD="$DB_PASSWORD" \
+  clueroom-data-mysql \
+  mysql --default-character-set=utf8mb4 -uroot startup -e "
+SELECT
+  s.code AS scenario_code,
+  s.content_version,
+  e.code AS evidence_code,
+  e.guidance_json IS NOT NULL AS has_guidance
+FROM evidences e
+JOIN scenarios s ON s.id = e.scenario_id
+WHERE s.status = 'PUBLISHED'
+  AND s.visibility = 'PUBLIC'
+  AND s.content_version = '1.1.0'
+  AND e.code IN (
+    'EVIDENCE_BEDROOM_WATER_BOTTLE_AND_CUP',
+    'EVIDENCE_PERSONAL_NIGHT_MEDICATION_CASE',
+    'EVIDENCE_WEARABLE_VITAL_RAW_LOG',
+    'EVIDENCE_MARK9_TAPE_LIFTED_EDGE_GEL',
+    'EVIDENCE_PROMPTER_REFLECTION_BROLL_STILL',
+    'EVIDENCE_NONSTANDARD_DIFFUSION_FILTER_FRAME',
+    'EVIDENCE_SAFETY_LATCH_CLOSEUP'
+  )
+ORDER BY s.code, e.code;
+"
+EOF
+```
+
+기대:
+
+```text
+대상 evidence 7개 모두 has_guidance = 1
+```
+
+#### 10.1.8 Blue-Green 재배포와 importer skip 확인
+
+```bash
+ssh -i "$KEY" "$APP" 'bash -s' <<'EOF'
+set -euo pipefail
+
+cd /opt/clueroom/app
+/opt/clueroom/deploy.sh
+/opt/clueroom/bg-status.sh
+curl -I https://api.clueroom.xyz/actuator/health
+EOF
+```
+
+importer 로그를 확인한다.
+
+```bash
+ssh -i "$KEY" "$APP" 'bash -s' <<'EOF'
+set -euo pipefail
+
+docker logs --since 20m start-up-app-blue 2>&1 | grep '\[ScenarioImport\]' || true
+docker logs --since 20m start-up-app-green 2>&1 | grep '\[ScenarioImport\]' || true
+EOF
+```
+
+기대:
+
+```text
+[ScenarioImport] SKIPPED SCENARIO_SEOWOLCHAE_LAST_PRESCRIPTION@1.1.0 ...
+[ScenarioImport] SKIPPED SCENARIO_STUDIO9@1.1.0 ...
+```
+
+`IMPORTED ...@1.1.1` 또는 asset unique 오류가 보이면 서버 YAML version이 잘못 올라갔거나 DB `content_hash`가 서버 YAML hash와 맞지 않는 상태다. 이 경우 active upstream이 전환됐는지 먼저 확인하고, 실패한 standby를 제거한 뒤 YAML version/hash부터 다시 맞춘다.
+
 ---
 
 ## 11. CD workflow 실행
