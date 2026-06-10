@@ -1781,8 +1781,11 @@ SNIPPET_BACKUP=/etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf.before-ra
 test -f "$SITE_BACKUP"
 sudo cp "$SITE_BACKUP" /etc/nginx/sites-available/clueroom-api
 
-test -f "$SNIPPET_BACKUP"
-sudo cp "$SNIPPET_BACKUP" /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf
+if [ -f "$SNIPPET_BACKUP" ]; then
+  sudo cp "$SNIPPET_BACKUP" /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf
+else
+  echo "optional snippet backup not found; site config rollback will continue"
+fi
 ```
 
 검증 후 reload한다.
