@@ -6,6 +6,7 @@ import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.entity.*;
 import com.startup.domain.ai.entity.SuspectResponsePolicy;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
+import com.startup.domain.scenario.enums.EvidenceUnlockType;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import tools.jackson.databind.JsonNode;
@@ -525,6 +526,10 @@ public class CustomScenarioService {
                 request.getUnlockAfterMinutes(),
                 request.getSortOrder()
         );
+
+        if (evidence.getUnlockType() == EvidenceUnlockType.NONE) {
+            evidence.clearUnlockConditions();
+        }
 
         if (request.getRelatedSuspectIds() != null) {
             evidenceSuspectRepository.deleteByEvidenceId(evidence.getId());

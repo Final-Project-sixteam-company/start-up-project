@@ -136,4 +136,10 @@ public class Evidence {
         if (unlockAfterMinutes != null) this.unlockAfterMinutes = unlockAfterMinutes;
         if (sortOrder != null) this.sortOrder = sortOrder;
     }
+
+    public void clearUnlockConditions() {
+        this.unlockPhase = null;
+        this.unlockConditionJson = null;
+        this.unlockAfterMinutes = null;
+    }
 }
