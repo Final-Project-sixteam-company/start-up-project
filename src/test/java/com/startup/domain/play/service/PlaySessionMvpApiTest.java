@@ -192,6 +192,89 @@ class PlaySessionMvpApiTest {
         assertThat(response.interrogationLogs()).hasSize(1);
     }
 
+    @Test
+    void getEvidenceDetail_returnsGuidanceAndMasksLockedCompareEvidence() {
+        Scenario scenario = saveScenario();
+        Suspect suspect = suspectRepository.save(Suspect.builder()
+                .scenarioId(scenario.getId())
+                .code("SUSPECT_TEST")
+                .name("테스트 용의자")
+                .role("용의자")
+                .publicProfile("공개 프로필")
+                .publicStatement("공개 진술")
+                .alibi("공개 알리바이")
+                .suspicionLevel(50)
+                .sortOrder(1)
+                .build());
+        Evidence currentEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(scenario.getId())
+                .code("EVIDENCE_CURRENT")
+                .title("현재 증거")
+                .description("현재 증거 상세")
+                .oneLine("현재 증거 요약")
+                .evidenceType(EvidenceType.DOCUMENT)
+                .importance(EvidenceImportance.NORMAL)
+                .isInitialPublic(true)
+                .unlockType(EvidenceUnlockType.PHASE)
+                .guidanceJson("""
+                        {
+                          "readingPoints": ["현재 증거의 시간대를 비교한다."],
+                          "compareWithEvidenceCodes": ["EVIDENCE_UNLOCKED", "EVIDENCE_LOCKED"],
+                          "suggestedQuestions": [
+                            {
+                              "targetCharacterCode": "SUSPECT_TEST",
+                              "question": "이 증거와 다른 기록의 차이를 설명할 수 있나요?"
+                            }
+                          ]
+                        }
+                        """)
+                .sortOrder(1)
+                .build());
+        Evidence unlockedCompare = evidenceRepository.save(Evidence.builder()
+                .scenarioId(scenario.getId())
+                .code("EVIDENCE_UNLOCKED")
+                .title("해금 비교 증거")
+                .description("해금 비교 증거 상세")
+                .evidenceType(EvidenceType.DOCUMENT)
+                .importance(EvidenceImportance.NORMAL)
+                .isInitialPublic(true)
+                .unlockType(EvidenceUnlockType.PHASE)
+                .sortOrder(2)
+                .build());
+        Evidence lockedCompare = evidenceRepository.save(Evidence.builder()
+                .scenarioId(scenario.getId())
+                .code("EVIDENCE_LOCKED")
+                .title("잠긴 비교 증거")
+                .description("잠긴 비교 증거 상세")
+                .evidenceType(EvidenceType.DOCUMENT)
+                .importance(EvidenceImportance.NORMAL)
+                .isInitialPublic(false)
+                .unlockType(EvidenceUnlockType.PHASE)
+                .unlockPhase("PHASE_2_SYSTEM_LOGS")
+                .sortOrder(3)
+                .build());
+        PlaySession session = saveSession(104L, scenario.getId());
+
+        var response = playSessionService.getEvidenceDetail(104L, session.getId(), currentEvidence.getId());
+
+        assertThat(response.guidance()).isNotNull();
+        assertThat(response.guidance().readingPoints()).containsExactly("현재 증거의 시간대를 비교한다.");
+        assertThat(response.guidance().compareEvidences())
+                .extracting("evidenceId", "isUnlocked")
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(unlockedCompare.getId(), true),
+                        org.assertj.core.groups.Tuple.tuple(lockedCompare.getId(), false)
+                );
+        assertThat(response.guidance().compareEvidences().getFirst().evidenceCode()).isEqualTo("EVIDENCE_UNLOCKED");
+        assertThat(response.guidance().compareEvidences().get(1).evidenceCode()).isNull();
+        assertThat(response.guidance().compareEvidences().get(1).title()).isEqualTo("잠긴 비교 증거");
+        assertThat(response.guidance().compareEvidences().get(1).unlockHint()).isNotBlank();
+        assertThat(response.guidance().suggestedQuestions()).hasSize(1);
+        assertThat(response.guidance().suggestedQuestions().getFirst().targetSuspectId()).isEqualTo(suspect.getId());
+        assertThat(response.guidance().suggestedQuestions().getFirst().presentedEvidenceId()).isEqualTo(currentEvidence.getId());
+        assertThat(response.guidance().suggestedQuestions().getFirst().questionType()).isEqualTo("EVIDENCE_PRESENTED");
+    }
+
     private Scenario saveScenario() {
         return scenarioRepository.save(Scenario.builder()
                 .title("mvp api test")
