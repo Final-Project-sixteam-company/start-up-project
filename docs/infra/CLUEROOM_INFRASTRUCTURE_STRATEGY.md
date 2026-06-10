@@ -1241,7 +1241,8 @@ docs/infra/OPS_RUNBOOK.md
 목표:
 
 ```text
-- 현재 브랜치 기준 AI_CALL 로그와 Prometheus metric으로 provider, model, latency, token, fallback을 본다. AI_CALL_CONTEXT 기반 prompt block estimate는 prompt-context logging 구현이 병합된 뒤 추가 확인 대상으로 둔다.
+- AI_CALL 로그와 Prometheus metric으로 provider, model, latency, token, fallback을 본다.
+- AI_CALL_CONTEXT 로그로 prompt block estimate와 templateHash를 확인한다.
 - prompt/answer/user question 원문은 운영 로그에 저장하지 않는다.
 - Loki/Prometheus 기반 smoke를 먼저 사용하고, DB persistence는 필요 시 flag로 켠다.
 ```
@@ -1318,7 +1319,7 @@ docs/infra/agent/LLMOPS_OPERATING_GUIDE.md
 | POC-002 S3 backup / restore rehearsal | 완료 | data server local backup, S3 upload, sha256 sidecar, S3_BACKUP_HEALTH, 임시 MySQL restore rehearsal |
 | POC-003 observability / alert pipeline | 완료 | prod Alloy, ops Loki, Grafana dashboard/alert, n8n Slack routing, DATA_HEALTH/SERVER_HEALTH/OPS_HEALTH |
 | POC-004 Nginx rate-limit / IP block | 완료 | API per-IP rate limit enforced, dry-run off, CN IPv4 block, manual blocklist, 403/429 warning alert |
-| POC-005 LLMOps observability | 완료 | AI_CALL, token/latency/fallback visibility, raw prompt/answer 미저장. AI_CALL_CONTEXT는 prompt-context logging 구현 병합 후 별도 확인 |
+| POC-005 LLMOps observability | 완료 | AI_CALL, token/latency/fallback visibility, AI_CALL_CONTEXT prompt block estimate/templateHash, raw prompt/answer/user question 미저장 |
 | POC-006 Terraform scale-out + manual Nginx LB | 미적용 / 단기 PoC 예정 | Terraform app server 생성, prod Nginx upstream 수동 연결, PoC 후 리소스 정리 |
 
 ---
@@ -1344,7 +1345,7 @@ Scale-out 전에 LLMOps는 별도 DB migration보다 구조화 로그와 Prometh
 
 ```text
 AI call -> app log AI_CALL -> Alloy/Loki -> query/smoke
-optional after prompt-context logging merge: AI_CALL_CONTEXT -> Alloy/Loki -> query/smoke
+AI call context -> app log AI_CALL_CONTEXT -> Alloy/Loki -> privacy/query smoke
 ```
 
 DB persistence가 필요하면 feature flag로 켜고, 운영 DB 부하와 privacy를 먼저 검토한다.

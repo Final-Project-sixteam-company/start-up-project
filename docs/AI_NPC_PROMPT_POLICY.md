@@ -258,22 +258,45 @@ AiInterrogationController
   ↓
 AiInterrogationService
   ↓
-GameSession 조회
+TimeEvidenceUnlockSyncer로 시간/phase 해금 동기화
   ↓
-현재 해금 증거 조회
-  ↓
-질문 대상 용의자 조회
+InterrogationContextLoader가 세션/소유자/용의자/제시 증거/해금 증거 검증
   ↓
 ResponsePolicyResolver 실행
   ↓
-PromptBuilder가 허용 정보만 조립
+AiPromptBuilder가 허용 정보만 조립
+  ↓
+AI_CALL_CONTEXT 로그 best-effort 기록
   ↓
 AI Client 호출
   ↓
 응답 저장
   ↓
+EVIDENCE_PRESENTED unlock rule 평가
+  ↓
 Android 앱에 응답 반환
 ```
+
+현재 구현 경계:
+
+```text
+AI 호출 전:
+- PlaySession 소유자/PLAYING 검증
+- presentedEvidenceId가 있으면 현재 세션에서 해금된 증거인지 검증
+- ResponsePolicyResolver가 policyText / allowedFacts / forbiddenFacts / tone 결정
+
+AI 호출 중:
+- prompt는 system template + user template 조합
+- mock mode이면 provider 호출 없이 mock answer 기록
+- provider 실패 시 fallback answer 반환
+
+AI 호출 후:
+- InterrogationLog 저장
+- EVIDENCE_PRESENTED인 경우 domain/play의 InterrogationEvidenceUnlockService가 새 증거 diff 반환
+```
+
+심문 경로에는 `SolutionReader`가 들어오지 않는다.
+정답/variant solution은 최종 추리 채점과 시나리오 검증에서만 사용한다.
 
 ---
 
@@ -401,6 +424,17 @@ AI에게 전달 가능한 정보는 다음으로 제한한다.
 ---
 
 ## 8. AI 심문 프롬프트 템플릿
+
+실제 template 파일은 아래 3개다.
+
+| 용도 | 파일 | 선택 기준 |
+|---|---|---|
+| 공통 system rule | `src/main/resources/prompts/interrogation_system_prompt.txt` | 모든 심문 |
+| 자유 질문 user prompt | `src/main/resources/prompts/interrogation_user_prompt.txt` | `questionType != EVIDENCE_PRESENTED` |
+| 증거 제시 user prompt | `src/main/resources/prompts/evidence_interrogation_user_prompt.txt` | `questionType == EVIDENCE_PRESENTED && presentedEvidenceId != null` |
+
+`AiPromptBuilder`는 `QuestionType`에 따라 user template을 고른다.
+`interrogationTemplateHash()`는 system template + 선택된 user template 조합만 SHA-256으로 해시하며, 사용자 질문/시나리오 값은 hash 입력에 넣지 않는다.
 
 ### 8.1 System Prompt
 
@@ -846,28 +880,44 @@ max_tokens: 1000 ~ 2000
 
 ## 17. AI 로그 저장 정책
 
-AI 호출 결과는 최소한 아래 정보를 저장한다.
+AI 호출 결과는 `AI_CALL` 구조화 로그와 Micrometer metric으로 기록한다.
 
 ```text
-request_type
-model_name
-input_tokens
-output_tokens
-latency_ms
-result_status
-error_message
-created_at
+AI_CALL:
+- featureType
+- provider / model / promptVersion
+- scenarioId / sessionId / suspectId / npcCode
+- latencyMs / success / errorCode / fallbackUsed
+- promptTokens / completionTokens / totalTokens
 ```
 
-가능하면 아래도 저장한다.
+DB logging은 `AI_LLMOPS_DB_LOGGING_ENABLED=true`일 때 `ai_call_logs` 테이블로 추가 저장한다.
+해당 DB 저장은 운영 환경에서 테이블/migration이 준비된 경우에만 켠다.
+
+심문 prompt context 비용 분석은 별도 `AI_CALL_CONTEXT` 로그로 남긴다.
 
 ```text
-prompt_version
-scenario_id
-play_session_id
-suspect_id
-user_id
+AI_CALL_CONTEXT:
+- featureType / provider / model / promptVersion
+- systemRuleTokens / policyContextTokens / npcProfileTokens
+- evidenceContextTokens / historyTokens / questionTokens
+- promptCharLength / historyTurns / includedEvidenceCount
+- templateHash
 ```
+
+`AI_CALL_CONTEXT`에는 아래를 남기지 않는다.
+
+```text
+raw system prompt
+raw user prompt
+AI answer 원문
+사용자 질문 전문
+sessionId / scenarioId / suspectId / npcCode
+증거명/정책 원문을 직접 출력하는 문자열
+```
+
+`AI_CALL_CONTEXT` 기록은 best-effort다.
+로그 기록 실패는 warn만 남기고 실제 AI 호출을 계속 진행한다.
 
 이유:
 
@@ -904,8 +954,8 @@ final_deduction_scoring_v1
 scenario_validation_v1
 ```
 
-Prompt context logging을 도입하는 경우 심문 template hash는 사용자 질문/시나리오 값이 아니라 template bundle 기준으로 계산한다.
-해당 optional `AI_CALL_CONTEXT`에는 block-level token estimate와 templateHash만 남기고 raw prompt, raw answer, 사용자 질문 전문은 남기지 않는다.
+현재 심문 `AI_CALL_CONTEXT`의 `templateHash`는 사용자 질문/시나리오 값이 아니라 template bundle 기준으로 계산한다.
+block-level token estimate와 templateHash만 남기고 raw prompt, raw answer, 사용자 질문 전문은 남기지 않는다.
 
 DB `prompt_templates`나 application 설정 기반 prompt registry는 현재 구현이 아니라 후속 확장 후보로 둔다.
 

@@ -151,7 +151,7 @@ AI policy v2:
 | Priority | 이슈 | 현재 판단 | 다음 액션 |
 |---|---|---|---|
 | P0 | 운영 로그에 사용자 입력 원문 노출 방지 | 2026-06-04 운영 QA에서 Hibernate bind parameter TRACE로 사용자 질문/최종 추리 입력 원문 노출이 확인됐다. 이후 설정 변경 여부 재확인이 필요하다. | prod `HIBERNATE_SQL_PARAM_LOG` off/warn, `org.hibernate.orm.jdbc.bind` TRACE 비활성, marker 재검증. |
-| P1 | AI/LLMOps 로그 privacy | AI 고도화용 로그는 필요하지만 prompt/answer/user question 원문 저장은 금지해야 한다. | 현재 브랜치에서는 `AI_CALL` 원문 미포함을 확인한다. `AI_CALL_CONTEXT`는 prompt-context logging 구현 병합 후 별도 확인한다. |
+| P1 | AI/LLMOps 로그 privacy | AI 고도화용 로그는 필요하지만 prompt/answer/user question 원문 저장은 금지해야 한다. | `AI_CALL`은 원문 미포함을 확인한다. `AI_CALL_CONTEXT`는 prompt block estimate/templateHash만 남기고 prompt/answer/user question 원문과 sessionId/scenarioId/suspectId/npcCode를 남기지 않는지 확인한다. |
 
 ## 4. Resolved / Verified
 
@@ -241,9 +241,9 @@ AI policy v2:
    - Hibernate bind TRACE 비활성
    - AI debug는 redacted preview / model / latency / status / token 중심
 
-2. Prompt context logging optional check
-   - 현재 브랜치에서는 `AI_CALL_CONTEXT`가 없어도 smoke 실패로 보지 않는다.
-   - 구현이 병합된 경우에만 원문 prompt 없음, 원문 answer 없음, 사용자 질문 전문 없음, sessionId/scenarioId/suspectId/npcCode 없음, block token estimate 숫자만 있음을 확인한다.
+2. Prompt context logging check
+   - `AI_CALL_CONTEXT`는 AI 심문 실호출 직전에 best-effort로 기록한다.
+   - 원문 prompt 없음, 원문 answer 없음, 사용자 질문 전문 없음, sessionId/scenarioId/suspectId/npcCode 없음, block token estimate 숫자와 templateHash만 있음을 확인한다.
 ```
 
 ## 6. Next Absorption

@@ -23,6 +23,7 @@
 | 제품 범위와 MVP 목표 확인 | [CaseLab_AI_PRD.md](CaseLab_AI_PRD.md) |
 | API request/response 계약 확인 | [CaseLab_AI_API_Spec.md](CaseLab_AI_API_Spec.md) |
 | Android 화면 흐름과 API 호출 순서 확인 | [frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) |
+| Android OAuth/JWT 연동 확인 | [ANDROID_AUTH_INTEGRATION_GUIDE.md](ANDROID_AUTH_INTEGRATION_GUIDE.md) |
 | 백엔드 패키지/계층/트랜잭션 규칙 확인 | [BACKEND_IMPLEMENTATION_GUIDE.md](BACKEND_IMPLEMENTATION_GUIDE.md) |
 | AI NPC 프롬프트와 정답 누설 방지 정책 확인 | [AI_NPC_PROMPT_POLICY.md](AI_NPC_PROMPT_POLICY.md) |
 | DB/엔티티 설계 확인 | [CaseLab_AI_ERD_Design.md](CaseLab_AI_ERD_Design.md) |
@@ -43,7 +44,8 @@
 | [CaseLab_AI_PRD.md](CaseLab_AI_PRD.md) | 제품 목적, MVP 범위, 사용자 가치, 팀 역할 | API/운영 상세는 링크로만 둔다. |
 | [CaseLab_AI_API_Spec.md](CaseLab_AI_API_Spec.md) | API path, method, request, response, error contract | 화면별 사용 순서는 frontend 문서로 분리 완료. |
 | [frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) | Android/Frontend 화면 흐름, 호출 순서, E2E 사용법 | 화면 흐름과 API 사용 순서 정본이다. |
-| [BACKEND_IMPLEMENTATION_GUIDE.md](BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 계층, 패키지, 예외, 트랜잭션, MockUser 규칙 | API/ERD 상세는 정본 링크를 둔다. |
+| [ANDROID_AUTH_INTEGRATION_GUIDE.md](ANDROID_AUTH_INTEGRATION_GUIDE.md) | Android OAuth/JWT token flow, refresh/logout/me 연동 | 인증 API 상세 연동 가이드다. |
+| [BACKEND_IMPLEMENTATION_GUIDE.md](BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 계층, 패키지, 예외, 트랜잭션, CurrentUser/MockUser, 현재 구현 지도 | API/ERD 상세는 정본 링크를 둔다. |
 | [CaseLab_AI_ERD_Design.md](CaseLab_AI_ERD_Design.md) | 엔티티, 테이블, 관계, 컬럼 설계 | 코드 SoT와 drift 정정 필요. |
 | [ADR.md](ADR.md) | 이미 결정된 주요 아키텍처 결정 목록 | 상세 설명은 각 정본 문서로 링크한다. |
 
@@ -51,10 +53,10 @@
 
 | 문서 | 정본 범위 | 비고 |
 |---|---|---|
-| [AI_NPC_PROMPT_POLICY.md](AI_NPC_PROMPT_POLICY.md) | AI 지식 경계, prompt 구조, ResponsePolicy, injection 방어 | 실제 prompt template과 drift 정정 필요. |
+| [AI_NPC_PROMPT_POLICY.md](AI_NPC_PROMPT_POLICY.md) | AI 지식 경계, prompt 구조, ResponsePolicy, injection 방어, AI_CALL/AI_CALL_CONTEXT logging | 실제 prompt template 기준으로 유지한다. |
 | [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 정본, 채점 기준 | 스포일러 포함 문서다. 공개 범위 주의. |
 | [scenarios/SCENARIO_YAML_SCHEMA.md](scenarios/SCENARIO_YAML_SCHEMA.md) | YAML import schema, 공개 범위, private seed 경계, MVP scoring bridge | 시나리오 문서 정본이다. |
-| [scenarios/SCENARIO_GUIDANCE_UX_SPEC.md](scenarios/SCENARIO_GUIDANCE_UX_SPEC.md) | 증거 판독 포인트, 함께 볼 증거, 추천 질문 UX/API 설계 | 아직 구현 정본이 아닌 proposal이다. |
+| [scenarios/SCENARIO_GUIDANCE_UX_SPEC.md](scenarios/SCENARIO_GUIDANCE_UX_SPEC.md) | 증거 판독 포인트, 함께 볼 증거, 추천 질문 UX/API 설계 | backend guidance contract는 구현 완료. seed/Android 적용은 별도 PR에서 추적한다. |
 
 ### 실행 / 운영 / 인프라
 

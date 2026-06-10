@@ -217,12 +217,11 @@ FAILED
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/api/auth/signup` | 회원가입 | X | 인증 도입 후 |
-| 2 | POST | `/api/auth/login` | 로그인 | X | 인증 도입 후 |
-| 3 | POST | `/api/auth/logout` | 로그아웃 | O | 인증 도입 후 |
-| 4 | POST | `/api/auth/refresh` | Access Token 재발급 | X/Refresh | 인증 도입 후 |
-| 5 | GET | `/api/users/me` | 내 정보 조회 | O | 인증 도입 후 |
-| 6 | PATCH | `/api/users/me` | 내 정보 수정 | O | 인증 도입 후 |
+| 1 | POST | `/api/auth/oauth` | Google/Kakao provider token으로 ClueRoom token 발급 | X | O |
+| 2 | POST | `/api/auth/dev` | local/staging 개발용 로그인. 운영 기본 disabled | X | O |
+| 3 | POST | `/api/auth/refresh` | Refresh token rotation + 새 access token 발급 | X/Refresh | O |
+| 4 | POST | `/api/auth/logout` | 제출한 refresh token revoke | X/Refresh | O |
+| 5 | GET | `/api/auth/me` | 현재 인증 사용자 조회 | O | O |
 
 ---
 
@@ -310,7 +309,7 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 | 1 | POST | `/api/play-sessions/{sessionId}/interrogations` | AI 용의자 심문 | O | O |
 | 2 | GET | `/api/play-sessions/{sessionId}/interrogations` | 심문 로그 조회 | O | O |
 | 3 | GET | `/api/play-sessions/{sessionId}/interrogations?suspectId={suspectId}` | 특정 용의자 심문 로그 조회 | O | △ |
-| 4 | GET | `/api/play-sessions/{sessionId}/recommended-questions` | 추천 질문 조회 | O | △ 미구현 |
+| 4 | GET | `/api/play-sessions/{sessionId}/recommended-questions` | 별도 추천 질문 API | O | X 미구현. 증거 기반 질문은 증거 상세 `guidance.suggestedQuestions` 사용 |
 
 ---
 
@@ -342,80 +341,115 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 
 ---
 
-> 초기 MVP에서는 로그인 없이 `MockUserProvider`로 사용자를 식별한다.
-> 5.1~5.3의 인증 API는 JWT 인증 도입 단계의 계약으로 유지한다.
+> 현재 인증 foundation은 구현되어 있다.
+> 운영 전환 중에는 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`로 token 없는 기존 gameplay API를 `MOCK_USER_ID`에 fallback할 수 있다.
+> Android 상세 연동 기준은 [ANDROID_AUTH_INTEGRATION_GUIDE.md](ANDROID_AUTH_INTEGRATION_GUIDE.md)를 따른다.
 
-## 5.1 회원가입
+## 5.1 OAuth 로그인
 
 ```http
-POST /api/auth/signup
+POST /api/auth/oauth
 ```
 
 ### Request
 
+Google:
+
 ```json
 {
-  "email": "user@example.com",
-  "password": "password1234",
-  "nickname": "탐정순구"
+  "provider": "GOOGLE",
+  "idToken": "google-id-token-from-android",
+  "deviceId": "android-installation-id"
+}
+```
+
+Kakao:
+
+```json
+{
+  "provider": "KAKAO",
+  "accessToken": "kakao-access-token-from-android",
+  "deviceId": "android-installation-id"
 }
 ```
 
 ### Response
 
-```json
-{
-  "success": true,
-  "data": {
-    "userId": 1,
-    "email": "user@example.com",
-    "nickname": "탐정순구"
-  },
-  "error": null
-}
-```
-
----
-
-## 5.2 로그인
-
-```http
-POST /api/auth/login
-```
-
-### Request
-
-```json
-{
-  "email": "user@example.com",
-  "password": "password1234"
-}
-```
-
-### Response
+`/api/auth/oauth`, `/api/auth/dev`, `/api/auth/refresh`는 같은 token response shape를 반환한다.
 
 ```json
 {
   "success": true,
   "data": {
     "accessToken": "jwt-access-token",
-    "refreshToken": "jwt-refresh-token",
+    "refreshToken": "opaque-refresh-token",
+    "tokenType": "Bearer",
+    "expiresIn": 1800,
     "user": {
       "userId": 1,
       "email": "user@example.com",
-      "nickname": "탐정순구"
+      "nickname": "탐정순구",
+      "profileImageUrl": null,
+      "role": "USER"
     }
   },
   "error": null
 }
 ```
 
----
-
-## 5.3 내 정보 조회
+## 5.2 개발용 로그인
 
 ```http
-GET /api/users/me
+POST /api/auth/dev
+```
+
+운영 기본값은 disabled다.
+`AUTH_DEV_LOGIN_ENABLED=false`이면 `AUTH_001`로 실패한다.
+
+```json
+{
+  "email": "dev@example.com",
+  "nickname": "Dev User",
+  "deviceId": "android-emulator"
+}
+```
+
+## 5.3 Token refresh
+
+```http
+POST /api/auth/refresh
+```
+
+Refresh token은 JWT가 아닌 opaque random token이다.
+refresh 성공 시 기존 refresh token은 revoke되고 새 access/refresh token pair가 발급된다.
+
+```json
+{
+  "refreshToken": "stored-refresh-token",
+  "deviceId": "android-installation-id"
+}
+```
+
+## 5.4 Logout
+
+```http
+POST /api/auth/logout
+```
+
+제출한 refresh token만 revoke한다.
+모든 기기 세션을 한 번에 revoke하는 API는 아직 없다.
+
+```json
+{
+  "refreshToken": "stored-refresh-token"
+}
+```
+
+## 5.5 내 정보 조회
+
+```http
+GET /api/auth/me
+Authorization: Bearer {accessToken}
 ```
 
 ### Response
@@ -1635,42 +1669,37 @@ GET /api/play-sessions/{sessionId}/interrogations
 
 ## 10.4 추천 질문 조회
 
-현재 `develop` 기준 컨트롤러가 없는 후속 API다.
-프론트는 로컬 추천 문구를 사용하거나 숨김 처리한다.
+현재 백엔드는 별도 `recommended-questions` 컨트롤러를 제공하지 않는다.
+증거 기반 추천 질문은 증거 상세 API의 `guidance.suggestedQuestions`를 사용한다.
 
 ```http
 GET /api/play-sessions/{sessionId}/recommended-questions
 ```
 
-### Query Parameters
+```text
+상태:
+미구현 / 호출 금지
 
-| 이름 | 타입 | 필수 | 설명 |
-|---|---|---|---|
-| suspectId | Long | N | 특정 용의자 기준 추천 질문 |
-| evidenceId | Long | N | 특정 증거 기준 추천 질문 |
+현재 대체 계약:
+GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
+→ guidance.suggestedQuestions[]
+```
 
-### Response
+`guidance.suggestedQuestions`는 질문 chip prefill 용도다.
+자동 제출하지 않으며, 사용자가 전송 버튼을 눌렀을 때만 심문 API를 호출한다.
+
+증거 기반 추천 질문을 전송할 때는 아래 값을 사용한다.
 
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "question": "사건 당시 어디에 있었습니까?",
-      "questionType": "RECOMMENDED"
-    },
-    {
-      "question": "피해자와 마지막으로 대화한 것은 언제입니까?",
-      "questionType": "RECOMMENDED"
-    },
-    {
-      "question": "이 증거에 대해 설명해주시겠습니까?",
-      "questionType": "EVIDENCE_PRESENTED"
-    }
-  ],
-  "error": null
+  "suspectId": 3,
+  "questionType": "EVIDENCE_PRESENTED",
+  "question": "이 증거에 대해 설명해주시겠습니까?",
+  "presentedEvidenceId": 10
 }
 ```
+
+`QuestionType.RECOMMENDED` enum은 남아 있지만, 현재 evidence guidance chip 경로에서는 사용하지 않는다.
 
 ---
 
@@ -1987,6 +2016,11 @@ docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
 ## 14.1 1차 MVP 필수
 
 ```text
+POST /api/auth/oauth
+POST /api/auth/dev
+POST /api/auth/refresh
+POST /api/auth/logout
+GET /api/auth/me
 GET /api/scenarios
 GET /api/scenarios/{scenarioId}
 POST /api/play-sessions
@@ -2024,9 +2058,6 @@ POST /api/scenarios/{scenarioId}/publish
 ## 14.2 2차 MVP
 
 ```text
-POST /api/auth/signup
-POST /api/auth/login
-GET /api/users/me
 POST /api/ai/scenarios/draft
 GET /api/play-sessions/me
 GET /api/scenarios/me

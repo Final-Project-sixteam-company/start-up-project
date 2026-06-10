@@ -303,6 +303,7 @@ RECOMMENDED
 EVIDENCE_PRESENTED
 ```
 
+`RECOMMENDED` enum은 호환성상 남아 있지만, 증거 상세 `guidance.suggestedQuestions` chip은 `EVIDENCE_PRESENTED`로 prefill한다.
 증거 제시 질문일 때만 `presentedEvidenceId`를 넣는다.
 현재 구현에서는 `unlockedEvidences`가 비어 있을 수 있으므로, 심문 성공 후에는 증거 목록과 대시보드를 다시 조회한다.
 
@@ -389,7 +390,7 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 |---|---|
 | `GET /api/play-sessions/{sessionId}/recommended-questions` | 별도 추천 질문 API는 호출하지 않음. 증거 기반 질문은 evidence detail `guidance.suggestedQuestions` 사용 |
 | `GET /api/play-sessions/me` | 내 기록 화면은 인증/기록 API 전까지 더미 또는 empty state |
-| `GET /api/users/me` | 마이페이지는 인증 API 전까지 더미 또는 empty state |
+| `GET /api/users/me` | 레거시 문서상 경로. 현재 유저 확인은 `GET /api/auth/me` 사용 |
 | `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` | 북마크 UI는 비활성 또는 optimistic action 금지 |
 | `GET/POST /api/scenarios/{scenarioId}/reviews` | 리뷰 UI는 더미 또는 숨김 |
 
