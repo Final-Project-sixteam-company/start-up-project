@@ -1280,17 +1280,20 @@ prod app 서버의 `/opt/clueroom/app` 경로와 `/opt/clueroom/backup-mysql.sh`
 권장: data server에서 직접 실행한다.
 
 ```bash
-ssh clueroom-data
+ssh clueroom-data 'bash -se' << 'REMOTE'
 set -euo pipefail
 
 /opt/clueroom-data/backup-mysql.sh
 
 DATE_PATH="$(date +%Y/%m/%d)"
 BACKUP_FILE="$(ls -t /opt/clueroom-data/backups/mysql/*.sql.gz | head -n 1)"
+BACKUP_DIR="$(dirname "$BACKUP_FILE")"
+BACKUP_BASE="$(basename "$BACKUP_FILE")"
 test -s "$BACKUP_FILE"
 gzip -t "$BACKUP_FILE"
-sha256sum "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
+(cd "$BACKUP_DIR" && sha256sum "$BACKUP_BASE" > "$BACKUP_BASE.sha256")
 ls -lh "$BACKUP_FILE" "$BACKUP_FILE.sha256"
+REMOTE
 ```
 
 대안: `mysqldump` client가 설치된 app/ops host에서 data server를 원격 dump한다.
@@ -1333,7 +1336,7 @@ MYSQL_PWD="$DB_PASSWORD" mysqldump \
 test -s "$BACKUP_FILE"
 gzip -t "$BACKUP_FILE"
 chmod 600 "$BACKUP_FILE"
-sha256sum "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
+(cd "$BACKUP_DIR" && sha256sum "$(basename "$BACKUP_FILE")" > "$(basename "$BACKUP_FILE").sha256")
 ls -lh "$BACKUP_FILE" "$BACKUP_FILE.sha256"
 ```
 
@@ -1343,24 +1346,37 @@ S3 업로드는 private backup bucket과 전용 IAM principal이 준비된 뒤�
 AWS credential은 git, PR, Slack, AI prompt에 남기지 않는다.
 
 ```bash
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
+
 set -a
 . /opt/clueroom-data/secrets/aws-backup.env
 set +a
 
+DATE_PATH="$(date +%Y/%m/%d)"
+BACKUP_FILE="$(ls -t /opt/clueroom-data/backups/mysql/*.sql.gz | head -n 1)"
+BACKUP_DIR="$(dirname "$BACKUP_FILE")"
+BACKUP_BASE="$(basename "$BACKUP_FILE")"
+
+test -s "$BACKUP_FILE"
+gzip -t "$BACKUP_FILE"
+(cd "$BACKUP_DIR" && sha256sum -c "$BACKUP_BASE.sha256")
+
 aws s3 cp "$BACKUP_FILE" \
-  "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/$(basename "$BACKUP_FILE")" \
+  "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/${BACKUP_BASE}" \
   --only-show-errors \
   --server-side-encryption AES256
 
 aws s3 cp "$BACKUP_FILE.sha256" \
-  "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/$(basename "$BACKUP_FILE").sha256" \
+  "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/${BACKUP_BASE}.sha256" \
   --only-show-errors \
   --server-side-encryption AES256
 
 aws s3api head-object \
   --bucket "$S3_BACKUP_BUCKET" \
-  --key "${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/$(basename "$BACKUP_FILE")" \
+  --key "${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/${BACKUP_BASE}" \
   --query '{Size:ContentLength, LastModified:LastModified}'
+REMOTE
 ```
 
 ### cron 확인
