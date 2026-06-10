@@ -146,13 +146,13 @@ DB 조회
 → 트랜잭션 종료
 → ResponsePolicyResolver 정책 결정
 → AiPromptBuilder 프롬프트 생성
-→ AI_CALL_CONTEXT 로그 best-effort 기록
 → AiClient 호출
 → 새 트랜잭션으로 InterrogationLog 저장
 → 응답 반환
 ```
 
 프롬프트, Fallback, 모델 파라미터 상세는 `docs/AI_NPC_PROMPT_POLICY.md`를 따른다.
+운영 관측은 현재 구현된 `AI_CALL` 구조화 로그와 Prometheus metric을 기준으로 확인한다.
 
 ---
 
