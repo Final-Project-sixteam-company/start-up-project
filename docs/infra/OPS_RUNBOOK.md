@@ -55,12 +55,13 @@ https://api.clueroom.xyz/actuator/health
 → 현재 active 반대편 슬롯으로 자동 롤백하는 스크립트
 
 /opt/clueroom/backup-mysql.sh
-→ MySQL 백업 스크립트
+→ local-data / rollback copy MySQL 백업 스크립트
 
 /opt/clueroom/backups/mysql
 → MySQL 백업 파일 저장 위치
 
-MySQL 백업 S3 업로드와 복구 리허설 정책은 `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`의 backup strategy를 따르고, 실행 절차는 이 runbook의 백업/복구 절을 기준으로 한다.
+External-data 운영에서는 data server MySQL이 source of truth다.
+`backup-mysql.sh`는 compose `mysql` 서비스가 있는 local-data/rollback copy 백업용이며, 운영 source of truth 백업은 이 runbook의 external-data 백업 절차를 따른다.
 
 /opt/clueroom/backups/env
 → .env 백업 파일 이동 위치
@@ -1109,11 +1110,129 @@ http://localhost:9090
 백업 정책과 S3 보관 원칙은 `CLUEROOM_INFRASTRUCTURE_STRATEGY.md`의 backup/restore 전략을 따른다.
 이 Runbook은 운영자가 실행할 명령어만 관리한다.
 
-### 수동 백업
+### 백업 대상 판정
+
+external-data cutover 이후 운영 기준은 아래처럼 분리한다.
+
+```text
+data server MySQL
+→ 운영 source of truth
+→ 반드시 external-data 백업 명령으로 dump한다.
+
+prod local compose mysql
+→ rollback/local-data copy
+→ backup-mysql.sh로 백업할 수 있지만 운영 source of truth 백업으로 간주하지 않는다.
+```
+
+`backup-mysql.sh`는 `docker compose exec ... mysql`을 사용한다.
+따라서 external-data 운영에서 local `mysql` 서비스가 `local-data` profile 뒤로 빠졌거나 rollback copy로만 남아 있으면, 이 스크립트는 실 운영 DB가 아닌 local copy를 백업할 수 있다.
+
+### external-data 운영 DB 수동 백업
+
+운영 source of truth를 백업할 때 사용한다.
+아래 명령은 `.env`의 `APP_DB_HOST`/`APP_DB_PORT`를 우선 사용하고, 없으면 `DB_HOST`/`DB_PORT`를 fallback으로 사용한다.
+`mysqldump` client가 설치된 운영 서버 또는 data server에서 실행한다.
+운영 서버에 MySQL client가 없다면 data server에서 같은 환경변수를 기준으로 실행하거나, 별도 백업 스크립트에 client 컨테이너 실행 방식을 명시한다.
+
+```bash
+cd /opt/clueroom/app
+set -a
+. ./.env
+set +a
+
+TARGET_DB_HOST="${APP_DB_HOST:-${DB_HOST:-}}"
+TARGET_DB_PORT="${APP_DB_PORT:-${DB_PORT:-3306}}"
+TARGET_DB_USER="${DB_USERNAME:-root}"
+TARGET_DB_NAME="${DB_NAME:-startup}"
+
+test -n "$TARGET_DB_HOST"
+test -n "$DB_PASSWORD"
+
+TS="$(date +%Y%m%d_%H%M%S)"
+DATE_PATH="$(date +%Y/%m/%d)"
+BACKUP_DIR="/opt/clueroom/backups/mysql"
+BACKUP_FILE="${BACKUP_DIR}/${TARGET_DB_NAME}_external_${TS}.sql.gz"
+
+mkdir -p "$BACKUP_DIR"
+MYSQL_PWD="$DB_PASSWORD" mysqldump \
+  -h "$TARGET_DB_HOST" \
+  -P "$TARGET_DB_PORT" \
+  -u "$TARGET_DB_USER" \
+  --single-transaction \
+  --quick \
+  --routines \
+  --triggers \
+  "$TARGET_DB_NAME" | gzip > "$BACKUP_FILE"
+
+chmod 600 "$BACKUP_FILE"
+sha256sum "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
+ls -lh "$BACKUP_FILE" "$BACKUP_FILE.sha256"
+```
+
+### external-data S3 업로드
+
+S3 업로드는 private backup bucket과 전용 IAM principal이 준비된 뒤에만 수행한다.
+AWS credential은 git, PR, Slack, AI prompt에 남기지 않는다.
+
+```bash
+set -a
+. /opt/clueroom-data/secrets/aws-backup.env
+set +a
+
+aws s3 cp "$BACKUP_FILE" \
+  "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/$(basename "$BACKUP_FILE")" \
+  --only-show-errors \
+  --server-side-encryption AES256
+
+aws s3 cp "$BACKUP_FILE.sha256" \
+  "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/$(basename "$BACKUP_FILE").sha256" \
+  --only-show-errors \
+  --server-side-encryption AES256
+
+aws s3api head-object \
+  --bucket "$S3_BACKUP_BUCKET" \
+  --key "${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/$(basename "$BACKUP_FILE")" \
+  --query '{Size:ContentLength, LastModified:LastModified}'
+```
+
+### cron 확인
+
+운영 서버 또는 data server에서 현재 어떤 DB를 백업하는지 먼저 확인한다.
+
+```bash
+crontab -l | grep -E 'backup|mysql|mysqldump' || true
+sudo grep -R -nE 'backup|mysql|mysqldump' /etc/cron* 2>/dev/null || true
+```
+
+판정:
+
+```text
+cron이 /opt/clueroom/backup-mysql.sh를 실행한다
+→ local compose mysql 백업이다.
+→ external-data 운영 source of truth 백업으로 간주하면 안 된다.
+
+cron이 data server host를 대상으로 mysqldump를 실행한다
+→ source of truth 백업 후보가 될 수 있다.
+→ 백업 파일, checksum, S3 업로드, restore rehearsal까지 확인한다.
+```
+
+external-data 운영 백업 cron 예시:
+
+```cron
+0 3 * * * /opt/clueroom/backup-mysql-external.sh >> /opt/clueroom/logs/mysql-backup-external.log 2>&1
+```
+
+이 PR은 실제 운영 서버 cron을 변경하지 않는다.
+운영 cron이 여전히 `backup-mysql.sh`만 실행 중이면 문서 모순이 아니라 실제 백업 공백이므로 data-server-aware 백업 스크립트로 별도 조치한다.
+
+### local-data / rollback copy 수동 백업
 
 ```bash
 /opt/clueroom/backup-mysql.sh
 ```
+
+이 명령은 compose `mysql` 서비스가 대상이다.
+external-data 운영 source of truth 백업으로 사용하지 않는다.
 
 ### 백업 파일 확인
 
@@ -1130,33 +1249,60 @@ ls -lh /opt/clueroom/backups/mysql
 tail -f /opt/clueroom/logs/mysql-backup.log
 ```
 
-### cron 확인
-
-```bash
-crontab -l
-```
-
-예상:
-
-```cron
-0 3 * * * /opt/clueroom/backup-mysql.sh >> /opt/clueroom/logs/mysql-backup.log 2>&1
-```
-
 ---
 
 ## 17. MySQL 복구
 
 > 복구는 DB를 덮어쓸 수 있으므로 반드시 신중하게 실행한다.
-> 복구 전 현재 DB를 한 번 더 백업하는 것을 권장한다.
+> 복구 전 현재 source of truth DB를 한 번 더 백업하는 것을 권장한다.
 > 운영 DB 직접 복구 전에 rehearsal host 또는 임시 MySQL 컨테이너에서 복구 검증을 먼저 수행한다.
 
-### 복구 전 백업
+### 복구 전 백업 대상 확인
 
 ```bash
-/opt/clueroom/backup-mysql.sh
+cd /opt/clueroom/app
+set -a
+. ./.env
+set +a
+
+TARGET_DB_HOST="${APP_DB_HOST:-${DB_HOST:-}}"
+TARGET_DB_PORT="${APP_DB_PORT:-${DB_PORT:-3306}}"
+TARGET_DB_USER="${DB_USERNAME:-root}"
+TARGET_DB_NAME="${DB_NAME:-startup}"
+
+test -n "$TARGET_DB_HOST"
+test -n "$DB_PASSWORD"
+echo "restore target: ${TARGET_DB_HOST}:${TARGET_DB_PORT}/${TARGET_DB_NAME}"
 ```
 
-### 복구 명령어
+external-data 운영에서는 위 target이 data server private IP 또는 내부 DNS인지 확인한다.
+`mysql` 또는 `localhost`로 나오면 local rollback copy를 복구하는 것이므로 운영 source of truth 복구가 아니다.
+
+### 복구 전 source of truth 재백업
+
+복구 직전에는 section 16의 external-data 백업 명령으로 현재 source of truth를 한 번 더 백업한다.
+`backup-mysql.sh`만 실행하면 local copy만 백업할 수 있다.
+
+### external-data 운영 DB 복구 명령어
+
+운영 source of truth에 직접 restore하는 명령이다.
+담당자 승인, 쓰기 트래픽 차단 또는 점검창 확보, rehearsal 성공 후에만 실행한다.
+
+```bash
+BACKUP=/opt/clueroom/backups/mysql/백업파일명.sql.gz
+test -f "$BACKUP"
+
+gunzip -c "$BACKUP" | MYSQL_PWD="$DB_PASSWORD" mysql \
+  -h "$TARGET_DB_HOST" \
+  -P "$TARGET_DB_PORT" \
+  -u "$TARGET_DB_USER" \
+  "$TARGET_DB_NAME"
+```
+
+### local-data / rollback copy 복구 명령어
+
+compose local `mysql` 서비스에 복구할 때만 사용한다.
+external-data 운영 source of truth 복구 명령이 아니다.
 
 ```bash
 cd /opt/clueroom/app
@@ -1312,13 +1458,49 @@ sudo tail -n 200 /var/log/nginx/access.log
 
 ### Rollback
 
+백업 파일을 먼저 찾는다.
+
+```bash
+ls -al /etc/nginx/sites-available | grep before-rate-limit-dryrun || true
+ls -al /etc/nginx/sites-available | grep clueroom-api.*bak || true
+sudo find /etc/nginx -maxdepth 3 -type f -name '*before-rate-limit-dryrun*' -print
+```
+
+백업 파일명은 실제 출력값으로 교체한다.
+
+```bash
+BACKUP=/etc/nginx/sites-available/clueroom-api.before-rate-limit-dryrun-YYYYMMDD_HHMMSS
+test -f "$BACKUP"
+sudo cp "$BACKUP" /etc/nginx/sites-available/clueroom-api
+```
+
+이 runbook의 백업 명령처럼 `.bak` suffix로 백업했다면 해당 파일을 사용한다.
+
+```bash
+BACKUP=/etc/nginx/sites-available/clueroom-api.YYYYMMDD_HHMMSS.bak
+test -f "$BACKUP"
+sudo cp "$BACKUP" /etc/nginx/sites-available/clueroom-api
+```
+
+dry-run zone/snippet 파일을 제거한다.
+
+```bash
+sudo rm -f /etc/nginx/conf.d/clueroom-rate-limit-zones.conf
+sudo rm -f /etc/nginx/snippets/clueroom-rate-limit-general-dry-run.conf
+sudo rm -f /etc/nginx/snippets/clueroom-rate-limit-ai-dry-run.conf
+sudo rm -f /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf
+```
+
+검증 후 reload한다.
+
 ```bash
 sudo nginx -t
 sudo systemctl reload nginx
+curl -I https://api.clueroom.xyz/actuator/health
 ```
 
-문제가 있으면 백업한 site config로 되돌리고 reload한다.
-enforcement를 켠 상태였다면 즉시 dry-run 또는 설정 제거로 되돌린다.
+enforcement를 켠 상태였다면 우선 위 파일 제거로 차단을 멈춘다.
+site config 경로가 다르면 active config를 먼저 확인하고 그 경로에 맞는 백업을 복구한다.
 
 ---
 

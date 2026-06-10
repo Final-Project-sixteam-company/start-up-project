@@ -1320,6 +1320,58 @@ lb server
   -> shared DB/Redis
 ```
 
+Nginx upstream example:
+
+```nginx
+upstream clueroom_poc_backend {
+    least_conn;
+    server 10.0.0.21:8080 max_fails=3 fail_timeout=10s;
+    server 10.0.0.22:8080 max_fails=3 fail_timeout=10s;
+}
+
+server {
+    server_name poc-api.clueroom.xyz;
+
+    location / {
+        proxy_pass http://clueroom_poc_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header X-ClueRoom-Upstream $upstream_addr always;
+    }
+}
+```
+
+Validation:
+
+```bash
+curl -I https://poc-api.clueroom.xyz/actuator/health
+curl -s https://poc-api.clueroom.xyz/api/scenarios
+
+for i in $(seq 1 20); do
+  curl -s -D - https://poc-api.clueroom.xyz/actuator/health -o /dev/null | grep -i X-ClueRoom-Upstream
+done
+```
+
+Failover smoke:
+
+```bash
+ssh app-01
+docker compose stop app
+```
+
+```bash
+curl -I https://poc-api.clueroom.xyz/actuator/health
+curl -s https://poc-api.clueroom.xyz/api/scenarios
+```
+
+Expected:
+
+```text
+requests continue through app-02
+```
+
 ### PoC 3. Server-Level Blue-Green
 
 목적:
@@ -1335,6 +1387,41 @@ blue app group
 green app group
 shared data server
 Nginx upstream switch
+```
+
+Nginx active upstream file idea:
+
+```nginx
+upstream clueroom_poc_backend {
+    server 10.0.0.31:8080;
+}
+```
+
+Switch target:
+
+```nginx
+upstream clueroom_poc_backend {
+    server 10.0.0.32:8080;
+}
+```
+
+Procedure:
+
+```text
+1. current active: app-blue-01
+2. deploy new app version to app-green-01
+3. check green health through private IP
+4. switch Nginx upstream to green
+5. nginx -t
+6. reload Nginx
+7. external health check
+8. keep blue running for rollback window
+```
+
+Rollback:
+
+```text
+switch Nginx upstream back to app-blue-01 and reload
 ```
 
 ### Shared Data And State
@@ -1382,10 +1469,15 @@ manual DB dump copy as live sync
 
 ```text
 - 운영 DB는 MySQL이다.
-- backup-mysql.sh는 로컬 gzip 백업과 보존 정책을 수행한다.
 - external data server가 source of truth다.
 - prod local MySQL은 rollback/local-data copy 용도다.
+- backup-mysql.sh는 prod local compose mysql을 대상으로 하는 local-data/rollback copy 백업 스크립트다.
+- source of truth 백업은 data server MySQL host를 대상으로 mysqldump를 수행해야 한다.
 ```
+
+즉 external-data cutover 이후 `backup-mysql.sh` 결과만으로는 운영 DB 백업 완료로 보지 않는다.
+운영 백업 cron도 data server host를 대상으로 하는지 확인해야 한다.
+cron이 여전히 `backup-mysql.sh`만 실행하면 local rollback copy만 백업하는 상태일 수 있다.
 
 ### S3 Backup Principles
 
@@ -1404,8 +1496,84 @@ S3 백업 저장소는 아래 원칙을 따른다.
 S3 object layout 후보:
 
 ```text
-s3://{private-backup-bucket}/mysql/clueroom/prod/YYYY/MM/DD/startup_YYYYMMDD_HHMMSS.sql.gz
-s3://{private-backup-bucket}/mysql/clueroom/prod/YYYY/MM/DD/startup_YYYYMMDD_HHMMSS.sql.gz.sha256
+s3://clueroom-prod-db-backups-apne2-<random_suffix>/mysql/prod/daily/YYYY/MM/DD/startup_YYYYMMDD_HHMMSS.sql.gz
+s3://clueroom-prod-db-backups-apne2-<random_suffix>/mysql/prod/daily/YYYY/MM/DD/startup_YYYYMMDD_HHMMSS.sql.gz.sha256
+```
+
+Do not use:
+
+```text
+s3://clueroom-assets-pudding-20260520/official/...
+```
+
+The `official/` prefix is for public scenario/image runtime assets, not database backups.
+
+### Backup Upload IAM
+
+전용 IAM principal을 사용한다.
+
+```text
+clueroom-prod-db-backup-uploader
+```
+
+Minimum permissions:
+
+```text
+s3:PutObject
+s3:GetObject
+s3:ListBucket on backup bucket/prefix
+s3:AbortMultipartUpload
+```
+
+Terraform으로 `aws_iam_access_key`를 만들지 않는다.
+access key secret은 Terraform state에 남을 수 있으므로 AWS Console에서 수동 생성하고 data server에만 저장한다.
+
+```text
+/opt/clueroom-data/secrets/aws-backup.env
+```
+
+Expected env keys:
+
+```env
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_DEFAULT_REGION=ap-northeast-2
+S3_BACKUP_BUCKET=clueroom-prod-db-backups-apne2-<random_suffix>
+S3_BACKUP_PREFIX=mysql/prod
+```
+
+Required file mode:
+
+```bash
+chmod 600 /opt/clueroom-data/secrets/aws-backup.env
+```
+
+### Backup Script Enhancement Candidate
+
+external-data source of truth 백업 스크립트의 처리 순서는 아래를 기준으로 한다.
+
+```text
+1. data server MySQL 대상 dump 생성
+2. gzip 압축
+3. sha256sum 생성
+4. private S3 backup bucket/prefix에 .sql.gz 업로드
+5. checksum sidecar 업로드
+6. S3 object가 존재하고 size가 0이 아닌지 확인
+7. local retention 유지
+8. S3 lifecycle로 remote retention 관리
+```
+
+Candidate S3 upload command:
+
+```bash
+aws s3 cp "$BACKUP_FILE" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/$DATE_PATH/$(basename "$BACKUP_FILE")" \
+  --only-show-errors \
+  --server-side-encryption AES256
+
+sha256sum "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
+aws s3 cp "$BACKUP_FILE.sha256" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/$DATE_PATH/$(basename "$BACKUP_FILE").sha256" \
+  --only-show-errors \
+  --server-side-encryption AES256
 ```
 
 ### Retention Candidate
