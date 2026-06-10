@@ -521,8 +521,8 @@ API의 타임라인은 유용하다. 하지만 이번 Android QA에서는 active
 로컬 산출물:
 
 ```text
-build/qa-seowolchae-85/*.json
-build/qa-seowolchae-85/images/*.png
+build/qa-seowolchae-<redacted>/*.json
+build/qa-seowolchae-<redacted>/images/*.png
 ```
 
 주의:
