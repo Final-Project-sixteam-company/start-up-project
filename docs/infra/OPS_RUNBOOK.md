@@ -1359,7 +1359,9 @@ external-data 운영에서는 위 target이 data server private IP 또는 내부
 BACKUP=/opt/clueroom-data/backups/mysql/백업파일명.sql.gz
 # app/ops host에서 실행한다면, 검증된 data-server dump를 먼저 복사한 뒤 아래처럼 명시 경로를 바꾼다.
 # BACKUP=/tmp/clueroom-restore/백업파일명.sql.gz
+set -o pipefail
 test -f "$BACKUP"
+gzip -t "$BACKUP"
 
 gunzip -c "$BACKUP" | MYSQL_PWD="$DB_PASSWORD" mysql \
   -h "$TARGET_DB_HOST" \
@@ -1376,7 +1378,11 @@ external-data 운영 source of truth 복구 명령이 아니다.
 ```bash
 cd /opt/clueroom/app
 DB_PASSWORD="$(grep -E '^DB_PASSWORD=' .env | tail -n 1 | cut -d '=' -f2-)"
-gunzip -c /opt/clueroom/backups/mysql/백업파일명.sql.gz | \
+BACKUP=/opt/clueroom/backups/mysql/백업파일명.sql.gz
+set -o pipefail
+test -f "$BACKUP"
+gzip -t "$BACKUP"
+gunzip -c "$BACKUP" | \
   docker compose exec -T -e MYSQL_PWD="$DB_PASSWORD" mysql mysql -uroot
 ```
 
@@ -1385,7 +1391,11 @@ gunzip -c /opt/clueroom/backups/mysql/백업파일명.sql.gz | \
 ```bash
 cd /opt/clueroom/app
 DB_PASSWORD="$(grep -E '^DB_PASSWORD=' .env | tail -n 1 | cut -d '=' -f2-)"
-gunzip -c /opt/clueroom/backups/mysql/startup_20260523_030000.sql.gz | \
+BACKUP=/opt/clueroom/backups/mysql/startup_20260523_030000.sql.gz
+set -o pipefail
+test -f "$BACKUP"
+gzip -t "$BACKUP"
+gunzip -c "$BACKUP" | \
   docker compose exec -T -e MYSQL_PWD="$DB_PASSWORD" mysql mysql -uroot
 ```
 
@@ -1398,7 +1408,9 @@ gunzip -c /opt/clueroom/backups/mysql/startup_20260523_030000.sql.gz | \
 BACKUP=/opt/clueroom-data/backups/mysql/백업파일명.sql.gz
 # app/ops host에서 rehearsal한다면, 검증된 data-server dump를 먼저 복사한 뒤 아래처럼 명시 경로를 바꾼다.
 # BACKUP=/tmp/clueroom-restore/백업파일명.sql.gz
+set -o pipefail
 test -f "$BACKUP"
+gzip -t "$BACKUP"
 ```
 
 ```bash
@@ -1410,6 +1422,8 @@ docker run -d --name clueroom-restore-check \
 
 ```bash
 sleep 20
+set -o pipefail
+gzip -t "$BACKUP"
 gunzip -c "$BACKUP" | \
   docker exec -i clueroom-restore-check \
   mysql -uroot -prestorecheck startup
