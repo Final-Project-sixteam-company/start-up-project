@@ -112,7 +112,7 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
 | `docs/MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `docs/QA_HANDOFF.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
-| `docs/MVP_PLAY_FLOW_QA_2026-06-04.md` | `docs/QA_HANDOFF.md` | 현재는 untracked. 정답/variant 상세 가능성이 있어 scrub 전까지 커밋/흡수하지 않는다. |
+| `docs/MVP_PLAY_FLOW_QA_2026-06-04.md` | `docs/QA_HANDOFF.md` | scrub 완료. 정답/variant/증거 ID/운영 marker 상세가 있어 원문은 커밋하지 않고 public-safe 결론만 흡수한다. |
 | PR #55의 2026-06-10 QA 문서들 | `docs/QA_HANDOFF.md` | PR #55가 아직 open 상태라 미흡수. 머지 후 최신 QA 결과를 같은 문서에 누적한다. |
 
 흡수 방식:
@@ -259,7 +259,7 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 - docs/QA_HANDOFF.md 생성
 - MVP_QA_ISSUE_HANDOFF_2026-06-04.md의 미해결/해결 이슈 흡수 완료
 - MVP_QA_ISSUE_HANDOFF_2026-06-04.md는 최종 링크 정리 후 제거
-- 로컬 untracked MVP_PLAY_FLOW_QA_2026-06-04.md는 scrub 전까지 미흡수
+- 로컬 untracked MVP_PLAY_FLOW_QA_2026-06-04.md는 scrub 후 public-safe 결론만 흡수, 원문은 미커밋 유지
 - PR #55 머지 후 2026-06-10 QA 문서들도 최신 상태로 흡수
 ```
 
