@@ -405,4 +405,70 @@ public class CustomScenarioServiceEvidenceTest {
         assertThat(rules.get(0).getConditionJson()).isEqualTo("{\"changed\":true}");
     }
 
+    @Test
+    @DisplayName("PUBLISHED 상태 시나리오의 증거 생성 시 예외 발생")
+    void createEvidence_fail_when_published() {
+        // given
+        savedScenario.publish(ScenarioVisibility.PUBLIC);
+        scenarioRepository.save(savedScenario);
+
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "importance", EvidenceImportance.NORMAL);
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SCENARIO_NOT_MODIFY.getMessage());
+    }
+
+    @Test
+    @DisplayName("PUBLISHED 상태 시나리오의 증거 수정 시 예외 발생")
+    void updateEvidence_fail_when_published() {
+        // given
+        Evidence evidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("EVD_1")
+                .title("증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        savedScenario.publish(ScenarioVisibility.PUBLIC);
+        scenarioRepository.save(savedScenario);
+
+        CustomEvidenceUpdateRequest request = new CustomEvidenceUpdateRequest();
+        ReflectionTestUtils.setField(request, "title", "수정된 증거");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.updateEvidence(OWNER_USER_ID, evidence.getId(), request))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SCENARIO_NOT_MODIFY.getMessage());
+    }
+
+    @Test
+    @DisplayName("PUBLISHED 상태 시나리오의 증거 삭제 시 예외 발생")
+    void deleteEvidence_fail_when_published() {
+        // given
+        Evidence evidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("EVD_1")
+                .title("증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        savedScenario.publish(ScenarioVisibility.PUBLIC);
+        scenarioRepository.save(savedScenario);
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, evidence.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SCENARIO_NOT_MODIFY.getMessage());
+    }
 }

@@ -280,4 +280,69 @@ public class CustomScenarioServiceSuspectTest {
         assertThatThrownBy(() -> customScenarioService.updateSuspect(OTHER_USER_ID, suspect.getId(), request))
                 .isInstanceOf(ScenarioException.class);
     }
+
+    @Test
+    @DisplayName("PUBLISHED 상태 시나리오의 용의자 생성 시 예외 발생")
+    void createSuspect_fail_when_published() {
+        // given
+        savedScenario.publish(ScenarioVisibility.PUBLIC);
+        scenarioRepository.save(savedScenario);
+
+        CustomSuspectCreateRequest request = new CustomSuspectCreateRequest();
+        ReflectionTestUtils.setField(request, "name", "용의자");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createSuspect(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SCENARIO_NOT_MODIFY.getMessage());
+    }
+
+    @Test
+    @DisplayName("PUBLISHED 상태 시나리오의 용의자 수정 시 예외 발생")
+    void updateSuspect_fail_when_published() {
+        // given
+        Suspect suspect = suspectRepository.save(Suspect.builder()
+                .scenarioId(savedScenario.getId())
+                .code("SUSPECT_1")
+                .name("용의자")
+                .role("역할")
+                .characterType("NPC")
+                .culpritEligible(true)
+                .sortOrder(1)
+                .build());
+
+        savedScenario.publish(ScenarioVisibility.PUBLIC);
+        scenarioRepository.save(savedScenario);
+
+        CustomSuspectUpdateRequest request = new CustomSuspectUpdateRequest();
+        ReflectionTestUtils.setField(request, "name", "수정된 이름");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.updateSuspect(OWNER_USER_ID, suspect.getId(), request))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SCENARIO_NOT_MODIFY.getMessage());
+    }
+
+    @Test
+    @DisplayName("PUBLISHED 상태 시나리오의 용의자 삭제 시 예외 발생")
+    void deleteSuspect_fail_when_published() {
+        // given
+        Suspect suspect = suspectRepository.save(Suspect.builder()
+                .scenarioId(savedScenario.getId())
+                .code("SUSPECT_1")
+                .name("용의자")
+                .role("역할")
+                .characterType("NPC")
+                .culpritEligible(true)
+                .sortOrder(1)
+                .build());
+
+        savedScenario.publish(ScenarioVisibility.PUBLIC);
+        scenarioRepository.save(savedScenario);
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.deleteSuspect(OWNER_USER_ID, suspect.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SCENARIO_NOT_MODIFY.getMessage());
+    }
 }
