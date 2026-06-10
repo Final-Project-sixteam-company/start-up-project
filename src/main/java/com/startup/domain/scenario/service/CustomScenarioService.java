@@ -46,11 +46,11 @@ public class CustomScenarioService {
 
         // 동시에 장소를 추가하더라도 Race Condition 차단
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 이미 발행된(PUBLISHED) 시나리오에는 더 이상 장소 추가 불가
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         // DB Lock이 걸려있으므로 여러 트랜잭션이 중복된 숫자를 가져갈 수 없음
@@ -109,19 +109,19 @@ public class CustomScenarioService {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 상태 방어 (발행된 시나리오는 수정 불가)
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         // 입력받은 발견 장소가 현재 시나리오 소속인지 검사
         if (request.getFoundLocationId() != null) {
             ScenarioLocation location = locationRepository.findById(request.getFoundLocationId())
-                    .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "장소를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.LOCATION_NOT_FOUND));
             if (!location.getScenarioId().equals(scenarioId)) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "다른 시나리오의 장소를 피해자 발견 위치로 지정할 수 없습니다.");
+                throw new ScenarioException(ScenarioErrorCode.INVALID_LOCATION_OWNERSHIP);
             }
         }
 
@@ -162,7 +162,7 @@ public class CustomScenarioService {
         scenarioAccessService.validateEditable(userId, scenarioId);
         
         Victim victim = victimRepository.findByScenarioId(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "피해자 정보가 등록되지 않았습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.VICTIM_NOT_FOUND));
                 
         return CustomVictimResponse.from(victim);
     }
@@ -181,11 +181,11 @@ public class CustomScenarioService {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 발행된 시나리오는 수정 불가
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         Integer maxSortOrder = suspectRepository.findMaxSortOrderByScenarioId(scenarioId);
@@ -236,7 +236,7 @@ public class CustomScenarioService {
     @Transactional
     public CustomSuspectResponse updateSuspect(Long userId, Long suspectId, CustomSuspectUpdateRequest request) {
         Suspect suspect = suspectRepository.findById(suspectId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "용의자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SUSPECT_NOT_FOUND));
 
         scenarioAccessService.validateEditable(userId, suspect.getScenarioId());
 
@@ -382,19 +382,19 @@ public class CustomScenarioService {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 발행된 시나리오 수정 금지
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         // 넘겨받은 장소 ID가 다른 시나리오의 장소가 아닌지 검증
         if (request.getLocationId() != null) {
             ScenarioLocation location = locationRepository.findById(request.getLocationId())
-                    .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "장소를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.LOCATION_NOT_FOUND));
             if (!location.getScenarioId().equals(scenarioId)) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "다른 시나리오의 장소를 증거 위치로 지정할 수 없습니다.");
+                throw new ScenarioException(ScenarioErrorCode.INVALID_LOCATION_OWNERSHIP);
             }
         }
 
@@ -403,7 +403,7 @@ public class CustomScenarioService {
             List<Long> uniqueSuspectIds = request.getRelatedSuspectIds().stream().distinct().toList();
             int validCount = suspectRepository.findAllByIdInAndScenarioId(uniqueSuspectIds, scenarioId).size();
             if (validCount != uniqueSuspectIds.size()) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "현재 시나리오에 소속되지 않은 용의자가 포함되어 있습니다.");
+                throw new ScenarioException(ScenarioErrorCode.INVALID_SUSPECT_OWNERSHIP);
             }
         }
 
@@ -735,10 +735,10 @@ public class CustomScenarioService {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         // 진범 용의자가 이 시나리오에 소속되어 있는지 검증
@@ -860,7 +860,7 @@ public class CustomScenarioService {
             }
             long validCount = evidenceRepository.countByIdInAndScenarioId(java.util.List.of(presented.asLong()), scenarioId);
             if (validCount != 1) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "정책에 포함된 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
+                throw new ScenarioException(ScenarioErrorCode.INVALID_EVIDENCE_OWNERSHIP);
             }
         }
 
@@ -889,7 +889,7 @@ public class CustomScenarioService {
             List<Long> uniqueIds = evidenceIds.stream().distinct().toList();
             long validCount = evidenceRepository.countByIdInAndScenarioId(uniqueIds, scenarioId);
             if (validCount != uniqueIds.size()) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "정책에 포함된 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
+                throw new ScenarioException(ScenarioErrorCode.INVALID_EVIDENCE_OWNERSHIP);
             }
         }
     }
