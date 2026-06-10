@@ -144,6 +144,16 @@ Gemini failure must not block the basic alert.
 Codex is not a real-time automatic fallback; it is used for manual handoff and deep analysis.
 ```
 
+Current n8n workflows:
+
+```text
+ClueRoom - Grafana Alert Router v8 Budgeted Gemini 3.5
+ClueRoom - Ops Snapshot Agent v5 Lite Daily Budget
+ClueRoom - LLMOps Light Monitor v4 Budgeted Gemini 3.5
+ClueRoom - Infra Codex Handoff Report v1
+ClueRoom - LLMOps Codex Handoff Report v2
+```
+
 ### Traffic Defense
 
 Current baseline:

@@ -63,7 +63,7 @@
 | `RUN_AND_DEPLOY.md` | 로컬 실행, Docker, Android 연결, 배포 요약 | 상세 운영 명령은 runbook으로 링크한다. |
 | `infra/OPS_RUNBOOK.md` | 운영 명령어, Blue-Green, 장애 대응, 백업/복구, rate limit/IP block 운영 절차 | 운영 절차 정본이다. |
 | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 현재 구조, 확장 방향, roadmap, scale-out PoC, backup strategy | 인프라 전략 정본이다. |
-| `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | rate limit, GeoIP/bot traffic, Grafana alert 정책 | 보안/트래픽/알림 정책 정본이다. |
+| `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | rate limit, GeoIP/bot traffic, Grafana alert, n8n notification workflow 정책 | 보안/트래픽/알림 정책 정본이다. |
 | `infra/INFRA_PORTFOLIO_SUMMARY.md` | 발표/면접/포트폴리오용 인프라 요약 | 운영 명령이 아니라 설명용 문서다. |
 | `infra/diagrams/*.mmd` | 현재 요청 흐름, 백업/복구, 관측/알림, scale-out PoC Mermaid 다이어그램 | 전략 문서와 발표 문서에서 참조한다. |
 | `infra/CLUEROOM_SECRET_INPUT_GUIDE.md` | 팀원 secret 입력 절차 | 민감 주제라 당장 유지한다. |
@@ -72,8 +72,8 @@
 
 | 문서 | 정본 범위 | 비고 |
 |---|---|---|
-| `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 인프라 agent 권한, 금지 작업, 승인 기준, Codex playbook, Ops Snapshot, Monitoring Agent 운영 모델 | infra agent 문서군 정본이다. |
-| `infra/agent/LLMOPS_OPERATING_GUIDE.md` | LLMOps 계획, telemetry safety, smoke 절차, PromQL 후보, agent 역할 | LLMOps 문서군 정본이다. |
+| `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 인프라 agent 권한, 금지 작업, 승인 기준, Codex playbook, Ops Snapshot, Monitoring Agent, n8n infra/ops workflow 운영 모델 | infra agent 문서군 정본이다. |
+| `infra/agent/LLMOPS_OPERATING_GUIDE.md` | LLMOps 계획, telemetry safety, smoke 절차, PromQL 후보, agent 역할, n8n LLMOps workflow 운영 모델 | LLMOps 문서군 정본이다. |
 
 ### QA / Handoff
 
@@ -110,6 +110,7 @@
 | 외부 infra AI PoC 문서군 | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`, `infra/SECURITY_TRAFFIC_ALERT_POLICY.md`, `infra/agent/LLMOPS_OPERATING_GUIDE.md` |
 | 외부 infra AI runbook 문서군 | `infra/OPS_RUNBOOK.md`, `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` |
 | 외부 infra AI portfolio/presentation 문서군 | `infra/INFRA_PORTFOLIO_SUMMARY.md` |
+| 외부 n8n workflow JSON export 5종 | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md`, `infra/OPS_RUNBOOK.md`, `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md`, `infra/agent/LLMOPS_OPERATING_GUIDE.md` |
 
 ## 4. 공개 범위와 스포일러 기준
 

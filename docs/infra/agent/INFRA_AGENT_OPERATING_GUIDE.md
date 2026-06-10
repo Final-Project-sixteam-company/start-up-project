@@ -1093,3 +1093,49 @@ AI cost defense requires layered protection:
 3. Separate AI quota for interrogation, scenario validation, and final deduction.
 4. Monitoring metric or log summary for quota hits and fallback usage.
 ```
+
+### 16.6 Current n8n Infra/Ops Workflows
+
+The current ops-side n8n exports include these Infra/Ops workflows:
+
+| Workflow | Role | Input Signals | Agent Boundary |
+|---|---|---|---|
+| `ClueRoom - Ops Snapshot Agent v5 Lite Daily Budget` | Periodic ops status report | `/opt/clueroom/ops-snapshot.sh`, `DATA_HEALTH`, `SERVER_HEALTH` | Report-only. Gemini analysis is advisory and must not mutate production. |
+| `ClueRoom - Infra Codex Handoff Report v1` | Daily Codex-ready infra handoff | Ops snapshot, `DATA_HEALTH`, `SERVER_HEALTH`, `OPS_HEALTH`, recent Nginx 5xx, recent app ERROR/Exception, recent `AI_CALL` | Handoff-only. Codex may review and propose actions, but production changes still require human approval. |
+| `ClueRoom - Grafana Alert Router v8 Budgeted Gemini 3.5` | Event alert router | Grafana alert payload and related Loki logs | Notification-only. Basic Slack alert is authoritative; Gemini analysis is optional context. |
+
+Ops Snapshot Agent deterministic checks include:
+
+```text
+- SSH/snapshot execution failure
+- external API health signal from snapshot
+- Nginx syntax pass/fail pattern
+- DATA_HEALTH MySQL/Redis/disk/backup status
+- SERVER_HEALTH prod disk status
+- recent ERROR/Exception/FATAL pattern count
+```
+
+Severity rules used by the workflow:
+
+```text
+CRITICAL:
+- snapshot/SSH collection failed
+- DATA_HEALTH or SERVER_HEALTH reports CRITICAL
+- data MySQL/Redis failure
+- data/prod disk CRITICAL by heartbeat
+- Nginx syntax failure pattern
+- recent ERROR/Exception/FATAL pattern count is very high
+
+WARNING:
+- DATA_HEALTH or SERVER_HEALTH reports WARNING
+- prod/data disk WARNING by heartbeat
+- bounded recent ERROR/Exception pattern exists
+```
+
+The workflow sends deterministic Slack first.
+Gemini analysis is optional and bounded by daily budget/retry policy.
+If Gemini is unavailable, the workflow must still produce the basic status report.
+
+Codex handoff reports are not incident automation.
+They are structured inputs for a human or PR-review Codex session.
+The handoff may include log samples, but it must not include `.env`, API keys, DB passwords, private keys, Firebase JSON, private scenario spoiler YAML, raw request/response bodies, or database dumps.

@@ -414,6 +414,52 @@ Current notification path:
 5. Codex is used for manual handoff/deep analysis, not real-time automatic fallback
 ```
 
+### Current n8n Workflow Inventory
+
+This table summarizes the active n8n workflow exports reviewed on 2026-06-10.
+Do not commit the raw workflow JSON exports because they can contain webhook paths, credential references, Slack channel IDs, URLs, or prompt bodies.
+
+| Workflow | Trigger | Monitors / Inputs | Deterministic Slack Output | Optional AI / Handoff | Failure Budget |
+|---|---|---|---|---|---|
+| `ClueRoom - Grafana Alert Router v8 Budgeted Gemini 3.5` | Grafana POST webhook | Grafana alert payload, related Loki logs for Nginx 5xx or app ERROR/Exception | Basic alert first: status, max severity, firing/resolved counts, alert summary, immediate next checks | `gemini-3.5-flash` adds short Korean analysis after the basic alert | Gemini only for firing alerts, daily Gemini limit 3, one retry after 70s, basic alert is never blocked by Gemini |
+| `ClueRoom - Ops Snapshot Agent v5 Lite Daily Budget` | Manual plus scheduled every 24h | `/opt/clueroom/ops-snapshot.sh`, `DATA_HEALTH`, `SERVER_HEALTH` | Basic ops status first: prod/data health, Nginx syntax signal, disk/memory summary, recent error pattern count | `gemini-2.5-flash-lite` adds Korean ops analysis after the basic status | Daily Gemini limit 1, one retry after 70s, basic status is never blocked by Gemini |
+| `ClueRoom - LLMOps Light Monitor v4 Budgeted Gemini 3.5` | Manual plus scheduled every 1h | Loki `AI_CALL` logs for the recent 60m window, limit 500 | Basic LLMOps summary first: count, success/failure/fallback, latency, token total, top feature/prompt groups | `gemini-3.5-flash` adds short LLMOps analysis after the basic summary | Daily Gemini limit 2, one retry after 70s, basic summary is never blocked by Gemini |
+| `ClueRoom - Infra Codex Handoff Report v1` | Manual plus scheduled every 24h | Ops snapshot, `DATA_HEALTH`, `SERVER_HEALTH`, `OPS_HEALTH`, recent Nginx 5xx, app ERROR/Exception, recent `AI_CALL` | Slack handoff report for human/Codex review | Codex handoff report only; no autonomous production action | Slack report only; agent action remains human-approved |
+| `ClueRoom - LLMOps Codex Handoff Report v2` | Manual plus scheduled every 24h | Loki `AI_CALL` logs for recent 24h, limit 5000 | Slack LLMOps handoff: totals, failure/fallback rate, latency, tokens, top prompt buckets, sample failures | Codex handoff report only; no autonomous prompt or runtime change | Slack report only; prompt/backend changes require PR review |
+
+### Workflow Alert Contents
+
+The current alert/reporting split is:
+
+```text
+Grafana Alert Router
+→ event notification
+→ critical firing alerts may mention the channel
+→ includes basic runbook checks before any Gemini analysis
+
+Ops Snapshot Agent
+→ periodic state report
+→ checks prod/data health, heartbeat bridge, Nginx syntax, disk/memory, and recent error patterns
+→ WARNING/INFO output is report-grade unless paired with user-facing impact
+
+LLMOps Light Monitor
+→ hourly AI_CALL summary
+→ watches failure count, fallback count, latency, token total, and feature/prompt grouping
+→ CRITICAL when failure >= 3, fallback >= 3, or max latency >= 15s in the 60m window
+→ WARNING when failure/fallback exists, max latency >= 8s, average latency >= 5s, or total tokens >= 30000
+
+Infra Codex Handoff
+→ daily infra review input
+→ combines health heartbeats, recent Nginx 5xx, app errors, and AI_CALL samples
+
+LLMOps Codex Handoff
+→ daily LLMOps review input
+→ summarizes 24h AI_CALL cost, latency, failure, fallback, and promptVersion candidates
+```
+
+Gemini analysis is advisory only.
+If Gemini fails, times out, returns an unusable response, or exceeds daily budget, the deterministic Slack message must still be sent.
+
 Candidate channels:
 
 ```text

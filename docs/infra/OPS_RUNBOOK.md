@@ -2081,6 +2081,61 @@ OPS_LOKI_BASE_URL=http://172.26.15.52:3100 \
 Snapshot 출력은 AI 도구나 팀 채팅에 붙이기 전에 secret 값이 없는지 사람이 한 번 확인한다.
 `.env` 전체, Firebase JSON, API key, DB password, private key는 snapshot이나 팀 채팅에 붙이지 않는다.
 
+### n8n Workflow 운영 확인
+
+ops 서버의 n8n은 Grafana alert routing, periodic ops status, LLMOps summary, Codex handoff report를 담당한다.
+현재 workflow 원문 JSON은 secret-safe 문서가 아니므로 public repo에 커밋하지 않는다.
+
+현재 운영 workflow:
+
+| Workflow | Purpose | Trigger | Expected Output |
+|---|---|---|---|
+| `ClueRoom - Grafana Alert Router v8 Budgeted Gemini 3.5` | Grafana alert event routing | Grafana webhook | Basic Slack alert first, optional Gemini analysis second |
+| `ClueRoom - Ops Snapshot Agent v5 Lite Daily Budget` | Periodic ops health report | Manual / every 24h | Basic ops status first, optional Gemini ops analysis second |
+| `ClueRoom - LLMOps Light Monitor v4 Budgeted Gemini 3.5` | Hourly AI_CALL cost/failure/latency summary | Manual / every 1h | Basic LLMOps summary first, optional Gemini analysis second |
+| `ClueRoom - Infra Codex Handoff Report v1` | Daily infra review handoff | Manual / every 24h | Slack report for human/Codex review |
+| `ClueRoom - LLMOps Codex Handoff Report v2` | Daily LLMOps review handoff | Manual / every 24h | Slack report for human/Codex review |
+
+Check n8n health from the ops server:
+
+```bash
+curl -I http://127.0.0.1:5678/
+docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E 'n8n|NAME'
+docker logs --tail=120 n8n
+```
+
+If the container name is different, confirm it with `docker ps` first.
+
+n8n workflow verification after import/edit:
+
+```text
+1. Confirm workflow is active only after reviewing credentials and webhook target.
+2. Run manual trigger for non-webhook workflows.
+3. Confirm basic Slack message is sent before Gemini analysis.
+4. Confirm Gemini failure, timeout, or daily budget skip does not block basic Slack.
+5. Confirm Slack output does not include .env values, API keys, DB passwords, private keys, raw user questions, raw AI answers, or scenario spoilers.
+6. Confirm Grafana webhook workflow receives only expected alert payloads.
+```
+
+Workflow export/backup rule:
+
+```text
+- Store workflow backups in a private ops backup location, not the public repo.
+- Redact or exclude webhook paths, credential IDs, Slack channel IDs, API URLs with keys, and prompt bodies before sharing.
+- Public documentation may include workflow name, trigger type, monitored signal, output type, model name, retry count, and daily budget.
+```
+
+Current Gemini fail-soft policy:
+
+```text
+Grafana Alert Router: gemini-3.5-flash, daily limit 3, retry once after 70s
+LLMOps Light Monitor: gemini-3.5-flash, daily limit 2, retry once after 70s
+Ops Snapshot Agent: gemini-2.5-flash-lite, daily limit 1, retry once after 70s
+```
+
+Codex handoff workflows create reports only.
+They do not grant Codex permission to deploy, rollback, mutate production config, edit secrets, or run destructive commands.
+
 ```bash
 /opt/clueroom/bg-status.sh
 ```

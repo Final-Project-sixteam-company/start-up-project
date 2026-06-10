@@ -1025,3 +1025,107 @@ Alert thresholds must be tuned after real Android/AI traffic is observed.
 - Failure/fallback ratios use provider attempts as denominator.
 - No raw prompt, raw answer, solution text, culprit data, API key, or private scenario YAML is logged or stored.
 ```
+
+---
+
+## 16. Current n8n LLMOps Workflows
+
+The current n8n exports reviewed on 2026-06-10 include two LLMOps workflows.
+The raw workflow JSON exports are not public documentation artifacts and should not be committed because they can contain webhook paths, credential references, Slack channel IDs, API URLs, or prompt bodies.
+
+| Workflow | Trigger | Source Signal | Output | AI Usage |
+|---|---|---|---|---|
+| `ClueRoom - LLMOps Light Monitor v4 Budgeted Gemini 3.5` | Manual plus every 1h | Loki `AI_CALL` logs for the recent 60m window, limit 500 | Basic Slack LLMOps summary first | `gemini-3.5-flash` optional analysis after basic summary |
+| `ClueRoom - LLMOps Codex Handoff Report v2` | Manual plus every 24h | Loki `AI_CALL` logs for recent 24h, limit 5000 | Slack handoff report for human/Codex review | No autonomous AI action; report is for manual review |
+
+### 16.1 Hourly LLMOps Light Monitor
+
+The hourly monitor aggregates `AI_CALL` structured logs only.
+It must not read raw prompt text, raw answer text, user free text, solution text, culprit data, API keys, or private scenario YAML.
+
+Current aggregation fields:
+
+```text
+- call count
+- success count
+- failure count
+- fallback count
+- total token usage
+- average latency
+- max latency
+- provider/model/promptVersion/featureType grouping
+- slowest or failure/fallback samples by metadata only
+```
+
+Current severity rules:
+
+```text
+CRITICAL:
+- failure count >= 3 in the 60m window
+- fallback count >= 3 in the 60m window
+- max latency >= 15000ms in the 60m window
+
+WARNING:
+- failure count >= 1
+- fallback count >= 1
+- max latency >= 8000ms
+- average latency >= 5000ms
+- total tokens >= 30000
+
+INFO:
+- none of the above
+```
+
+Slack output order:
+
+```text
+1. deterministic basic LLMOps summary
+2. Gemini analysis only when budget and retry policy allow it
+```
+
+Gemini policy:
+
+```text
+model: gemini-3.5-flash
+daily limit: 2 calls
+retry: one retry after 70s
+failure behavior: Gemini failure or budget skip must not block the basic Slack summary
+```
+
+### 16.2 Daily LLMOps Codex Handoff
+
+The daily handoff is a report generator, not an autonomous remediation workflow.
+It summarizes 24h `AI_CALL` data for human review and possible Codex-assisted PR work.
+
+Current report contents:
+
+```text
+- total AI_CALL count
+- success/failure/fallback totals
+- failure rate
+- fallback rate
+- average and max latency
+- total prompt/completion/overall token usage
+- top featureType buckets by tokens
+- top promptVersion buckets by tokens
+- top promptVersion buckets by average latency
+- bounded failure/fallback samples by metadata
+```
+
+Allowed follow-up:
+
+```text
+- review promptVersion cost/latency trends
+- suggest dashboard changes
+- suggest backend telemetry improvements
+- draft PR review notes
+```
+
+Not allowed:
+
+```text
+- change prompts directly in production
+- change model/provider settings directly in production
+- expose raw prompts, answers, user questions, solution text, culprit data, or private scenario YAML
+- treat the report as proof of gameplay quality without manual response sampling
+```
