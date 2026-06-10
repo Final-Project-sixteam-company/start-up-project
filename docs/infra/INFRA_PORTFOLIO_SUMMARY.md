@@ -177,13 +177,13 @@ AI call 관측은 raw prompt/answer 저장이 아니라 파생 metadata 중심�
 
 ```text
 AI_CALL: feature, provider, model, latency, tokens, status
-AI_CALL_CONTEXT: prompt block token estimates and template hash
+AI_CALL_CONTEXT: prompt-context logging 구현 병합 후 사용할 prompt block token estimate와 template hash optional signal
 ```
 
 안전 규칙:
 
 ```text
-AI_CALL_CONTEXT에는 raw prompt, raw answer, user question text, sessionId, scenarioId, suspectId, npcCode를 기록하지 않는다.
+Prompt context logging을 도입하는 경우 AI_CALL_CONTEXT에는 raw prompt, raw answer, user question text, sessionId, scenarioId, suspectId, npcCode를 기록하지 않는다.
 ```
 
 ---
@@ -264,7 +264,7 @@ ClueRoom은 저비용 Lightsail MVP로 시작했지만, 운영에 필요한 안�
 
 Prod server는 Nginx ingress와 Blue-Green app 배포를 담당합니다. Data server는 MySQL과 Redis source of truth를 담당합니다. Ops server는 Loki, Grafana, n8n, Slack을 통해 중앙 로그와 alert 자동화를 담당합니다.
 
-신뢰성을 위해 DB 백업은 data server에서 실행하고, sha256 sidecar와 함께 private S3 backup bucket에 업로드하며, temporary MySQL container에서 restore rehearsal로 검증합니다. 트래픽 방어는 Nginx rate limiting, CN IPv4 block, manual blocklist, 403/429 alert를 적용했습니다. AI 운영은 raw prompt/answer를 저장하지 않고 AI_CALL과 AI_CALL_CONTEXT metadata로 latency, token cost, fallback, prompt block estimate를 관측합니다.
+신뢰성을 위해 DB 백업은 data server에서 실행하고, sha256 sidecar와 함께 private S3 backup bucket에 업로드하며, temporary MySQL container에서 restore rehearsal로 검증합니다. 트래픽 방어는 Nginx rate limiting, CN IPv4 block, manual blocklist, 403/429 alert를 적용했습니다. AI 운영은 raw prompt/answer를 저장하지 않고 AI_CALL metadata로 latency, token cost, fallback을 관측합니다. Prompt block estimate는 AI_CALL_CONTEXT 구현이 병합된 뒤 별도 signal로 확인합니다.
 
 ### 3분
 

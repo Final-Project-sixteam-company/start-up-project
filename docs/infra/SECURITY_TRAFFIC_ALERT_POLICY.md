@@ -382,7 +382,7 @@ Raw snapshot text의 percentage는 fallback으로만 사용한다.
 up{job=~"clueroom-app-blue|clueroom-app-green"} == 0
 ```
 
-더 나은 check는 active slot 정보, external health, both-target-down 조건을 함께 본다.
+더 나은 check는 active slot 정보, external health, both-target-down 조건을 함께 본다. Blue/Green은 서로 다른 `job` label을 가지므로 PromQL에서 job별 series를 `and`로 직접 묶지 말고 aggregate expression을 사용한다.
 
 ### Alert Threshold 부록
 
@@ -394,7 +394,7 @@ Alert를 만들기 전에 Grafana Explore에서 실제 Prometheus metric name을
 | AI failures spike 감지 | `sum(increase(ai_failures_total[5m]))` | 5m | `>= 23` | WARNING first |
 | AI p95 latency high 감지 | `histogram_quantile(0.95, sum(rate(ai_latency_seconds_bucket[5m])) by (le, feature_type))` | 5m | `> 23s` | WARNING first |
 | AI fallback spike 감지 | `sum(increase(ai_fallbacks_total[5m]))` | 5m | baseline 이후 조정 | WARNING first |
-| Blue-Green 양쪽 target down | `up{job="clueroom-app-blue"} == 0 and up{job="clueroom-app-green"} == 0` | 1~3m | true | CRITICAL candidate |
+| Blue-Green 양쪽 target down | `sum(up{job=~"clueroom-app-blue|clueroom-app-green"}) == 0` | 1~3m | true | CRITICAL candidate |
 | Prometheus scrape down 감지 | `up{job="prometheus"} == 0` | 1~3m | true | CRITICAL candidate |
 | Nginx 403 blocked request 감지 | HTTP 403에 매칭되는 Loki access log query | 5~10m | baseline 이후 조정 | WARNING |
 | Nginx 429 rate limit 감지 | HTTP 429에 매칭되는 Loki access log query | 5~10m | baseline 이후 조정 | WARNING |

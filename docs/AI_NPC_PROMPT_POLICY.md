@@ -904,8 +904,8 @@ final_deduction_scoring_v1
 scenario_validation_v1
 ```
 
-심문 template hash는 사용자 질문/시나리오 값이 아니라 template bundle 기준으로 계산한다.
-`AI_CALL_CONTEXT`에는 block-level token estimate와 templateHash만 남기고 raw prompt, raw answer, 사용자 질문 전문은 남기지 않는다.
+Prompt context logging을 도입하는 경우 심문 template hash는 사용자 질문/시나리오 값이 아니라 template bundle 기준으로 계산한다.
+해당 optional `AI_CALL_CONTEXT`에는 block-level token estimate와 templateHash만 남기고 raw prompt, raw answer, 사용자 질문 전문은 남기지 않는다.
 
 DB `prompt_templates`나 application 설정 기반 prompt registry는 현재 구현이 아니라 후속 확장 후보로 둔다.
 
