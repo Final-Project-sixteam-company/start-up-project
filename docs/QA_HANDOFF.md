@@ -18,7 +18,7 @@
 
 | Source | 상태 |
 |---|---|
-| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | 흡수 완료. 현재 파일은 이 문서를 가리키는 얇은 안내 문서로 유지한다. |
+| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | 흡수 완료. 최종 링크 정리 후 제거했다. 원문은 Git history에서 확인한다. |
 | `MVP_PLAY_FLOW_QA_2026-06-04.md` | 현재 로컬 untracked 파일이다. 정답/variant 상세 포함 가능성이 있어 scrub 전까지 커밋/흡수하지 않는다. |
 | PR #55의 2026-06-10 QA 문서 | PR #55가 아직 open 상태라 미흡수. 머지 후 이 문서로 흡수한다. |
 
@@ -186,7 +186,6 @@
 
 ```text
 1. PR #55 머지 후 2026-06-10 QA 문서들을 이 문서로 흡수한다.
-2. `MVP_QA_ISSUE_HANDOFF_2026-06-04.md`의 고유 내용 흡수 완료 여부를 확인한다.
-3. 흡수 완료 후 원문 문서를 제거할지 archive할지 결정한다.
-4. `docs/README.md`의 흡수 예정 표를 갱신한다.
+2. `MVP_PLAY_FLOW_QA_2026-06-04.md`는 scrub 전까지 untracked 상태로 유지한다.
+3. `docs/README.md`의 흡수/제거 이력을 최신 상태로 유지한다.
 ```

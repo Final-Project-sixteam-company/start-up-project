@@ -19,6 +19,7 @@
 
 | 목적 | 문서 |
 |---|---|
+| 전체 문서 지도와 흡수/제거 이력 확인 | `README.md` |
 | 제품 범위와 MVP 목표 확인 | `CaseLab_AI_PRD.md` |
 | API request/response 계약 확인 | `CaseLab_AI_API_Spec.md` |
 | Android 화면 흐름과 API 호출 순서 확인 | `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` |
@@ -40,7 +41,7 @@
 |---|---|---|
 | `CaseLab_AI_PRD.md` | 제품 목적, MVP 범위, 사용자 가치, 팀 역할 | API/운영 상세는 링크로만 둔다. |
 | `CaseLab_AI_API_Spec.md` | API path, method, request, response, error contract | 화면별 사용 순서는 frontend 문서로 분리 완료. |
-| `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | Android/Frontend 화면 흐름, 호출 순서, E2E 사용법 | `ANDROID_SCREEN_API_MAPPING.md` 흡수 완료. |
+| `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | Android/Frontend 화면 흐름, 호출 순서, E2E 사용법 | 화면 흐름과 API 사용 순서 정본이다. |
 | `BACKEND_IMPLEMENTATION_GUIDE.md` | 백엔드 계층, 패키지, 예외, 트랜잭션, MockUser 규칙 | API/ERD 상세는 정본 링크를 둔다. |
 | `CaseLab_AI_ERD_Design.md` | 엔티티, 테이블, 관계, 컬럼 설계 | 코드 SoT와 drift 정정 필요. |
 | `ADR.md` | 이미 결정된 주요 아키텍처 결정 목록 | 상세 설명은 각 정본 문서로 링크한다. |
@@ -52,7 +53,6 @@
 | `AI_NPC_PROMPT_POLICY.md` | AI 지식 경계, prompt 구조, ResponsePolicy, injection 방어 | 실제 prompt template과 drift 정정 필요. |
 | `OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 데모 시나리오 정본, 채점 기준 | 스포일러 포함 문서다. 공개 범위 주의. |
 | `scenarios/SCENARIO_YAML_SCHEMA.md` | YAML import schema, 공개 범위, private seed 경계, MVP scoring bridge | 시나리오 문서 정본이다. |
-| `scenarios/README.md` | 시나리오 문서 공개 범위 | schema/docs index로 흡수 완료. redirect 문서. |
 
 ### 실행 / 운영 / 인프라
 
@@ -63,13 +63,6 @@
 | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 현재 구조, 확장 방향, roadmap, scale-out PoC, backup strategy | 인프라 전략 정본이다. |
 | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | rate limit, GeoIP/bot traffic, Grafana alert 정책 | 보안/트래픽/알림 정책 정본이다. |
 | `infra/CLUEROOM_SECRET_INPUT_GUIDE.md` | 팀원 secret 입력 절차 | 민감 주제라 당장 유지한다. |
-| `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | 인프라 고도화 단계 | strategy로 흡수 완료. redirect 문서. |
-| `infra/SCALE_OUT_POC_PLAN.md` | scale-out PoC 계획 | strategy로 흡수 완료. redirect 문서. |
-| `infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | 백업/복구 정책 | strategy/runbook으로 흡수 완료. redirect 문서. |
-| `infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | rate limit dry-run 실행 절차 | OPS_RUNBOOK/traffic policy로 흡수 완료. redirect 문서. |
-| `infra/RATE_LIMIT_POLICY.md` | rate limit 정책 | SECURITY_TRAFFIC_ALERT_POLICY로 흡수 완료. redirect 문서. |
-| `infra/GEOIP_BOT_TRAFFIC_POLICY.md` | GeoIP/Bot traffic 정책 | SECURITY_TRAFFIC_ALERT_POLICY로 흡수 완료. redirect 문서. |
-| `infra/GRAFANA_ALERT_POLICY.md` | Grafana alert 정책 | SECURITY_TRAFFIC_ALERT_POLICY로 흡수 완료. redirect 문서. |
 
 ### Agent / LLMOps
 
@@ -77,43 +70,36 @@
 |---|---|---|
 | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 인프라 agent 권한, 금지 작업, 승인 기준, Codex playbook, Ops Snapshot, Monitoring Agent 운영 모델 | infra agent 문서군 정본이다. |
 | `infra/agent/LLMOPS_OPERATING_GUIDE.md` | LLMOps 계획, telemetry safety, smoke 절차, PromQL 후보, agent 역할 | LLMOps 문서군 정본이다. |
-| `infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | Codex agent 실행 위치와 작업 방식 | INFRA_AGENT_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
-| `infra/agent/OPS_SNAPSHOT_SPEC.md` | 운영 snapshot 입력/출력 형식 | INFRA_AGENT_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
-| `infra/agent/MONITORING_AGENT_PLAN.md` | monitoring agent 계획 | INFRA_AGENT_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
-| `infra/agent/LLMOPS_AGENT_PLAN.md` | LLMOps agent 계획 | LLMOPS_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
-| `infra/agent/LLMOPS_PROMQL_QUERIES.md` | LLMOps PromQL 후보 | LLMOPS_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
-| `infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | LLMOps smoke 절차 | LLMOPS_OPERATING_GUIDE로 흡수 완료. redirect 문서. |
 
 ### QA / Handoff
 
 | 문서 | 정본 범위 | 비고 |
 |---|---|---|
 | `QA_HANDOFF.md` | 현재 미해결 QA 이슈, 해결된 이슈, 재검증 항목 | 새 정본이다. 날짜별 QA 문서의 결론을 흡수한다. |
-| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | 2026-06-04 QA 원문과 후속 노트 | QA_HANDOFF로 흡수 완료. 현재는 임시 redirect이며 제거 후보. |
 
-## 3. 흡수 예정 문서
+## 3. 흡수/제거 이력
 
-아래 문서는 바로 삭제하지 않는다.
-먼저 정본 문서에 고유 내용을 흡수한 뒤 제거 여부를 결정한다.
+아래 문서는 고유 내용을 정본 문서에 흡수한 뒤 제거했다.
+원문 전체가 필요하면 Git history에서 이전 revision을 확인한다.
 
-| 흡수 예정 문서 | 흡수처 |
+| 제거 문서 | 흡수처 |
 |---|---|
-| `ANDROID_SCREEN_API_MAPPING.md` | `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `QA_HANDOFF.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `scenarios/README.md` | `scenarios/SCENARIO_YAML_SCHEMA.md`, `README.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/SCALE_OUT_POC_PLAN.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | `infra/OPS_RUNBOOK.md`, `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | `infra/OPS_RUNBOOK.md`, `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/RATE_LIMIT_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/GEOIP_BOT_TRAFFIC_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/GRAFANA_ALERT_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/agent/OPS_SNAPSHOT_SPEC.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/agent/MONITORING_AGENT_PLAN.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/agent/LLMOPS_AGENT_PLAN.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/agent/LLMOPS_PROMQL_QUERIES.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
-| `infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` 흡수 완료. 최종 링크 정리 후 제거 후보 |
+| `ANDROID_SCREEN_API_MAPPING.md` | `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` |
+| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `QA_HANDOFF.md` |
+| `scenarios/README.md` | `scenarios/SCENARIO_YAML_SCHEMA.md`, `README.md` |
+| `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` |
+| `infra/SCALE_OUT_POC_PLAN.md` | `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` |
+| `infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | `infra/OPS_RUNBOOK.md`, `infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` |
+| `infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | `infra/OPS_RUNBOOK.md`, `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` |
+| `infra/RATE_LIMIT_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` |
+| `infra/GEOIP_BOT_TRAFFIC_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` |
+| `infra/GRAFANA_ALERT_POLICY.md` | `infra/SECURITY_TRAFFIC_ALERT_POLICY.md` |
+| `infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` |
+| `infra/agent/OPS_SNAPSHOT_SPEC.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` |
+| `infra/agent/MONITORING_AGENT_PLAN.md` | `infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` |
+| `infra/agent/LLMOPS_AGENT_PLAN.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` |
+| `infra/agent/LLMOPS_PROMQL_QUERIES.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` |
+| `infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | `infra/agent/LLMOPS_OPERATING_GUIDE.md` |
 
 ## 4. 공개 범위와 스포일러 기준
 
@@ -141,10 +127,10 @@ public 문서에 넣으면 안 되는 것:
 
 ```powershell
 git diff --check
-git grep -n "ANDROID_SCREEN_API_MAPPING\|MVP_QA_ISSUE_HANDOFF\|RATE_LIMIT_DRY_RUN_RUNBOOK\|LLMOPS_PROMQL_QUERIES" -- . ':!docs/DOCS_CONSOLIDATION_PLAN_2026-06-10.md'
+git grep -n "ANDROID_SCREEN_API_MAPPING\|MVP_QA_ISSUE_HANDOFF\|RATE_LIMIT_DRY_RUN_RUNBOOK\|LLMOPS_PROMQL_QUERIES" -- .
 ```
 
-검색 결과가 나오면 redirect 문서, 흡수 이력, 제거 후보 목록인지 확인한다.
+검색 결과가 나오면 흡수 이력 또는 정본 문서의 "기존 문서 흡수" 설명인지 확인한다.
 active 정본을 안내해야 하는 문서에서 예전 파일명을 정본처럼 가리키면 안 된다.
 
 문서를 삭제하는 PR에서는 삭제 파일의 고유 내용이 어느 정본 문서로 흡수됐는지 PR 본문에 적는다.

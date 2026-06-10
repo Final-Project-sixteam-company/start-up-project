@@ -33,21 +33,23 @@ AI: Spring AI 기반 LLM 연동
 |---:|---|---|
 | 1 | [CLAUDE.md](CLAUDE.md) | 프로젝트 핵심 컨텍스트와 작업 규칙 요약 |
 | 2 | [AGENTS.md](AGENTS.md) | Codex 리뷰 기준 |
-| 3 | [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md) | 제품 요구사항, MVP 범위, 구현 우선순위 |
-| 4 | [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md) | API 경로, Request/Response, DTO 필드명 정본 |
-| 5 | [docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) | Android/Frontend 화면 흐름, 호출 순서, E2E API 매핑 |
-| 6 | [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md) | ERD 설계, 엔티티, 관계, Enum |
-| 7 | [docs/CaseLab_AI_ERDCloud.sql](docs/CaseLab_AI_ERDCloud.sql) | ERDCloud import SQL |
-| 8 | [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) | AI NPC 프롬프트 정책과 정답 누설 방지 |
-| 9 | [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 구현 규칙, MockUser, 접근 권한, 인증/거래 확장 |
-| 10 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 |
-| 11 | [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) | 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 |
-| 12 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
-| 13 | [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md) | 보안, 트래픽, Rate Limit, GeoIP/Bot, Grafana Alert 정책 |
-| 14 | [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 운영/인프라 Agent, Ops Snapshot, Monitoring Agent, Codex 기준 |
-| 15 | [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) | LLMOps telemetry, smoke, PromQL, agent 기준 |
-| 16 | [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md) | 시나리오 YAML 구조, 공개 범위, private seed 경계 |
-| 17 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
+| 3 | [docs/README.md](docs/README.md) | 문서 index, 정본 지도, 흡수/제거 이력 |
+| 4 | [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md) | 제품 요구사항, MVP 범위, 구현 우선순위 |
+| 5 | [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md) | API 경로, Request/Response, DTO 필드명 정본 |
+| 6 | [docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) | Android/Frontend 화면 흐름, 호출 순서, E2E API 매핑 |
+| 7 | [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md) | ERD 설계, 엔티티, 관계, Enum |
+| 8 | [docs/CaseLab_AI_ERDCloud.sql](docs/CaseLab_AI_ERDCloud.sql) | ERDCloud import SQL |
+| 9 | [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) | AI NPC 프롬프트 정책과 정답 누설 방지 |
+| 10 | [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 구현 규칙, MockUser, 접근 권한, 인증/거래 확장 |
+| 11 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 |
+| 12 | [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) | 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 |
+| 13 | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
+| 14 | [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md) | 보안, 트래픽, Rate Limit, GeoIP/Bot, Grafana Alert 정책 |
+| 15 | [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 운영/인프라 Agent, Ops Snapshot, Monitoring Agent, Codex 기준 |
+| 16 | [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) | LLMOps telemetry, smoke, PromQL, agent 기준 |
+| 17 | [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md) | 시나리오 YAML 구조, 공개 범위, private seed 경계 |
+| 18 | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 기준 |
+| 19 | [docs/QA_HANDOFF.md](docs/QA_HANDOFF.md) | QA 이슈, 해결 상태, 재검증 항목 |
 
 ### 문서 수정 기준
 
@@ -55,6 +57,7 @@ AI: Spring AI 기반 LLM 연동
 
 | 수정할 내용 | 정본 문서 |
 |---|---|
+| 문서 index, 정본 지도, 흡수/제거 이력 | [docs/README.md](docs/README.md) |
 | MVP 범위, Phase, 기능 우선순위 | [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md) |
 | API 경로, Request/Response, DTO 필드명 | [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md) |
 | Android/Frontend 화면 흐름, 호출 순서, E2E API 매핑 | [docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) |
@@ -70,6 +73,7 @@ AI: Spring AI 기반 LLM 연동
 | LLMOps telemetry, smoke, PromQL, agent 계획 | [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) |
 | 시나리오 YAML 구조, 공개 범위, private seed 경계 | [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md) |
 | 공식 시나리오 seed data | [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) |
+| QA 이슈, 해결 상태, 재검증 항목 | [docs/QA_HANDOFF.md](docs/QA_HANDOFF.md) |
 
 현재 주요 문서는 위 표를 기준으로 관리합니다.
 

@@ -96,7 +96,7 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
-| `docs/ANDROID_SCREEN_API_MAPPING.md` | `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | 흡수 완료. root 문서는 임시 redirect로 유지한다. |
+| `docs/ANDROID_SCREEN_API_MAPPING.md` | `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
 | `docs/CaseLab_AI_API_Spec.md`의 화면별 사용 설명 | `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | 흡수 완료. API Spec은 계약만, 화면 흐름은 frontend 문서가 맡는다. |
 
 흡수 시 주의할 drift:
@@ -111,7 +111,7 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
-| `docs/MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `docs/QA_HANDOFF.md` | 흡수 완료. 기존 파일은 임시 redirect로 유지한다. |
+| `docs/MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | `docs/QA_HANDOFF.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
 | `docs/MVP_PLAY_FLOW_QA_2026-06-04.md` | `docs/QA_HANDOFF.md` | 현재는 untracked. 정답/variant 상세 가능성이 있어 scrub 전까지 커밋/흡수하지 않는다. |
 | PR #55의 2026-06-10 QA 문서들 | `docs/QA_HANDOFF.md` | PR #55가 아직 open 상태라 미흡수. 머지 후 최신 QA 결과를 같은 문서에 누적한다. |
 
@@ -135,13 +135,13 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
-| `docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 흡수 완료. 현재 구조/고도화 방향/단계 계획이 겹친다. |
-| `docs/infra/SCALE_OUT_POC_PLAN.md` | `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 흡수 완료. scale-out은 전략 문서의 future plan 섹션이 맞다. |
-| `docs/infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | `docs/infra/OPS_RUNBOOK.md` + `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 흡수 완료. 실행 절차는 runbook, 정책/보존 원칙은 strategy에 둔다. |
-| `docs/infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | `docs/infra/OPS_RUNBOOK.md` | 흡수 완료. dry-run은 운영 절차다. 별도 문서보다 runbook 섹션이 맞다. |
-| `docs/infra/RATE_LIMIT_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 흡수 완료. 정책 문서군으로 통합한다. |
-| `docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 흡수 완료. 트래픽 방어 정책으로 통합한다. |
-| `docs/infra/GRAFANA_ALERT_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 흡수 완료. 알림 기준도 운영 정책군으로 묶는다. |
+| `docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/SCALE_OUT_POC_PLAN.md` | `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md` | `docs/infra/OPS_RUNBOOK.md` + `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md` | `docs/infra/OPS_RUNBOOK.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/RATE_LIMIT_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/GRAFANA_ALERT_POLICY.md` | `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
 | `docs/infra/CLUEROOM_SECRET_INPUT_GUIDE.md` | 유지 | 작고 보안 민감한 팀원 handoff 문서라 당장 합치지 않는다. 필요 시 OPS_RUNBOOK의 secret 섹션에서 링크한다. |
 
 흡수 전 정정할 drift:
@@ -158,18 +158,18 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
-| `docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 흡수 완료. Codex 실행 위치/허용 작업/금지 작업은 agent 운영 가이드의 하위 섹션이 맞다. |
-| `docs/infra/agent/OPS_SNAPSHOT_SPEC.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 흡수 완료. snapshot spec은 agent 입력/출력 계약으로 둔다. |
-| `docs/infra/agent/MONITORING_AGENT_PLAN.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 흡수 완료. 현행 운영 상태와 맞춰 agent 운영 원칙/모니터링 절차로 둔다. |
-| `docs/infra/agent/LLMOPS_AGENT_PLAN.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | 흡수 완료. LLMOps 관련 문서군의 정본으로 합친다. |
-| `docs/infra/agent/LLMOPS_PROMQL_QUERIES.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | 흡수 완료. 쿼리 후보는 LLMOps 운영 가이드 appendix로 둔다. |
-| `docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | 흡수 완료. smoke 절차는 LLMOps 운영 가이드의 실행 섹션으로 둔다. |
+| `docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/agent/OPS_SNAPSHOT_SPEC.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/agent/MONITORING_AGENT_PLAN.md` | `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/agent/LLMOPS_AGENT_PLAN.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/agent/LLMOPS_PROMQL_QUERIES.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
+| `docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md` | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
 
 ### 4.5 시나리오 문서 정리
 
 | 현재 문서 | 흡수처 | 이유 |
 |---|---|---|
-| `docs/scenarios/README.md` | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` + `docs/README.md` | 흡수 완료. 공개 범위/스포일러 정책은 docs index와 schema 문서 양쪽에 짧게 반영하면 별도 파일이 필요 없다. |
+| `docs/scenarios/README.md` | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` + `docs/README.md` | 흡수 완료. 최종 링크 정리 후 파일 제거 완료. |
 | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` | 유지 | YAML 구조 정본이다. |
 
 정정할 drift:
@@ -182,7 +182,7 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 상태:
 
 ```text
-완료. SCENARIO_YAML_SCHEMA.md에 공개 범위/private seed 경계와 MVP scoring bridge note를 흡수했고, scenarios/README.md는 redirect로 전환한다.
+완료. SCENARIO_YAML_SCHEMA.md에 공개 범위/private seed 경계와 MVP scoring bridge note를 흡수했고, scenarios/README.md는 최종 링크 정리 후 제거했다.
 ```
 
 ### 4.6 ERD / API / Backend / AI 정책 정리
@@ -258,7 +258,7 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 ```text
 - docs/QA_HANDOFF.md 생성
 - MVP_QA_ISSUE_HANDOFF_2026-06-04.md의 미해결/해결 이슈 흡수 완료
-- MVP_QA_ISSUE_HANDOFF_2026-06-04.md는 임시 redirect로 전환
+- MVP_QA_ISSUE_HANDOFF_2026-06-04.md는 최종 링크 정리 후 제거
 - 로컬 untracked MVP_PLAY_FLOW_QA_2026-06-04.md는 scrub 전까지 미흡수
 - PR #55 머지 후 2026-06-10 QA 문서들도 최신 상태로 흡수
 ```
@@ -277,7 +277,7 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 - ANDROID_SCREEN_API_MAPPING.md 내용을 frontend guide로 흡수
 - API Spec은 계약 중심으로 정리
 - frontend guide는 화면 흐름과 호출 순서 중심으로 정리
-- ANDROID_SCREEN_API_MAPPING.md는 임시 redirect로 전환
+- ANDROID_SCREEN_API_MAPPING.md는 최종 링크 정리 후 제거
 ```
 
 완료 기준:
@@ -294,7 +294,7 @@ API 필드 확인은 API Spec, 화면 구현 순서는 frontend guide로 역할�
 - roadmap + scale-out 계획을 infrastructure strategy에 흡수
 - rate limit dry-run과 backup/restore 실행 절차를 OPS_RUNBOOK에 흡수
 - GeoIP/rate limit/Grafana alert 정책을 SECURITY_TRAFFIC_ALERT_POLICY로 통합
-- 기존 세부 문서는 삭제하지 않고 redirect 문서로 전환
+- 기존 세부 문서는 흡수 완료 후 최종 링크 정리 단계에서 제거
 ```
 
 완료 기준:
@@ -306,7 +306,7 @@ API 필드 확인은 API Spec, 화면 구현 순서는 frontend guide로 역할�
 상태:
 
 ```text
-완료. redirect 문서는 최종 링크 정리 이후 제거 후보로만 남긴다.
+완료. redirect 문서는 최종 링크 정리 단계에서 제거했다.
 ```
 
 ### Phase 6. Agent/LLMOps 문서 흡수
@@ -316,7 +316,7 @@ API 필드 확인은 API Spec, 화면 구현 순서는 frontend guide로 역할�
 ```text
 - INFRA_CODEX_AGENT_PLAYBOOK + OPS_SNAPSHOT_SPEC + MONITORING_AGENT_PLAN을 INFRA_AGENT_OPERATING_GUIDE에 흡수
 - LLMOPS_AGENT_PLAN + LLMOPS_PROMQL_QUERIES + LLMOPS_SMOKE_RUNBOOK을 LLMOPS_OPERATING_GUIDE로 통합
-- 기존 세부 문서는 삭제하지 않고 redirect 문서로 전환
+- 기존 세부 문서는 흡수 완료 후 최종 링크 정리 단계에서 제거
 ```
 
 완료 기준:
@@ -328,7 +328,7 @@ agent 운영 문서와 LLMOps 운영 문서가 각각 하나의 진입점만 가
 상태:
 
 ```text
-완료. redirect 문서는 최종 링크 정리 이후 제거 후보로만 남긴다.
+완료. redirect 문서는 최종 링크 정리 단계에서 제거했다.
 ```
 
 ### Phase 7. 링크/참조 정리
@@ -345,20 +345,20 @@ agent 운영 문서와 LLMOps 운영 문서가 각각 하나의 진입점만 가
 검증:
 
 ```powershell
-git grep -n "ANDROID_SCREEN_API_MAPPING\|MVP_QA_ISSUE_HANDOFF\|RATE_LIMIT_DRY_RUN_RUNBOOK\|LLMOPS_PROMQL_QUERIES" -- . ':!docs/DOCS_CONSOLIDATION_PLAN_2026-06-10.md'
+git grep -n "ANDROID_SCREEN_API_MAPPING\|MVP_QA_ISSUE_HANDOFF\|RATE_LIMIT_DRY_RUN_RUNBOOK\|LLMOPS_PROMQL_QUERIES" -- .
 ```
 
 완료 기준:
 
 ```text
 AGENTS.md, CLAUDE.md, root README.md는 active 정본 문서만 가리킨다.
-예전 문서명 검색 결과는 redirect 문서, 흡수 이력, 제거 후보 목록에만 남는다.
+예전 문서명 검색 결과는 흡수 이력이나 정본 문서의 "기존 문서 흡수" 설명에만 남는다.
 ```
 
 상태:
 
 ```text
-완료. active 진입 문서는 새 정본 링크로 교체했고, 예전 파일명은 redirect/흡수 이력/제거 후보 맥락에만 남긴다.
+완료. active 진입 문서는 새 정본 링크로 교체했고, 예전 파일명은 흡수 이력 맥락에만 남긴다.
 ```
 
 ## 6. 예상 결과
@@ -366,17 +366,17 @@ AGENTS.md, CLAUDE.md, root README.md는 active 정본 문서만 가리킨다.
 ### 문서 수
 
 ```text
-현재:
-tracked docs/*.md 30개
+정리 전:
+tracked docs Markdown 30개
 
-1차 목표:
-active docs 약 16~18개
+정리 후:
+active docs Markdown 19개
 
-감소 예상:
-12~14개 파일 감소
+감소:
+16개 redirect 문서 제거
 ```
 
-### 제거 또는 흡수 완료 후보
+### 흡수 후 제거 완료 문서
 
 ```text
 - docs/ANDROID_SCREEN_API_MAPPING.md
@@ -397,8 +397,8 @@ active docs 약 16~18개
 - docs/infra/agent/LLMOPS_SMOKE_RUNBOOK.md
 ```
 
-위 목록은 "바로 삭제" 목록이 아니다.
-각 파일의 고유 내용이 흡수된 뒤 제거할 후보 목록이다.
+위 목록은 고유 내용을 정본 문서에 흡수한 뒤 제거한 문서다.
+원문 전체가 필요하면 Git history에서 이전 revision을 확인한다.
 
 ## 7. 리뷰 기준
 

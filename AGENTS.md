@@ -167,6 +167,7 @@ AI가 설정에 없는 사실을 만드는 구조를 허용하지 않는다.
 
 ```text
 CLAUDE.md                                   프로젝트 전체 컨텍스트
+docs/README.md                              문서 index / 정본 지도 / 흡수 이력
 docs/CaseLab_AI_PRD.md                      제품 요구사항
 docs/CaseLab_AI_API_Spec.md                 API 명세 (Request/Response 포함)
 docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md Android/Frontend 화면 흐름 / API 매핑
@@ -181,6 +182,7 @@ docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md 보안 / 트래픽 / 알림 정책
 docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md   운영/인프라 Agent / Snapshot / Monitoring / Codex 기준
 docs/infra/agent/LLMOPS_OPERATING_GUIDE.md  LLMOps telemetry / smoke / PromQL / agent 기준
 docs/scenarios/SCENARIO_YAML_SCHEMA.md      시나리오 YAML 구조 / 공개 범위 / private seed 경계
+docs/QA_HANDOFF.md                          QA 이슈 / 해결 상태 / 재검증 항목
 ```
 
 리뷰 요청 시 **리뷰 지시서**가 함께 전달된다. 지시서에는 작업 목표, 변경 범위, 핵심 결정, 리뷰 초점, 참조 문서가 포함된다.

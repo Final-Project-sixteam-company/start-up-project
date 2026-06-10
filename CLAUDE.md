@@ -145,7 +145,8 @@ AI 호출 흐름:
 DB 조회
 → 트랜잭션 종료
 → ResponsePolicyResolver 정책 결정
-→ PromptTemplateService 프롬프트 생성
+→ AiPromptBuilder 프롬프트 생성
+→ AI_CALL_CONTEXT 로그 best-effort 기록
 → AiClient 호출
 → 새 트랜잭션으로 InterrogationLog 저장
 → 응답 반환
@@ -213,6 +214,7 @@ bash scripts/compose-down.sh
 
 | 문서 | 역할 |
 |---|---|
+| `docs/README.md` | 문서 index, 정본 지도, 흡수/제거 이력 |
 | `docs/CaseLab_AI_PRD.md` | 제품 요구사항, MVP 범위, 구현 우선순위 |
 | `docs/CaseLab_AI_API_Spec.md` | API 경로, Request/Response, DTO 필드명 정본 |
 | `docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` | Android/Frontend 화면 흐름, 호출 순서, E2E API 매핑 |
@@ -228,11 +230,13 @@ bash scripts/compose-down.sh
 | `docs/infra/agent/LLMOPS_OPERATING_GUIDE.md` | LLMOps telemetry, smoke, PromQL, agent 운영 기준 |
 | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` | 시나리오 YAML 구조, 공개 범위, private seed 경계 |
 | `docs/OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 데모 시나리오 seed 정본 |
+| `docs/QA_HANDOFF.md` | QA 이슈, 해결 상태, 재검증 항목 |
 
 권장 읽기 순서:
 
 ```text
 CLAUDE.md
+→ docs/README.md
 → CaseLab_AI_PRD.md
 → CaseLab_AI_API_Spec.md
 → frontend/CLUEROOM_APP_FLOW_API_GUIDE.md

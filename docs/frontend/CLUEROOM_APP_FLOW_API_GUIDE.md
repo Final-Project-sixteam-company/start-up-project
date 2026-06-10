@@ -3,7 +3,7 @@
 > 작성 범위: 현재 백엔드 구현 기준 API 표준화, Android/Frontend 화면 구조, 게임 시작 전 사용자 흐름, 게임 내부 탭 흐름, 심문/증거 제시 흐름, 최종 추리/결과 흐름, 로딩/오류/미구현 기능 처리
 >
 > 이 문서는 Android/Frontend가 "어떤 화면에서 어떤 API를 호출해야 하는지"를 실제 백엔드 구현 기준으로 정리한다.
-> `docs/ANDROID_SCREEN_API_MAPPING.md`의 고유 내용은 이 문서로 흡수됐고, 해당 문서는 임시 redirect로 유지한다.
+> `docs/ANDROID_SCREEN_API_MAPPING.md`의 고유 내용은 이 문서로 흡수됐고, 원문은 Git history에서 확인한다.
 
 ---
 
@@ -34,7 +34,7 @@ src/main/java/com/startup/domain/ai/controller/AiDeductionController.java
 
 | 문서 | 사용 방식 |
 |---|---|
-| `docs/ANDROID_SCREEN_API_MAPPING.md` | 흡수 완료 redirect. 새 기준은 이 문서 |
+| `docs/ANDROID_SCREEN_API_MAPPING.md` | 흡수 완료 후 제거. 원문 확인은 Git history 사용 |
 | `docs/CaseLab_AI_API_Spec.md` | 계획 API와 DTO 설계 참고 |
 | `docs/CaseLab_AI_PRD.md` | 사용자 진행 흐름과 MVP 기능 참고 |
 | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` | 공식 시나리오 표시 필드 기준 |
