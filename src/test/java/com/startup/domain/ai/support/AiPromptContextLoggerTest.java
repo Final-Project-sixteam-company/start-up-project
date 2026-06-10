@@ -46,7 +46,7 @@ class AiPromptContextLoggerTest {
         );
 
         assertThat(metrics.systemRuleTokens()).isPositive();
-        assertThat(metrics.scenarioContextTokens()).isPositive();
+        assertThat(metrics.policyContextTokens()).isPositive();
         assertThat(metrics.npcProfileTokens()).isPositive();
         assertThat(metrics.evidenceContextTokens()).isPositive();
         assertThat(metrics.historyTokens()).isPositive();

@@ -48,7 +48,7 @@ public class AiPromptContextLogger {
         );
 
         log.info("AI_CALL_CONTEXT featureType={} provider={} model={} promptVersion={} "
-                        + "systemRuleTokens={} scenarioContextTokens={} npcProfileTokens={} "
+                        + "systemRuleTokens={} policyContextTokens={} npcProfileTokens={} "
                         + "evidenceContextTokens={} historyTokens={} questionTokens={} "
                         + "promptCharLength={} historyTurns={} includedEvidenceCount={} templateHash={}",
                 context.featureType(),
@@ -56,7 +56,7 @@ public class AiPromptContextLogger {
                 safeLowCardinality(model),
                 safeLowCardinality(context.promptVersion()),
                 metrics.systemRuleTokens(),
-                metrics.scenarioContextTokens(),
+                metrics.policyContextTokens(),
                 metrics.npcProfileTokens(),
                 metrics.evidenceContextTokens(),
                 metrics.historyTokens(),

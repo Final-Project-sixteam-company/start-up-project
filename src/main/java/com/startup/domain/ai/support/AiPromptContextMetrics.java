@@ -2,7 +2,7 @@ package com.startup.domain.ai.support;
 
 public record AiPromptContextMetrics(
         int systemRuleTokens,
-        int scenarioContextTokens,
+        int policyContextTokens,
         int npcProfileTokens,
         int evidenceContextTokens,
         int historyTokens,

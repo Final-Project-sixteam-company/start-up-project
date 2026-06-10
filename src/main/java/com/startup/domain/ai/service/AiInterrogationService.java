@@ -141,21 +141,7 @@ public class AiInterrogationService {
         );
 
         AiRequestParams params = AiRequestParams.interrogation(temperature, maxTokens);
-        promptContextLogger.recordInterrogation(
-                aiCallContext,
-                aiClient.getProviderName(),
-                aiClient.getModelName(),
-                systemPrompt,
-                userPrompt,
-                context.suspect(),
-                context.revealedEvidences(),
-                context.presentedEvidence(),
-                context.policy(),
-                context.history(),
-                request.question(),
-                request.questionType(),
-                promptBuilder.interrogationTemplateHash(request.questionType())
-        );
+        recordPromptContextSafely(aiCallContext, context, request, systemPrompt, userPrompt);
 
         long startTime = System.currentTimeMillis();
         try {
@@ -165,6 +151,32 @@ public class AiInterrogationService {
             log.warn("AI 호출 실패, Fallback 응답 반환: {}", e.getMessage());
             aiClient.recordFallback(aiCallContext, e.getErrorCode().getCode(), elapsedMs(startTime));
             return new AiResult(mockResponseProvider.getFallbackResponse(), "FALLBACK");
+        }
+    }
+
+    private void recordPromptContextSafely(AiCallContext aiCallContext,
+                                           InterrogationContext context,
+                                           InterrogationRequest request,
+                                           String systemPrompt,
+                                           String userPrompt) {
+        try {
+            promptContextLogger.recordInterrogation(
+                    aiCallContext,
+                    aiClient.getProviderName(),
+                    aiClient.getModelName(),
+                    systemPrompt,
+                    userPrompt,
+                    context.suspect(),
+                    context.revealedEvidences(),
+                    context.presentedEvidence(),
+                    context.policy(),
+                    context.history(),
+                    request.question(),
+                    request.questionType(),
+                    promptBuilder.interrogationTemplateHash(request.questionType())
+            );
+        } catch (Exception e) {
+            log.warn("AI_CALL_CONTEXT logging failed but AI call will continue: {}", e.getMessage());
         }
     }
 
