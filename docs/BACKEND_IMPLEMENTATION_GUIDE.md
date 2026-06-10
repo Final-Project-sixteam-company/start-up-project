@@ -563,7 +563,6 @@ AiInterrogationService
 AiScenarioValidationService
 AiDeductionScorer
 AiCallRecorder / AiCallLogWriter
-AiPromptContextLogger
 ResponsePolicyResolver
 ```
 

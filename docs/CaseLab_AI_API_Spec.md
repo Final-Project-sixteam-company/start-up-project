@@ -2040,7 +2040,6 @@ RuleBasedScorer
 
 AiScenarioValidationService
 AiCallRecorder / AiCallLogWriter
-AiPromptContextLogger
 ```
 
 ---
