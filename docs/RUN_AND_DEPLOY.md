@@ -503,6 +503,7 @@ Ops Snapshot v3는 운영 합의 라벨이다.
 prod local MySQL/Redis는 source of truth가 아니라 rollback/local-data copy로만 표시한다.
 
 레포 원본 스크립트를 서버 실행 위치로 배치한다.
+`backup-mysql.sh`는 local-data/rollback copy 확인용이며, 운영 source-of-truth 백업은 12장의 data 서버 절차를 따른다.
 
 ```bash
 ssh clueroom
