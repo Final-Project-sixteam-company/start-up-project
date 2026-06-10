@@ -306,6 +306,46 @@ public class CustomScenarioServiceEvidenceTest {
     }
 
     @Test
+    @DisplayName("증거 삭제 성공 - 다른 증거의 해금 조건(유사한 코드)으로 사용되었지만 정확히 일치하지 않는 경우 삭제 성공")
+    void deleteEvidence_success_when_similar_prerequisite_code() {
+        // given
+        Evidence evidenceA = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("EVD_A")
+                .title("증거 A")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        Evidence evidenceB = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("EVD_B")
+                .title("증거 B")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(2)
+                .build());
+
+        evidenceUnlockRuleRepository.save(EvidenceUnlockRule.builder()
+                .scenarioId(savedScenario.getId())
+                .evidenceId(evidenceB.getId())
+                .evidenceCode(evidenceB.getCode())
+                .unlockType(EvidenceUnlockType.EVIDENCE_PRESENTED.name())
+                .conditionJson("{\"requiredPresentedEvidenceCode\": \"EVD_A11\"}")
+                .sortOrder(2)
+                .build());
+
+        // when
+        customScenarioService.deleteEvidence(OWNER_USER_ID, evidenceA.getId());
+
+        // then
+        assertThat(evidenceRepository.findById(evidenceA.getId())).isEmpty();
+    }
+
+    @Test
     @DisplayName("타인의 시나리오 증거 수정/삭제 시나리오 접근 권한 예외 발생")
     void modifyEvidence_fail_unauthorized() {
         // given

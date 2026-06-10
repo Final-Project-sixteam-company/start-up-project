@@ -231,6 +231,36 @@ public class CustomScenarioServiceSuspectTest {
     }
 
     @Test
+    @DisplayName("용의자 삭제 성공 - 다른 증거의 해금 조건(유사한 코드)으로 사용되었지만 정확히 일치하지 않는 경우 삭제 성공")
+    void deleteSuspect_success_when_similar_prerequisite_code() {
+        // given
+        Suspect suspect = suspectRepository.save(Suspect.builder()
+                .scenarioId(savedScenario.getId())
+                .code("SUSPECT_01")
+                .name("용의자")
+                .role("역할")
+                .characterType("NPC")
+                .culpritEligible(true)
+                .sortOrder(1)
+                .build());
+
+        evidenceUnlockRuleRepository.save(EvidenceUnlockRule.builder()
+                .scenarioId(savedScenario.getId())
+                .evidenceId(999L)
+                .evidenceCode("EVD_DUMMY")
+                .unlockType(EvidenceUnlockType.INTERROGATION.name())
+                .conditionJson("{\"requiredCharacterCode\": \"SUSPECT_011\"}")
+                .sortOrder(1)
+                .build());
+
+        // when
+        customScenarioService.deleteSuspect(OWNER_USER_ID, suspect.getId());
+
+        // then
+        assertThat(suspectRepository.findById(suspect.getId())).isEmpty();
+    }
+
+    @Test
     @DisplayName("타인의 시나리오 용의자 수정/삭제 시나리오 접근 권한 예외 발생")
     void modifySuspect_fail_unauthorized() {
         // given

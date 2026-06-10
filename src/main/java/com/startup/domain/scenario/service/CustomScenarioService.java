@@ -313,7 +313,7 @@ public class CustomScenarioService {
                     }
                 });
 
-        if (evidenceUnlockRuleRepository.existsByScenarioIdAndConditionJsonContaining(scenario.getId(), suspect.getCode())) {
+        if (isSuspectUsedAsPrerequisite(scenario.getId(), suspect.getCode())) {
             throw new ScenarioException(ScenarioErrorCode.SUSPECT_IS_PREREQUISITE);
         }
 
@@ -607,7 +607,7 @@ public class CustomScenarioService {
                     }
                 });
 
-        if (evidenceUnlockRuleRepository.existsByScenarioIdAndConditionJsonContaining(scenario.getId(), evidence.getCode())) {
+        if (isEvidenceUsedAsPrerequisite(scenario.getId(), evidence.getCode())) {
             throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE);
         }
 
@@ -617,6 +617,49 @@ public class CustomScenarioService {
         evidenceRepository.delete(evidence);
 
         scenario.forceUpdateModifiedAt();
+    }
+
+    private boolean isSuspectUsedAsPrerequisite(Long scenarioId, String suspectCode) {
+        List<EvidenceUnlockRule> rules = evidenceUnlockRuleRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+        for (EvidenceUnlockRule rule : rules) {
+            if (rule.getConditionJson() == null || rule.getConditionJson().isBlank()) continue;
+            try {
+                JsonNode root = jsonMapper.readTree(rule.getConditionJson());
+                if (root.has("requiredCharacterCode") && !root.get("requiredCharacterCode").isNull()) {
+                    if (suspectCode.equals(root.get("requiredCharacterCode").asText())) {
+                        return true;
+                    }
+                }
+            } catch (Exception e) {
+                // 파싱 에러 무시
+            }
+        }
+        return false;
+    }
+
+    private boolean isEvidenceUsedAsPrerequisite(Long scenarioId, String evidenceCode) {
+        List<EvidenceUnlockRule> rules = evidenceUnlockRuleRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+        for (EvidenceUnlockRule rule : rules) {
+            if (rule.getConditionJson() == null || rule.getConditionJson().isBlank()) continue;
+            try {
+                JsonNode root = jsonMapper.readTree(rule.getConditionJson());
+                if (root.has("requiredPresentedEvidenceCode") && !root.get("requiredPresentedEvidenceCode").isNull()) {
+                    if (evidenceCode.equals(root.get("requiredPresentedEvidenceCode").asText())) {
+                        return true;
+                    }
+                }
+                if (root.has("requiredEvidenceCodes") && root.get("requiredEvidenceCodes").isArray()) {
+                    for (JsonNode node : root.get("requiredEvidenceCodes")) {
+                        if (evidenceCode.equals(node.asText())) {
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // 파싱 에러 무시
+            }
+        }
+        return false;
     }
 
     private String validateAndTranslateUnlockCondition(Long scenarioId, Long targetEvidenceId, EvidenceUnlockType unlockType, String conditionJson) {
