@@ -233,6 +233,7 @@ public class ScenarioYamlImportService {
                     .imageAssetKey(evidenceYaml.imageAssetKey())
                     .thumbnailAssetKey(evidenceYaml.thumbnailAssetKey())
                     .tagsJson(toJson(evidenceYaml.tags()))
+                    .guidanceJson(toNullableJson(evidenceYaml.guidance()))
                     .unlockPhase(evidenceYaml.unlockPhase())
                     .isInitialPublic(isOpeningPhase(evidenceYaml.unlockPhase()))
                     .unlockType(toUnlockType(unlockRule))
@@ -554,6 +555,17 @@ public class ScenarioYamlImportService {
     private String toJson(Object value) {
         try {
             return jsonMapper.writeValueAsString(value == null ? List.of() : value);
+        } catch (Exception e) {
+            throw new ScenarioImportException("JSON 직렬화에 실패했습니다.", e);
+        }
+    }
+
+    private String toNullableJson(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return jsonMapper.writeValueAsString(value);
         } catch (Exception e) {
             throw new ScenarioImportException("JSON 직렬화에 실패했습니다.", e);
         }

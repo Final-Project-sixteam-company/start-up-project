@@ -203,10 +203,42 @@ evidences:
     tags:
       - timeline
     sortOrder: 10
+    guidance:
+      readingPoints:
+        - "What the player should notice in this evidence."
+      compareWithEvidenceCodes:
+        - EVIDENCE_RELATED_SAMPLE
+      suggestedQuestions:
+        - targetCharacterCode: SUSPECT_SAMPLE
+          question: "What should be clarified about this evidence?"
 ```
 
 `baseDetail` is the default text shown with image evidence in the UI. If a
 specific variant needs different wording, use `evidenceVariantStates`.
+
+`guidance` is optional player-facing UX metadata for the evidence detail API.
+It is imported into `evidences.guidance_json` and returned only when the
+current evidence detail is visible to the player.
+
+Guidance rules:
+
+- `readingPoints` are short observations the player should notice.
+- `compareWithEvidenceCodes` must reference existing `evidences[].code` values.
+- `compareWithEvidenceCodes` must not reference the current evidence itself.
+- `suggestedQuestions[].targetCharacterCode` must reference an existing
+  `characters[].code`.
+- `suggestedQuestions[].question` must be player-facing and answer-neutral.
+- Guidance must not contain culprit identity, active variant truth, solution
+  text, private seed notes, or answer-bearing reasoning.
+
+Runtime exposure:
+
+- Locked current evidence returns no detail response, same as the existing
+  evidence detail policy.
+- Compared locked evidence may be returned only with lock-safe fields such as
+  title, lock state, and unlock hint.
+- Suggested questions are UI prefill data. The Android app must let the player
+  review and send manually.
 
 ## Timeline Events
 
@@ -409,6 +441,10 @@ For `PUBLISHED` content, the validator must enforce:
 - `victim.deathLocationCode` exists in `locations`
 - `evidences[].locationCode` exists in `locations`
 - `evidences[].relatedCharacterCodes` exist in `characters`
+- `evidences[].guidance.compareWithEvidenceCodes` exist in `evidences`
+- `evidences[].guidance.compareWithEvidenceCodes` do not reference the current evidence
+- `evidences[].guidance.suggestedQuestions[].targetCharacterCode` exists in `characters`
+- `evidences[].guidance.suggestedQuestions[].question` is not blank
 - `timelineEvents[].eventOrder` values are unique
 - `timelineEvents[].locationCode` exists in `locations`
 - `timelineEvents[].relatedEvidenceCode` exists in `evidences`

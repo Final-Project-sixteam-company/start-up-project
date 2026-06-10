@@ -27,6 +27,12 @@ class ScenarioYamlLoaderValidatorTest {
         assertThat(yaml.timelineEvents()).hasSize(1);
         assertThat(yaml.timelineEvents().getFirst().relatedEvidenceCode()).isEqualTo("EVIDENCE_KEY");
         assertThat(yaml.evidences().getFirst().relatedCharacterCodes()).containsExactly("SUSPECT_TEST");
+        assertThat(yaml.evidences().getFirst().guidance().readingPoints())
+                .containsExactly("핵심 증거의 시간대를 보조 증거와 비교한다.");
+        assertThat(yaml.evidences().getFirst().guidance().compareWithEvidenceCodes())
+                .containsExactly("EVIDENCE_SUPPORT");
+        assertThat(yaml.evidences().getFirst().guidance().suggestedQuestions().getFirst().targetCharacterCode())
+                .isEqualTo("SUSPECT_TEST");
         assertThat(yaml.locations().getFirst().mapX()).isEqualTo(120);
         assertThat(yaml.locations().getFirst().mapY()).isEqualTo(80);
         assertThat(violations).isEmpty();
@@ -67,6 +73,32 @@ class ScenarioYamlLoaderValidatorTest {
 
         assertThat(violations).anyMatch(message -> message.contains(
                 "relatedCharacterCodes references missing character: SUSPECT_MISSING"));
+    }
+
+    @Test
+    void missingGuidanceCompareEvidence_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "      - EVIDENCE_SUPPORT",
+                "      - EVIDENCE_MISSING"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "guidance.compareWithEvidenceCodes references missing evidence: EVIDENCE_MISSING"));
+    }
+
+    @Test
+    void missingGuidanceQuestionTarget_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "targetCharacterCode: SUSPECT_TEST",
+                "targetCharacterCode: SUSPECT_MISSING"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "guidance.suggestedQuestions references missing character: SUSPECT_MISSING"));
     }
 
     @Test
@@ -308,6 +340,14 @@ class ScenarioYamlLoaderValidatorTest {
                 tags:
                   - method
                 sortOrder: 10
+                guidance:
+                  readingPoints:
+                    - "핵심 증거의 시간대를 보조 증거와 비교한다."
+                  compareWithEvidenceCodes:
+                    - EVIDENCE_SUPPORT
+                  suggestedQuestions:
+                    - targetCharacterCode: SUSPECT_TEST
+                      question: "이 증거가 보조 증거와 다른 이유를 설명할 수 있나요?"
               - code: EVIDENCE_SUPPORT
                 title: "보조 증거"
                 category: DOCUMENT

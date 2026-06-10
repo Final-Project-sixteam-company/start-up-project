@@ -115,6 +115,11 @@ class ScenarioYamlImportServiceTest {
         assertThat(timelineEvent.getEventTime()).isEqualTo("21:00");
         assertThat(timelineEvent.getRelatedEvidenceId()).isEqualTo(relatedEvidence.getId());
         assertThat(timelineEvent.getRelatedSuspectId()).isEqualTo(relatedSuspect.getId());
+        assertThat(relatedEvidence.getGuidanceJson())
+                .contains("readingPoints")
+                .contains("compareWithEvidenceCodes")
+                .contains("suggestedQuestions")
+                .contains("SUSPECT_SECRETARY");
     }
 
     @Test
@@ -251,7 +256,8 @@ class ScenarioYamlImportServiceTest {
                                 null,
                                 List.of("SUSPECT_SECRETARY"),
                                 List.of("opening"),
-                                10
+                                10,
+                                null
                         ),
                         new ScenarioYaml.EvidenceYaml(
                                 "EVIDENCE_KEY",
@@ -266,7 +272,15 @@ class ScenarioYamlImportServiceTest {
                                 "official/test/v1/evidence/EVIDENCE_KEY.thumb.png",
                                 List.of("SUSPECT_SECRETARY"),
                                 List.of("method"),
-                                20
+                                20,
+                                new ScenarioYaml.EvidenceGuidanceYaml(
+                                        List.of("핵심 단서의 시간과 초기 증거를 비교한다."),
+                                        List.of("EVIDENCE_OPENING"),
+                                        List.of(new ScenarioYaml.SuggestedQuestionYaml(
+                                                "SUSPECT_SECRETARY",
+                                                "이 증거가 초기 증거와 다른 이유를 설명할 수 있나요?"
+                                        ))
+                                )
                         )
                 ),
                 List.of(new ScenarioYaml.TimelineEventYaml(

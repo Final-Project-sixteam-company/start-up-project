@@ -43,7 +43,7 @@ public class ScenarioYamlValidator {
 
         validateLocations(yaml, violations);
         validateVictim(yaml, locationCodes, violations);
-        validateEvidenceReferences(yaml, locationCodes, characterCodes, violations);
+        validateEvidenceReferences(yaml, locationCodes, evidenceCodes, characterCodes, violations);
         validateTimelineEvents(yaml, locationCodes, evidenceCodes, characterCodes, violations);
         validateVariantReferences(yaml, charactersByCode, evidenceCodes, violations);
         validatePublishedVariants(yaml, violations);
@@ -141,6 +141,7 @@ public class ScenarioYamlValidator {
 
     private void validateEvidenceReferences(ScenarioYaml yaml,
                                             Set<String> locationCodes,
+                                            Set<String> evidenceCodes,
                                             Set<String> characterCodes,
                                             List<String> violations) {
         for (ScenarioYaml.EvidenceYaml evidence : listOf(yaml.evidences())) {
@@ -159,6 +160,63 @@ public class ScenarioYamlValidator {
             }
             validateAssetKey(evidence.imageAssetKey(), "evidences[" + evidence.code() + "].imageAssetKey", violations);
             validateAssetKey(evidence.thumbnailAssetKey(), "evidences[" + evidence.code() + "].thumbnailAssetKey", violations);
+            validateEvidenceGuidance(evidence, evidenceCodes, characterCodes, violations);
+        }
+    }
+
+    private void validateEvidenceGuidance(ScenarioYaml.EvidenceYaml evidence,
+                                          Set<String> evidenceCodes,
+                                          Set<String> characterCodes,
+                                          List<String> violations) {
+        ScenarioYaml.EvidenceGuidanceYaml guidance = evidence.guidance();
+        if (guidance == null) {
+            return;
+        }
+
+        for (String readingPoint : listOf(guidance.readingPoints())) {
+            if (!hasText(readingPoint)) {
+                violations.add("evidences[" + evidence.code() + "].guidance.readingPoints contains blank item.");
+            }
+        }
+
+        Set<String> compareCodes = new HashSet<>();
+        for (String compareEvidenceCode : listOf(guidance.compareWithEvidenceCodes())) {
+            if (!hasText(compareEvidenceCode)) {
+                violations.add("evidences[" + evidence.code()
+                        + "].guidance.compareWithEvidenceCodes contains blank item.");
+                continue;
+            }
+            if (!evidenceCodes.contains(compareEvidenceCode)) {
+                violations.add("evidence " + evidence.code()
+                        + " guidance.compareWithEvidenceCodes references missing evidence: " + compareEvidenceCode);
+            }
+            if (compareEvidenceCode.equals(evidence.code())) {
+                violations.add("evidence " + evidence.code()
+                        + " guidance.compareWithEvidenceCodes references itself.");
+            }
+            if (!compareCodes.add(compareEvidenceCode)) {
+                violations.add("evidence " + evidence.code()
+                        + " guidance.compareWithEvidenceCodes has duplicate evidence: " + compareEvidenceCode);
+            }
+        }
+
+        for (ScenarioYaml.SuggestedQuestionYaml question : listOf(guidance.suggestedQuestions())) {
+            if (question == null) {
+                violations.add("evidences[" + evidence.code() + "].guidance.suggestedQuestions contains null item.");
+                continue;
+            }
+            if (!hasText(question.targetCharacterCode())) {
+                violations.add("evidences[" + evidence.code()
+                        + "].guidance.suggestedQuestions.targetCharacterCode is required.");
+            } else if (!characterCodes.contains(question.targetCharacterCode())) {
+                violations.add("evidence " + evidence.code()
+                        + " guidance.suggestedQuestions references missing character: "
+                        + question.targetCharacterCode());
+            }
+            if (!hasText(question.question())) {
+                violations.add("evidences[" + evidence.code()
+                        + "].guidance.suggestedQuestions.question is required.");
+            }
         }
     }
 

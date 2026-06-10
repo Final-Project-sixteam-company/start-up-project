@@ -18,12 +18,33 @@ public record PlayEvidenceDetailResponse(
         LocationInfo location,
         EvidenceImportance importance,
         List<SuspectInfo> relatedSuspects,
-        List<TimelineInfo> relatedTimelineEvents
+        List<TimelineInfo> relatedTimelineEvents,
+        EvidenceGuidanceInfo guidance
 ) {
     // JSON 중첩 객체를 위한 내부 record 선언
     public record LocationInfo(Long locationId, String name) {}
     public record SuspectInfo(Long suspectId, String name) {}
     public record TimelineInfo(String time, String title) {}
+    public record EvidenceGuidanceInfo(
+            List<String> readingPoints,
+            List<CompareEvidenceInfo> compareEvidences,
+            List<SuggestedQuestionInfo> suggestedQuestions
+    ) {}
+    public record CompareEvidenceInfo(
+            Long evidenceId,
+            String evidenceCode,
+            String title,
+            Boolean isUnlocked,
+            String unlockHint
+    ) {}
+    public record SuggestedQuestionInfo(
+            String targetCharacterCode,
+            Long targetSuspectId,
+            String targetName,
+            String question,
+            Long presentedEvidenceId,
+            String questionType
+    ) {}
 
     public static PlayEvidenceDetailResponse of(
             Evidence evidence,
@@ -31,7 +52,8 @@ public record PlayEvidenceDetailResponse(
             String resolvedImageUrl,
             ScenarioLocation location,
             List<Suspect> relatedSuspects,
-            List<TimelineEvent> timelineEvents
+            List<TimelineEvent> timelineEvents,
+            EvidenceGuidanceInfo guidance
     ) {
         LocationInfo locationInfo = location != null ?
                 new LocationInfo(location.getId(), location.getName()) : null;
@@ -53,6 +75,7 @@ public record PlayEvidenceDetailResponse(
                 .importance(evidence.getImportance())
                 .relatedSuspects(suspectInfos)
                 .relatedTimelineEvents(timelineInfos)
+                .guidance(guidance)
                 .build();
     }
 }

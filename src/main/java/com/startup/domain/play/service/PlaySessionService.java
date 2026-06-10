@@ -29,6 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -41,6 +43,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PlaySessionService {
+
+    private static final TypeReference<StoredEvidenceGuidance> EVIDENCE_GUIDANCE_TYPE = new TypeReference<>() {};
 
     private final PlaySessionRepository playSessionRepository;
     private final UnlockedEvidenceRepository unlockedEvidenceRepository;
@@ -61,6 +65,7 @@ public class PlaySessionService {
     private final EvidenceUnlockPolicy evidenceUnlockPolicy;
     private final ScenarioAssetUrlResolver scenarioAssetUrlResolver;
     private final TimelineEventRepository timelineEventRepository;
+    private final JsonMapper jsonMapper;
 
     //게임 시작 세션
     @Transactional
@@ -385,8 +390,116 @@ public class PlaySessionService {
         // 이미지 URL을 asset resolver로 변환 (증거 목록 API와 동일한 흐름)
         String resolvedImageUrl = scenarioAssetUrlResolver.resolve(evidence.getImageUrl(), evidence.getImageAssetKey());
 
+        PlayEvidenceDetailResponse.EvidenceGuidanceInfo guidance =
+                buildGuidance(evidence, session, sessionId);
+
         // 모든 정보를 조립하여 반환
-        return PlayEvidenceDetailResponse.of(evidence, resolvedDescription, resolvedImageUrl, location, relatedSuspects, relatedTimelines);
+        return PlayEvidenceDetailResponse.of(
+                evidence,
+                resolvedDescription,
+                resolvedImageUrl,
+                location,
+                relatedSuspects,
+                relatedTimelines,
+                guidance
+        );
+    }
+
+    private PlayEvidenceDetailResponse.EvidenceGuidanceInfo buildGuidance(
+            Evidence evidence,
+            PlaySession session,
+            Long sessionId
+    ) {
+        StoredEvidenceGuidance storedGuidance = parseGuidance(evidence);
+        if (storedGuidance == null || storedGuidance.isEmpty()) {
+            return null;
+        }
+
+        Set<Long> unlockedEvidenceIds = unlockedEvidenceRepository.findAllByPlaySessionId(sessionId)
+                .stream()
+                .map(UnlockedEvidence::getEvidenceId)
+                .collect(Collectors.toSet());
+
+        Map<String, Evidence> evidencesByCode = evidenceRepository
+                .findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
+                .stream()
+                .filter(item -> item.getCode() != null)
+                .collect(Collectors.toMap(Evidence::getCode, Function.identity(), (left, right) -> left));
+
+        Map<String, Suspect> suspectsByCode = suspectRepository
+                .findAllByScenarioIdOrderBySortOrder(session.getScenarioId())
+                .stream()
+                .filter(item -> item.getCode() != null)
+                .collect(Collectors.toMap(Suspect::getCode, Function.identity(), (left, right) -> left));
+
+        List<PlayEvidenceDetailResponse.CompareEvidenceInfo> compareEvidences =
+                listOf(storedGuidance.compareWithEvidenceCodes()).stream()
+                        .map(evidencesByCode::get)
+                        .filter(Objects::nonNull)
+                        .map(compareEvidence -> {
+                            boolean isUnlocked = isEvidenceVisible(compareEvidence, unlockedEvidenceIds);
+                            return new PlayEvidenceDetailResponse.CompareEvidenceInfo(
+                                    compareEvidence.getId(),
+                                    compareEvidence.getCode(),
+                                    compareEvidence.getTitle(),
+                                    isUnlocked,
+                                    isUnlocked ? null : buildUnlockHint(compareEvidence)
+                            );
+                        })
+                        .toList();
+
+        List<PlayEvidenceDetailResponse.SuggestedQuestionInfo> suggestedQuestions =
+                listOf(storedGuidance.suggestedQuestions()).stream()
+                        .filter(Objects::nonNull)
+                        .map(question -> toSuggestedQuestion(question, evidence.getId(), suspectsByCode))
+                        .filter(Objects::nonNull)
+                        .toList();
+
+        return new PlayEvidenceDetailResponse.EvidenceGuidanceInfo(
+                listOf(storedGuidance.readingPoints()),
+                compareEvidences,
+                suggestedQuestions
+        );
+    }
+
+    private StoredEvidenceGuidance parseGuidance(Evidence evidence) {
+        String guidanceJson = evidence.getGuidanceJson();
+        if (guidanceJson == null || guidanceJson.isBlank()) {
+            return null;
+        }
+        try {
+            return jsonMapper.readValue(guidanceJson, EVIDENCE_GUIDANCE_TYPE);
+        } catch (Exception e) {
+            log.warn("evidence guidance_json parsing failed. evidenceId={}, error={}",
+                    evidence.getId(), e.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    private PlayEvidenceDetailResponse.SuggestedQuestionInfo toSuggestedQuestion(
+            StoredSuggestedQuestion question,
+            Long presentedEvidenceId,
+            Map<String, Suspect> suspectsByCode
+    ) {
+        if (question.targetCharacterCode() == null || question.question() == null || question.question().isBlank()) {
+            return null;
+        }
+        Suspect suspect = suspectsByCode.get(question.targetCharacterCode());
+        if (suspect == null) {
+            return null;
+        }
+        return new PlayEvidenceDetailResponse.SuggestedQuestionInfo(
+                suspect.getCode(),
+                suspect.getId(),
+                suspect.getName(),
+                question.question(),
+                presentedEvidenceId,
+                "EVIDENCE_PRESENTED"
+        );
+    }
+
+    private boolean isEvidenceVisible(Evidence evidence, Set<Long> unlockedEvidenceIds) {
+        return Boolean.TRUE.equals(evidence.getIsInitialPublic()) || unlockedEvidenceIds.contains(evidence.getId());
     }
 
     @Transactional
@@ -920,5 +1033,31 @@ public class PlaySessionService {
         // MySQL REPEATABLE_READ keeps the earlier snapshot for normal reads.
         // If INSERT IGNORE lost to a concurrent request, use a locking read so retries remain idempotent.
         return unlockedEvidenceRepository.findByPlaySessionIdAndEvidenceIdForUpdate(sessionId, evidenceId);
+    }
+
+    private <T> List<T> listOf(List<T> source) {
+        return source == null ? List.of() : source;
+    }
+
+    private record StoredEvidenceGuidance(
+            List<String> readingPoints,
+            List<String> compareWithEvidenceCodes,
+            List<StoredSuggestedQuestion> suggestedQuestions
+    ) {
+        private boolean isEmpty() {
+            return isNullOrEmpty(readingPoints)
+                    && isNullOrEmpty(compareWithEvidenceCodes)
+                    && isNullOrEmpty(suggestedQuestions);
+        }
+
+        private static boolean isNullOrEmpty(List<?> source) {
+            return source == null || source.isEmpty();
+        }
+    }
+
+    private record StoredSuggestedQuestion(
+            String targetCharacterCode,
+            String question
+    ) {
     }
 }

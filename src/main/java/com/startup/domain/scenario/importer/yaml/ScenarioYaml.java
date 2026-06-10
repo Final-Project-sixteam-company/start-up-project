@@ -104,7 +104,21 @@ public record ScenarioYaml(
             String thumbnailAssetKey,
             List<String> relatedCharacterCodes,
             List<String> tags,
-            Integer sortOrder
+            Integer sortOrder,
+            EvidenceGuidanceYaml guidance
+    ) {
+    }
+
+    public record EvidenceGuidanceYaml(
+            List<String> readingPoints,
+            List<String> compareWithEvidenceCodes,
+            List<SuggestedQuestionYaml> suggestedQuestions
+    ) {
+    }
+
+    public record SuggestedQuestionYaml(
+            String targetCharacterCode,
+            String question
     ) {
     }
 
