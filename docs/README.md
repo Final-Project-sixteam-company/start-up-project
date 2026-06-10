@@ -66,6 +66,7 @@
 | [infra/SECURITY_TRAFFIC_ALERT_POLICY.md](infra/SECURITY_TRAFFIC_ALERT_POLICY.md) | rate limit, GeoIP/bot traffic, Grafana alert, n8n notification workflow 정책 | 보안/트래픽/알림 정책 정본이다. |
 | [infra/INFRA_PORTFOLIO_SUMMARY.md](infra/INFRA_PORTFOLIO_SUMMARY.md) | 발표/면접/포트폴리오용 인프라 요약 | 운영 명령이 아니라 설명용 문서다. |
 | [infra/diagrams/*.mmd](infra/diagrams/) | 현재 요청 흐름, 백업/복구, 관측/알림, scale-out PoC Mermaid 다이어그램 | 전략 문서와 발표 문서에서 참조한다. |
+| [infra/images/*architecture_logo_style.*](infra/images/) | 현재 운영 구조와 scale-out PoC 발표용 로고 스타일 이미지 | PNG는 문서 렌더링용, SVG는 편집/확대용이다. |
 | [infra/CLUEROOM_SECRET_INPUT_GUIDE.md](infra/CLUEROOM_SECRET_INPUT_GUIDE.md) | 팀원 secret 입력 절차 | 민감 주제라 당장 유지한다. |
 
 ### Agent / LLMOps
@@ -107,6 +108,7 @@
 | 외부 infra AI 문서 `INFRASTRUCTURE_OVERVIEW.md` | [infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md), [infra/INFRA_PORTFOLIO_SUMMARY.md](infra/INFRA_PORTFOLIO_SUMMARY.md) |
 | 외부 infra AI 문서 `CURRENT_PRODUCTION_ARCHITECTURE.md` | [infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md), [infra/diagrams/*.mmd](infra/diagrams/) |
 | 외부 infra AI Mermaid diagrams | [infra/diagrams/*.mmd](infra/diagrams/) |
+| 외부 infra AI logo-style architecture images | [infra/images/*architecture_logo_style.*](infra/images/), [infra/INFRA_PORTFOLIO_SUMMARY.md](infra/INFRA_PORTFOLIO_SUMMARY.md) |
 | 외부 infra AI PoC 문서군 | [infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md), [infra/SECURITY_TRAFFIC_ALERT_POLICY.md](infra/SECURITY_TRAFFIC_ALERT_POLICY.md), [infra/agent/LLMOPS_OPERATING_GUIDE.md](infra/agent/LLMOPS_OPERATING_GUIDE.md) |
 | 외부 infra AI runbook 문서군 | [infra/OPS_RUNBOOK.md](infra/OPS_RUNBOOK.md), [infra/SECURITY_TRAFFIC_ALERT_POLICY.md](infra/SECURITY_TRAFFIC_ALERT_POLICY.md) |
 | 외부 infra AI portfolio/presentation 문서군 | [infra/INFRA_PORTFOLIO_SUMMARY.md](infra/INFRA_PORTFOLIO_SUMMARY.md) |

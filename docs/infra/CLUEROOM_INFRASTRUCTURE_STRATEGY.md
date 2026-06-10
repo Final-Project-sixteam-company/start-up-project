@@ -256,6 +256,16 @@ docs/infra/diagrams/backup-restore-flow.mmd
 docs/infra/diagrams/planned-scaleout-manual-lb.mmd
 ```
 
+발표/포트폴리오용 이미지 자산은 아래 경로에 둔다.
+이 이미지는 공식 로고 원본이 아니라 운영 구조 설명을 위한 로고 스타일 시각 자료이며, 운영 정본은 Mermaid 원본과 본 전략 문서다.
+
+```text
+docs/infra/images/clueroom_current_production_architecture_logo_style.png
+docs/infra/images/clueroom_current_production_architecture_logo_style.svg
+docs/infra/images/clueroom_scaleout_manual_lb_architecture_logo_style.png
+docs/infra/images/clueroom_scaleout_manual_lb_architecture_logo_style.svg
+```
+
 ### 4.1 DNS
 
 ```text

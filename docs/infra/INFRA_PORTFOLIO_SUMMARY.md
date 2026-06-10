@@ -51,12 +51,23 @@ data server: MySQL / Redis
 
 관련 다이어그램:
 
-```text
-docs/infra/diagrams/current-production-request-flow.mmd
-docs/infra/diagrams/observability-alert-flow.mmd
-docs/infra/diagrams/backup-restore-flow.mmd
-docs/infra/diagrams/planned-scaleout-manual-lb.mmd
-```
+| 용도 | 파일 |
+|---|---|
+| 현재 요청 흐름 Mermaid 원본 | [diagrams/current-production-request-flow.mmd](diagrams/current-production-request-flow.mmd) |
+| 관측/알림 흐름 Mermaid 원본 | [diagrams/observability-alert-flow.mmd](diagrams/observability-alert-flow.mmd) |
+| 백업/복구 흐름 Mermaid 원본 | [diagrams/backup-restore-flow.mmd](diagrams/backup-restore-flow.mmd) |
+| scale-out PoC Mermaid 원본 | [diagrams/planned-scaleout-manual-lb.mmd](diagrams/planned-scaleout-manual-lb.mmd) |
+| 현재 운영 구조 발표용 이미지 | [images/clueroom_current_production_architecture_logo_style.png](images/clueroom_current_production_architecture_logo_style.png), [SVG](images/clueroom_current_production_architecture_logo_style.svg) |
+| scale-out PoC 발표용 이미지 | [images/clueroom_scaleout_manual_lb_architecture_logo_style.png](images/clueroom_scaleout_manual_lb_architecture_logo_style.png), [SVG](images/clueroom_scaleout_manual_lb_architecture_logo_style.svg) |
+
+### 발표용 이미지
+
+아래 이미지는 공식 로고 파일이 아니라 발표용 로고 스타일 배치와 색상 기반 아이콘으로 구성한 시각 자료다.
+운영 source of truth는 전략 문서와 Mermaid 원본이며, 발표/면접 자료에는 PNG를 사용하고 확대/편집이 필요하면 SVG를 사용한다.
+
+![ClueRoom 평상시 운영 인프라 아키텍처](images/clueroom_current_production_architecture_logo_style.png)
+
+![ClueRoom 스케일아웃 + 수동 로드밸런싱 계획 아키텍처](images/clueroom_scaleout_manual_lb_architecture_logo_style.png)
 
 ---
 
