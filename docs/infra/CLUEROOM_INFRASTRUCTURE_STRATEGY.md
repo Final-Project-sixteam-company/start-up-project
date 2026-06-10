@@ -483,8 +483,11 @@ Terraform managed:
 - Versioning
 - SSE-S3 encryption
 - CORS
-- Lifecycle rule
+- Lifecycle rule: incomplete multipart upload 7일 abort
 ```
+
+현재 이미지 asset bucket lifecycle는 이미지 object를 30일 뒤 삭제하는 정책이 아니다.
+이미지 object 보관 기간은 서비스/콘텐츠 정책에 맞춰 별도 결정하며, DB 백업 retention과 섞어 설명하지 않는다.
 
 ### 4.8 FCM
 
@@ -1667,16 +1670,18 @@ aws s3 cp "$BACKUP_FILE.sha256" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/da
   --server-side-encryption AES256
 ```
 
-### Retention Candidate
+### DB Backup Retention Candidate
 
 ```text
 local: 7 days
-S3 daily: 30 days
-S3 weekly: 12 weeks
-S3 monthly: 12 months
+S3 daily backup: 30 days
+S3 weekly backup: 12 weeks
+S3 monthly backup: 12 months
 ```
 
-Retention은 비용과 개인정보 보존 정책을 함께 보고 조정한다.
+이 retention 후보는 DB backup object 전용이다.
+이미지 asset bucket retention은 이 표의 대상이 아니며, 현재 Terraform lifecycle은 incomplete multipart upload 정리 용도다.
+최종 retention은 비용과 개인정보 보존 정책을 함께 보고 조정한다.
 
 ### Restore Guardrails
 

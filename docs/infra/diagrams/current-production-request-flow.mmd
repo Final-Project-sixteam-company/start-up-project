@@ -1,8 +1,8 @@
 flowchart LR
     user["Client / Frontend<br/>Web or Mobile"] --> dns["api.clueroom.xyz"]
     dns --> nginx["prod: Nginx<br/>TLS / rate limit / CN block / manual blocklist"]
-    nginx --> active["prod: app-green ACTIVE<br/>127.0.0.1:8082"]
-    nginx -. standby switch .-> standby["prod: app-blue STANDBY<br/>127.0.0.1:8081"]
+    nginx --> active["prod: current ACTIVE slot<br/>app-blue:8081 or app-green:8082"]
+    nginx -. standby switch .-> standby["prod: current STANDBY slot<br/>opposite Blue-Green slot"]
 
     active --> data_mysql["data: MySQL 8.4<br/>172.26.1.185:3306"]
     active --> data_redis["data: Redis 8<br/>172.26.1.185:6379"]

@@ -1136,6 +1136,7 @@ prod local compose mysql
 현재 운영 source of truth 백업은 data 서버에서 실행한다.
 
 ```text
+# host: clueroom-data-01
 10 3 * * * /opt/clueroom-data/backup-mysql.sh
 20 3 * * * /opt/clueroom-data/upload-mysql-backup-s3.sh
 * * * * * /opt/clueroom-data/data-health-push.sh
@@ -1275,7 +1276,18 @@ cron이 data server host를 대상으로 mysqldump를 실행한다
 
 external-data 운영 백업 cron 예시:
 
+권장 실행 위치는 data server다.
+
 ```cron
+# host: clueroom-data-01
+10 3 * * * /opt/clueroom-data/backup-mysql.sh >> /opt/clueroom-data/logs/mysql-backup.log 2>&1
+20 3 * * * /opt/clueroom-data/upload-mysql-backup-s3.sh >> /opt/clueroom-data/logs/mysql-backup-s3.log 2>&1
+```
+
+app/ops host에서 원격 dump를 수행하는 대안 경로는 명시적으로 host label을 붙인다.
+
+```cron
+# host: clueroom-api-prod-01 or clueroom-ops-01
 0 3 * * * /opt/clueroom/backup-mysql-external.sh >> /opt/clueroom/logs/mysql-backup-external.log 2>&1
 ```
 
@@ -1629,6 +1641,9 @@ PY
 반복 악성 IP가 명확한 경우에만 추가한다.
 
 ```bash
+sudo cp /etc/nginx/snippets/clueroom-blocked-ips.conf \
+  /etc/nginx/snippets/clueroom-blocked-ips.conf.before-manual-blocklist-change-$(date +%Y%m%d_%H%M%S)
+
 sudo nano /etc/nginx/snippets/clueroom-blocked-ips.conf
 ```
 
@@ -1651,6 +1666,40 @@ curl -I https://api.clueroom.xyz/actuator/health
 ```text
 팀원 IP 또는 정상 사용자 IP를 넣지 않는다.
 일회성 스캐너는 굳이 수동 ban하지 않는다.
+```
+
+### Manual blocklist 회수 / 복구
+
+정상 사용자 IP를 잘못 차단했거나 오탐이 의심되면 먼저 해당 IP만 제거한다.
+
+```bash
+BAD_IP="203.0.113.10"
+sudo cp /etc/nginx/snippets/clueroom-blocked-ips.conf \
+  /etc/nginx/snippets/clueroom-blocked-ips.conf.before-manual-blocklist-unblock-$(date +%Y%m%d_%H%M%S)
+
+awk -v ip="$BAD_IP" '$0 != "deny " ip ";" { print }' \
+  /etc/nginx/snippets/clueroom-blocked-ips.conf \
+| sudo tee /etc/nginx/snippets/clueroom-blocked-ips.conf.tmp > /dev/null
+sudo mv /etc/nginx/snippets/clueroom-blocked-ips.conf.tmp \
+  /etc/nginx/snippets/clueroom-blocked-ips.conf
+
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://api.clueroom.xyz/actuator/health
+```
+
+여러 줄을 잘못 수정했거나 즉시 원복이 필요하면 백업 파일을 복구한다.
+
+```bash
+ls -al /etc/nginx/snippets | grep 'clueroom-blocked-ips.conf.before-manual-blocklist' || true
+
+BLOCKLIST_BACKUP=/etc/nginx/snippets/clueroom-blocked-ips.conf.before-manual-blocklist-change-YYYYMMDD_HHMMSS
+test -f "$BLOCKLIST_BACKUP"
+sudo cp "$BLOCKLIST_BACKUP" /etc/nginx/snippets/clueroom-blocked-ips.conf
+
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://api.clueroom.xyz/actuator/health
 ```
 
 ### CN blocklist 업데이트
@@ -1719,15 +1768,21 @@ curl -I https://api.clueroom.xyz/actuator/health
 
 ```bash
 ls -al /etc/nginx/sites-available | grep -E 'before-rate-limit|clueroom-api.*bak' || true
+ls -al /etc/nginx/snippets | grep -E 'before-rate-limit|clueroom-api-rate-limit-dryrun.*bak' || true
 sudo find /etc/nginx -maxdepth 3 -type f -name '*before-rate-limit*' -print
 ```
 
 백업 파일명은 실제 출력값으로 교체한다.
 
 ```bash
-BACKUP=/etc/nginx/sites-available/clueroom-api.before-rate-limit-change-YYYYMMDD_HHMMSS
-test -f "$BACKUP"
-sudo cp "$BACKUP" /etc/nginx/sites-available/clueroom-api
+SITE_BACKUP=/etc/nginx/sites-available/clueroom-api.before-rate-limit-change-YYYYMMDD_HHMMSS
+SNIPPET_BACKUP=/etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf.before-rate-limit-change-YYYYMMDD_HHMMSS
+
+test -f "$SITE_BACKUP"
+sudo cp "$SITE_BACKUP" /etc/nginx/sites-available/clueroom-api
+
+test -f "$SNIPPET_BACKUP"
+sudo cp "$SNIPPET_BACKUP" /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf
 ```
 
 검증 후 reload한다.
