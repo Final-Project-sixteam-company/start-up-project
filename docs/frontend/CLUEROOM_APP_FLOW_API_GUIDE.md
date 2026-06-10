@@ -247,6 +247,7 @@ guidance.suggestedQuestions
 `guidance`는 현재 해금되어 상세 조회 가능한 증거에서만 사용한다.
 잠긴 비교 증거는 `title`, `isUnlocked`, `unlockHint` 수준으로만 표시하고,
 `evidenceCode`는 기대하지 않는다.
+현재 응답에서 `evidenceId`가 함께 내려올 수 있지만, `isUnlocked=false`이면 상세 이동에 사용하지 않는다.
 
 이미지 관련 필드는 아래처럼 처리한다.
 
@@ -392,6 +393,7 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 
 `token` 원문은 응답에 돌아오지 않는다.
 같은 token을 다시 보내도 백엔드는 token unique 기준으로 upsert한다.
+`/api/device-tokens`는 보호 API이므로 Android는 Auth token provider 연결 이후 best-effort로 호출한다.
 `POST /api/notifications/test`는 local/test profile 전용 검증 API이므로 운영 앱에서 호출하지 않는다.
 
 ---
@@ -780,6 +782,7 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 
 `guidance.compareEvidences`의 잠긴 증거는 `evidenceCode`가 내려오지 않을 수 있다.
 프론트는 잠긴 비교 증거를 code 기반으로 라우팅하지 말고 `isUnlocked=false`와 `unlockHint` 중심으로 표시한다.
+`evidenceId`가 있더라도 `isUnlocked=false`이면 상세 이동 버튼을 만들지 않는다.
 
 ### 7.5 용의자 탭
 

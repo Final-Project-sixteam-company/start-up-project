@@ -358,21 +358,23 @@ Importer/validator는 아래를 reject해야 한다.
 
 ## 9. Backend Design 백엔드 설계
 
-### 9.1 현재 구현 Gap
+### 9.1 현재 구현 상태
 
-현재 backend는 guidance data를 저장하거나 제공하지 않는다.
+현재 backend는 guidance V1 계약을 구현했다.
 
-Known gaps 현재 gap:
+구현된 범위:
 
 ```text
-ScenarioYaml.EvidenceYaml has no guidance field.
-Evidence entity has no guidance storage.
-PlayEvidenceDetailResponse has no guidance response.
-ScenarioYamlImportService does not validate guidance references.
-Android cannot display guidance because API does not return it.
+ScenarioYaml.EvidenceYaml guidance field
+evidences.guidance_json storage
+ScenarioYamlValidator guidance reference/private marker validation
+PlayEvidenceDetailResponse guidance response
+locked compare evidence evidenceCode masking
+malformed guidance_json fail-soft parsing
 ```
 
-따라서 YAML data만 추가해도 user experience는 바뀌지 않는다.
+남은 gap은 Android/Frontend 표시와 official seed guidance 작성이다.
+YAML data만 추가하면 API 응답에는 반영되지만, Android가 guidance UI를 구현하기 전까지 사용자는 화면에서 볼 수 없다.
 
 ### 9.2 Persistence Recommendation 저장 방식 권장안
 
@@ -461,7 +463,6 @@ List는 가볍게 유지한다.
       },
       {
         "evidenceId": 102,
-        "evidenceCode": "EVIDENCE_RELATED_B",
         "title": "Locked evidence",
         "isUnlocked": false,
         "unlockHint": "Continue investigation to unlock this evidence."
@@ -485,7 +486,8 @@ Masking rule 마스킹 규칙:
 
 ```text
 Current evidence가 locked이면 guidance는 null 또는 omitted이어야 한다.
-Compared evidence가 locked이면 현재 locked-evidence masking policy에서 허용하는 field만 반환한다.
+Compared evidence가 locked이면 `evidenceCode`를 반환하지 않는다.
+현재 구현은 locked compare evidence에도 `evidenceId`를 반환할 수 있지만, Android는 `isUnlocked=false`이면 상세 이동에 사용하지 않는다.
 ```
 
 ### 9.5 DTO Recommendation DTO 권장안

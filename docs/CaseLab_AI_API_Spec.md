@@ -1452,7 +1452,8 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 현재 증거가 잠겨 있으면 기존 정책대로 상세 조회 자체가 차단된다.
 compareEvidences의 해금 증거는 evidenceCode를 포함할 수 있다.
 compareEvidences의 잠긴 증거는 evidenceCode를 포함하지 않는다.
-잠긴 비교 증거는 title / isUnlocked / unlockHint 수준만 사용한다.
+잠긴 비교 증거는 `evidenceId`가 내려오더라도 `isUnlocked=false`이면 상세 이동에 사용하지 않는다.
+프론트 표시에는 title / isUnlocked / unlockHint 수준만 사용한다.
 suggestedQuestions는 심문 입력 prefill 용도이며 자동 전송하면 안 된다.
 ```
 
