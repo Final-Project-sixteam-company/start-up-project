@@ -1,89 +1,89 @@
-# ClueRoom Security / Traffic / Alert Policy
+# ClueRoom 보안 / 트래픽 / 알림 정책
 
-## 1. Purpose
+## 1. 목적
 
-This document is the canonical policy for traffic defense, rate limiting, GeoIP/bot handling, and Grafana alert design.
-Detailed operational commands remain in `OPS_RUNBOOK.md`.
-Infrastructure structure and scale-out rationale remain in `CLUEROOM_INFRASTRUCTURE_STRATEGY.md`.
+이 문서는 traffic defense, rate limiting, GeoIP/bot 처리, Grafana alert 설계의 정본 정책이다.
+상세 운영 명령어는 `OPS_RUNBOOK.md`에 둔다.
+인프라 구조와 scale-out 근거는 `CLUEROOM_INFRASTRUCTURE_STRATEGY.md`에 둔다.
 
-Absorbed source documents:
+흡수한 이전 문서:
 
-| Previous document | Absorbed here |
+| 이전 문서 | 이 문서에 흡수한 내용 |
 |---|---|
-| `RATE_LIMIT_POLICY.md` | rate limit principles, API policy candidates, Redis/Nginx layer split, rollout order |
-| `GEOIP_BOT_TRAFFIC_POLICY.md` | bot/GeoIP interpretation, blocking options, production enforcement criteria |
-| `GRAFANA_ALERT_POLICY.md` | alert principles, safe alert candidates, Blue-Green false-positive rules, notification policy |
+| `RATE_LIMIT_POLICY.md` | rate limit 원칙, API 정책 후보, Redis/Nginx 계층 분리, rollout 순서 |
+| `GEOIP_BOT_TRAFFIC_POLICY.md` | bot/GeoIP 해석, 차단 옵션, 운영 적용 기준 |
+| `GRAFANA_ALERT_POLICY.md` | alert 원칙, 안전한 alert 후보, Blue-Green 오탐 방지 규칙, notification policy |
 
-## 2. Current Baseline
+## 2. 현재 Baseline
 
 ```text
-- Nginx is the public ingress for api.clueroom.xyz.
-- Spring Boot app runs behind Blue-Green slots.
-- Prometheus/Grafana exist for metrics and dashboarding.
-- ops Loki/Alloy can be used for read-only log and heartbeat inspection.
-- n8n routes Grafana alerts to Slack.
-- Nginx API per-IP rate limit is enforced.
-- Nginx CN IPv4 block is applied.
-- Manual blocklist snippet is available for narrow abusive IP blocks.
-- Heavy AI endpoints need extra care because they can create direct LLM cost.
-- Frontend E2E and demo stability are higher priority than aggressive blocking.
+- Nginx가 api.clueroom.xyz의 public ingress다.
+- Spring Boot app은 Blue-Green slot 뒤에서 실행된다.
+- Prometheus/Grafana로 metrics와 dashboard를 본다.
+- ops Loki/Alloy는 read-only log와 heartbeat 점검에 사용한다.
+- n8n은 Grafana alert를 Slack으로 routing한다.
+- Nginx API per-IP rate limit은 enforcement 상태다.
+- Nginx CN IPv4 block은 적용된 상태다.
+- 좁은 범위의 abusive IP block을 위한 manual blocklist snippet이 준비되어 있다.
+- AI endpoint는 직접 LLM 비용을 만들 수 있으므로 추가 주의가 필요하다.
+- Frontend E2E와 demo 안정성이 공격적인 차단보다 우선한다.
 ```
 
-Do not add multiple new enforcement layers at once.
-For new or changed rules, the rollout principle remains observe first, then dry-run, then enforce only after evidence is stable.
-The current API rate-limit and CN block baseline has already passed that gate and is the operating state.
+새 enforcement layer를 여러 개 한 번에 추가하지 않는다.
+새 규칙이나 threshold 변경은 observe first, dry-run, evidence 안정화 후 enforce 순서를 따른다.
+현재 API rate-limit과 CN block baseline은 이 단계를 이미 통과한 운영 상태다.
 
-## 3. Layer Separation
+## 3. 계층 분리
 
-### Nginx IP-Based Rate Limit
+### Nginx IP 기반 Rate Limit
 
-Use Nginx for coarse request throttling by IP.
+Nginx는 IP 기준의 거친 요청 제한에 사용한다.
 
-Good for:
+적합한 용도:
 
 ```text
-- broad API abuse
+- 광범위한 API abuse
 - AI endpoint burst protection
 - FCM token registration spam
-- obvious bot/crawler burst control
+- 명확한 bot/crawler burst 제어
 ```
 
-Nginx must not make user/account/business decisions.
-It only sees IP/path/method and should remain coarse.
+Nginx는 user/account/business 판단을 하면 안 된다.
+Nginx는 IP/path/method만 보므로 거친 제한 계층으로 유지한다.
 
-### Backend Redis Rate Limit
+### Backend Redis Rate Limit 계층
 
-Use backend Redis rate limiting for user/session/scenario-aware rules.
+Backend Redis rate limiting은 user/session/scenario aware 규칙에 사용한다.
 
-Good for:
+적합한 용도:
 
 ```text
-- per user AI call limit
-- per session interrogation/final-deduction pacing
-- per device FCM registration pacing
-- abuse control that needs authenticated identity
+- user별 AI call limit
+- session별 interrogation/final-deduction pacing
+- device별 FCM registration pacing
+- authenticated identity가 필요한 abuse control
 ```
 
-Backend rate limit should return API error responses that Android can handle.
+Backend rate limit은 Android가 처리할 수 있는 API error response를 반환해야 한다.
 
-### Cloudflare / WAF
+### Cloudflare / WAF 계층
 
-Cloudflare WAF can be used for coarse bot/country/path rules if DNS/proxy setup is active.
-Prefer Cloudflare for broad L7 controls and quick rollback, but do not depend on it for app-specific cost controls.
+DNS/proxy 구성이 활성화되어 있다면 Cloudflare WAF를 coarse bot/country/path rule에 사용할 수 있다.
+넓은 L7 제어와 빠른 rollback에는 Cloudflare가 적합하지만, app-specific cost control을 Cloudflare에만 의존하면 안 된다.
 
-## 4. API Rate Limit Candidates
+## 4. API Rate Limit 후보
 
-| API group | Initial policy direction |
+| API group | 초기 정책 방향 |
 |---|---|
-| General read APIs | high enough to avoid normal app friction |
-| `POST /api/play-sessions/{sessionId}/interrogations` | stricter due AI cost |
-| `POST /api/play-sessions/{sessionId}/final-deduction` | stricter due AI cost and state transition |
-| `POST /api/ai/scenarios/{scenarioId}/validate` | strictest among normal user-visible APIs |
-| FCM token registration | medium strictness, device/user aware later |
-| image/static URLs | prefer CDN/S3 controls, not app Nginx only |
-| health/swagger/preflight | do not break deploy, QA, CORS, or monitoring |
+| General read APIs | 정상 앱 사용에 마찰이 없을 정도로 충분히 높게 설정 |
+| `POST /api/play-sessions/{sessionId}/interrogations` | AI 비용 때문에 더 엄격하게 설정 |
+| `POST /api/play-sessions/{sessionId}/final-deduction` | AI 비용과 state transition 때문에 더 엄격하게 설정 |
+| `POST /api/ai/scenarios/{scenarioId}/validate` | 일반 사용자 노출 API 중 가장 엄격하게 설정 |
+| FCM token registration | 중간 수준 제한, 이후 device/user aware로 확장 |
+| image/static URLs | app Nginx만으로 처리하지 말고 CDN/S3 control 우선 |
+| health/swagger/preflight | deploy, QA, CORS, monitoring을 깨지 않게 보호 |
 
-Current Nginx enforcement baseline:
+현재 Nginx enforcement baseline:
 
 ```text
 limit_req_zone clueroom_api_per_ip: 20r/s
@@ -93,16 +93,16 @@ limit_req_status 429
 limit_conn per IP: 30
 ```
 
-Operational interpretation:
+운영 해석:
 
 ```text
-- 429 means Nginx rate limit, not a permanent ban.
-- 403 means CN block, manual blocklist, sensitive path block, or another explicit deny rule.
-- 403/429 alerts are warning-level signals unless normal user impact is confirmed.
-- Health/swagger/preflight must remain safe during deploy, QA, and monitoring.
+- 429는 Nginx rate limit이며, 영구 차단이 아니다.
+- 403은 CN block, manual blocklist, sensitive path block 또는 명시적인 deny rule이다.
+- 403/429 alert는 정상 사용자 영향이 확인되기 전까지 warning-level signal로 본다.
+- Health/swagger/preflight는 deploy, QA, monitoring 중에도 안전해야 한다.
 ```
 
-Reference Nginx shape:
+참고 Nginx 형태:
 
 ```nginx
 limit_req_zone $binary_remote_addr zone=clueroom_api_per_ip:10m rate=20r/s;
@@ -117,7 +117,7 @@ location /api/ {
 }
 ```
 
-Backend Redis rate-limit key candidates remain useful for future user/session-aware quotas:
+향후 Backend Redis rate-limit key 후보:
 
 ```text
 rate:ai:interrogation:user:{userId}:session:{sessionId}
@@ -126,7 +126,7 @@ rate:final-deduction:session:{sessionId}
 rate:device-token:user:{userId}:token:{tokenHash}
 ```
 
-429 response shape candidate:
+429 response shape 후보:
 
 ```json
 {
@@ -139,38 +139,38 @@ rate:device-token:user:{userId}:token:{tokenHash}
 }
 ```
 
-`Retry-After` header can be considered for API consumers.
-The response must not include secret, scenario solution, prompt, AI provider details, or private state.
+API consumer를 위해 `Retry-After` header를 검토할 수 있다.
+응답에는 secret, scenario solution, prompt, AI provider detail, private state를 포함하지 않는다.
 
-## 5. Rate Limit Rollout
+## 5. Rate Limit Rollout 절차
 
-1. Back up current Nginx site and snippet config.
-2. Add or change zone/snippet in dry-run mode first when changing thresholds or new endpoint groups.
-2. Validate Nginx syntax.
-3. Reload Nginx.
-4. Run normal Android/API smoke.
-5. Inspect access/error logs for dry-run hits.
-6. Tune thresholds.
-7. Only then switch the changed rule to enforcement.
+1. 현재 Nginx site와 snippet config를 백업한다.
+2. threshold 변경이나 새 endpoint group 추가 시 먼저 dry-run mode로 zone/snippet을 추가하거나 변경한다.
+3. Nginx syntax를 검증한다.
+4. Nginx를 reload한다.
+5. 정상 Android/API smoke를 실행한다.
+6. Access/error log에서 dry-run hit를 확인한다.
+7. Threshold를 조정한다.
+8. 그 다음 변경한 rule을 enforcement로 전환한다.
 
-Do not expand enforcement during frontend E2E QA or before demo without explicit approval.
+Frontend E2E QA 중이거나 demo 전에는 명시적 승인 없이 enforcement를 확대하지 않는다.
 
-New production enforcement or threshold change requires:
+새로운 production enforcement 또는 threshold 변경에는 아래 조건이 필요하다.
 
 ```text
-- no normal Android smoke failures
-- no health/swagger/preflight breakage
-- reviewed dry-run hit sample
-- rollback command ready
-- threshold documented in this policy or OPS_RUNBOOK
+- 정상 Android smoke 실패 없음
+- health/swagger/preflight 깨짐 없음
+- dry-run hit sample 리뷰 완료
+- rollback command 준비 완료
+- threshold가 이 policy 또는 OPS_RUNBOOK에 문서화됨
 ```
 
-## 6. Bot / GeoIP Policy
+## 6. Bot / GeoIP 정책
 
-### Interpretation Rules
+### 해석 규칙
 
-Do not treat unknown IP/country traffic as an incident by itself.
-Correlate with:
+알 수 없는 IP/country traffic 자체만으로 incident로 보지 않는다.
+아래 항목과 함께 판단한다.
 
 ```text
 - request rate
@@ -182,36 +182,36 @@ Correlate with:
 - repeated 4xx/5xx
 ```
 
-Read-only inspection is allowed.
-Current CN IPv4 block is part of the operating baseline.
-New country blocks, manual IP blocks, or wider deny rules still require evidence and rollback path.
+Read-only 점검은 허용된다.
+현재 CN IPv4 block은 운영 baseline이다.
+새 country block, manual IP block, 더 넓은 deny rule은 여전히 증거와 rollback path가 필요하다.
 
-### Blocking Options
+### 차단 옵션
 
-| Option | Use when | Notes |
+| Option | 사용 조건 | 비고 |
 |---|---|---|
-| Cloudflare WAF custom rules | Cloudflare proxy is active and quick rollback is needed | preferred broad control |
-| Nginx geo map | country/CIDR block must live near ingress | current CN IPv4 block uses an aggregated map |
-| ipset / nftables | severe L3/L4 abuse | higher operational risk, avoid early |
+| Cloudflare WAF custom rules | Cloudflare proxy가 활성화되어 있고 빠른 rollback이 필요할 때 | 넓은 범위 제어에 적합 |
+| Nginx geo map | country/CIDR block을 ingress 근처에서 처리해야 할 때 | 현재 CN IPv4 block은 aggregated map 사용 |
+| ipset / nftables | 심각한 L3/L4 abuse | 운영 위험이 높으므로 초기에는 피한다 |
 
-### Production Enforcement Criteria
+### 운영 적용 기준
 
-For new blocks beyond the current CN baseline, block only if most of these are true:
+현재 CN baseline 외의 새 차단은 대부분의 조건을 만족할 때만 적용한다.
 
 ```text
-- traffic is clearly abusive or automated
-- normal team/QA traffic is not affected
-- blocking scope is narrow
-- rollback is one command/config revert
-- evidence is captured without secrets
-- infra lead approves
+- traffic이 명확히 abusive 또는 automated다.
+- 정상 팀/QA traffic이 영향받지 않는다.
+- blocking scope가 좁다.
+- rollback이 한 command/config revert로 가능하다.
+- secret 없는 evidence가 있다.
+- infra lead가 승인한다.
 ```
 
-Do not create additional permanent country blocking based on a single log sample.
+단일 log sample만 보고 추가 permanent country block을 만들지 않는다.
 
-### GeoIP / Bot PoC Appendix
+### GeoIP / Bot PoC 부록
 
-Read-only log inspection commands:
+Read-only log 점검 명령:
 
 ```bash
 sudo awk '{print $1}' /var/log/nginx/access.log | sort | uniq -c | sort -nr | head -20
@@ -221,7 +221,7 @@ sudo awk -F\" '{print $6}' /var/log/nginx/access.log | sort | uniq -c | sort -nr
 sudo tail -n 100 /var/log/nginx/error.log
 ```
 
-Current CN block shape:
+현재 CN block 형태:
 
 ```nginx
 geo $clueroom_is_cn_ip {
@@ -234,68 +234,68 @@ if ($clueroom_is_cn_ip) {
 }
 ```
 
-Rollback means removing the include/deny rule, running `nginx -t`, reloading Nginx, and verifying `/actuator/health`.
+Rollback은 include/deny rule을 제거하고, `nginx -t`를 실행한 뒤 Nginx reload와 `/actuator/health` 확인을 수행하는 것이다.
 
-## 7. Grafana Alert Principles
+## 7. Grafana Alert 원칙
 
-Alerts should be actionable.
-A dashboard panel can be noisy; an alert must require action.
+Alert는 실행 가능해야 한다.
+Dashboard panel은 noisy할 수 있지만, alert는 action이 필요한 경우에만 울려야 한다.
 
-Design principles:
+설계 원칙:
 
 ```text
-- Prefer external user-impact signals over internal noise.
-- Prefer active Blue-Green slot health over standby slot health.
-- Avoid alerts that require missing exporters to be accurate.
-- Do not page on expected deploy transitions.
-- Start with manual review or low-severity notifications before critical alerts.
+- 내부 noise보다 외부 사용자 영향 signal을 우선한다.
+- Standby slot health보다 active Blue-Green slot health를 우선한다.
+- exporter가 부족하면 정확해질 수 없는 alert는 피한다.
+- 예상 가능한 deploy transition을 page하지 않는다.
+- Critical alert 전에 manual review 또는 low-severity notification으로 시작한다.
 ```
 
-## 8. Safe Alert Candidates
+## 8. 안전한 Alert 후보
 
-### External API Health Down
+### External API Health Down 감지
 
-Candidate signal:
+후보 signal:
 
 ```text
 https://api.clueroom.xyz/actuator/health unavailable or unhealthy
 ```
 
-Use as high priority because it reflects user-visible API availability.
+사용자에게 보이는 API availability를 반영하므로 높은 우선순위로 본다.
 
-### HTTP 5xx Increase
+### HTTP 5xx 증가
 
-Candidate signal:
+후보 signal:
 
 ```text
 5xx rate increases over baseline
 ```
 
-Use only with a time window to avoid single transient failures.
+단일 transient failure를 피하기 위해 time window와 함께 사용한다.
 
-### HTTP Latency Increase
+### HTTP Latency 증가
 
-Candidate signal:
+후보 signal:
 
 ```text
 p95/p99 API latency crosses threshold for sustained period
 ```
 
-Tune after real traffic exists.
+실제 traffic baseline이 생긴 뒤 조정한다.
 
-### JVM Memory Increase
+### JVM Memory 증가
 
-Candidate signal:
+후보 signal:
 
 ```text
 JVM memory pressure sustained over threshold
 ```
 
-Use warning first, not critical, until baseline is known.
+Baseline이 명확해지기 전까지 critical이 아니라 warning부터 사용한다.
 
-### Prometheus Scrape Failure
+### Prometheus Scrape 실패
 
-Current Prometheus jobs:
+현재 Prometheus jobs:
 
 ```text
 clueroom-app
@@ -304,11 +304,11 @@ clueroom-app-green
 prometheus
 ```
 
-Do not alert critically on one standby Blue-Green target down.
+Standby Blue-Green target 하나가 down인 것만으로 critical alert를 만들지 않는다.
 
-### Data / Backup / Ops Health
+### Data / Backup / Ops Health 감지
 
-Current Loki heartbeat signals:
+현재 Loki heartbeat signals:
 
 ```text
 DATA_HEALTH
@@ -317,16 +317,16 @@ OPS_HEALTH
 SERVER_HEALTH
 ```
 
-Safe alert examples:
+안전한 alert 예시:
 
 ```text
-- DATA_HEALTH reports MySQL or Redis failure
-- S3_BACKUP_HEALTH reports S3 upload failure, missing state, or stale upload
-- OPS_HEALTH reports Loki/n8n critical failure
-- heartbeat missing for the expected window
+- DATA_HEALTH가 MySQL 또는 Redis failure를 보고한다.
+- S3_BACKUP_HEALTH가 S3 upload failure, missing state, stale upload를 보고한다.
+- OPS_HEALTH가 Loki/n8n critical failure를 보고한다.
+- 기대 window 안에 heartbeat가 없다.
 ```
 
-S3 backup alerts should distinguish:
+S3 backup alert는 아래를 구분해야 한다.
 
 ```text
 backup failed
@@ -335,76 +335,79 @@ S3 backup heartbeat missing
 restore rehearsal not recently verified
 ```
 
-### Nginx 403 / 429
+### Nginx 403 / 429 해석
 
-Current alert interpretation:
+현재 alert 해석:
 
 ```text
 403 increase
-→ usually block rules working
-→ check normal-user impact and repeated source IPs
+→ 보통 block rule이 동작 중이라는 의미다.
+→ 정상 사용자 영향과 반복 source IP를 확인한다.
 
 429 increase
-→ rate limit working
-→ check normal-user impact and endpoint distribution
+→ rate limit이 동작 중이라는 의미다.
+→ 정상 사용자 영향과 endpoint 분포를 확인한다.
 ```
 
-403/429 should start as warning. Escalate only if normal user traffic is affected or API availability drops.
+403/429는 warning에서 시작한다.
+정상 사용자 traffic이 영향받거나 API availability가 떨어질 때만 escalation한다.
 
-## 9. Alerts Not Safe Yet
+## 9. 아직 안전하지 않은 Alert
 
-Do not make critical alerts yet for these without better exporters or validated bridges:
+더 나은 exporter 또는 검증된 bridge 없이 아래 항목을 critical alert로 만들지 않는다.
 
 ```text
-- host disk low from incomplete source
-- host CPU/RAM high without stable exporter
-- one standby Blue-Green app target down
+- 불완전한 source 기반 host disk low
+- 안정적인 exporter 없는 host CPU/RAM high
+- standby Blue-Green app target 하나 down
 ```
 
-Ops Snapshot disk judgement uses `SERVER_HEALTH`, `DATA_HEALTH`, `OPS_HEALTH` `disk_max_percent` as the source of truth.
-Raw snapshot text percentages are fallback only.
+Ops Snapshot의 disk 판단은 `SERVER_HEALTH`, `DATA_HEALTH`, `OPS_HEALTH`의 `disk_max_percent`를 source of truth로 사용한다.
+Raw snapshot text의 percentage는 fallback으로만 사용한다.
 
-## 10. Blue-Green Alert Rules
+## 10. Blue-Green Alert 규칙
 
-Safe policy:
+안전한 정책:
 
 ```text
-- active upstream app failure is important.
-- both app-blue and app-green down is critical.
-- standby app-blue/app-green down can be normal after deploy.
-- external /actuator/health is more important than one scrape target.
+- active upstream app failure는 중요하다.
+- app-blue와 app-green이 모두 down이면 critical이다.
+- standby app-blue/app-green down은 deploy 후 정상일 수 있다.
+- 외부 /actuator/health가 단일 scrape target보다 중요하다.
 ```
 
-Avoid naive critical alert:
+피해야 할 naive critical alert:
 
 ```promql
 up{job=~"clueroom-app-blue|clueroom-app-green"} == 0
 ```
 
-Better checks combine active slot information, external health, and both-target-down conditions.
+더 나은 check는 active slot 정보, external health, both-target-down 조건을 함께 본다.
 
-### Alert Threshold Appendix
+### Alert Threshold 부록
 
-These are candidate thresholds only. Confirm actual Prometheus metric names in Grafana Explore before creating alerts.
+아래는 후보 threshold다.
+Alert를 만들기 전에 Grafana Explore에서 실제 Prometheus metric name을 확인한다.
 
-| Alert | Candidate metric/expression | Window | Threshold | Severity |
+| Alert | 후보 metric/expression | Window | Threshold | Severity |
 |---|---|---:|---:|---|
-| AI failures spike | `sum(increase(ai_failures_total[5m]))` | 5m | `>= 23` | WARNING first |
-| AI p95 latency high | `histogram_quantile(0.95, sum(rate(ai_latency_seconds_bucket[5m])) by (le, feature_type))` | 5m | `> 23s` | WARNING first |
-| AI fallback spike | `sum(increase(ai_fallbacks_total[5m]))` | 5m | tune after baseline | WARNING first |
-| Both Blue-Green targets down | `up{job="clueroom-app-blue"} == 0 and up{job="clueroom-app-green"} == 0` | 1~3m | true | CRITICAL candidate |
-| Prometheus scrape down | `up{job="prometheus"} == 0` | 1~3m | true | CRITICAL candidate |
-| Nginx 403 blocked request | Loki access log query matching HTTP 403 | 5~10m | tune after baseline | WARNING |
-| Nginx 429 rate limit | Loki access log query matching HTTP 429 | 5~10m | tune after baseline | WARNING |
-| S3 backup failed/stale | Loki `{job="s3-backup-health", instance="clueroom-data-01"}` status failure/stale | 10m | failure present | CRITICAL |
-| S3 backup heartbeat missing | Loki S3_BACKUP_HEALTH count | 10m | below 1 | CRITICAL |
+| AI failures spike 감지 | `sum(increase(ai_failures_total[5m]))` | 5m | `>= 23` | WARNING first |
+| AI p95 latency high 감지 | `histogram_quantile(0.95, sum(rate(ai_latency_seconds_bucket[5m])) by (le, feature_type))` | 5m | `> 23s` | WARNING first |
+| AI fallback spike 감지 | `sum(increase(ai_fallbacks_total[5m]))` | 5m | baseline 이후 조정 | WARNING first |
+| Blue-Green 양쪽 target down | `up{job="clueroom-app-blue"} == 0 and up{job="clueroom-app-green"} == 0` | 1~3m | true | CRITICAL candidate |
+| Prometheus scrape down 감지 | `up{job="prometheus"} == 0` | 1~3m | true | CRITICAL candidate |
+| Nginx 403 blocked request 감지 | HTTP 403에 매칭되는 Loki access log query | 5~10m | baseline 이후 조정 | WARNING |
+| Nginx 429 rate limit 감지 | HTTP 429에 매칭되는 Loki access log query | 5~10m | baseline 이후 조정 | WARNING |
+| S3 backup failed/stale 감지 | Loki `{job="s3-backup-health", instance="clueroom-data-01"}` status failure/stale | 10m | failure present | CRITICAL |
+| S3 backup heartbeat missing 감지 | Loki S3_BACKUP_HEALTH count | 10m | below 1 | CRITICAL |
 
-Prometheus-exported Micrometer names use underscore form, so Java metric names `ai.failures`, `ai.latency`, and `ai.fallbacks` are expected as `ai_failures_total`, `ai_latency_seconds_*`, and `ai_fallbacks_total`.
-If the bucket series does not exist, do not create a p95 alert until histogram publishing is verified.
+Prometheus로 export된 Micrometer 이름은 underscore 형태를 사용한다.
+따라서 Java metric 이름 `ai.failures`, `ai.latency`, `ai.fallbacks`는 `ai_failures_total`, `ai_latency_seconds_*`, `ai_fallbacks_total`로 예상한다.
+Bucket series가 없으면 histogram publishing을 확인하기 전까지 p95 alert를 만들지 않는다.
 
-## 11. Notification Policy
+## 11. Notification Policy 알림 정책
 
-Current notification path:
+현재 notification path:
 
 ```text
 1. Grafana alert fires
@@ -414,84 +417,84 @@ Current notification path:
 5. Codex is used for manual handoff/deep analysis, not real-time automatic fallback
 ```
 
-### Current n8n Workflow Inventory
+### 현재 n8n Workflow Inventory
 
-This table summarizes the active n8n workflow exports reviewed on 2026-06-10.
-Do not commit the raw workflow JSON exports because they can contain webhook paths, credential references, Slack channel IDs, URLs, or prompt bodies.
+이 표는 2026-06-10에 확인한 active n8n workflow export를 요약한다.
+Raw workflow JSON export는 webhook path, credential reference, Slack channel ID, URL, prompt body를 포함할 수 있으므로 commit하지 않는다.
 
-| Workflow | Trigger | Monitors / Inputs | Deterministic Slack Output | Optional AI / Handoff | Failure Budget |
+| Workflow | Trigger | 모니터링 대상 / 입력 | Deterministic Slack Output | Optional AI / Handoff | Failure Budget |
 |---|---|---|---|---|---|
-| `ClueRoom - Grafana Alert Router v8 Budgeted Gemini 3.5` | Grafana POST webhook | Grafana alert payload, related Loki logs for Nginx 5xx or app ERROR/Exception | Basic alert first: status, max severity, firing/resolved counts, alert summary, immediate next checks | `gemini-3.5-flash` adds short Korean analysis after the basic alert | Gemini only for firing alerts, daily Gemini limit 3, one retry after 70s, basic alert is never blocked by Gemini |
-| `ClueRoom - Ops Snapshot Agent v5 Lite Daily Budget` | Manual plus scheduled every 24h | `/opt/clueroom/ops-snapshot.sh`, `DATA_HEALTH`, `SERVER_HEALTH` | Basic ops status first: prod/data health, Nginx syntax signal, disk/memory summary, recent error pattern count | `gemini-2.5-flash-lite` adds Korean ops analysis after the basic status | Daily Gemini limit 1, one retry after 70s, basic status is never blocked by Gemini |
-| `ClueRoom - LLMOps Light Monitor v4 Budgeted Gemini 3.5` | Manual plus scheduled every 1h | Loki `AI_CALL` logs for the recent 60m window, limit 500 | Basic LLMOps summary first: count, success/failure/fallback, latency, token total, top feature/prompt groups | `gemini-3.5-flash` adds short LLMOps analysis after the basic summary | Daily Gemini limit 2, one retry after 70s, basic summary is never blocked by Gemini |
-| `ClueRoom - Infra Codex Handoff Report v1` | Manual plus scheduled every 24h | Ops snapshot, `DATA_HEALTH`, `SERVER_HEALTH`, `OPS_HEALTH`, recent Nginx 5xx, app ERROR/Exception, recent `AI_CALL` | Slack handoff report for human/Codex review | Codex handoff report only; no autonomous production action | Slack report only; agent action remains human-approved |
-| `ClueRoom - LLMOps Codex Handoff Report v2` | Manual plus scheduled every 24h | Loki `AI_CALL` logs for recent 24h, limit 5000 | Slack LLMOps handoff: totals, failure/fallback rate, latency, tokens, top prompt buckets, sample failures | Codex handoff report only; no autonomous prompt or runtime change | Slack report only; prompt/backend changes require PR review |
+| `ClueRoom - Grafana Alert Router v8 Budgeted Gemini 3.5` | Grafana POST webhook | Grafana alert payload, Nginx 5xx 또는 app ERROR/Exception 관련 Loki logs | 기본 alert 먼저 전송: status, max severity, firing/resolved count, alert summary, 즉시 확인할 항목 | `gemini-3.5-flash`가 기본 alert 이후 짧은 한국어 분석 추가 | firing alert에만 Gemini 사용, daily Gemini limit 3, 70초 후 1회 retry, basic alert는 Gemini에 막히지 않음 |
+| `ClueRoom - Ops Snapshot Agent v5 Lite Daily Budget` | Manual + 24h schedule | `/opt/clueroom/ops-snapshot.sh`, `DATA_HEALTH`, `SERVER_HEALTH` | 기본 ops status 먼저 전송: prod/data health, Nginx syntax signal, disk/memory summary, recent error pattern count | `gemini-2.5-flash-lite`가 기본 status 이후 한국어 ops analysis 추가 | Daily Gemini limit 1, 70초 후 1회 retry, basic status는 Gemini에 막히지 않음 |
+| `ClueRoom - LLMOps Light Monitor v4 Budgeted Gemini 3.5` | Manual + 1h schedule | 최근 60m window의 Loki `AI_CALL` logs, limit 500 | 기본 LLMOps summary 먼저 전송: count, success/failure/fallback, latency, token total, top feature/prompt groups | `gemini-3.5-flash`가 기본 summary 이후 짧은 LLMOps analysis 추가 | Daily Gemini limit 2, 70초 후 1회 retry, basic summary는 Gemini에 막히지 않음 |
+| `ClueRoom - Infra Codex Handoff Report v1` | Manual + 24h schedule | Ops snapshot, `DATA_HEALTH`, `SERVER_HEALTH`, `OPS_HEALTH`, 최근 Nginx 5xx, app ERROR/Exception, 최근 `AI_CALL` | Human/Codex review용 Slack handoff report | Codex handoff report만 생성, autonomous production action 없음 | Slack report만 생성, agent action은 human-approved 상태 유지 |
+| `ClueRoom - LLMOps Codex Handoff Report v2` | Manual + 24h schedule | 최근 24h Loki `AI_CALL` logs, limit 5000 | Slack LLMOps handoff: totals, failure/fallback rate, latency, tokens, top prompt buckets, sample failures | Codex handoff report만 생성, autonomous prompt/runtime change 없음 | Slack report만 생성, prompt/backend 변경은 PR review 필요 |
 
-### Workflow Alert Contents
+### Workflow Alert 내용
 
-The current alert/reporting split is:
+현재 alert/reporting 역할 분리는 아래와 같다.
 
 ```text
 Grafana Alert Router
 → event notification
-→ critical firing alerts may mention the channel
-→ includes basic runbook checks before any Gemini analysis
+→ critical firing alert는 channel mention 가능
+→ Gemini 분석 전에 기본 runbook check를 포함한다.
 
 Ops Snapshot Agent
 → periodic state report
-→ checks prod/data health, heartbeat bridge, Nginx syntax, disk/memory, and recent error patterns
-→ WARNING/INFO output is report-grade unless paired with user-facing impact
+→ prod/data health, heartbeat bridge, Nginx syntax, disk/memory, recent error pattern을 확인한다.
+→ WARNING/INFO output은 user-facing impact와 함께 나타나지 않는 한 report-grade다.
 
 LLMOps Light Monitor
 → hourly AI_CALL summary
-→ watches failure count, fallback count, latency, token total, and feature/prompt grouping
-→ CRITICAL when failure >= 3, fallback >= 3, or max latency >= 15s in the 60m window
-→ WARNING when failure/fallback exists, max latency >= 8s, average latency >= 5s, or total tokens >= 30000
+→ failure count, fallback count, latency, token total, feature/prompt grouping을 본다.
+→ 60m window에서 failure >= 3, fallback >= 3, max latency >= 15s이면 CRITICAL
+→ failure/fallback 존재, max latency >= 8s, average latency >= 5s, total tokens >= 30000이면 WARNING
 
 Infra Codex Handoff
 → daily infra review input
-→ combines health heartbeats, recent Nginx 5xx, app errors, and AI_CALL samples
+→ health heartbeat, recent Nginx 5xx, app errors, AI_CALL samples를 결합한다.
 
 LLMOps Codex Handoff
 → daily LLMOps review input
-→ summarizes 24h AI_CALL cost, latency, failure, fallback, and promptVersion candidates
+→ 24h AI_CALL cost, latency, failure, fallback, promptVersion candidate를 요약한다.
 ```
 
-Gemini analysis is advisory only.
-If Gemini fails, times out, returns an unusable response, or exceeds daily budget, the deterministic Slack message must still be sent.
+Gemini analysis는 보조 정보일 뿐이다.
+Gemini가 실패하거나, timeout되거나, 사용할 수 없는 응답을 반환하거나, daily budget을 초과해도 deterministic Slack message는 반드시 전송되어야 한다.
 
-Candidate channels:
+후보 채널:
 
 ```text
 #clueroom-alerts
 #clueroom-infra
 ```
 
-Do not send secrets, raw `.env`, raw user questions, AI answers, DB passwords, private keys, or Firebase JSON to Slack.
+Slack에는 secret, raw `.env`, raw user question, AI answer, DB password, private key, Firebase JSON을 보내지 않는다.
 
-## 12. Do Not Do
+## 12. 하지 말 것
 
 ```text
-- Do not expand Nginx enforcement without dry-run evidence.
-- Do not block an additional country based on one suspicious IP.
-- Do not page on standby Blue-Green target down by itself.
-- Do not expose Prometheus directly to the public internet.
-- Do not paste raw access logs containing user input into public PRs.
-- Do not move Loki/n8n back onto the prod app server.
-- Do not use rate limiting to hide backend 5xx bugs.
+- dry-run evidence 없이 Nginx enforcement를 확대하지 않는다.
+- 의심 IP 하나만 보고 추가 country block을 만들지 않는다.
+- standby Blue-Green target down 자체만으로 page하지 않는다.
+- Prometheus를 public internet에 직접 노출하지 않는다.
+- user input이 포함된 raw access log를 public PR에 붙이지 않는다.
+- Loki/n8n을 prod app server로 되돌리지 않는다.
+- backend 5xx bug를 숨기기 위해 rate limiting을 사용하지 않는다.
 ```
 
-## 13. Review Checklist
+## 13. Review Checklist 점검표
 
-Before changing traffic/security/alert policy:
+Traffic/security/alert policy를 바꾸기 전에 확인한다.
 
 ```text
-- Is this observe, dry-run, or enforcement?
-- What normal user flow could be affected?
-- What is the rollback?
-- Is there evidence without secrets?
-- Does Android E2E still pass?
-- Does actuator health still work?
-- Does Swagger/preflight still work if it must remain available?
-- Is the active Blue-Green slot distinguished from standby?
+- 이것은 observe, dry-run, enforcement 중 무엇인가?
+- 어떤 정상 사용자 flow가 영향받을 수 있는가?
+- rollback은 무엇인가?
+- secret 없는 evidence가 있는가?
+- Android E2E가 여전히 통과하는가?
+- actuator health가 여전히 동작하는가?
+- Swagger/preflight가 유지되어야 한다면 여전히 동작하는가?
+- active Blue-Green slot과 standby를 구분했는가?
 ```

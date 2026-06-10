@@ -1,40 +1,41 @@
-# ClueRoom Infra Portfolio Summary
+# ClueRoom 인프라 포트폴리오 요약
 
-> Purpose: summarize the ClueRoom infrastructure work for presentation, portfolio, and interview review.
-> Operational commands remain in `OPS_RUNBOOK.md`; architecture and roadmap remain in `CLUEROOM_INFRASTRUCTURE_STRATEGY.md`.
-> This document intentionally avoids secrets, raw logs, DB dumps, private IP credentials, and private scenario data.
-
----
-
-## 1. One-Line Summary
-
-ClueRoom runs on a low-cost AWS Lightsail MVP architecture, but it includes production-oriented safeguards: Blue-Green app deployment, externalized data server, S3 DB backup and restore rehearsal, Loki/Grafana/n8n/Slack observability, Nginx rate limiting and CN IP blocking, and LLMOps telemetry for AI calls.
+> 목적: ClueRoom 인프라 작업을 발표, 포트폴리오, 면접 리뷰용으로 요약한다.
+> 운영 명령어는 `OPS_RUNBOOK.md`에 두고, 구조와 로드맵은 `CLUEROOM_INFRASTRUCTURE_STRATEGY.md`에 둔다.
+> 이 문서는 secret, 원본 로그, DB dump, private IP credential, private scenario data를 의도적으로 포함하지 않는다.
 
 ---
 
-## 2. Constraints
+## 1. 한 줄 요약
+
+ClueRoom은 저비용 AWS Lightsail MVP 구조로 운영하지만, Blue-Green 앱 배포, 분리된 data server, S3 DB 백업과 복구 rehearsal, Loki/Grafana/n8n/Slack 관측, Nginx rate limit과 CN IP 차단, AI 호출 LLMOps telemetry 같은 운영 안정장치를 갖춘 구조다.
+
+---
+
+## 2. 제약 조건
 
 ```text
-- Bootcamp final project with MVP cost constraints
-- Android + Spring Boot service exposed through api.clueroom.xyz
-- AI interrogation is a core feature, so latency, failure, fallback, and token cost need visibility
-- Team demo stability and rollback are more important than managed-infra completeness
-- The infra work should show real Linux/Docker/Nginx operations, not only managed services
+- 부트캠프 최종 프로젝트라 MVP 비용 제약이 있다.
+- Android + Spring Boot 서비스가 api.clueroom.xyz로 외부에 노출된다.
+- AI 심문이 핵심 기능이므로 latency, failure, fallback, token cost를 볼 수 있어야 한다.
+- 관리형 인프라의 완성도보다 팀 데모 안정성과 rollback 가능성이 더 중요하다.
+- 인프라 작업은 managed service만 쓰는 것이 아니라 Linux/Docker/Nginx 운영 경험을 보여줘야 한다.
 ```
 
-The goal was not to use the largest AWS stack. The goal was to build the minimum realistic operating model for a small startup-style MVP.
+목표는 가장 큰 AWS stack을 쓰는 것이 아니었다.
+작은 startup-style MVP에서 필요한 최소한의 현실적인 운영 모델을 만드는 것이 목표였다.
 
 ---
 
-## 3. Current Production Shape
+## 3. 현재 운영 구조
 
-| Server | Role | Main Components |
+| Server | 역할 | 주요 구성요소 |
 |---|---|---|
-| `clueroom-api-prod-01` | API ingress and app runtime | Nginx, app-blue, app-green, Prometheus, Grafana, Alloy |
-| `clueroom-data-01` | Data source of truth | MySQL, Redis, local backup, S3 upload, DATA_HEALTH, S3_BACKUP_HEALTH |
-| `clueroom-ops-01` | Logs and alert automation | Loki, n8n, OPS_HEALTH, Slack alert router |
+| `clueroom-api-prod-01` | API ingress와 app runtime | Nginx, app-blue, app-green, Prometheus, Grafana, Alloy |
+| `clueroom-data-01` | 데이터 source of truth | MySQL, Redis, local backup, S3 upload, DATA_HEALTH, S3_BACKUP_HEALTH |
+| `clueroom-ops-01` | 로그와 alert 자동화 | Loki, n8n, OPS_HEALTH, Slack alert router |
 
-Current request flow:
+현재 요청 흐름:
 
 ```text
 Android App
@@ -48,7 +49,7 @@ active app slot: app-blue or app-green
 data server: MySQL / Redis
 ```
 
-Relevant diagrams:
+관련 다이어그램:
 
 ```text
 docs/infra/diagrams/current-production-request-flow.mmd
@@ -59,52 +60,52 @@ docs/infra/diagrams/planned-scaleout-manual-lb.mmd
 
 ---
 
-## 4. What Was Implemented
+## 4. 구현된 내용
 
-### Blue-Green App Deployment
+### Blue-Green 앱 배포
 
 ```text
 app-blue  -> 127.0.0.1:8081
 app-green -> 127.0.0.1:8082
-Nginx upstream controls the active slot.
+Nginx upstream이 active slot을 제어한다.
 ```
 
-Why it matters:
+운영적으로 중요한 이유:
 
 ```text
-- deploy new version to standby slot first
-- switch Nginx only after health passes
-- rollback by switching upstream back
-- avoid full downtime for normal application deploys
+- 새 버전을 standby slot에 먼저 배포한다.
+- health check 통과 후에만 Nginx upstream을 전환한다.
+- 문제가 생기면 upstream을 이전 slot으로 되돌려 rollback한다.
+- 일반적인 애플리케이션 배포에서 전체 downtime을 줄인다.
 ```
 
-### External Data Cutover
+### External Data Cutover 적용
 
-Before:
+이전 구조:
 
 ```text
 prod server: Nginx + app + MySQL + Redis
 ```
 
-After:
+현재 구조:
 
 ```text
 prod server: Nginx + app-blue/app-green
 data server: MySQL + Redis
 ```
 
-Effect:
+효과:
 
 ```text
-- app containers are closer to stateless
-- app scale-out becomes possible
-- data ownership is explicit
-- prod local MySQL/Redis is not source of truth
+- app container가 stateless에 가까워졌다.
+- app scale-out이 가능해졌다.
+- 데이터 소유권이 명확해졌다.
+- prod local MySQL/Redis는 source of truth가 아니다.
 ```
 
-### S3 DB Backup And Restore Rehearsal
+### S3 DB 백업과 복구 Rehearsal
 
-Backup path:
+백업 경로:
 
 ```text
 data MySQL
@@ -115,18 +116,18 @@ data MySQL
   -> S3_BACKUP_HEALTH to Loki/Grafana
 ```
 
-Restore rehearsal verified:
+복구 rehearsal 검증 항목:
 
 ```text
-- download .sql.gz and .sha256 from S3
-- compare sha256
-- run gzip -t
-- restore into temporary mysql:8.4 container
-- check startup database and key table counts
-- remove temporary container and downloaded files
+- S3에서 .sql.gz와 .sha256 다운로드
+- sha256 비교
+- gzip -t 실행
+- temporary mysql:8.4 container에 restore
+- startup database와 핵심 table count 확인
+- temporary container와 다운로드 파일 제거
 ```
 
-### Observability And Alerting
+### 관측과 알림
 
 ```text
 prod Nginx/App logs -> Alloy -> ops Loki
@@ -136,15 +137,15 @@ Grafana alert -> n8n -> Slack
 Gemini analysis -> optional helper message
 ```
 
-Important rule:
+중요한 운영 규칙:
 
 ```text
-The deterministic Slack alert is sent first.
-Gemini failure must not block the basic alert.
-Codex is not a real-time automatic fallback; it is used for manual handoff and deep analysis.
+기본 deterministic Slack alert를 먼저 보낸다.
+Gemini 실패가 기본 alert를 막으면 안 된다.
+Codex는 real-time automatic fallback이 아니라 manual handoff와 deep analysis 용도다.
 ```
 
-Current n8n workflows:
+현재 n8n workflow:
 
 ```text
 ClueRoom - Grafana Alert Router v8 Budgeted Gemini 3.5
@@ -154,9 +155,9 @@ ClueRoom - Infra Codex Handoff Report v1
 ClueRoom - LLMOps Codex Handoff Report v2
 ```
 
-### Traffic Defense
+### 트래픽 방어
 
-Current baseline:
+현재 baseline:
 
 ```text
 Nginx API per-IP rate limit enforced
@@ -168,28 +169,28 @@ sensitive path scanning blocked with 403
 403/429 alerts routed through Grafana/n8n/Slack
 ```
 
-This is MVP defense, not a full WAF replacement.
+이것은 MVP 수준의 방어이며, 완전한 WAF 대체가 아니다.
 
-### LLMOps
+### LLMOps 관측
 
-AI call observability focuses on derived metadata, not raw prompt/answer storage.
+AI call 관측은 raw prompt/answer 저장이 아니라 파생 metadata 중심이다.
 
 ```text
 AI_CALL: feature, provider, model, latency, tokens, status
 AI_CALL_CONTEXT: prompt block token estimates and template hash
 ```
 
-Safety rule:
+안전 규칙:
 
 ```text
-Do not log raw prompt, raw answer, user question text, sessionId, scenarioId, suspectId, or npcCode in AI_CALL_CONTEXT.
+AI_CALL_CONTEXT에는 raw prompt, raw answer, user question text, sessionId, scenarioId, suspectId, npcCode를 기록하지 않는다.
 ```
 
 ---
 
-## 5. Not Yet Operating As Baseline
+## 5. 현재 운영 baseline이 아닌 것
 
-These items are intentionally not described as current baseline:
+아래 항목은 의도적으로 현재 운영 baseline으로 설명하지 않는다.
 
 ```text
 1. Server-side Infra Codex automatic production operation
@@ -197,9 +198,10 @@ These items are intentionally not described as current baseline:
 3. Terraform-created app server scale-out with manual Nginx load balancing
 ```
 
-The scale-out work is a short-lived PoC. After validation, extra app server resources and static IPs should be removed unless the team explicitly decides to keep them.
+Scale-out 작업은 단기 PoC다.
+검증 후 팀이 명시적으로 유지하기로 결정하지 않는 한, 추가 app server resource와 static IP는 제거해야 한다.
 
-Baseline remains:
+운영 baseline은 그대로 아래 구조다.
 
 ```text
 prod server 1
@@ -209,80 +211,89 @@ prod server 1
 
 ---
 
-## 6. Interview Q&A Short Answers
+## 6. 면접 Q&A 짧은 답변
 
-### Why Lightsail?
+### 왜 Lightsail을 선택했나?
 
-Because this project targets a low-cost MVP. Lightsail keeps cost and operations understandable while still allowing real Linux, Docker, Nginx, backup, and monitoring work.
+이 프로젝트는 저비용 MVP를 목표로 한다.
+Lightsail은 비용과 운영 복잡도를 낮게 유지하면서도 실제 Linux, Docker, Nginx, backup, monitoring 운영 경험을 만들 수 있다.
 
-### Why not RDS?
+### 왜 RDS를 쓰지 않았나?
 
-RDS is a valid future option, but the project needed direct operating experience and lower cost. Risk is reduced with a separated data server, S3 backup, and restore rehearsal.
+RDS는 향후 선택지로 유효하다.
+다만 이번 프로젝트에서는 직접 운영 경험과 낮은 비용이 중요했고, data server 분리, S3 백업, restore rehearsal로 위험을 줄였다.
 
-### Why Blue-Green?
+### 왜 Blue-Green인가?
 
-It lets the team deploy to a standby slot, health check it, switch Nginx upstream, and rollback quickly if the new version fails.
+Standby slot에 먼저 배포하고 health check 후 Nginx upstream을 전환할 수 있다.
+새 버전에 문제가 생기면 upstream을 되돌려 빠르게 rollback할 수 있다.
 
-### Why split MySQL/Redis to a data server?
+### 왜 MySQL/Redis를 data server로 분리했나?
 
-App servers cannot scale safely if each app server owns local DB/Redis. Externalizing data makes app-blue/app-green and future app servers share the same source of truth.
+각 app server가 local DB/Redis를 소유하면 app scale-out이 안전하지 않다.
+데이터를 외부화하면 app-blue/app-green과 향후 app server가 동일한 source of truth를 바라볼 수 있다.
 
-### Does Gemini failure break alerting?
+### Gemini 실패가 알림을 깨뜨리나?
 
-No. n8n sends the basic deterministic Slack alert first. Gemini only adds optional analysis.
+아니다.
+n8n은 기본 deterministic Slack alert를 먼저 보내고, Gemini는 선택 분석만 추가한다.
 
-### Is Codex automatically operating infra?
+### Codex가 인프라를 자동 운영하나?
 
-No. Codex is not attached as a real-time production operator. It is used for repo work, document/runbook improvement, and manual handoff/deep analysis.
+아니다.
+Codex는 real-time production operator로 붙어 있지 않다.
+Repo 작업, 문서/runbook 개선, manual handoff/deep analysis 용도다.
 
-### Is scale-out live?
+### Scale-out이 운영 중인가?
 
-No. The baseline is still one prod app server, one data server, and one ops server. Terraform scale-out with manual Nginx load balancing is a PoC and should be cleaned up after validation.
-
----
-
-## 7. Presentation Script
-
-### 30 Seconds
-
-ClueRoom started as a low-cost Lightsail MVP, but we added production-oriented safeguards step by step. The prod server runs Nginx and Blue-Green Spring Boot slots, data is separated into a dedicated MySQL/Redis server, and logs/alerts go to an ops server with Loki, Grafana, n8n, and Slack. We also added S3 database backups with restore rehearsal, Nginx rate limiting and CN IP blocking, and LLMOps telemetry for AI call cost and latency. The remaining scale-out work is a short-lived Terraform/manual Nginx PoC, not the normal baseline.
-
-### 1 Minute
-
-The infrastructure goal was to build a realistic MVP operations model under cost constraints. Instead of jumping directly to RDS, ALB, or Kubernetes, we used Lightsail and built the operational controls ourselves.
-
-The prod server handles Nginx ingress and Blue-Green app deployment. The data server owns MySQL and Redis as source of truth. The ops server handles centralized logs and alert automation through Loki, Grafana, n8n, and Slack.
-
-For reliability, DB backup runs on the data server, uploads to a private S3 backup bucket with sha256 sidecars, and is verified through restore rehearsal in a temporary MySQL container. For traffic defense, Nginx rate limiting, CN IPv4 block, manual blocklist, and 403/429 alerts are in place. For AI operations, AI_CALL and AI_CALL_CONTEXT metadata give visibility into latency, token cost, fallback, and prompt block estimates without storing raw prompts or answers.
-
-### 3 Minutes
-
-The core infrastructure decision was to keep the system inexpensive but operationally credible. We avoided prematurely moving to heavy managed infrastructure, but we still built the controls that matter for a real MVP: deploy rollback, data ownership, backup verification, monitoring, alerting, and traffic defense.
-
-The prod server runs Nginx and two Spring Boot slots, app-blue and app-green. Deployment goes to standby first, then Nginx switches upstream after health checks. This gives rollback without relying on Kubernetes or ALB.
-
-The data server owns MySQL and Redis. This was necessary because app scale-out is not safe if DB or Redis lives inside each app server. The app containers now point to external data endpoints, which makes the current app runtime closer to stateless.
-
-The ops server centralizes logs and alert routing. Prod logs are shipped through Alloy to Loki, data and ops health checks are pushed as heartbeat logs, and Grafana alerts go through n8n to Slack. Gemini may add analysis, but basic alerting does not depend on Gemini. Codex is also not a real-time production fallback; it remains a manual analysis and handoff tool.
-
-Backup is not treated as complete just because a dump file exists. The data server creates a gzip dump, uploads it to S3 with a sha256 sidecar, pushes S3 backup health, and the team rehearses restore by downloading the backup and importing it into a temporary MySQL container.
-
-Finally, traffic defense is handled at Nginx with rate limit enforcement, CN IPv4 block, manual blocklist, and sensitive path blocking. The remaining scale-out work is a short PoC using Terraform to create an extra app server and manually attach it to Nginx upstream. The default baseline remains prod 1, data 1, ops 1.
+아니다.
+Baseline은 여전히 prod app server 1대, data server 1대, ops server 1대다.
+Terraform scale-out과 manual Nginx load balancing은 PoC이며 검증 후 정리해야 한다.
 
 ---
 
-## 8. Do Not Overclaim
+## 7. 발표 스크립트
+
+### 30초
+
+ClueRoom은 저비용 Lightsail MVP로 시작했지만, 운영에 필요한 안전장치를 단계적으로 추가했습니다. Prod server는 Nginx와 Blue-Green Spring Boot slot을 운영하고, 데이터는 전용 MySQL/Redis data server로 분리했습니다. 로그와 알림은 Loki, Grafana, n8n, Slack이 있는 ops server로 보냅니다. 또한 S3 DB 백업과 restore rehearsal, Nginx rate limiting과 CN IP block, AI call 비용/지연 관측을 위한 LLMOps telemetry를 적용했습니다. 남은 scale-out은 Terraform/manual Nginx PoC이며, 기본 운영 baseline은 아닙니다.
+
+### 1분
+
+인프라 목표는 비용 제약 안에서 현실적인 MVP 운영 모델을 만드는 것이었습니다. RDS, ALB, Kubernetes로 바로 뛰기보다 Lightsail을 사용하고 운영 제어를 직접 구성했습니다.
+
+Prod server는 Nginx ingress와 Blue-Green app 배포를 담당합니다. Data server는 MySQL과 Redis source of truth를 담당합니다. Ops server는 Loki, Grafana, n8n, Slack을 통해 중앙 로그와 alert 자동화를 담당합니다.
+
+신뢰성을 위해 DB 백업은 data server에서 실행하고, sha256 sidecar와 함께 private S3 backup bucket에 업로드하며, temporary MySQL container에서 restore rehearsal로 검증합니다. 트래픽 방어는 Nginx rate limiting, CN IPv4 block, manual blocklist, 403/429 alert를 적용했습니다. AI 운영은 raw prompt/answer를 저장하지 않고 AI_CALL과 AI_CALL_CONTEXT metadata로 latency, token cost, fallback, prompt block estimate를 관측합니다.
+
+### 3분
+
+핵심 인프라 결정은 시스템을 저렴하게 유지하되 운영적으로 신뢰 가능한 구조를 만드는 것이었습니다. 무거운 managed infrastructure로 성급히 이동하지 않았지만, 실제 MVP에서 중요한 deploy rollback, data ownership, backup verification, monitoring, alerting, traffic defense는 직접 구축했습니다.
+
+Prod server는 Nginx와 두 개의 Spring Boot slot인 app-blue/app-green을 실행합니다. 배포는 standby slot에 먼저 들어가고, health check를 통과하면 Nginx upstream을 전환합니다. Kubernetes나 ALB 없이도 rollback 가능한 구조를 만들기 위한 선택입니다.
+
+Data server는 MySQL과 Redis를 소유합니다. DB나 Redis가 각 app server 안에 있으면 scale-out이 안전하지 않기 때문에 필요했던 분리입니다. 현재 app container는 external data endpoint를 바라보며, app runtime은 stateless에 가까워졌습니다.
+
+Ops server는 로그와 alert routing을 중앙화합니다. Prod 로그는 Alloy를 통해 Loki로 전달하고, data/ops health check는 heartbeat log로 push됩니다. Grafana alert는 n8n을 거쳐 Slack으로 갑니다. Gemini는 분석을 추가할 수 있지만 기본 alert는 Gemini에 의존하지 않습니다. Codex도 real-time production fallback이 아니라 manual analysis와 handoff 도구입니다.
+
+백업은 dump 파일 생성만으로 완료로 보지 않습니다. Data server가 gzip dump를 만들고, sha256 sidecar와 함께 S3에 업로드하고, S3 backup health를 push하며, 팀은 백업을 다운로드해 temporary MySQL container에 import하는 방식으로 restore rehearsal을 수행합니다.
+
+마지막으로 트래픽 방어는 Nginx rate limit enforcement, CN IPv4 block, manual blocklist, sensitive path blocking으로 처리합니다. 남은 scale-out 작업은 Terraform으로 추가 app server를 만들고 Nginx upstream에 수동 연결하는 짧은 PoC입니다. 기본 baseline은 prod 1대, data 1대, ops 1대입니다.
+
+---
+
+## 8. 과장해서 말하지 말 것
 
 ```text
-- Do not claim Kubernetes, ECS, ALB, or ASG production operation.
-- Do not claim MySQL HA or replication.
-- Do not claim Codex automatic production fallback.
-- Do not claim scale-out is the normal baseline.
-- Do not claim WAF-grade complete security.
+- Kubernetes, ECS, ALB, ASG를 운영 중이라고 말하지 않는다.
+- MySQL HA나 replication을 운영 중이라고 말하지 않는다.
+- Codex automatic production fallback을 운영 중이라고 말하지 않는다.
+- scale-out이 일반 운영 baseline이라고 말하지 않는다.
+- WAF 수준의 완전한 보안을 갖췄다고 말하지 않는다.
 ```
 
-Use this phrasing instead:
+대신 아래처럼 설명한다.
 
 ```text
-ClueRoom uses a low-cost MVP infrastructure with practical production safeguards and a clear path to scale-out.
+ClueRoom은 실용적인 운영 안전장치와 명확한 scale-out 경로를 갖춘 저비용 MVP 인프라를 사용한다.
 ```

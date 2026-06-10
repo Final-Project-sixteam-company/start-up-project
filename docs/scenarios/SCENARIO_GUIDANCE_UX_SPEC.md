@@ -1,18 +1,17 @@
-# Scenario Guidance UX Spec
+# Scenario Guidance UX Spec 한글 정본
 
-> Status: proposal
+> 상태: 제안서
 >
-> Last updated: 2026-06-10
+> 마지막 업데이트: 2026-06-10
 >
-> Scope: player-facing evidence guidance, Android evidence UX, backend/API support, YAML authoring rules
+> 범위: player-facing evidence guidance, Android evidence UX, backend/API support, YAML authoring rules
 
-## 1. Purpose
+## 1. 목적
 
-This document defines how ClueRoom should guide players from evidence to the
-next investigation action without revealing the answer.
+이 문서는 ClueRoom이 정답을 노출하지 않으면서, 플레이어를 증거에서 다음 조사 행동으로 안내하는 방식을 정의한다.
 
-The current scenario structure can hold the mystery answer, variants, evidence
-roles, and NPC policies. The missing product layer is player-facing guidance:
+현재 scenario 구조는 사건 정답, variant, evidence role, NPC policy를 담을 수 있다.
+하지만 product layer에서 부족한 것은 player-facing guidance다.
 
 ```text
 Player opens evidence
@@ -22,13 +21,13 @@ Player opens evidence
 -> continues investigation without direct answer leakage
 ```
 
-This document is public-safe. It describes UX, schema shape, API contract, and
-implementation tasks only. Do not paste official scenario answers, culprit
-names, private seed text, or answer-bearing reasoning into this file.
+이 문서는 public-safe다.
+UX, schema shape, API contract, implementation task만 설명한다.
+공식 scenario answer, culprit name, private seed text, answer-bearing reasoning을 이 문서에 붙여 넣지 않는다.
 
-## 2. Current Problem
+## 2. 현재 문제
 
-QA feedback points to a recurring issue:
+QA feedback에서 반복적으로 나온 문제:
 
 ```text
 Evidence exists.
@@ -38,80 +37,79 @@ The correct answer structure exists.
 But players often do not know the next action.
 ```
 
-Common failure modes:
+흔한 실패 패턴:
 
 ```text
-1. The player sees an evidence card but misses the key observation.
-2. The player does not know which other evidence should be compared.
-3. The player does not know which suspect should be questioned next.
-4. AI answers can become too evasive when the player asks a broad question.
-5. The app relies too much on free-form AI interrogation for progression.
+1. Player가 evidence card를 보지만 핵심 관찰점을 놓친다.
+2. 어떤 다른 evidence와 비교해야 하는지 모른다.
+3. 다음에 어떤 suspect에게 질문해야 하는지 모른다.
+4. Player가 넓은 질문을 하면 AI answer가 지나치게 회피적일 수 있다.
+5. App progression이 free-form AI interrogation에 너무 의존한다.
 ```
 
-Adding more story or more evidence is not the main fix. The fix is to add a
-thin guidance layer around existing evidence.
+해결책은 story나 evidence를 더 많이 추가하는 것이 아니다.
+기존 evidence 주변에 얇은 guidance layer를 추가하는 것이다.
 
-## 3. Product Decision
+## 3. Product Decision 제품 결정
 
-The first UX improvement should be evidence-detail guidance.
+첫 UX 개선은 evidence-detail guidance로 한다.
 
 ```text
 Evidence detail becomes the investigation hub for the next action.
 ```
 
-Each important evidence can expose three kinds of guidance:
+중요 evidence는 세 가지 guidance를 노출할 수 있다.
 
 ```text
 readingPoints
-What the player should notice in this evidence.
+이 evidence에서 player가 무엇을 봐야 하는지.
 
 compareWithEvidenceCodes
-Which other evidence should be compared with this evidence.
+이 evidence와 함께 비교해야 할 다른 evidence.
 
 suggestedQuestions
-Which suspect to ask and what question to start with.
+어떤 suspect에게 어떤 질문으로 시작하면 좋은지.
 ```
 
-This is intentionally narrower than a full hint system. It should nudge the
-player toward comparison and interrogation, not solve the case.
+이것은 full hint system보다 의도적으로 좁은 기능이다.
+사건을 풀어주는 것이 아니라, 비교와 심문 방향으로 player를 밀어주는 역할이다.
 
-## 4. Goals
+## 4. 목표
 
 ```text
-1. Reduce dead ends during mid-game investigation.
-2. Make evidence cards explain how they should be used.
-3. Turn evidence into actionable interrogation prompts.
-4. Keep answer-bearing truth out of player-facing guidance.
-5. Avoid making the AI NPC responsible for all progression guidance.
-6. Keep v1 implementable with small backend and Android changes.
+1. Mid-game investigation의 dead end를 줄인다.
+2. Evidence card가 어떻게 사용되어야 하는지 설명하게 한다.
+3. Evidence를 실행 가능한 interrogation prompt로 연결한다.
+4. Answer-bearing truth를 player-facing guidance 밖에 둔다.
+5. AI NPC가 모든 progression guidance를 책임지는 구조를 피한다.
+6. V1은 작은 backend/Android 변경으로 구현 가능하게 유지한다.
 ```
 
-## 5. Non-Goals
+## 5. Non-Goals 제외 범위
 
-The first implementation must not include these unless explicitly planned in a
-separate PR:
+별도 PR로 명시적으로 계획하지 않는 한, 첫 구현에는 아래를 포함하지 않는다.
 
 ```text
-1. Do not rewrite official scenario story structure.
-2. Do not add new culprit/variant logic.
-3. Do not expose solution, scoring, or variant truth to the player.
-4. Do not change AI prompt construction in v1.
-5. Do not add ACTIVE_INVESTIGATION as a new unlock enum in v1.
-6. Do not show red-herring refutation as direct answer guidance during play.
-7. Do not auto-submit recommended questions without user confirmation.
+1. 공식 scenario story structure를 다시 쓰지 않는다.
+2. 새로운 culprit/variant logic을 추가하지 않는다.
+3. solution, scoring, variant truth를 player에게 노출하지 않는다.
+4. V1에서 AI prompt construction을 변경하지 않는다.
+5. V1에서 ACTIVE_INVESTIGATION을 새 unlock enum으로 추가하지 않는다.
+6. Play 중 red-herring refutation을 direct answer guidance로 보여주지 않는다.
+7. 사용자 확인 없이 recommended question을 auto-submit하지 않는다.
 ```
 
-## 6. UX Principles
+## 6. UX 원칙
 
-### 6.1 Nudge, Do Not Solve
+### 6.1 Nudge, Do Not Solve 방향만 주고 풀어주지 않기
 
-Guidance should answer this:
+Guidance가 답해야 하는 질문:
 
 ```text
 What should I inspect or ask next?
 ```
 
-Guidance must not answer this:
+Guidance가 답하면 안 되는 질문:
 
 ```text
 Who is the culprit?
@@ -120,11 +118,11 @@ Which variant is active?
 What is the full solution chain?
 ```
 
-### 6.2 Evidence First, AI Second
+### 6.2 Evidence First, AI Second 증거 먼저, AI는 그다음
 
-The app should not rely on the player guessing the perfect AI question.
+App은 player가 완벽한 AI question을 추측하는 것에 의존하면 안 된다.
 
-The evidence detail screen should prepare the player before interrogation:
+Evidence detail screen이 interrogation 전에 player를 준비시켜야 한다.
 
 ```text
 Observe evidence
@@ -133,25 +131,25 @@ Observe evidence
 -> ask NPC with evidence attached
 ```
 
-### 6.3 Locked Content Must Stay Masked
+### 6.3 Locked Content Must Stay Masked 잠긴 내용은 계속 마스킹
 
-Guidance can point toward locked evidence, but it must not reveal locked
-evidence details.
+Guidance는 locked evidence 방향을 가리킬 수 있지만, locked evidence detail을 드러내면 안 된다.
 
-If a compared evidence is locked, the UI should show a safe placeholder:
+비교 대상 evidence가 locked 상태라면 UI는 안전한 placeholder를 보여준다.
 
 ```text
 Locked related evidence
 Unlock more evidence to compare this clue.
 ```
 
-Use the same masking policy as the existing evidence list/detail API.
+기존 evidence list/detail API와 같은 masking policy를 사용한다.
 
-### 6.4 Public Text And Secret Truth Stay Separate
+### 6.4 Public Text And Secret Truth Stay Separate 공개 문구와 비밀 정답 분리
 
-Guidance is player-facing text. It must be authored as public-safe content.
+Guidance는 player-facing text다.
+반드시 public-safe content로 작성해야 한다.
 
-Forbidden in guidance:
+Guidance에서 금지:
 
 ```text
 culprit identity
@@ -162,21 +160,21 @@ hidden NPC truth not yet revealed
 full answer-bearing timeline
 ```
 
-Allowed in guidance:
+Guidance에서 허용:
 
 ```text
 observable marks
-time ranges already visible to the player
+player에게 이미 보이는 time range
 evidence comparison direction
-question prompts that ask for clarification
+clarification을 요청하는 question prompt
 safe suspicion framing
 ```
 
-## 7. Target UX
+## 7. Target UX 목표 UX
 
-### 7.1 Evidence Detail Layout
+### 7.1 Evidence Detail Layout 증거 상세 레이아웃
 
-Recommended order:
+권장 순서:
 
 ```text
 Evidence title
@@ -190,54 +188,54 @@ Section: 추천 질문
 Section: 관련 용의자
 ```
 
-The three new guidance sections are optional. If a section has no data, hide
-the section rather than showing an empty state.
+새 guidance section 3개는 optional이다.
+Data가 없으면 빈 상태를 보여주지 말고 section을 숨긴다.
 
 ### 7.2 판독 포인트
 
-Purpose:
+목적:
 
 ```text
-Tell the player what to notice in this evidence.
+Player가 이 evidence에서 무엇을 봐야 하는지 알려준다.
 ```
 
-Display:
+표시 방식:
 
 ```text
-Short bullet list, usually 2-4 items.
+짧은 bullet list, 보통 2~4개.
 ```
 
-Good examples:
+좋은 예:
 
 ```text
-- The key time is the gap between the recorded action and the observed result.
-- The object position should be compared with the earlier checklist.
-- The visible mark is important because it crosses two surfaces.
+- 기록된 행동 시각과 관찰된 결과 사이의 간격이 핵심이다.
+- 물체 위치는 이전 checklist와 비교해야 한다.
+- 보이는 흔적은 두 표면을 가로지르기 때문에 중요하다.
 ```
 
-Bad examples:
+나쁜 예:
 
 ```text
-- This proves the culprit used the real method.
-- This evidence excludes all red herrings.
-- This is the decisive proof for the active variant.
+- 이것은 범인이 실제 방법을 썼다는 증거다.
+- 이 증거는 모든 red herring을 배제한다.
+- 이것은 active variant의 결정적 증거다.
 ```
 
 ### 7.3 함께 볼 증거
 
-Purpose:
+목적:
 
 ```text
-Move the player from isolated evidence reading to evidence comparison.
+Player가 evidence를 단독으로 읽는 데서 멈추지 않고 evidence comparison으로 이동하게 한다.
 ```
 
-Display:
+표시 방식:
 
 ```text
-Cards or chips for related evidence.
+Related evidence card 또는 chip.
 ```
 
-Behavior:
+동작:
 
 ```text
 Unlocked evidence
@@ -247,23 +245,23 @@ Locked evidence
 -> tap shows safe locked message or unlock hint.
 ```
 
-Do not reveal locked evidence detail through this section.
+이 section을 통해 locked evidence detail을 드러내지 않는다.
 
 ### 7.4 추천 질문
 
-Purpose:
+목적:
 
 ```text
-Help the player start a productive interrogation.
+Player가 생산적인 interrogation을 시작하도록 돕는다.
 ```
 
-Display:
+표시 방식:
 
 ```text
-Question chip with target suspect label.
+Target suspect label이 붙은 question chip.
 ```
 
-Behavior:
+동작:
 
 ```text
 Tap question chip
@@ -274,7 +272,7 @@ Tap question chip
 -> user reviews and sends manually
 ```
 
-Recommended request mapping:
+권장 request mapping:
 
 ```json
 {
@@ -285,14 +283,15 @@ Recommended request mapping:
 }
 ```
 
-The app must not auto-submit. The player should remain in control.
+App은 auto-submit하면 안 된다.
+Player가 최종 통제권을 가져야 한다.
 
-## 8. YAML Proposal
+## 8. YAML Proposal YAML 제안
 
-This is a proposed vNext addition to `evidences[]`. It is not part of the
-current implemented schema until the backend importer is updated.
+`evidences[]`에 추가할 vNext 제안이다.
+Backend importer가 업데이트되기 전까지는 현재 구현 schema의 일부가 아니다.
 
-Recommended shape:
+권장 shape:
 
 ```yaml
 evidences:
@@ -315,55 +314,55 @@ evidences:
           question: "Who could verify this detail before the incident?"
 ```
 
-### 8.1 Field Rules
+### 8.1 Field Rules 필드 규칙
 
-| Field | Type | Required | Rule |
+| Field | Type | Required | Rule 규칙 |
 |---|---:|---:|---|
-| `guidance` | object | no | Omit when no guidance is needed. |
-| `readingPoints` | list<string> | no | 0-5 items. Player-facing only. |
-| `compareWithEvidenceCodes` | list<string> | no | Codes must exist in `evidences[].code`. |
-| `suggestedQuestions` | list<object> | no | 0-5 items. No auto-submit. |
-| `targetCharacterCode` | string | yes for question | Must exist in `characters[].code`. |
-| `question` | string | yes for question | Should be answer-neutral and evidence-specific. |
+| `guidance` | object | no | guidance가 필요 없으면 생략한다. |
+| `readingPoints` | list<string> | no | 0~5개. Player-facing only. |
+| `compareWithEvidenceCodes` | list<string> | no | `evidences[].code`에 존재해야 한다. |
+| `suggestedQuestions` | list<object> | no | 0~5개. Auto-submit 금지. |
+| `targetCharacterCode` | string | question에는 yes | `characters[].code`에 존재해야 한다. |
+| `question` | string | question에는 yes | Answer-neutral이고 evidence-specific이어야 한다. |
 
-Recommended authoring limits:
-
-```text
-readingPoints item: 120 Korean chars or less
-suggested question: 140 Korean chars or less
-compare evidence count: 1-4 for most evidence
-suggested question count: 1-3 for most evidence
-```
-
-### 8.2 Validation Rules
-
-The importer/validator should reject:
+권장 작성 제한:
 
 ```text
-1. compareWithEvidenceCodes referencing unknown evidence code.
-2. suggestedQuestions.targetCharacterCode referencing unknown character code.
-3. Duplicate compare evidence codes in one guidance block.
-4. Evidence comparing with itself.
-5. Blank reading point or blank question.
-6. Guidance text containing blocked private markers or known secret labels.
+readingPoints item: 한글 120자 이하
+suggested question: 한글 140자 이하
+compare evidence count: 대부분의 evidence에서 1~4개
+suggested question count: 대부분의 evidence에서 1~3개
 ```
 
-Validation should warn, not necessarily reject, when:
+### 8.2 Validation Rules 검증 규칙
+
+Importer/validator는 아래를 reject해야 한다.
 
 ```text
-1. An important evidence has no guidance.
-2. A guidance block has more than 5 reading points.
-3. A suggested question is too long for a mobile chip.
-4. A compare target is a late-phase locked evidence.
+1. compareWithEvidenceCodes가 unknown evidence code를 참조한다.
+2. suggestedQuestions.targetCharacterCode가 unknown character code를 참조한다.
+3. 하나의 guidance block 안에 duplicate compare evidence code가 있다.
+4. Evidence가 자기 자신과 compare된다.
+5. Blank reading point 또는 blank question이 있다.
+6. Guidance text가 blocked private marker 또는 known secret label을 포함한다.
 ```
 
-## 9. Backend Design
+아래는 reject가 아니라 warning을 권장한다.
 
-### 9.1 Current Implementation Gap
+```text
+1. Important evidence에 guidance가 없다.
+2. Guidance block에 reading point가 5개를 초과한다.
+3. Suggested question이 mobile chip에 비해 너무 길다.
+4. Compare target이 late-phase locked evidence다.
+```
 
-Current backend does not persist or serve guidance data.
+## 9. Backend Design 백엔드 설계
 
-Known gaps:
+### 9.1 현재 구현 Gap
+
+현재 backend는 guidance data를 저장하거나 제공하지 않는다.
+
+Known gaps 현재 gap:
 
 ```text
 ScenarioYaml.EvidenceYaml has no guidance field.
@@ -373,31 +372,30 @@ ScenarioYamlImportService does not validate guidance references.
 Android cannot display guidance because API does not return it.
 ```
 
-Therefore, adding YAML data alone will not change the user experience.
+따라서 YAML data만 추가해도 user experience는 바뀌지 않는다.
 
-### 9.2 Persistence Recommendation
+### 9.2 Persistence Recommendation 저장 방식 권장안
 
-For MVP, prefer one JSON column on evidence:
+MVP에서는 evidence에 JSON column 하나를 두는 것을 우선한다.
 
 ```text
 evidences.guidance_json TEXT or JSON nullable
 ```
 
-Reason:
+이유:
 
 ```text
-1. Guidance is authored content, not transactional gameplay state.
-2. The shape may evolve after QA.
-3. Querying by individual guidance fields is not required in v1.
-4. It avoids three new tables before the UX proves itself.
+1. Guidance는 transactional gameplay state가 아니라 authored content다.
+2. QA 이후 shape가 바뀔 수 있다.
+3. V1에서는 개별 guidance field로 query할 필요가 없다.
+4. UX가 검증되기 전에 table 3개를 새로 만들지 않아도 된다.
 ```
 
-Normalized tables can be considered later if guidance becomes searchable,
-editable in an admin UI, or analytics-heavy.
+Guidance가 searchable해지거나 admin UI에서 편집되거나 analytics-heavy해지면 normalized table을 나중에 검토한다.
 
-### 9.3 YAML Import Changes
+### 9.3 YAML Import Changes YAML import 변경
 
-Add records:
+Record 추가:
 
 ```java
 public record EvidenceGuidanceYaml(
@@ -412,7 +410,7 @@ public record SuggestedQuestionYaml(
 ) {}
 ```
 
-Extend:
+확장:
 
 ```java
 public record EvidenceYaml(
@@ -421,28 +419,28 @@ public record EvidenceYaml(
 ) {}
 ```
 
-Importer responsibilities:
+Importer 책임:
 
 ```text
-1. Validate evidence code references.
-2. Validate character code references.
-3. Store guidance JSON with the evidence row.
-4. Do not import guidance into AI prompt structures in v1.
-5. Do not read variants, solution, or scoring while building guidance response.
+1. Evidence code reference를 validate한다.
+2. Character code reference를 validate한다.
+3. Guidance JSON을 evidence row에 저장한다.
+4. V1에서는 guidance를 AI prompt structure로 import하지 않는다.
+5. Guidance response를 만들 때 variants, solution, scoring을 읽지 않는다.
 ```
 
-### 9.4 API Response Changes
+### 9.4 API Response Changes API 응답 변경
 
-Add guidance only to evidence detail response first:
+먼저 evidence detail response에만 guidance를 추가한다.
 
 ```text
 GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 ```
 
-Do not add full guidance to the evidence list in v1. The list should stay
-lightweight.
+V1에서는 evidence list에 full guidance를 넣지 않는다.
+List는 가볍게 유지한다.
 
-Proposed response addition:
+제안 response addition:
 
 ```json
 {
@@ -483,17 +481,16 @@ Proposed response addition:
 }
 ```
 
-Masking rule:
+Masking rule 마스킹 규칙:
 
 ```text
-If the current evidence is locked, guidance must be null or omitted.
-If a compared evidence is locked, return only fields allowed by the current
-locked-evidence masking policy.
+Current evidence가 locked이면 guidance는 null 또는 omitted이어야 한다.
+Compared evidence가 locked이면 현재 locked-evidence masking policy에서 허용하는 field만 반환한다.
 ```
 
-### 9.5 DTO Recommendation
+### 9.5 DTO Recommendation DTO 권장안
 
-Suggested DTO names:
+추천 DTO 이름:
 
 ```text
 EvidenceGuidanceResponse
@@ -501,7 +498,7 @@ ComparableEvidenceResponse
 SuggestedEvidenceQuestionResponse
 ```
 
-Suggested Java shape:
+추천 Java shape:
 
 ```java
 public record EvidenceGuidanceResponse(
@@ -528,25 +525,25 @@ public record SuggestedEvidenceQuestionResponse(
 ) {}
 ```
 
-### 9.6 Backend Acceptance Criteria
+### 9.6 Backend Acceptance Criteria 백엔드 완료 기준
 
-Backend implementation is complete when:
+Backend implementation 완료 기준:
 
 ```text
-1. Scenario YAML can include evidences[].guidance.
-2. Import rejects invalid evidence/character references.
-3. Evidence detail API returns guidance for unlocked evidence.
-4. Evidence detail API does not return guidance for locked evidence.
-5. Compared locked evidence follows existing masking policy.
-6. Suggested questions include target suspect and current presentedEvidenceId.
-7. Tests cover valid guidance, invalid references, locked masking, and empty guidance.
+1. Scenario YAML이 evidences[].guidance를 포함할 수 있다.
+2. Import가 invalid evidence/character reference를 reject한다.
+3. Evidence detail API가 unlocked evidence에 guidance를 반환한다.
+4. Evidence detail API가 locked evidence에 guidance를 반환하지 않는다.
+5. Compared locked evidence가 기존 masking policy를 따른다.
+6. Suggested question에 target suspect와 current presentedEvidenceId가 포함된다.
+7. Valid guidance, invalid reference, locked masking, empty guidance test가 있다.
 ```
 
-## 10. Android Design
+## 10. Android Design Android 설계
 
-### 10.1 Evidence Detail UI
+### 10.1 Evidence Detail UI 증거 상세 UI
 
-Add sections under the current evidence description:
+현재 evidence description 아래에 section을 추가한다.
 
 ```text
 판독 포인트
@@ -554,7 +551,7 @@ Add sections under the current evidence description:
 추천 질문
 ```
 
-Section behavior:
+Section behavior 섹션 동작:
 
 ```text
 No data
@@ -564,46 +561,46 @@ Loading
 -> use existing evidence detail loading state.
 
 API error
--> show evidence detail without guidance if core evidence fields loaded.
+-> core evidence fields가 load되었다면 guidance 없이 evidence detail을 보여준다.
 ```
 
 ### 10.2 판독 포인트 UI
 
-Recommended layout:
+권장 layout:
 
 ```text
-Small titled section
-2-4 bullet rows
-Use readable line height
-Avoid dense paragraph blocks
+작은 제목이 있는 section
+2~4개 bullet row
+읽기 쉬운 line height
+빽빽한 paragraph block 피하기
 ```
 
-This section should feel like a detective's observation note, not a hint answer.
+이 section은 hint answer가 아니라 detective's observation note처럼 느껴져야 한다.
 
 ### 10.3 함께 볼 증거 UI
 
-Recommended layout:
+권장 layout:
 
 ```text
-Horizontal chips or compact cards
+Horizontal chip 또는 compact card
 Title
 Lock state
 Optional unlock hint
 ```
 
-Tap behavior:
+Tap behavior 탭 동작:
 
 ```text
 Unlocked item
--> open evidence detail for that evidence.
+-> 해당 evidence detail 열기
 
 Locked item
--> show locked message and optional unlock hint.
+-> locked message와 optional unlock hint 표시
 ```
 
 ### 10.4 추천 질문 UI
 
-Recommended layout:
+권장 layout:
 
 ```text
 Question chip
@@ -611,79 +608,77 @@ Target suspect label
 Optional "ask" CTA
 ```
 
-Tap behavior:
+Tap behavior 탭 동작:
 
 ```text
-1. Navigate to suspect interrogation screen.
-2. Preselect target suspect.
-3. Prefill question.
-4. Attach current evidence as presentedEvidenceId.
-5. Let user press send manually.
+1. Suspect interrogation screen으로 이동한다.
+2. Target suspect를 preselect한다.
+3. Question을 prefill한다.
+4. Current evidence를 presentedEvidenceId로 attach한다.
+5. User가 직접 send를 누르게 한다.
 ```
 
-Do not auto-send because:
+Auto-send 금지 이유:
 
 ```text
-1. The player should stay in control.
-2. Auto-send can waste interrogation attempts.
-3. The player may want to edit the question.
-4. It avoids accidental AI calls.
+1. Player가 통제권을 가져야 한다.
+2. Auto-send는 interrogation attempt를 낭비할 수 있다.
+3. Player가 question을 수정하고 싶을 수 있다.
+4. 우발적인 AI call을 피한다.
 ```
 
-### 10.5 Android Acceptance Criteria
+### 10.5 Android Acceptance Criteria Android 완료 기준
 
-Android implementation is complete when:
+Android implementation 완료 기준:
 
 ```text
-1. Evidence detail shows reading points when present.
-2. Evidence detail shows comparable evidence when present.
-3. Tapping unlocked comparable evidence opens its detail.
-4. Tapping locked comparable evidence does not reveal hidden detail.
-5. Suggested question tap preselects suspect and prefills question.
-6. Suggested question tap attaches current evidence as presentedEvidenceId.
-7. User must explicitly submit the question.
-8. Empty guidance does not create blank UI sections.
+1. Evidence detail이 reading point를 표시한다.
+2. Evidence detail이 comparable evidence를 표시한다.
+3. Unlocked comparable evidence를 tap하면 해당 detail로 이동한다.
+4. Locked comparable evidence를 tap해도 hidden detail을 노출하지 않는다.
+5. Suggested question tap이 suspect를 preselect하고 question을 prefill한다.
+6. Suggested question tap이 current evidence를 presentedEvidenceId로 attach한다.
+7. User가 명시적으로 question을 submit해야 한다.
+8. Empty guidance가 blank UI section을 만들지 않는다.
 ```
 
-## 11. AI Scope
+## 11. AI Scope AI 범위
 
 ### 11.1 V1
 
-No AI prompt change in v1.
+V1에서는 AI prompt를 변경하지 않는다.
 
-Reason:
+이유:
 
 ```text
-1. UX benefit can be achieved through evidence detail and question prefill.
-2. Prompt changes increase answer leakage risk.
-3. Existing interrogation endpoint already supports presentedEvidenceId.
-4. Smaller PRs are easier to review and QA.
+1. Evidence detail과 question prefill만으로 UX benefit을 얻을 수 있다.
+2. Prompt 변경은 answer leakage risk를 높인다.
+3. 기존 interrogation endpoint가 이미 presentedEvidenceId를 지원한다.
+4. 작은 PR이 review와 QA에 유리하다.
 ```
 
-### 11.2 V2 Candidates
+### 11.2 V2 Candidates V2 후보
 
-After v1 ships and QA confirms usefulness, consider:
+V1 release 후 QA에서 유용성이 확인되면 아래를 검토한다.
 
 ```text
 responseShape
-Structured NPC reaction policy with mustAcknowledge, mustDeny, mustPointTo,
-and mustNotSay.
+mustAcknowledge, mustDeny, mustPointTo, mustNotSay를 가진 structured NPC reaction policy.
 
 timelineGuard
-Scenario-level safe time rules that prevent invented timeline claims.
+Invented timeline claim을 방지하는 scenario-level safe time rule.
 
 recommendedInvestigationFlow
-Optional non-spoiler sequence used by hints or onboarding.
+Hint 또는 onboarding에서 사용할 optional non-spoiler sequence.
 ```
 
-Do not feed these directly into prompts until ResponsePolicyResolver and prompt
-safety rules are updated.
+`ResponsePolicyResolver`와 prompt safety rule이 업데이트되기 전까지는 이를 prompt에 직접 넣지 않는다.
 
-## 12. Unlock Scope
+## 12. Unlock Scope 해금 범위
 
-Do not add `ACTIVE_INVESTIGATION` in v1.
+V1에서는 `ACTIVE_INVESTIGATION`을 추가하지 않는다.
 
-Use existing mechanisms first:
+기존 mechanism을 먼저 사용한다.
 
 ```text
 EVIDENCE_PRESENTED
@@ -691,25 +686,24 @@ INTERROGATION
 PHASE
 ```
 
-Current code already supports `EVIDENCE_PRESENTED`-style progression with
-condition JSON. A later PR can add a new enum only if product semantics differ
-from the existing types.
+현재 code는 이미 condition JSON으로 `EVIDENCE_PRESENTED` style progression을 지원한다.
+새 enum은 기존 type과 product semantics가 다를 때만 이후 PR에서 추가한다.
 
-## 13. Authoring Guide
+## 13. Authoring Guide 작성 가이드
 
-### 13.1 Good Guidance
+### 13.1 좋은 Guidance
 
-Good guidance:
+좋은 guidance:
 
 ```text
-1. Points to observable details.
-2. Encourages comparison between evidence.
-3. Suggests a question without asserting the answer.
-4. Uses public-safe wording.
-5. Works even if the player has not solved the case.
+1. 관찰 가능한 detail을 가리킨다.
+2. Evidence 간 비교를 유도한다.
+3. 정답을 단정하지 않고 질문을 제안한다.
+4. Public-safe wording을 사용한다.
+5. Player가 아직 사건을 풀지 못했어도 작동한다.
 ```
 
-Example:
+예시:
 
 ```yaml
 guidance:
@@ -724,19 +718,19 @@ guidance:
       question: "Can you confirm whether this record means the action happened or only that an alert was sent?"
 ```
 
-### 13.2 Bad Guidance
+### 13.2 나쁜 Guidance
 
-Bad guidance:
+나쁜 guidance:
 
 ```text
-1. Names the culprit.
-2. Confirms the true method.
-3. Says a red herring is false before the player can prove it.
-4. Refers to active variant truth.
-5. Uses private implementation notes.
+1. Culprit를 지목한다.
+2. True method를 확정한다.
+3. Player가 증명하기 전에 red herring이 false라고 말한다.
+4. Active variant truth를 언급한다.
+5. Private implementation note를 사용한다.
 ```
 
-Bad example:
+나쁜 예시:
 
 ```yaml
 guidance:
@@ -744,136 +738,135 @@ guidance:
     - "This is the decisive proof that the real culprit used the final method."
 ```
 
-## 14. Privacy And Spoiler Checklist
+## 14. Privacy And Spoiler Checklist 공개/스포일러 점검표
 
-Before committing guidance content, check:
+Guidance content를 commit하기 전에 확인한다.
 
 ```text
-[ ] No culprit name.
-[ ] No active variant code.
-[ ] No solution object copied from private YAML.
-[ ] No final explanation paragraph.
-[ ] No hidden NPC truth unless already player-facing.
-[ ] No private seed labels or reviewer notes.
-[ ] No secret, token, key, server private path, or user log.
-[ ] No raw user prompt/answer logs.
+[ ] Culprit name 없음
+[ ] Active variant code 없음
+[ ] Private YAML의 solution object 복사 없음
+[ ] Final explanation paragraph 없음
+[ ] 아직 player-facing이 아닌 hidden NPC truth 없음
+[ ] Private seed label 또는 reviewer note 없음
+[ ] Secret, token, key, server private path, user log 없음
+[ ] Raw user prompt/answer logs 없음
 ```
 
-## 15. Team Work Split
+## 15. Team Work Split 팀 작업 분담
 
-Recommended ownership:
+권장 ownership:
 
-| Area | Primary owner | Work |
+| Area 영역 | Primary owner 담당 | Work 작업 |
 |---|---|---|
-| Product/story guidance rules | Scenario lead | Author public-safe guidance and review leakage risk. |
-| Backend import/API | Backend play/scenario owner | YAML record, validation, persistence, evidence detail response. |
-| Android UX | Android owner | Evidence detail sections, compare navigation, question prefill. |
-| AI policy v2 | AI backend owner | responseShape/timelineGuard after v1 guidance proves useful. |
-| QA | QA owner | Play through 30-50 interrogations and verify reduced dead ends. |
+| Product/story guidance rules | Scenario lead | Public-safe guidance 작성과 leakage risk review |
+| Backend import/API | Backend play/scenario owner | YAML record, validation, persistence, evidence detail response 작업 |
+| Android UX | Android owner | Evidence detail section, compare navigation, question prefill 작업 |
+| AI policy v2 | AI backend owner | V1 guidance 유용성 검증 후 responseShape/timelineGuard |
+| QA | QA owner | 30~50회 interrogation playthrough로 dead end 감소 확인 |
 
-Concrete first-pass split:
+Concrete first-pass split 1차 작업 분리:
 
 ```text
 Backend:
-- Add guidance schema support.
-- Persist guidance_json.
-- Return guidance from evidence detail API.
-- Add validation/tests.
+- guidance schema support 추가
+- guidance_json 저장
+- evidence detail API에서 guidance 반환
+- validation/test 추가
 
 Android:
-- Render guidance sections.
-- Implement compare evidence navigation.
-- Implement recommended question prefill.
+- guidance section render
+- compare evidence navigation 구현
+- recommended question prefill 구현
 
 Scenario author:
-- Add guidance to 5-10 high-impact evidence items first.
-- Avoid answer-bearing wording.
-- Expand after QA confirms the pattern.
+- 먼저 high-impact evidence 5~10개에 guidance 추가
+- answer-bearing wording 피하기
+- QA로 pattern 확인 후 확대
 ```
 
-## 16. Rollout Plan
+## 16. Rollout Plan 적용 계획
 
-### Phase 1: Contract And UI
+### Phase 1: Contract And UI 계약과 UI
 
 ```text
-1. Backend adds guidance schema, import, validation, API response.
-2. Android adds evidence detail UI sections.
-3. Use sample or limited private scenario guidance for QA.
+1. Backend가 guidance schema, import, validation, API response를 추가한다.
+2. Android가 evidence detail UI section을 추가한다.
+3. QA에는 sample 또는 제한된 private scenario guidance를 사용한다.
 ```
 
-### Phase 2: Scenario Data
+### Phase 2: Scenario Data 시나리오 데이터
 
 ```text
-1. Add guidance to early and mid-game evidence first.
-2. Add guidance to decisive evidence only with careful non-answer wording.
-3. Run QA playthrough.
-4. Adjust reading point length and question count.
+1. Early/mid-game evidence에 guidance를 먼저 추가한다.
+2. Decisive evidence에는 조심스러운 non-answer wording으로만 guidance를 추가한다.
+3. QA playthrough를 실행한다.
+4. Reading point 길이와 question count를 조정한다.
 ```
 
-### Phase 3: AI And Unlock Enhancements
+### Phase 3: AI And Unlock Enhancements AI와 해금 고도화
 
 ```text
-1. Consider responseShape for NPC answer quality.
-2. Consider timelineGuard for time consistency.
-3. Consider extra unlock rules only after evidence guidance is stable.
+1. NPC answer quality를 위해 responseShape를 검토한다.
+2. Time consistency를 위해 timelineGuard를 검토한다.
+3. Evidence guidance가 안정된 뒤에만 추가 unlock rule을 검토한다.
 ```
 
-## 17. QA Scenarios
+## 17. QA Scenarios QA 시나리오
 
-Minimum QA cases:
+최소 QA case:
 
 ```text
-1. Player opens early evidence and sees reading points.
-2. Player taps related unlocked evidence and returns successfully.
-3. Player taps related locked evidence and sees no hidden detail.
-4. Player taps suggested question and reaches interrogation screen.
-5. Interrogation screen has correct suspect, question, and presented evidence.
-6. Player edits question before sending.
-7. Evidence with no guidance still renders normally.
-8. Final answer is not exposed before deduction result.
+1. Player가 early evidence를 열고 reading point를 본다.
+2. Player가 related unlocked evidence를 tap하고 정상적으로 돌아온다.
+3. Player가 related locked evidence를 tap해도 hidden detail을 보지 못한다.
+4. Player가 suggested question을 tap해 interrogation screen으로 이동한다.
+5. Interrogation screen에 올바른 suspect, question, presented evidence가 들어 있다.
+6. Player가 send 전에 question을 수정한다.
+7. Guidance가 없는 evidence도 정상 render된다.
+8. Deduction result 전에는 final answer가 노출되지 않는다.
 ```
 
-UX success criteria:
+UX success criteria 성공 기준:
 
 ```text
-1. Player can identify at least one next action from most key evidence.
-2. Player does not need to invent all interrogation questions from scratch.
-3. Player can progress without broad "what should I do next?" prompts.
-4. Guidance does not make the case feel solved by the app.
+1. Player가 대부분의 key evidence에서 최소 하나의 next action을 식별할 수 있다.
+2. Player가 모든 interrogation question을 처음부터 발명하지 않아도 된다.
+3. Player가 "what should I do next?" 같은 broad prompt 없이 진행할 수 있다.
+4. Guidance 때문에 app이 사건을 대신 풀어준 느낌이 들지 않는다.
 ```
 
-## 18. Open Decisions
+## 18. Open Decisions 미결정 사항
 
-These should be decided before implementation:
+구현 전에 결정할 사항:
 
 ```text
-1. Store guidance as evidences.guidance_json or normalized tables?
-   Recommendation: guidance_json for MVP.
+1. Guidance를 evidences.guidance_json에 저장할 것인가, normalized table로 저장할 것인가?
+   Recommendation: MVP에서는 guidance_json.
 
-2. Should evidence list include a hasGuidance boolean?
-   Recommendation: optional. Detail-only guidance is enough for v1.
+2. Evidence list에 hasGuidance boolean을 넣을 것인가?
+   Recommendation: optional. V1에서는 detail-only guidance로 충분하다.
 
-3. Should locked compared evidence reveal title?
-   Recommendation: follow current locked evidence masking policy.
+3. Locked compared evidence가 title을 보여줘도 되는가?
+   Recommendation: 현재 locked evidence masking policy를 따른다.
 
-4. Should suggested question use EVIDENCE_PRESENTED or RECOMMENDED?
-   Recommendation: EVIDENCE_PRESENTED when launched from evidence detail with
-   current evidence attached.
+4. Suggested question은 EVIDENCE_PRESENTED인가 RECOMMENDED인가?
+   Recommendation: evidence detail에서 current evidence를 attach해 시작할 때는 EVIDENCE_PRESENTED.
 
-5. Should guidance be included in AI prompt?
-   Recommendation: no for v1.
+5. Guidance를 AI prompt에 포함할 것인가?
+   Recommendation: V1에서는 아니다.
 ```
 
-## 19. Definition Of Done
+## 19. Definition Of Done 완료 기준
 
-The scenario guidance UX is done when:
+Scenario guidance UX 완료 기준:
 
 ```text
-1. Team agrees on the guidance YAML shape.
-2. Backend imports and validates guidance.
-3. Evidence detail API returns lock-safe guidance.
-4. Android renders all guidance sections.
-5. Suggested question chip preloads interrogation without auto-submit.
-6. At least one official scenario has guidance for key early/mid-game evidence.
-7. QA confirms the player can find next actions without direct answer leakage.
+1. Team이 guidance YAML shape에 합의한다.
+2. Backend가 guidance를 import하고 validate한다.
+3. Evidence detail API가 lock-safe guidance를 반환한다.
+4. Android가 모든 guidance section을 render한다.
+5. Suggested question chip이 auto-submit 없이 interrogation을 preload한다.
+6. 최소 하나의 official scenario가 key early/mid-game evidence에 guidance를 가진다.
+7. QA에서 direct answer leakage 없이 player가 next action을 찾을 수 있음을 확인한다.
 ```

@@ -1,33 +1,31 @@
-# Scenario YAML Schema v1
+# Scenario YAML Schema v1 한글 정본
 
-This document defines the spoiler-free YAML shape for official ClueRoom
-scenario imports.
+이 문서는 공식 ClueRoom 시나리오 import에 사용하는 spoiler-free YAML 구조를 정의한다.
 
-The schema is public-safe because it describes fields and validation rules
-only. Actual answer-bearing YAML files must stay outside the public
-repository.
+이 스키마는 field와 validation rule만 설명하므로 public-safe하다.
+정답을 포함한 실제 공식 YAML 파일은 public repository 밖에 있어야 한다.
 
-## Privacy Boundary
+## Privacy Boundary 공개 범위 경계
 
-Public repository may contain:
+Public repository에 포함해도 되는 것:
 
-- YAML schema and importer design
-- DTO / loader / validator / importer code
-- spoiler-free sample YAML
-- public prompt-boundary documentation
-- non-answer content pipeline notes
+- YAML schema와 importer design
+- DTO / loader / validator / importer code 코드
+- spoiler-free sample YAML 예시
+- public prompt-boundary documentation 문서
+- 정답을 포함하지 않는 content pipeline note
 
-Public repository must not contain:
+Public repository에 포함하면 안 되는 것:
 
-- actual official scenario YAML with answers
-- `culpritCode` values for official scenarios
-- variant solution text
-- proof-dimension answer mappings
-- full truth timelines
-- NPC hidden truth
-- complete evidence-role matrix by variant
+- 정답이 포함된 실제 공식 scenario YAML
+- 공식 scenario의 `culpritCode` 값
+- variant solution text 정답 문구
+- proof-dimension answer mapping 정답 매핑
+- full truth timeline 전체 진실 타임라인
+- NPC hidden truth 숨겨진 진실
+- variant별 complete evidence-role matrix
 
-Private team-only scenario material includes:
+팀 내부 전용 scenario material:
 
 ```text
 - working brief history
@@ -38,8 +36,8 @@ Private team-only scenario material includes:
 - final explanation with answer-bearing reasoning
 ```
 
-Official scenario YAML with answers is private content and should be loaded
-from a private local/server path such as:
+정답이 포함된 공식 scenario YAML은 private content다.
+아래와 같은 private local/server path에서 load해야 한다.
 
 ```text
 CLUEROOM_SCENARIO_IMPORT_PATHS=/opt/clueroom/private-scenarios
@@ -48,7 +46,7 @@ CLUEROOM_SCENARIO_IMPORT_PATHS=/opt/clueroom/private-scenarios
 `application.yml`은 복수형 `CLUEROOM_SCENARIO_IMPORT_PATHS`만 바인딩한다.
 단수형 `CLUEROOM_SCENARIO_IMPORT_PATH`는 현재 코드에서 읽지 않는다.
 
-## Root Shape
+## Root Shape 루트 구조
 
 ```yaml
 metadata: {}
@@ -66,35 +64,35 @@ scoring: {}
 assets: []
 ```
 
-Required root sections for a published official scenario:
+Published official scenario에서 필요한 root section:
 
-| Section | Required | Public-safe shape | Contains spoiler data in real YAML |
+| Section | Required | Public-safe shape | 실제 YAML에서 spoiler data 포함 가능성 |
 |---|---:|---:|---:|
 | `metadata` | yes | yes | no |
 | `scenario` | yes | yes | no |
-| `victim` | yes | yes | usually no |
+| `victim` | yes | yes | 보통 no |
 | `locations` | yes | yes | no |
-| `characters` | yes | yes | usually no |
-| `evidences` | yes | yes | some detail can be spoiler-like |
-| `timelineEvents` | no | yes | no, if limited to public events |
-| `evidenceVariantStates` | variant scenarios only | shape only | yes |
-| `variants` | variant scenarios only | shape only | yes |
-| `unlockRules` | yes | mostly | can reveal progression |
+| `characters` | yes | yes | 보통 no |
+| `evidences` | yes | yes | 일부 detail은 spoiler-like일 수 있음 |
+| `timelineEvents` | no | yes | public event로 제한하면 no |
+| `evidenceVariantStates` | variant scenario에서만 | shape only | yes |
+| `variants` | variant scenario에서만 | shape only | yes |
+| `unlockRules` | yes | mostly | progression을 드러낼 수 있음 |
 | `npcPolicies` | yes | shape only | yes |
 | `scoring` | yes | shape only | yes |
 | `assets` | yes | yes | no |
 
-## Design Rules
+## Design Rules 설계 규칙
 
-- YAML is source content. Runtime APIs must read DB data after import.
-- Every cross-reference uses canonical codes, not display names.
-- Local Windows paths must never be stored in YAML.
-- Images are referenced by `assetKey` or `s3ObjectKey`.
-- Public/player-facing text and backend-only truth must be separate fields.
-- Same `scenario.code + scenario.version` with a different content hash should fail import.
-- Prompt builders must not read `variants`, `solution`, `scoring`, or full variant evidence state directly.
+- YAML은 source content다. Runtime API는 import 이후 DB data를 읽어야 한다.
+- 모든 cross-reference는 display name이 아니라 canonical code를 사용한다.
+- Local Windows path는 YAML에 저장하면 안 된다.
+- Image는 `assetKey` 또는 `s3ObjectKey`로 참조한다.
+- Public/player-facing text와 backend-only truth는 별도 field로 분리한다.
+- 같은 `scenario.code + scenario.version`인데 content hash가 다르면 import가 실패해야 한다.
+- Prompt builder는 `variants`, `solution`, `scoring`, full variant evidence state를 직접 읽으면 안 된다.
 
-## Metadata
+## Metadata 메타데이터
 
 ```yaml
 metadata:
@@ -106,18 +104,18 @@ metadata:
   assetKeyPattern: official/sample/v1/{category}/{canonicalCode}.png
 ```
 
-| Field | Required | Notes |
+| Field | Required | Notes 설명 |
 |---|---:|---|
-| `schemaVersion` | yes | Must be `1` for this document. |
-| `contentStatus` | yes | `DRAFT` or `PUBLISHED`. |
-| `locale` | yes | Example: `ko-KR`. |
-| `sourceCanonRef` | yes | Human reference only. |
-| `canonicalCodeRef` | yes | Human reference for frozen codes. |
-| `assetKeyPattern` | yes | Documents intended asset key convention. |
+| `schemaVersion` | yes | 이 문서에서는 `1`이어야 한다. |
+| `contentStatus` | yes | `DRAFT` 또는 `PUBLISHED`. |
+| `locale` | yes | 예: `ko-KR`. |
+| `sourceCanonRef` | yes | 사람이 참고하는 reference. |
+| `canonicalCodeRef` | yes | frozen code를 확인하는 human reference. |
+| `assetKeyPattern` | yes | 의도한 asset key convention을 문서화한다. |
 
-`DRAFT` may allow partial content. `PUBLISHED` must pass all validator rules.
+`DRAFT`는 부분 content를 허용할 수 있다. `PUBLISHED`는 모든 validator rule을 통과해야 한다.
 
-## Scenario
+## Scenario 시나리오
 
 ```yaml
 scenario:
@@ -138,10 +136,10 @@ scenario:
   evidenceMode: PHASE_BASED_EVIDENCE_TAB
 ```
 
-`scenario.code` and `scenario.version` are the stable import identity.
-`contentHash` should be calculated by the importer, not authored by hand.
+`scenario.code`와 `scenario.version`은 stable import identity다.
+`contentHash`는 작성자가 직접 쓰지 않고 importer가 계산해야 한다.
 
-## Victim
+## Victim 피해자
 
 ```yaml
 victim:
@@ -154,9 +152,9 @@ victim:
   publicCauseOfDeathText: "Player-facing cause text"
 ```
 
-`deathLocationCode` must reference `locations[].code`.
+`deathLocationCode`는 `locations[].code`를 참조해야 한다.
 
-## Locations
+## Locations 장소
 
 ```yaml
 locations:
@@ -170,11 +168,10 @@ locations:
     sortOrder: 10
 ```
 
-Locations are used for evidence source, filtering, and scene map hotspots.
-For `PUBLISHED` official scenarios, `mapX` and `mapY` are required so the
-frontend can render selectable location points on the scenario map.
+Location은 evidence source, filtering, scene map hotspot에 사용된다.
+`PUBLISHED` official scenario에서는 frontend가 scenario map에서 selectable location point를 그릴 수 있도록 `mapX`와 `mapY`가 필요하다.
 
-## Characters
+## Characters 인물
 
 ```yaml
 characters:
@@ -190,16 +187,15 @@ characters:
     sortOrder: 10
 ```
 
-Recommended `characterType` values:
+권장 `characterType` 값:
 
 - `CULPRIT_ELIGIBLE`
 - `PERMANENT_RED_HERRING`
 - `NEUTRAL_WITNESS`
 
-If `culpritEligible` is `false`, validators must reject any variant that uses
-that character as culprit.
+`culpritEligible`이 `false`이면 validator는 해당 character를 culprit로 사용하는 variant를 거부해야 한다.
 
-## Evidences
+## Evidences 증거
 
 ```yaml
 evidences:
@@ -220,10 +216,10 @@ evidences:
     sortOrder: 10
 ```
 
-`baseDetail` is the default text shown with image evidence in the UI. If a
-specific variant needs different wording, use `evidenceVariantStates`.
+`baseDetail`은 UI에서 image evidence를 열었을 때 기본으로 보여주는 text다.
+특정 variant에서 다른 wording이 필요하면 `evidenceVariantStates`를 사용한다.
 
-## Timeline Events
+## Timeline Events 타임라인 이벤트
 
 ```yaml
 timelineEvents:
@@ -240,19 +236,14 @@ timelineEvents:
     relatedCharacterCode: SUSPECT_SAMPLE
 ```
 
-`timelineEvents` are imported into `timeline_events` for
-`GET /api/play-sessions/{sessionId}/timeline`.
+`timelineEvents`는 `GET /api/play-sessions/{sessionId}/timeline`용 `timeline_events`로 import된다.
 
-Official YAML should put only player-safe public timeline items here.
-`visibility` currently allows only `PUBLIC`; typos such as `PULBIC`
-must fail import validation instead of silently hiding the event from
-every player.
-Variant truth timelines, culprit-only actions, hidden cover-up steps, and final
-solution timelines must remain under backend-only variant/solution data or
-private design documents. If `relatedEvidenceCode` is present, runtime can
-withhold the event until that evidence is unlocked.
+Official YAML에는 player-safe public timeline item만 넣어야 한다.
+현재 `visibility`는 `PUBLIC`만 허용한다. `PULBIC` 같은 typo는 모든 player에게 event를 조용히 숨기지 말고 import validation에서 실패해야 한다.
+Variant truth timeline, culprit-only action, hidden cover-up step, final solution timeline은 backend-only variant/solution data 또는 private design document에 남겨야 한다.
+`relatedEvidenceCode`가 있으면 runtime은 해당 evidence가 unlock될 때까지 event를 숨길 수 있다.
 
-## Evidence Variant States
+## Evidence Variant States 증거 Variant 상태
 
 ```yaml
 evidenceVariantStates:
@@ -267,20 +258,19 @@ evidenceVariantStates:
       - METHOD
 ```
 
-This section is private for real official scenarios. It tells the backend how
-the same evidence functions under each active variant.
+실제 official scenario에서 이 section은 private이다.
+같은 evidence가 각 active variant에서 어떤 역할을 하는지 backend에 알려준다.
 
-API response logic should combine:
+API response logic은 아래를 결합해야 한다.
 
 ```text
 evidence.baseDetail
 + activeVariant matching detailOverride/detailAppend
 ```
 
-The frontend should receive only the final player-safe evidence text for the
-current session, not the full matrix.
+Frontend는 full matrix가 아니라 current session에 대한 최종 player-safe evidence text만 받아야 한다.
 
-## Variants
+## Variants 변형 정답
 
 ```yaml
 variants:
@@ -304,18 +294,16 @@ variants:
             - EVIDENCE_SUPPORT
 ```
 
-This section must never be exposed to AI NPC prompts or public APIs.
-The importer derives the culprit display name and role from `characters[]`
-using `culpritCode`; official YAML should not duplicate them as required
-variant fields.
+이 section은 AI NPC prompt 또는 public API에 절대 노출하면 안 된다.
+Importer는 `culpritCode`를 사용해 `characters[]`에서 culprit display name과 role을 가져온다.
+Official YAML은 이 값을 required variant field로 중복 저장하지 않아야 한다.
 
-For `PUBLISHED` official YAML, every `enabled: true` variant must provide a
-non-empty `solution` with `motiveSummary`, `methodSummary`, `coverUpSummary`,
-`solutionText`, and `proofDimensions`. `solution.methodSummary` is the primary
-source for the persisted `VariantSolution.method`; legacy top-level method
-layer fields are optional fallback only.
+`PUBLISHED` official YAML에서 `enabled: true`인 모든 variant는 비어 있지 않은 `solution`을 제공해야 한다.
+필수 field는 `motiveSummary`, `methodSummary`, `coverUpSummary`, `solutionText`, `proofDimensions`다.
+`solution.methodSummary`는 persisted `VariantSolution.method`의 primary source다.
+Legacy top-level method layer field는 optional fallback일 뿐이다.
 
-## Unlock Rules
+## Unlock Rules 해금 규칙
 
 ```yaml
 unlockRules:
@@ -330,10 +318,10 @@ unlockRules:
     sortOrder: 10
 ```
 
-Unlock rules decide when evidence appears or becomes available. MVP can use
-phase-based unlocks first and add active-investigation conditions later.
+Unlock rule은 evidence가 언제 나타나거나 사용 가능해지는지 결정한다.
+MVP는 phase-based unlock을 먼저 사용하고, 나중에 active-investigation condition을 추가할 수 있다.
 
-## NPC Policies
+## NPC Policies NPC 정책
 
 ```yaml
 npcPolicies:
@@ -365,20 +353,19 @@ npcPolicies:
         tone: "uneasy"
 ```
 
-The importer may store NPC policy data, but the AI prompt builder must receive
-only the policy selected by `ResponsePolicyResolver` for the current suspect,
-unlocked evidence IDs, and presented evidence ID.
+Importer는 NPC policy data를 저장할 수 있다.
+하지만 AI prompt builder는 현재 suspect, unlocked evidence IDs, presented evidence ID에 대해 `ResponsePolicyResolver`가 선택한 policy만 받아야 한다.
 
-Prompt builders must not receive:
+Prompt builder가 받으면 안 되는 것:
 
 - `activeVariant`
 - `culpritCode`
 - `solutionText`
-- full truth timeline
+- full truth timeline 전체 진실 타임라인
 - full evidence-role matrix
 - scoring answer keys
 
-## Scoring
+## Scoring 채점
 
 ```yaml
 scoring:
@@ -401,21 +388,19 @@ scoring:
     maxScore: 15
 ```
 
-Actual scoring answer keys live under each variant's solution. Public docs can
-describe the scoring shape, but official mappings are private.
-The default score split in code is culprit 30, method 25, motive 20, coverUp 10, evidence 15.
+실제 scoring answer key는 각 variant의 solution 아래에 있다.
+Public docs는 scoring shape를 설명할 수 있지만 official mapping은 private이다.
+현재 code의 기본 score split은 culprit 30, method 25, motive 20, coverUp 10, evidence 15다.
 
 MVP importer bridge:
 
 ```text
-The importer preserves variants[].solution.proofDimensions.
-To remain compatible with the current final deduction scoring path, it also
-converts solution evidence codes into VariantSolution.keyEvidenceIds.
-Proof-dimension-specific scoring should later move to proofDimensionJson as
-the authoritative scoring source.
+Importer는 variants[].solution.proofDimensions를 보존한다.
+현재 final deduction scoring path와 호환되도록 solution evidence code를 VariantSolution.keyEvidenceIds로도 변환한다.
+Proof-dimension-specific scoring은 이후 proofDimensionJson을 authoritative scoring source로 삼도록 이동해야 한다.
 ```
 
-## Assets
+## Assets 에셋
 
 ```yaml
 assets:
@@ -428,42 +413,41 @@ assets:
     altText: "Evidence image alt text"
 ```
 
-The YAML should reference stable asset keys. A separate private asset map can
-map local source filenames to final S3 keys.
+YAML은 stable asset key를 참조해야 한다.
+별도의 private asset map으로 local source filename을 final S3 key에 매핑할 수 있다.
 
-## Validator Rules
+## Validator Rules 검증 규칙
 
-For `PUBLISHED` content, the validator must enforce:
+`PUBLISHED` content에 대해 validator는 아래를 강제해야 한다.
 
-- root sections required by this document are present
-- `scenario.code` and `scenario.version` are present
-- all canonical `code` values are unique within their section
-- `victim.deathLocationCode` exists in `locations`
-- `evidences[].locationCode` exists in `locations`
-- `evidences[].relatedCharacterCodes` exist in `characters`
-- `timelineEvents[].eventOrder` values are unique
-- `timelineEvents[].locationCode` exists in `locations`
-- `timelineEvents[].relatedEvidenceCode` exists in `evidences`
-- `timelineEvents[].relatedCharacterCode` exists in `characters`
-- `variants[].culpritCode` exists in `characters`
-- `variants[].culpritCode` has `culpritEligible=true`
-- `PUBLISHED` content has at least one `enabled: true` variant
-- enabled variants include required solution fields:
-  `motiveSummary`, `methodSummary`, `coverUpSummary`, `solutionText`, `proofDimensions`
-- `evidenceVariantStates[].variantCode` exists in `variants`
-- `evidenceVariantStates[].evidenceCode` exists in `evidences`
-- `unlockRules[].evidenceCode` exists in `evidences`
-- `unlockRules[].condition.requiredEvidenceCodes` exist in `evidences`
-- `npcPolicies[].characterCode` exists in `characters`
-- `npcPolicies[].evidenceReactionPolicies[].evidenceCode` exists in `evidences`
-- `assets[].type`, `assets[].targetKind`, and `assets[].targetCode` are present
-- `assets[].targetKind + targetCode` references an existing scenario object
-- `assetKey` and `s3ObjectKey` do not contain local filesystem paths
-- same `scenario.code + scenario.version` with different content hash fails import
+- 이 문서에서 required로 지정한 root section이 존재한다.
+- `scenario.code`와 `scenario.version`이 존재한다.
+- 모든 canonical `code` 값이 해당 section 안에서 unique하다.
+- `victim.deathLocationCode`가 `locations`에 존재한다.
+- `evidences[].locationCode`가 `locations`에 존재한다.
+- `evidences[].relatedCharacterCodes`가 `characters`에 존재한다.
+- `timelineEvents[].eventOrder` 값이 unique하다.
+- `timelineEvents[].locationCode`가 `locations`에 존재한다.
+- `timelineEvents[].relatedEvidenceCode`가 `evidences`에 존재한다.
+- `timelineEvents[].relatedCharacterCode`가 `characters`에 존재한다.
+- `variants[].culpritCode`가 `characters`에 존재한다.
+- `variants[].culpritCode`의 `culpritEligible=true`다.
+- `PUBLISHED` content는 최소 하나의 `enabled: true` variant를 가진다.
+- enabled variant는 필수 solution field를 가진다: `motiveSummary`, `methodSummary`, `coverUpSummary`, `solutionText`, `proofDimensions`.
+- `evidenceVariantStates[].variantCode`가 `variants`에 존재한다.
+- `evidenceVariantStates[].evidenceCode`가 `evidences`에 존재한다.
+- `unlockRules[].evidenceCode`가 `evidences`에 존재한다.
+- `unlockRules[].condition.requiredEvidenceCodes`가 `evidences`에 존재한다.
+- `npcPolicies[].characterCode`가 `characters`에 존재한다.
+- `npcPolicies[].evidenceReactionPolicies[].evidenceCode`가 `evidences`에 존재한다.
+- `assets[].type`, `assets[].targetKind`, `assets[].targetCode`가 존재한다.
+- `assets[].targetKind + targetCode`가 실제 scenario object를 참조한다.
+- `assetKey`와 `s3ObjectKey`에 local filesystem path가 들어가지 않는다.
+- 같은 `scenario.code + scenario.version`인데 content hash가 다르면 import가 실패한다.
 
-## Import Order
+## Import Order Import 순서
 
-Recommended persistence order:
+권장 persistence 순서:
 
 ```text
 1. Scenario
@@ -482,9 +466,9 @@ Recommended persistence order:
 14. Assets
 ```
 
-## Runtime Contract
+## Runtime Contract 런타임 계약
 
-At play-session start:
+Play-session 시작 시:
 
 ```text
 scenario selected
@@ -492,7 +476,7 @@ scenario selected
   -> activeVariant stored on PlaySession
 ```
 
-During evidence lookup:
+Evidence lookup 중:
 
 ```text
 base evidence
@@ -500,7 +484,7 @@ base evidence
   -> player-safe evidence response with image URL and detail text
 ```
 
-During interrogation:
+Interrogation 중:
 
 ```text
 suspect + unlocked evidence IDs + presented evidence ID
@@ -509,7 +493,7 @@ suspect + unlocked evidence IDs + presented evidence ID
   -> AiPromptBuilder
 ```
 
-During final deduction:
+Final deduction 중:
 
 ```text
 submitted answer

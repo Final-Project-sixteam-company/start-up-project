@@ -1,57 +1,58 @@
-# ClueRoom LLMOps Operating Guide
+# ClueRoom LLMOps 운영 가이드
 
-> Purpose: define the canonical operating guide for ClueRoom AI feature telemetry, safety review, smoke checks, PromQL queries, and LLMOps agent analysis.
+> 목적: ClueRoom AI 기능의 telemetry, safety review, smoke check, PromQL query, LLMOps agent analysis 기준을 정의한다.
 >
-> Status: canonical LLMOps operating guide. It absorbs the previous LLMOps agent plan, PromQL query candidates, and smoke runbook. It does not itself deploy dashboards, workers, or provider changes.
+> 상태: LLMOps 운영 정본 문서다. 이전 LLMOps agent plan, PromQL query 후보, smoke runbook을 흡수했다. 이 문서 자체가 dashboard, worker, provider 변경을 배포하지는 않는다.
 
 ---
 
-## 1. Why LLMOps Is Needed
+## 1. LLMOps가 필요한 이유
 
-ClueRoom depends on AI behavior for core gameplay.
+ClueRoom은 핵심 gameplay가 AI 동작에 의존한다.
 
-The AI layer affects:
+AI layer가 영향을 주는 영역:
 
 ```text
 - NPC interrogation quality
 - final deduction scoring
 - custom scenario validation
-- fallback behavior during demo
+- demo 중 fallback behavior
 - secret and spoiler safety
 - latency and cost
 ```
 
-General infrastructure monitoring is not enough because a request can be technically healthy but still fail the game design.
+일반 인프라 모니터링만으로는 부족하다.
+요청이 기술적으로 성공해도 game design 관점에서는 실패할 수 있기 때문이다.
 
-Examples:
+예시:
 
 ```text
-- AI answer succeeds but leaks hidden culprit information.
-- AI answer succeeds but invents facts not present in scenario data.
-- final deduction scoring returns a result but used fallback instead of DB VariantSolution.
-- latency is high enough to break chat UX.
-- token/cost usage spikes through repeated interrogation.
+- AI answer는 성공했지만 hidden culprit information을 누설했다.
+- AI answer는 성공했지만 scenario data에 없는 사실을 만들었다.
+- final deduction scoring은 결과를 반환했지만 DB VariantSolution이 아니라 fallback을 사용했다.
+- latency가 높아서 chat UX를 깨뜨렸다.
+- 반복 심문으로 token/cost 사용량이 급증했다.
 ```
 
-LLMOps should make these cases visible.
+LLMOps는 이런 상태를 보이게 만드는 작업이다.
 
 ---
 
-## 2. ClueRoom AI Feature List
+## 2. ClueRoom AI 기능 목록
 
-Current and planned AI feature categories:
+현재 및 계획된 AI feature category:
 
-| Feature Type | API / Area | Risk |
+| Feature Type | API / Area | Risk 위험 |
 |---|---|---|
-| `INTERROGATION` | `POST /api/play-sessions/{sessionId}/interrogations` | secret leakage, hallucinated facts, latency |
-| `FINAL_DEDUCTION` | `POST /api/play-sessions/{sessionId}/final-deduction` | wrong scoring, fallback misuse, missing solution data |
-| `SCENARIO_VALIDATION` | `POST /api/ai/scenarios/{scenarioId}/validate` | validation false positive/negative |
-| `PROMPT_POLICY_CHECK` | backend prompt policy and response policy checks | forbidden facts in prompt |
-| `FALLBACK_RESPONSE` | AI provider failure path | demo continuity but quality degradation |
+| `INTERROGATION` | `POST /api/play-sessions/{sessionId}/interrogations` | secret leakage, hallucinated facts, latency 위험 |
+| `FINAL_DEDUCTION` | `POST /api/play-sessions/{sessionId}/final-deduction` | wrong scoring, fallback misuse, missing solution data 위험 |
+| `SCENARIO_VALIDATION` | `POST /api/ai/scenarios/{scenarioId}/validate` | validation false positive/negative 위험 |
+| `PROMPT_POLICY_CHECK` | backend prompt policy and response policy checks | prompt에 forbidden facts가 들어갈 위험 |
+| `FALLBACK_RESPONSE` | AI provider failure path | demo continuity는 지키지만 quality degradation 위험 |
 
-AI-related code should remain centered in `domain/ai`.
+AI 관련 코드는 `domain/ai` 중심으로 유지한다.
 
-Reference policies:
+참조 정책:
 
 ```text
 docs/AI_NPC_PROMPT_POLICY.md
@@ -63,11 +64,11 @@ docs/infra/agent/LLMOPS_OPERATING_GUIDE.md section 14
 
 ---
 
-## 3. AI Request Metadata To Collect
+## 3. 수집할 AI Request Metadata
 
-The system should collect metadata, not raw secrets.
+시스템은 raw secret이 아니라 metadata를 수집해야 한다.
 
-Candidate fields:
+후보 field:
 
 ```text
 requestId
@@ -88,7 +89,7 @@ estimatedCost
 createdAt
 ```
 
-Optional fields when safe:
+안전할 때만 선택적으로 사용할 수 있는 field:
 
 ```text
 scenarioCode
@@ -99,39 +100,39 @@ promptTemplateName
 promptTemplateHash
 ```
 
-Do not collect:
+수집하지 말 것:
 
 ```text
-- full prompt with hidden facts
+- hidden fact가 포함된 full prompt
 - API keys
 - private scenario YAML
-- culpritCode in logs exposed to frontend or public dashboards
-- full solution text in Monitoring Agent snapshots
+- frontend 또는 public dashboard에 노출되는 culpritCode
+- Monitoring Agent snapshot의 full solution text
 - raw user PII
 ```
 
-If prompt logging is needed for debugging, it must be separately gated, redacted, and limited to an approved private environment.
+Debug를 위해 prompt logging이 필요하다면 별도 gate, redaction, 승인된 private environment 제한이 필요하다.
 
 ---
 
-## 4. Prompt Version Management
+## 4. Prompt Version 관리
 
-Prompt behavior must be traceable.
+Prompt 동작은 추적 가능해야 한다.
 
-Recommended version dimensions:
+권장 version dimension:
 
-| Dimension | Example |
+| Dimension 기준 | Example 예시 |
 |---|---|
-| prompt template name | `npc_interrogation_system` |
-| prompt version | `v1.3.0` |
-| response policy version | `v1` |
-| scenario schema version | `seowolchae.v1` |
-| model | `deepseek-v4-flash` |
-| provider | `deepseek` |
+| prompt template name 이름 | `npc_interrogation_system` |
+| prompt version 버전 | `v1.3.0` |
+| response policy version 버전 | `v1` |
+| scenario schema version 버전 | `seowolchae.v1` |
+| model 모델 | `deepseek-v4-flash` |
+| provider 제공자 | `deepseek` |
 
-Each AI call should be attributable to a prompt version.
+각 AI call은 prompt version에 귀속될 수 있어야 한다.
 
-The version should change when:
+Version을 바꿔야 하는 경우:
 
 ```text
 - system prompt wording changes
@@ -142,28 +143,28 @@ The version should change when:
 - scenario validation criteria changes
 ```
 
-Prompt version changes should be reviewed with leak-safety criteria.
+Prompt version 변경은 leak-safety 기준으로 review해야 한다.
 
 ---
 
-## 5. Quality Evaluation Criteria
+## 5. 품질 평가 기준
 
-LLMOps should track both technical and gameplay quality.
+LLMOps는 기술 품질과 gameplay 품질을 모두 추적해야 한다.
 
-| Category | Signal |
+| Category 분류 | Signal 신호 |
 |---|---|
-| correctness | answer follows public scenario facts |
-| role consistency | NPC stays within public profile/alibi/policy |
-| brevity | NPC answer remains within 1-2 sentences |
-| safety | no culprit/solution leakage |
-| grounding | no unsupported facts |
-| usefulness | answer helps investigation without solving it directly |
-| scoring reliability | final deduction uses DB solution data |
-| resilience | fallback works when provider fails |
-| latency | chat response time is acceptable |
-| cost | request volume and token use stay bounded |
+| correctness | answer가 public scenario fact를 따름 |
+| role consistency | NPC가 public profile/alibi/policy 안에 머묾 |
+| brevity | NPC answer가 1~2문장 제한 유지 |
+| safety | culprit/solution leakage 없음 |
+| grounding | unsupported fact 없음 |
+| usefulness | 사건을 직접 풀지 않으면서 investigation에 도움 |
+| scoring reliability | final deduction이 DB solution data 사용 |
+| resilience | provider 실패 시 fallback 동작 |
+| latency | chat response time이 수용 가능 |
+| cost | request volume과 token use가 bounded |
 
-Evaluation can start manually.
+평가는 수동으로 시작할 수 있다.
 
 ```text
 Phase 1:
@@ -181,11 +182,11 @@ add dashboard and alert thresholds
 
 ---
 
-## 6. Secret Leakage Prevention
+## 6. Secret Leakage 방지
 
-This is the highest-priority LLMOps safety rule.
+이것은 LLMOps에서 가장 높은 우선순위의 safety rule이다.
 
-AI NPC prompts must not include:
+AI NPC prompt에는 아래가 포함되면 안 된다.
 
 ```text
 - culpritCode
@@ -196,7 +197,7 @@ AI NPC prompts must not include:
 - backend-only scoring criteria
 ```
 
-AI NPC prompts may include only prompt-safe data:
+AI NPC prompt에는 prompt-safe data만 포함할 수 있다.
 
 ```text
 - NPC public profile
@@ -209,15 +210,15 @@ AI NPC prompts may include only prompt-safe data:
 - user question
 ```
 
-Leak prevention metrics should distinguish:
+Leak prevention metric은 아래를 구분해야 한다.
 
 ```text
-- prompt validation blocked before provider call
-- model response rejected after provider call
-- fallback used because of safety failure
+- provider call 전에 prompt validation으로 차단됨
+- provider call 후 model response가 reject됨
+- safety failure 때문에 fallback 사용
 ```
 
-Reference:
+참조:
 
 ```text
 docs/AI_NPC_PROMPT_POLICY.md
@@ -225,145 +226,126 @@ docs/AI_NPC_PROMPT_POLICY.md
 
 ---
 
-## 7. NPC Knowledge Boundary Validation
+## 7. NPC Knowledge Boundary 검증
 
-Each NPC must answer within its knowledge boundary.
+각 NPC는 자신의 knowledge boundary 안에서만 답해야 한다.
 
-Validation should check:
+검증 항목:
 
 ```text
-1. Did the prompt include only public or unlocked information?
-2. Did the prompt include only the selected response policy?
-3. Did the generated answer introduce unsupported facts?
-4. Did the answer imply direct culprit knowledge without policy support?
-5. Did the answer exceed the sentence limit?
-6. Did the answer reveal facts from another suspect's hidden state?
+1. Prompt가 public 또는 unlocked information만 포함했는가?
+2. Prompt가 selected response policy만 포함했는가?
+3. Generated answer가 unsupported fact를 추가했는가?
+4. Answer가 policy support 없이 direct culprit knowledge를 암시했는가?
+5. Answer가 sentence limit을 초과했는가?
+6. Answer가 다른 suspect의 hidden state를 reveal했는가?
 ```
 
-The agent should classify failures.
+Agent는 failure를 분류해야 한다.
 
-| Failure Type | Meaning |
+| Failure Type | 의미 |
 |---|---|
-| `PROMPT_CONTAINS_FORBIDDEN_FACT` | backend prompt assembly included forbidden secret |
-| `MODEL_HALLUCINATED_FACT` | model answer invented unsupported detail |
-| `NPC_BOUNDARY_VIOLATION` | answer used knowledge NPC should not have |
-| `ANSWER_TOO_LONG` | 1-2 sentence rule failed |
-| `POLICY_MISMATCH` | answer did not follow selected response policy |
-| `INJECTION_RISK` | user question attempted prompt override |
+| `PROMPT_CONTAINS_FORBIDDEN_FACT` | backend prompt assembly가 forbidden secret을 포함함 |
+| `MODEL_HALLUCINATED_FACT` | model answer가 unsupported detail을 만들어냄 |
+| `NPC_BOUNDARY_VIOLATION` | answer가 NPC가 몰라야 할 지식을 사용함 |
+| `ANSWER_TOO_LONG` | 1~2문장 rule 위반 |
+| `POLICY_MISMATCH` | selected response policy를 따르지 않음 |
+| `INJECTION_RISK` | user question이 prompt override를 시도함 |
 
-LLMOps should treat prompt construction failures as more severe than model style failures.
+Prompt construction failure는 model style failure보다 더 심각하게 취급한다.
 
 ---
 
-## 8. Fallback Tracking
+## 8. Fallback 추적
 
-Fallback is necessary for demo resilience, but it must be visible.
+Fallback은 demo resilience에 필요하지만 반드시 보여야 한다.
 
-Track:
+추적할 항목:
 
 ```text
-fallbackUsed
+- provider unavailable
+- timeout
+- response validation failed
+- prompt validation blocked
+- quota/rate limit hit
+- manual/mock fallback used
+```
+
+Fallback metric은 아래를 구분해야 한다.
+
+```text
+fallbackUsed=true
 fallbackReason
+provider
+model
+featureType
+promptVersion
+```
+
+Fallback answer는 demo continuity를 위한 것이며, 품질이 낮을 수 있다.
+Fallback이 반복되면 성공률만 보고 정상으로 판단하면 안 된다.
+
+---
+
+## 9. Latency, Error, Cost 추적
+
+AI call은 일반 API보다 비용과 지연 변동성이 크다.
+
+기본 측정 항목:
+
+```text
+- request count
+- success count
+- failure count
+- fallback count
+- latencyMs
+- prompt tokens
+- completion tokens
+- total tokens
+- estimated cost if reliable
+```
+
+분석 축:
+
+```text
 featureType
 provider
 model
+promptVersion
+success
+fallbackUsed
 errorCode
-latencyMs before fallback
+```
+
+Prometheus label에 넣으면 안 되는 high-cardinality 값:
+
+```text
 sessionId
 scenarioId
-createdAt
+suspectId
+npcCode
+user question
+raw prompt
+raw answer
 ```
 
-Candidate fallback reasons:
-
-```text
-PROVIDER_DISABLED
-API_KEY_MISSING
-PROVIDER_TIMEOUT
-PROVIDER_ERROR
-PROMPT_VALIDATION_FAILED
-RESPONSE_VALIDATION_FAILED
-SCORING_DATA_MISSING
-```
-
-Dashboard views should separate:
-
-```text
-- expected local fallback when AI disabled
-- production provider failure fallback
-- safety fallback
-- missing scenario data fallback
-```
-
-Fallback should not silently hide official scenario seed problems.
+Request-level detail은 structured log나 optional DB row로 관리하고, Prometheus label로 넣지 않는다.
 
 ---
 
-## 9. Latency, Error, And Cost Tracking
+## 10. Prometheus Metric 후보
 
-Track latency by feature type.
-
-```text
-interrogation latency
-final deduction latency
-scenario validation latency
-fallback latency
-```
-
-Track error rate by:
+현재 또는 후보 metric:
 
 ```text
-provider
-model
-featureType
-scenarioId
-promptVersion
-errorCode
+ai_requests_total
+ai_failures_total
+ai_fallbacks_total
+ai_tokens_total
+ai_latency_seconds
 ```
 
-Track cost pressure with request and token metadata.
-
-```text
-requests per user/session/scenario
-requests per feature type
-input tokens
-output tokens
-estimated cost
-quota hit count
-```
-
-Rate limit principle:
-
-```text
-Nginx IP rate limit is edge-level protection.
-AI cost defense requires Redis-backed application-level quota by userId, sessionId, scenarioId, and featureType.
-```
-
-This matters for Android because carrier NAT or shared Wi-Fi can make many users appear under one IP, while attackers can also rotate IPs.
-
----
-
-## 10. Prometheus Metric Candidates
-
-Phase 1 implementation records structured `AI_CALL` logs and the following Micrometer metrics.
-Micrometer dot names are exposed to Prometheus with Prometheus naming conventions.
-
-Implemented counters:
-
-```text
-Micrometer: ai.requests  -> Prometheus: ai_requests_total
-Micrometer: ai.failures  -> Prometheus: ai_failures_total
-Micrometer: ai.fallbacks -> Prometheus: ai_fallbacks_total
-Micrometer: ai.tokens    -> Prometheus: ai_tokens_total
-```
-
-Implemented timer:
-
-```text
-Micrometer: ai.latency -> Prometheus: ai_latency_seconds
-```
-
-Implemented low-cardinality labels:
+권장 label:
 
 ```text
 feature_type
@@ -372,22 +354,19 @@ model
 prompt_version
 success
 fallback_used
-error_code      only on failure/fallback counters
-token_type      only on token counter
+error_code
+token_type
 ```
 
-`scenarioId`, `sessionId`, `suspectId`, and `npcCode` are intentionally excluded from Prometheus labels.
-They are request-level fields for structured logs and optional `ai_call_logs` rows only.
-
-Interpretation:
+해석:
 
 ```text
-ai_requests_total includes provider, mock, and fallback events.
-Provider attempt views should filter fallback_used="false".
-Fallback views should prefer ai_fallbacks_total.
+ai_requests_total은 provider, mock, fallback event를 포함할 수 있다.
+Provider attempt view는 fallback_used="false"로 filter하는 것이 좋다.
+Fallback view는 ai_fallbacks_total을 우선 사용한다.
 ```
 
-Avoid high-cardinality labels:
+피해야 할 high-cardinality label:
 
 ```text
 scenarioId
@@ -400,41 +379,41 @@ raw prompt
 raw answer
 ```
 
-Use structured logs or future DB rows for request-level detail, not Prometheus labels.
+Request-level detail은 Prometheus label이 아니라 structured log 또는 future DB row로 관리한다.
 
-Current structured log fields:
+현재 structured log field:
 
 ```text
 AI_CALL featureType provider model promptVersion scenarioId sessionId suspectId npcCode latencyMs success errorCode fallbackUsed promptTokens completionTokens totalTokens
 ```
 
-These logs must never include raw prompt text, raw AI answer text, solution text, culprit data, API keys, or private scenario YAML.
+이 log에는 raw prompt text, raw AI answer text, solution text, culprit data, API key, private scenario YAML이 절대 포함되면 안 된다.
 
-## 10.1 Optional DB Persistence
+## 10.1 Optional DB Persistence 선택 DB 저장
 
-Phase 2 can persist the same metadata to `ai_call_logs`.
+Phase 2에서는 같은 metadata를 `ai_call_logs`에 저장할 수 있다.
 
-This path is disabled by default.
+이 경로는 기본 비활성화다.
 
 ```text
 AI_LLMOPS_DB_LOGGING_ENABLED=false
 ```
 
-Enable it only after the table exists in the target database:
+Target database에 table이 존재한 뒤에만 활성화한다.
 
 ```text
 AI_LLMOPS_DB_LOGGING_ENABLED=true
 ```
 
-The DB writer is best-effort:
+DB writer는 best-effort다.
 
 ```text
-- AI gameplay must not fail because LLMOps logging failed.
-- Missing table or DB insert failure is logged once and then treated as a non-blocking telemetry failure.
-- Prompt text, AI answer text, solution text, culprit data, API keys, and private scenario YAML are not stored.
+- LLMOps logging 실패 때문에 AI gameplay가 실패하면 안 된다.
+- Missing table 또는 DB insert failure는 한 번 log한 뒤 non-blocking telemetry failure로 취급한다.
+- Prompt text, AI answer text, solution text, culprit data, API key, private scenario YAML은 저장하지 않는다.
 ```
 
-Manual MySQL DDL candidate:
+Manual MySQL DDL 후보:
 
 ```sql
 CREATE TABLE ai_call_logs (
@@ -464,17 +443,17 @@ CREATE TABLE ai_call_logs (
 );
 ```
 
-Retention should be decided before long-term production use.
+장기 운영 전에 retention을 결정해야 한다.
 
-Initial retention candidate:
+초기 retention 후보:
 
 ```text
-- keep detailed ai_call_logs rows for 30-90 days
-- keep aggregated dashboard data longer if needed
-- do not use ai_call_logs as a replay source because prompt and answer bodies are intentionally absent
+- detailed ai_call_logs row는 30~90일 보관
+- aggregated dashboard data는 필요 시 더 오래 보관
+- prompt와 answer body가 없으므로 ai_call_logs를 replay source로 사용하지 않는다.
 ```
 
-Future metric candidates after backend safety/quota features exist:
+Backend safety/quota 기능이 생긴 뒤의 future metric 후보:
 
 ```text
 ai_prompt_validation_failures_total
@@ -485,9 +464,9 @@ ai_quota_rejections_total
 
 ---
 
-## 11. Grafana LLMOps Dashboard Candidates
+## 11. Grafana LLMOps Dashboard 후보
 
-Initial dashboard panels:
+초기 dashboard panel:
 
 ```text
 AI requests by feature type
@@ -502,7 +481,7 @@ Provider/model distribution
 Estimated token usage
 ```
 
-Scenario-specific panels:
+Scenario-specific panel 시나리오별 panel:
 
 ```text
 interrogation count per scenario
@@ -511,60 +490,57 @@ final deduction success/error count
 missing scoring data indicators
 ```
 
-Do not show spoiler text or private solution content in Grafana.
-
-Grafana is for operational metrics, not secret scenario inspection.
+Grafana에는 spoiler text나 private solution content를 표시하지 않는다.
+Grafana는 operational metrics용이지 secret scenario inspection용이 아니다.
 
 ---
 
-## 12. LLMOps Agent Role
+## 12. LLMOps Agent 역할
 
-The LLMOps Agent should analyze metadata and safety signals.
+LLMOps Agent는 metadata와 safety signal을 분석해야 한다.
 
-Allowed tasks:
+허용 작업:
 
 ```text
-- summarize AI failure/fallback trends
-- identify prompt version with increased failure rate
-- flag repeated prompt validation failures
-- flag possible NPC knowledge boundary violations
-- suggest safe manual review samples
-- draft LLMOps dashboard improvements
+- AI failure/fallback trend 요약
+- failure rate가 증가한 prompt version 식별
+- 반복 prompt validation failure flag
+- 가능한 NPC knowledge boundary violation flag
+- safe manual review sample 제안
+- LLMOps dashboard 개선안 draft
 ```
 
-Not allowed:
+금지 작업:
 
 ```text
-- read or print API keys
-- expose culprit or solution text
-- autonomously change prompts in production
-- bypass ResponsePolicyResolver
-- override final deduction scoring criteria
+- API key 읽기 또는 출력
+- culprit 또는 solution text 노출
+- production prompt 자율 변경
+- ResponsePolicyResolver 우회
+- final deduction scoring criteria override
 ```
 
-Recommended execution path:
+권장 실행 경로:
 
 ```text
-Phase 1: manual analysis from metadata and logs
+Phase 1: metadata와 log 기반 manual analysis
 Phase 2: dashboard-based trend review
-Phase 3: scheduled summary after monitoring stack matures
-Phase 4: automated alert suggestions with human approval
+Phase 3: monitoring stack 성숙 후 scheduled summary
+Phase 4: human approval 기반 automated alert suggestion
 ```
 
-The agent should treat secret-safety regressions as higher priority than style or latency issues.
-
-
+Agent는 style 또는 latency 문제보다 secret-safety regression을 더 높은 우선순위로 취급해야 한다.
 
 ---
 
-## 13. LLMOps Smoke And Rollout Runbook
+## 13. LLMOps Smoke And Rollout Runbook 절차
 
-This section absorbs `LLMOPS_SMOKE_RUNBOOK.md`.
-Use it after a backend deploy that changes AI telemetry, prompt context logging, or LLMOps persistence.
+이 섹션은 `LLMOPS_SMOKE_RUNBOOK.md`를 흡수한다.
+AI telemetry, prompt context logging, LLMOps persistence를 변경하는 backend deploy 후 사용한다.
 
-### 13.1 Runtime Signals
+### 13.1 Runtime Signals 런타임 신호
 
-Expected runtime signals:
+기대 runtime signal:
 
 ```text
 AI_CALL structured log
@@ -576,24 +552,24 @@ ai_tokens_total
 ai_latency_seconds
 ```
 
-Optional DB persistence:
+Optional DB persistence 선택 DB 저장:
 
 ```text
 ai_call_logs
 ```
 
-Default DB state:
+기본 DB 상태:
 
 ```text
 AI_LLMOPS_DB_LOGGING_ENABLED=false
 ```
 
-Metric/log telemetry can work after deploy while DB insert remains disabled.
-Enable DB persistence only after the table exists and rollback is clear.
+Metric/log telemetry는 deploy 후 동작할 수 있으며 DB insert는 비활성 상태로 남을 수 있다.
+DB persistence는 table이 존재하고 rollback이 명확한 뒤에만 활성화한다.
 
-### 13.2 Smoke Safety Rules
+### 13.2 Smoke Safety Rules 안전 규칙
 
-Do not log, store, paste, or put into dashboard labels:
+아래 항목은 log, store, paste, dashboard label에 넣지 않는다.
 
 ```text
 raw system prompt
@@ -607,7 +583,7 @@ private scenario YAML
 provider API keys
 ```
 
-Prometheus labels must stay low-cardinality:
+Prometheus label은 low-cardinality를 유지해야 한다.
 
 ```text
 feature_type
@@ -620,10 +596,10 @@ error_code
 token_type
 ```
 
-Request-level IDs such as `sessionId`, `scenarioId`, `suspectId`, and `npcCode` may be used in structured logs or optional DB rows, but they must not become Prometheus labels.
-`AI_CALL_CONTEXT` should remain a prompt-shape/cost signal and must not include raw prompt, raw answer, user question body, or direct gameplay identifiers.
+`sessionId`, `scenarioId`, `suspectId`, `npcCode` 같은 request-level ID는 structured log나 optional DB row에 사용할 수 있지만 Prometheus label로 만들면 안 된다.
+`AI_CALL_CONTEXT`는 prompt-shape/cost signal이어야 하며 raw prompt, raw answer, user question body, direct gameplay identifier를 포함하면 안 된다.
 
-### 13.3 Preconditions
+### 13.3 Preconditions 사전 조건
 
 ```bash
 ssh clueroom
@@ -633,62 +609,62 @@ cd /opt/clueroom/app
 curl -I https://api.clueroom.xyz/actuator/health
 ```
 
-Expected:
+기대 상태:
 
 ```text
 API health is 200.
 Active Blue-Green slot is known.
 ```
 
-Do not use public `/actuator/prometheus`; production Nginx hardening blocks it externally.
-Query Prometheus locally from the server or through the ops path.
+Public `/actuator/prometheus`는 사용하지 않는다. Production Nginx hardening이 외부 접근을 차단한다.
+Prometheus는 server local 또는 ops path에서 query한다.
 
-### 13.4 Generate One AI Call
+### 13.4 Generate One AI Call AI 호출 1회 생성
 
-Preferred low-risk options:
+선호하는 low-risk option:
 
 ```text
-1. Use an existing test play session and send one interrogation request.
-2. Run scenario validation for a non-production/custom scenario if available.
-3. In local/mock mode, start the app and trigger a mock interrogation path.
+1. 기존 test play session에서 interrogation request 1회 전송
+2. 가능한 경우 non-production/custom scenario에 대한 scenario validation 실행
+3. local/mock mode에서 app 시작 후 mock interrogation path trigger
 ```
 
-Avoid final deduction smoke on an active demo session unless the team explicitly wants to complete that session.
+팀이 해당 session을 완료하려는 것이 아니라면 active demo session에서 final deduction smoke를 피한다.
 
-### 13.5 Verify Structured Logs
+### 13.5 Verify Structured Logs 구조화 로그 확인
 
-Check active app logs through the Blue-Green helper.
+Active app log는 Blue-Green helper로 확인한다.
 
 ```bash
 /opt/clueroom/bg-compose logs --tail=300 app-blue | grep 'AI_CALL'
 /opt/clueroom/bg-compose logs --tail=300 app-green | grep 'AI_CALL'
 ```
 
-Expected `AI_CALL` shape:
+기대 `AI_CALL` 형태:
 
 ```text
 AI_CALL featureType=INTERROGATION provider=... model=... promptVersion=... scenarioId=... sessionId=... suspectId=... npcCode=... latencyMs=... success=... errorCode=... fallbackUsed=... promptTokens=... completionTokens=... totalTokens=...
 ```
 
-Expected `AI_CALL_CONTEXT` shape:
+기대 `AI_CALL_CONTEXT` 형태:
 
 ```text
 AI_CALL_CONTEXT featureType=INTERROGATION provider=... model=... promptVersion=... systemRuleTokens=... policyContextTokens=... npcProfileTokens=... evidenceContextTokens=... historyTokens=... questionTokens=... promptCharLength=... historyTurns=... includedEvidenceCount=... templateHash=...
 ```
 
-Expected safety:
+기대 safety:
 
 ```text
-- no prompt body
-- no answer body
-- no user free text
-- no solution text
-- no culprit data
-- no API key
-- no sessionId/scenarioId/suspectId/npcCode in AI_CALL_CONTEXT
+- prompt body 없음
+- answer body 없음
+- user free text 없음
+- solution text 없음
+- culprit data 없음
+- API key 없음
+- AI_CALL_CONTEXT에 sessionId/scenarioId/suspectId/npcCode 없음
 ```
 
-### 13.6 Verify Prometheus Metrics
+### 13.6 Verify Prometheus Metrics Prometheus 지표 확인
 
 ```bash
 curl -G 'http://localhost:9090/api/v1/query' \
@@ -704,42 +680,42 @@ curl -G 'http://localhost:9090/api/v1/query' \
   --data-urlencode 'query=ai_tokens_total'
 ```
 
-Expected:
+기대:
 
 ```text
-ai_requests_total exists after at least one AI call.
-ai_latency_seconds_count exists after at least one AI provider/mock/fallback event.
-ai_tokens_total may be absent or empty if the provider does not return token usage metadata.
-ai_fallbacks_total may be absent or zero if fallback was not used.
+AI call이 최소 1회 발생한 뒤 ai_requests_total이 존재한다.
+AI provider/mock/fallback event가 최소 1회 발생한 뒤 ai_latency_seconds_count가 존재한다.
+Provider가 token usage metadata를 반환하지 않으면 ai_tokens_total은 없거나 비어 있을 수 있다.
+Fallback이 사용되지 않았으면 ai_fallbacks_total은 없거나 0일 수 있다.
 ```
 
-### 13.7 Optional DB Persistence
+### 13.7 Optional DB Persistence 선택 DB 저장
 
-Only do this after deciding to store detailed metadata in MySQL.
-The table DDL is maintained in section 10.1 of this guide.
+상세 metadata를 MySQL에 저장하기로 결정한 뒤에만 사용한다.
+Table DDL은 이 가이드 section 10.1에서 관리한다.
 
-Enable DB logging only after the table exists:
+Table이 존재한 뒤에만 DB logging을 활성화한다.
 
 ```text
 AI_LLMOPS_DB_LOGGING_ENABLED=true
 ```
 
-For production Blue-Green, put the value in the runtime env source loaded by the helpers, preferably:
+Production Blue-Green에서는 runtime env source에 값을 넣는다. 권장 위치:
 
 ```text
 /opt/clueroom/secrets/env.d/ai.env
 ```
 
-Confirm the active/running slot has the value:
+Active/running slot에 값이 있는지 확인한다.
 
 ```bash
 docker exec start-up-app-blue printenv | grep '^AI_LLMOPS_DB_LOGGING_ENABLED='
 docker exec start-up-app-green printenv | grep '^AI_LLMOPS_DB_LOGGING_ENABLED='
 ```
 
-If one slot is intentionally stopped, check only the active/running slot from `/opt/clueroom/bg-status.sh`.
+한 slot이 의도적으로 중지된 경우 `/opt/clueroom/bg-status.sh` 기준 active/running slot만 확인한다.
 
-After enabling DB logging and generating one AI call, query metadata only:
+DB logging 활성화 후 AI call을 1회 발생시키고 metadata만 조회한다.
 
 ```sql
 SELECT
@@ -765,74 +741,72 @@ ORDER BY id DESC
 LIMIT 10;
 ```
 
-Expected:
+기대:
 
 ```text
-Rows exist after AI calls.
-No prompt body, answer body, user free text, solution text, culprit data, or API key columns exist.
+AI call 이후 row가 존재한다.
+Prompt body, answer body, user free text, solution text, culprit data, API key column이 없다.
 ```
 
-Disable DB persistence first if it creates noise or the table is not ready:
+Table이 준비되지 않았거나 noise가 생기면 먼저 DB persistence를 비활성화한다.
 
 ```text
 AI_LLMOPS_DB_LOGGING_ENABLED=false
 ```
 
-Do not drop `ai_call_logs` during an incident.
-Disable logging first, then archive/drop later only after confirming no analysis needs it.
-
 ---
 
-## 14. PromQL Query Appendix
+## 14. PromQL Query Appendix 쿼리 부록
 
-This section absorbs `LLMOPS_PROMQL_QUERIES.md`.
-It defines initial Prometheus queries for Grafana panels and manual checks.
-It does not create dashboards or alerts.
+이 섹션은 `LLMOPS_PROMQL_QUERIES.md`를 흡수한다.
+Query는 dashboard/alert 후보이며, 실제 metric name은 Grafana Explore에서 확인한 뒤 사용한다.
 
-### 14.1 Metric Names
+### 14.1 Metric Names 지표 이름
 
-| Micrometer | Prometheus | Meaning |
+Java/Micrometer name과 Prometheus export name은 다를 수 있다.
+초기 후보:
+
+| Concept 개념 | Java metric name | Prometheus candidate |
 |---|---|---|
-| `ai.requests` | `ai_requests_total` | AI feature call events, including provider/mock/fallback events |
-| `ai.failures` | `ai_failures_total` | failed provider/client calls |
-| `ai.fallbacks` | `ai_fallbacks_total` | fallback responses used |
-| `ai.tokens` | `ai_tokens_total` | token usage when provider metadata exposes it |
-| `ai.latency` | `ai_latency_seconds_*` | AI call latency timer series |
+| requests | `ai.requests` | `ai_requests_total` |
+| failures | `ai.failures` | `ai_failures_total` |
+| fallbacks | `ai.fallbacks` | `ai_fallbacks_total` |
+| tokens | `ai.tokens` | `ai_tokens_total` |
+| latency | `ai.latency` | `ai_latency_seconds_*` |
 
-Forbidden Prometheus labels:
-
-```text
-sessionId
-scenarioId
-suspectId
-npcCode
-requestId
-raw prompt
-raw answer
-user text
-solution text
-culprit data
-```
-
-### 14.2 Manual Metric Presence Checks
+Prometheus scrape 확인:
 
 ```bash
-curl -G 'http://localhost:9090/api/v1/query' \
-  --data-urlencode 'query=ai_requests_total'
-
-curl -G 'http://localhost:9090/api/v1/query' \
-  --data-urlencode 'query=ai_latency_seconds_count'
-
-curl -G 'http://localhost:9090/api/v1/query' \
-  --data-urlencode 'query=ai_fallbacks_total'
-
-curl -G 'http://localhost:9090/api/v1/query' \
-  --data-urlencode 'query=ai_tokens_total'
+curl -s 'http://localhost:9090/api/v1/label/__name__/values' | jq -r '.data[]' | grep '^ai_'
 ```
 
-### 14.3 Request Volume Panels
+Metric이 없으면 먼저 AI feature를 1회 호출한다.
 
-AI requests by feature type over 5 minutes:
+### 14.2 Manual Metric Presence Checks 수동 지표 존재 확인
+
+```promql
+ai_requests_total
+```
+
+```promql
+ai_failures_total
+```
+
+```promql
+ai_fallbacks_total
+```
+
+```promql
+ai_tokens_total
+```
+
+```promql
+ai_latency_seconds_count
+```
+
+### 14.3 Request Volume Panels 요청량 패널
+
+Feature별 request 증가량:
 
 ```promql
 sum by (feature_type) (
@@ -840,7 +814,7 @@ sum by (feature_type) (
 )
 ```
 
-AI requests by provider and model:
+Provider/model별 request 증가량:
 
 ```promql
 sum by (provider, model) (
@@ -848,15 +822,15 @@ sum by (provider, model) (
 )
 ```
 
-AI requests by prompt version:
+Prompt version별 request 증가량:
 
 ```promql
-sum by (feature_type, prompt_version) (
+sum by (prompt_version) (
   increase(ai_requests_total[30m])
 )
 ```
 
-Provider attempts only, excluding fallback events:
+Provider attempt만 보고 싶으면 fallback event를 제외한다.
 
 ```promql
 sum by (feature_type, provider, model) (
@@ -864,70 +838,66 @@ sum by (feature_type, provider, model) (
 )
 ```
 
-### 14.4 Failure And Fallback Panels
+### 14.4 Failure And Fallback Panels 실패와 fallback 패널
 
-Failure count by feature and error code:
+Feature별 failure count:
 
 ```promql
-sum by (feature_type, error_code) (
+sum by (feature_type) (
   increase(ai_failures_total[5m])
 )
 ```
 
-Fallback count by feature and error code:
+Feature별 fallback count:
 
 ```promql
-sum by (feature_type, error_code) (
+sum by (feature_type) (
   increase(ai_fallbacks_total[5m])
 )
 ```
 
-Fallback ratio by feature:
-
-```promql
-sum by (feature_type) (increase(ai_fallbacks_total[5m]))
-/
-clamp_min(
-  sum by (feature_type) (
-    increase(ai_requests_total{fallback_used="false",provider!="mock"}[5m])
-  ),
-  1
-)
-```
-
-Failure ratio by feature:
+Feature별 failure ratio:
 
 ```promql
 sum by (feature_type) (increase(ai_failures_total[5m]))
 /
-clamp_min(
-  sum by (feature_type) (
-    increase(ai_requests_total{fallback_used="false",provider!="mock"}[5m])
-  ),
-  1
+sum by (feature_type) (increase(ai_requests_total{fallback_used="false"}[5m]))
+```
+
+Feature별 fallback ratio:
+
+```promql
+sum by (feature_type) (increase(ai_fallbacks_total[5m]))
+/
+sum by (feature_type) (increase(ai_requests_total[5m]))
+```
+
+Error code별 failure:
+
+```promql
+sum by (feature_type, error_code) (
+  increase(ai_failures_total[30m])
 )
 ```
 
-Interpretation:
-
-```text
-Fallback may preserve demo UX, but it means the real provider or parser path did not complete.
-Use provider attempts as the denominator for failure/fallback ratios.
-Do not divide by all ai_requests_total because fallback events are also recorded as AI request events.
-Mock-mode smoke calls are excluded from production-oriented ratio denominators.
-```
-
-### 14.5 Latency Panels
-
-Average latency by feature type:
+Prompt version별 failure:
 
 ```promql
-sum by (feature_type) (increase(ai_latency_seconds_sum[5m]))
-/
-clamp_min(sum by (feature_type) (increase(ai_latency_seconds_count[5m])), 0.001)
+sum by (prompt_version, error_code) (
+  increase(ai_failures_total[30m])
+)
 ```
 
-Request count by feature type:
+주의:
+
+```text
+Denominator가 0이면 Grafana panel에서 null/NaN 처리한다.
+Mock/fallback event가 ai_requests_total에 포함되는지 실제 metric implementation을 확인한다.
+```
+
+### 14.5 Latency Panels 지연 패널
+
+Latency count 확인:
 
 ```promql
 sum by (feature_type) (
@@ -935,29 +905,48 @@ sum by (feature_type) (
 )
 ```
 
-p95 latency by feature type, only if histogram buckets are enabled:
+Average latency:
+
+```promql
+sum by (feature_type) (rate(ai_latency_seconds_sum[5m]))
+/
+sum by (feature_type) (rate(ai_latency_seconds_count[5m]))
+```
+
+p95 latency 후보:
 
 ```promql
 histogram_quantile(
   0.95,
-  sum by (feature_type, le) (
+  sum by (le, feature_type) (
     rate(ai_latency_seconds_bucket[5m])
   )
 )
 ```
 
-Notes:
+p99 latency 후보:
 
-```text
-ai_latency_seconds_bucket may not exist unless histogram buckets are enabled.
-Use ai_latency_seconds_sum/count for the first dashboard if buckets are absent.
-Final deduction and scenario validation can naturally be slower than interrogation.
-Do not use one global latency threshold for every feature.
+```promql
+histogram_quantile(
+  0.99,
+  sum by (le, feature_type) (
+    rate(ai_latency_seconds_bucket[5m])
+  )
+)
 ```
 
-### 14.6 Token Panels
+주의:
 
-Total token usage by feature and token type:
+```text
+ai_latency_seconds_bucket은 histogram bucket이 활성화되어야 존재할 수 있다.
+Bucket이 없으면 첫 dashboard는 ai_latency_seconds_sum/count를 사용한다.
+Final deduction과 scenario validation은 interrogation보다 자연스럽게 느릴 수 있다.
+모든 feature에 하나의 global latency threshold를 쓰지 않는다.
+```
+
+### 14.6 Token Panels 토큰 패널
+
+Feature와 token type별 total token usage:
 
 ```promql
 sum by (feature_type, token_type) (
@@ -965,7 +954,7 @@ sum by (feature_type, token_type) (
 )
 ```
 
-Total token usage by provider and model:
+Provider/model별 total token usage:
 
 ```promql
 sum by (provider, model, token_type) (
@@ -973,7 +962,7 @@ sum by (provider, model, token_type) (
 )
 ```
 
-Prompt/completion split:
+Prompt/completion 분리:
 
 ```promql
 sum by (token_type) (
@@ -981,9 +970,9 @@ sum by (token_type) (
 )
 ```
 
-### 14.7 Initial Dashboard And Alert Candidates
+### 14.7 초기 Dashboard와 Alert 후보
 
-Recommended first dashboard:
+권장 첫 dashboard:
 
 ```text
 1. AI requests by feature type
@@ -995,9 +984,9 @@ Recommended first dashboard:
 7. AI prompt version distribution
 ```
 
-Do not show gameplay spoilers, raw prompt text, raw answer text, user free text, or private scenario YAML.
+Gameplay spoiler, raw prompt text, raw answer text, user free text, private scenario YAML을 표시하지 않는다.
 
-Candidate warning rules after baseline observation:
+Baseline 관측 후 warning rule 후보:
 
 ```text
 - fallback ratio > 20% for 5 minutes
@@ -1007,43 +996,43 @@ Candidate warning rules after baseline observation:
 - token usage spike above normal baseline
 ```
 
-Alert thresholds must be tuned after real Android/AI traffic is observed.
+Alert threshold는 실제 Android/AI traffic을 관측한 뒤 조정한다.
 
 ---
 
-## 15. LLMOps Completion Criteria
+## 15. LLMOps 완료 기준
 
 ```text
-- AI_CALL and AI_CALL_CONTEXT logs appear after one AI feature call.
-- AI_CALL_CONTEXT contains only block-level estimates and metadata, not raw prompt/answer/user question text.
-- ai_requests_total is visible from local Prometheus query.
-- ai_latency_seconds_count is visible from local Prometheus query.
-- ai_fallbacks_total is visible when fallback occurs.
-- ai_tokens_total is visible only when provider token metadata exists.
-- Optional ai_call_logs rows appear only after table creation and AI_LLMOPS_DB_LOGGING_ENABLED=true.
-- PromQL queries avoid high-cardinality labels.
-- Failure/fallback ratios use provider attempts as denominator.
-- No raw prompt, raw answer, solution text, culprit data, API key, or private scenario YAML is logged or stored.
+- AI feature call 1회 후 AI_CALL과 AI_CALL_CONTEXT log가 나타난다.
+- AI_CALL_CONTEXT에는 block-level estimate와 metadata만 있고 raw prompt/answer/user question text가 없다.
+- Local Prometheus query에서 ai_requests_total이 보인다.
+- Local Prometheus query에서 ai_latency_seconds_count가 보인다.
+- Fallback 발생 시 ai_fallbacks_total이 보인다.
+- ai_tokens_total은 provider token metadata가 있을 때만 보일 수 있다.
+- Optional ai_call_logs row는 table 생성과 AI_LLMOPS_DB_LOGGING_ENABLED=true 이후에만 나타난다.
+- PromQL query는 high-cardinality label을 피한다.
+- Failure/fallback ratio는 provider attempt를 denominator로 사용한다.
+- Raw prompt, raw answer, solution text, culprit data, API key, private scenario YAML이 log 또는 DB에 저장되지 않는다.
 ```
 
 ---
 
-## 16. Current n8n LLMOps Workflows
+## 16. 현재 n8n LLMOps Workflow
 
-The current n8n exports reviewed on 2026-06-10 include two LLMOps workflows.
-The raw workflow JSON exports are not public documentation artifacts and should not be committed because they can contain webhook paths, credential references, Slack channel IDs, API URLs, or prompt bodies.
+2026-06-10에 확인한 현재 n8n export에는 두 개의 LLMOps workflow가 있다.
+Raw workflow JSON export는 webhook path, credential reference, Slack channel ID, API URL, prompt body를 포함할 수 있으므로 public documentation artifact로 commit하지 않는다.
 
 | Workflow | Trigger | Source Signal | Output | AI Usage |
 |---|---|---|---|---|
-| `ClueRoom - LLMOps Light Monitor v4 Budgeted Gemini 3.5` | Manual plus every 1h | Loki `AI_CALL` logs for the recent 60m window, limit 500 | Basic Slack LLMOps summary first | `gemini-3.5-flash` optional analysis after basic summary |
-| `ClueRoom - LLMOps Codex Handoff Report v2` | Manual plus every 24h | Loki `AI_CALL` logs for recent 24h, limit 5000 | Slack handoff report for human/Codex review | No autonomous AI action; report is for manual review |
+| `ClueRoom - LLMOps Light Monitor v4 Budgeted Gemini 3.5` | Manual + every 1h | 최근 60m window의 Loki `AI_CALL` logs, limit 500 | 기본 Slack LLMOps summary 먼저 전송 | `gemini-3.5-flash` optional analysis after basic summary |
+| `ClueRoom - LLMOps Codex Handoff Report v2` | Manual + every 24h | 최근 24h Loki `AI_CALL` logs, limit 5000 | Human/Codex review용 Slack handoff report | Autonomous AI action 없음. Manual review용 report |
 
 ### 16.1 Hourly LLMOps Light Monitor
 
-The hourly monitor aggregates `AI_CALL` structured logs only.
-It must not read raw prompt text, raw answer text, user free text, solution text, culprit data, API keys, or private scenario YAML.
+Hourly monitor는 `AI_CALL` structured log만 집계한다.
+Raw prompt text, raw answer text, user free text, solution text, culprit data, API key, private scenario YAML을 읽으면 안 된다.
 
-Current aggregation fields:
+현재 aggregation fields:
 
 ```text
 - call count
@@ -1054,16 +1043,16 @@ Current aggregation fields:
 - average latency
 - max latency
 - provider/model/promptVersion/featureType grouping
-- slowest or failure/fallback samples by metadata only
+- metadata only slowest or failure/fallback samples
 ```
 
-Current severity rules:
+현재 severity rules:
 
 ```text
 CRITICAL:
-- failure count >= 3 in the 60m window
-- fallback count >= 3 in the 60m window
-- max latency >= 15000ms in the 60m window
+- 60m window failure count >= 3
+- 60m window fallback count >= 3
+- 60m window max latency >= 15000ms
 
 WARNING:
 - failure count >= 1
@@ -1073,14 +1062,14 @@ WARNING:
 - total tokens >= 30000
 
 INFO:
-- none of the above
+- 위 조건 없음
 ```
 
-Slack output order:
+Slack output 순서:
 
 ```text
 1. deterministic basic LLMOps summary
-2. Gemini analysis only when budget and retry policy allow it
+2. budget과 retry policy가 허용할 때만 Gemini analysis
 ```
 
 Gemini policy:
@@ -1089,15 +1078,15 @@ Gemini policy:
 model: gemini-3.5-flash
 daily limit: 2 calls
 retry: one retry after 70s
-failure behavior: Gemini failure or budget skip must not block the basic Slack summary
+failure behavior: Gemini failure 또는 budget skip이 basic Slack summary를 막으면 안 됨
 ```
 
 ### 16.2 Daily LLMOps Codex Handoff
 
-The daily handoff is a report generator, not an autonomous remediation workflow.
-It summarizes 24h `AI_CALL` data for human review and possible Codex-assisted PR work.
+Daily handoff는 report generator이며 autonomous remediation workflow가 아니다.
+최근 24h `AI_CALL` data를 human review와 Codex-assisted PR 작업 후보로 요약한다.
 
-Current report contents:
+현재 report contents:
 
 ```text
 - total AI_CALL count
@@ -1112,20 +1101,20 @@ Current report contents:
 - bounded failure/fallback samples by metadata
 ```
 
-Allowed follow-up:
+허용 follow-up:
 
 ```text
-- review promptVersion cost/latency trends
-- suggest dashboard changes
-- suggest backend telemetry improvements
-- draft PR review notes
+- promptVersion cost/latency trend review
+- dashboard change 제안
+- backend telemetry improvement 제안
+- PR review note draft
 ```
 
-Not allowed:
+금지:
 
 ```text
-- change prompts directly in production
-- change model/provider settings directly in production
-- expose raw prompts, answers, user questions, solution text, culprit data, or private scenario YAML
-- treat the report as proof of gameplay quality without manual response sampling
+- production prompt 직접 변경
+- production model/provider setting 직접 변경
+- raw prompt, answer, user question, solution text, culprit data, private scenario YAML 노출
+- manual response sampling 없이 report를 gameplay quality 증거로 취급
 ```
