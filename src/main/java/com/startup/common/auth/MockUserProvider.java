@@ -1,20 +1,52 @@
 package com.startup.common.auth;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
-// 인증 구현 전까지 서비스 계층에서 현재 사용자 ID를 일관되게 얻기 위한 임시 provider다.
-// JWT 도입 후에는 SecurityContext 기반 구현으로 교체한다.
+// 기존 서비스/테스트 호환을 유지하는 wrapper다. 실제 현재 사용자 판정은 CurrentUserProvider가 담당한다.
 public class MockUserProvider {
 
-    private final Long mockUserId;
+    private final CurrentUserProvider currentUserProvider;
+    private final Long defaultMockUserId;
+    private Long mockUserId;
 
-    public MockUserProvider(@Value("${app.mock-user-id:1}") Long mockUserId) {
+    @Autowired
+    public MockUserProvider(
+            CurrentUserProvider currentUserProvider,
+            @Value("${app.mock-user-id:1}") Long mockUserId
+    ) {
+        this.currentUserProvider = currentUserProvider;
+        this.defaultMockUserId = mockUserId;
+        this.mockUserId = mockUserId;
+    }
+
+    public MockUserProvider(Long mockUserId) {
+        this.currentUserProvider = null;
+        this.defaultMockUserId = mockUserId;
         this.mockUserId = mockUserId;
     }
 
     public Long currentUserId() {
+        if (!Objects.equals(mockUserId, defaultMockUserId)) {
+            return mockUserId;
+        }
+        if (currentUserProvider != null) {
+            return currentUserProvider.currentUserId();
+        }
+        return mockUserId;
+    }
+
+    public Long currentUserIdOrNull() {
+        if (!Objects.equals(mockUserId, defaultMockUserId)) {
+            return mockUserId;
+        }
+        if (currentUserProvider != null) {
+            return currentUserProvider.currentUserIdOrNull();
+        }
         return mockUserId;
     }
 }

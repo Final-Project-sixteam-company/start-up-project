@@ -26,7 +26,7 @@ public class ScenarioController {
             ScenarioSearchCondition condition,
             Pageable pageable
     ) {
-        Long userId = mockUserProvider.currentUserId();
+        Long userId = mockUserProvider.currentUserIdOrNull();
         PageResponse<ScenarioSummaryResponse> response = scenarioService.getScenarios(userId, condition, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -36,7 +36,7 @@ public class ScenarioController {
     public ResponseEntity<ApiResponse<ScenarioDetailResponse>> getScenario(
             @PathVariable Long scenarioId
     ) {
-        Long userId = mockUserProvider.currentUserId();
+        Long userId = mockUserProvider.currentUserIdOrNull();
         ScenarioDetailResponse response = scenarioService.getScenario(userId, scenarioId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
