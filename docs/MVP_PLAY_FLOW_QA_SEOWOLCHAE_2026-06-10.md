@@ -19,7 +19,7 @@ FE: Flutter Android debug APK
 Device: Android Emulator Pixel_10
 API: https://api.clueroom.xyz
 Scenario: CL-010 서월채
-Session: QA 중 신규 생성한 PLAYING 세션 85
+Session: QA 중 신규 생성한 PLAYING 세션 <sessionId>
 ```
 
 전체 판정:
@@ -120,10 +120,10 @@ AI 답변은 대부분 1~2문장으로 유지됐다. 장황하게 늘어지는 �
 ```text
 POST /api/play-sessions
 -> 409 P002
--> details.activeSessionId = 83
+-> details.activeSessionId = <activeSessionId>
 ```
 
-기존 active session이 있으면 서버는 정상적으로 `activeSessionId`를 내려준다. 그러나 Android 상세 화면에서는 사용자가 왜 시작이 안 되는지 명확히 알 수 없었고, 새로 만든 active session 85가 있어도 상세 화면 CTA로 세션 내부 진입이 되지 않았다.
+기존 active session이 있으면 서버는 정상적으로 `activeSessionId`를 내려준다. 그러나 Android 상세 화면에서는 사용자가 왜 시작이 안 되는지 명확히 알 수 없었고, 새로 만든 active session <sessionId>가 있어도 상세 화면 CTA로 세션 내부 진입이 되지 않았다.
 
 관찰:
 
@@ -175,7 +175,7 @@ characters/WITNESS_...
 호출:
 
 ```http
-GET /api/play-sessions/85/evidences?includeLocked=true
+GET /api/play-sessions/<sessionId>/evidences?includeLocked=true
 ```
 
 결과:
