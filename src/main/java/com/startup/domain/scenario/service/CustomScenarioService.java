@@ -7,6 +7,7 @@ import com.startup.domain.scenario.entity.*;
 import com.startup.domain.ai.entity.SuspectResponsePolicy;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
 import com.startup.domain.scenario.enums.EvidenceUnlockType;
+import com.startup.domain.scenario.enums.RelationType;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import tools.jackson.databind.JsonNode;
@@ -455,18 +456,14 @@ public class CustomScenarioService {
                     .map(suspectId -> EvidenceSuspect.builder()
                             .evidenceId(savedEvidence.getId())
                             .suspectId(suspectId)
-                            .relationType(com.startup.domain.scenario.enums.RelationType.RELATED) // 기본 연관 관계
+                            .relationType(RelationType.RELATED) // 기본 연관 관계
                             .build())
                     .toList();
             evidenceSuspectRepository.saveAll(evidenceSuspects);
         }
 
-        // 언락 조건 규칙 보존 (NONE이 아니면 저장)
-        if (request.getUnlockType() != null && request.getUnlockType() != com.startup.domain.scenario.enums.EvidenceUnlockType.NONE) {
-            String processedConditionJson = request.getUnlockConditionJson();
-            if (request.getUnlockType() == com.startup.domain.scenario.enums.EvidenceUnlockType.EVIDENCE_PRESENTED) {
-                processedConditionJson = validateAndTranslateEvidencePresentedCondition(scenarioId, savedEvidence.getId(), processedConditionJson);
-            }
+        if (request.getUnlockType() != null && request.getUnlockType() != EvidenceUnlockType.NONE) {
+            String processedConditionJson = validateAndTranslateUnlockCondition(scenarioId, savedEvidence.getId(), request.getUnlockType(), request.getUnlockConditionJson());
 
             EvidenceUnlockRule rule = EvidenceUnlockRule.builder()
                     .scenarioId(scenarioId)
@@ -546,7 +543,7 @@ public class CustomScenarioService {
                         .map(suspectId -> EvidenceSuspect.builder()
                                 .evidenceId(evidence.getId())
                                 .suspectId(suspectId)
-                                .relationType(com.startup.domain.scenario.enums.RelationType.RELATED)
+                                .relationType(RelationType.RELATED)
                                 .build())
                         .toList();
                 evidenceSuspectRepository.saveAll(evidenceSuspects);
@@ -562,11 +559,8 @@ public class CustomScenarioService {
             evidenceUnlockRuleRepository.deleteByEvidenceId(evidence.getId());
             evidenceUnlockRuleRepository.flush();
 
-            if (evidence.getUnlockType() != com.startup.domain.scenario.enums.EvidenceUnlockType.NONE) {
-                String processedConditionJson = evidence.getUnlockConditionJson();
-                if (evidence.getUnlockType() == com.startup.domain.scenario.enums.EvidenceUnlockType.EVIDENCE_PRESENTED) {
-                    processedConditionJson = validateAndTranslateEvidencePresentedCondition(evidence.getScenarioId(), evidence.getId(), processedConditionJson);
-                }
+            if (evidence.getUnlockType() != EvidenceUnlockType.NONE) {
+                String processedConditionJson = validateAndTranslateUnlockCondition(evidence.getScenarioId(), evidence.getId(), evidence.getUnlockType(), evidence.getUnlockConditionJson());
 
                 EvidenceUnlockRule rule = EvidenceUnlockRule.builder()
                         .scenarioId(evidence.getScenarioId())
@@ -639,28 +633,33 @@ public class CustomScenarioService {
         scenario.forceUpdateModifiedAt();
     }
 
-    private String validateAndTranslateEvidencePresentedCondition(Long scenarioId, Long targetEvidenceId, String conditionJson) {
+    private String validateAndTranslateUnlockCondition(Long scenarioId, Long targetEvidenceId, EvidenceUnlockType unlockType, String conditionJson) {
         if (conditionJson == null || conditionJson.isBlank()) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "EVIDENCE_PRESENTED 조건은 필수입니다.");
+            if (unlockType == EvidenceUnlockType.EVIDENCE_PRESENTED) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "EVIDENCE_PRESENTED 조건은 필수입니다.");
+            }
+            return conditionJson;
         }
         try {
             ObjectNode root = (ObjectNode) jsonMapper.readTree(conditionJson);
             
-            Long presentedEvidenceId = root.has("requiredPresentedEvidenceId") ? root.get("requiredPresentedEvidenceId").asLong() : 
-                                       (root.has("evidenceId") ? root.get("evidenceId").asLong() : null);
-            if (presentedEvidenceId == null) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거 ID(requiredPresentedEvidenceId)가 누락되었습니다.");
+            if (unlockType == EvidenceUnlockType.EVIDENCE_PRESENTED) {
+                Long presentedEvidenceId = root.has("requiredPresentedEvidenceId") ? root.get("requiredPresentedEvidenceId").asLong() : 
+                                           (root.has("evidenceId") ? root.get("evidenceId").asLong() : null);
+                if (presentedEvidenceId == null) {
+                    throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거 ID(requiredPresentedEvidenceId)가 누락되었습니다.");
+                }
+                if (presentedEvidenceId.equals(targetEvidenceId)) {
+                    throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "자기 자신을 해금 조건으로 설정할 수 없습니다.");
+                }
+                Evidence presented = evidenceRepository.findById(presentedEvidenceId)
+                        .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "제시 대상 증거를 찾을 수 없습니다."));
+                if (!scenarioId.equals(presented.getScenarioId())) {
+                    throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거가 현재 시나리오 소속이 아닙니다.");
+                }
+                root.put("requiredPresentedEvidenceCode", presented.getCode());
             }
-            if (presentedEvidenceId.equals(targetEvidenceId)) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "자기 자신을 해금 조건으로 설정할 수 없습니다.");
-            }
-            Evidence presented = evidenceRepository.findById(presentedEvidenceId)
-                    .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "제시 대상 증거를 찾을 수 없습니다."));
-            if (!scenarioId.equals(presented.getScenarioId())) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거가 현재 시나리오 소속이 아닙니다.");
-            }
-            root.put("requiredPresentedEvidenceCode", presented.getCode());
-            
+
             if (root.has("requiredCharacterId") && !root.get("requiredCharacterId").isNull()) {
                 Long characterId = root.get("requiredCharacterId").asLong();
                 Suspect suspect = suspectRepository.findById(characterId)

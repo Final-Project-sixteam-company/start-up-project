@@ -362,7 +362,7 @@ public class CustomScenarioServiceEvidenceTest {
         // then
         List<EvidenceUnlockRule> rules = evidenceUnlockRuleRepository.findAll();
         assertThat(rules).hasSize(1);
-        assertThat(rules.get(0).getConditionJson()).isEqualTo("{\"changed\": true}");
+        assertThat(rules.get(0).getConditionJson()).isEqualTo("{\"changed\":true}");
     }
 
 }
