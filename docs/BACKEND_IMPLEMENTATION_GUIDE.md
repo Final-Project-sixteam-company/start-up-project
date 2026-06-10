@@ -104,6 +104,7 @@ DB 컬럼명은 snake_case를 사용하고, Java/DTO 필드명은 camelCase를 �
 | 최종 추리 | rule-based scoring, AI feedback, hint penalty, final-deduction in-flight lock, result 조회 | `AiDeductionScorer`, `RuleBasedScorer`, `FinalDeductionLockManager` |
 | 시나리오 검증 | rule validation + AI JSON validation, Redis lock, latest result 저장/조회 | `AiScenarioValidationService`, `RuleBasedScenarioValidator` |
 | LLMOps | `AI_CALL` structured log, Micrometer metric, optional DB log, `AI_CALL_CONTEXT` prompt block estimate log | `AiCallRecorder`, `AiCallLogWriter`, `AiPromptContextLogger` |
+| 푸시 알림 | FCM registration token 등록/upsert, local/test 테스트 푸시, FCM 비활성 fail-safe | `domain/notification`, `DeviceTokenController`, `FcmNotificationService` |
 
 ---
 
@@ -957,7 +958,8 @@ MockUserProvider
 AI 심문 Fallback
 최종 추리 중복 제출 방지
 커스텀 시나리오 공개 전 검증
-리뷰/북마크 중복 방지
+FCM device token 등록/upsert
+local/test 테스트 푸시가 운영 profile에 노출되지 않는지
 ```
 
 테스트 이름은 행위와 기대 결과가 드러나게 작성한다.
@@ -970,7 +972,56 @@ canPlay_withMockUser_returnsTrue
 
 ---
 
-## 14. 개발 AI 금지 사항
+## 14. FCM 푸시 알림 구현
+
+현재 notification 도메인은 Android FCM registration token 등록과 개발/검증용 테스트 푸시를 담당한다.
+
+```text
+POST /api/device-tokens
+→ Android가 발급한 FCM registration token 저장
+→ 현재 사용자는 MockUserProvider / CurrentUserProvider 호환 경로 사용
+→ token unique 기준 upsert
+→ 응답은 deviceTokenId / active만 반환하고 token 원문은 반환하지 않음
+
+POST /api/notifications/test
+→ local/test profile 전용
+→ 현재 사용자 active token 목록 조회 후 FCM multicast 발송
+```
+
+구현 경계:
+
+```text
+DeviceTokenService:
+- token trim
+- deviceType 기본값 ANDROID 보정
+- DB unique key 기반 upsert
+- Entity 대신 DeviceTokenResponse 반환
+
+FcmNotificationService:
+- Firebase Admin SDK 호출 집중
+- fcm.enabled=false이면 FCM_DISABLED로 명시 실패
+- multicast는 500 token 단위로 chunk 전송
+- 실패 token cleanup은 후속 작업
+
+NotificationTestController:
+- @Profile({"local", "test"})
+- 운영 profile에서는 route 등록하지 않음
+- DB 조회 후 외부 FCM 호출 수행
+```
+
+운영 secret:
+
+```text
+FCM_ENABLED=true
+FCM_PROJECT_ID=...
+FCM_SERVICE_ACCOUNT_PATH=/opt/clueroom/secrets/firebase-service-account.json
+```
+
+Firebase service account JSON은 Git/Android 앱에 넣지 않는다.
+
+---
+
+## 15. 개발 AI 금지 사항
 
 개발 AI는 아래 작업을 하지 않는다.
 
@@ -990,7 +1041,7 @@ ScenarioAccessService를 우회해서 권한 판단하기
 
 ---
 
-## 15. PR 체크리스트
+## 16. PR 체크리스트
 
 - [ ] Controller는 요청/응답 경계만 담당하는가?
 - [ ] Service에 트랜잭션 경계가 있는가?

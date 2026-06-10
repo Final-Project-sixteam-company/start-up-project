@@ -379,6 +379,21 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 | 호출 시점 | 사용자가 진행 중 사건 포기를 확정할 때 |
 | 응답 | `success=true`, `data` 없음 |
 
+### 3.14 FCM 디바이스 토큰 등록
+
+| 항목 | 내용 |
+|---|---|
+| Method | `POST` |
+| Path | `/api/device-tokens` |
+| 사용 화면 | 앱 시작 / 로그인 후 / FCM token refresh 시점 |
+| 호출 시점 | Android FCM registration token을 확보했을 때 |
+| Request | `token`, `deviceType` |
+| 응답 핵심 | `deviceTokenId`, `active` |
+
+`token` 원문은 응답에 돌아오지 않는다.
+같은 token을 다시 보내도 백엔드는 token unique 기준으로 upsert한다.
+`POST /api/notifications/test`는 local/test profile 전용 검증 API이므로 운영 앱에서 호출하지 않는다.
+
 ---
 
 ## 4. 현재 구현되지 않은 문서상 예정 API
@@ -390,7 +405,6 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 |---|---|
 | `GET /api/play-sessions/{sessionId}/recommended-questions` | 별도 추천 질문 API는 호출하지 않음. 증거 기반 질문은 evidence detail `guidance.suggestedQuestions` 사용 |
 | `GET /api/play-sessions/me` | 내 기록 화면은 인증/기록 API 전까지 더미 또는 empty state |
-| `GET /api/users/me` | 레거시 문서상 경로. 현재 유저 확인은 `GET /api/auth/me` 사용 |
 | `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` | 북마크 UI는 비활성 또는 optimistic action 금지 |
 | `GET/POST /api/scenarios/{scenarioId}/reviews` | 리뷰 UI는 더미 또는 숨김 |
 
@@ -418,6 +432,7 @@ POST /api/play-sessions/{sessionId}/hints/{hintId}/use
 POST /api/play-sessions/{sessionId}/final-deduction
 GET  /api/play-sessions/{sessionId}/result
 POST /api/play-sessions/{sessionId}/abandon
+POST /api/device-tokens
 ```
 
 게임 시작 이후의 상세 화면 흐름은 6~9절을 따른다.

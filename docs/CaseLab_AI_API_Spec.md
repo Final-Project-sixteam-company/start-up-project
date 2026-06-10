@@ -337,6 +337,15 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 
 ---
 
+## 4.9 푸시 알림 API
+
+| No | Method | Endpoint | 설명 | 인증 | MVP |
+|---:|---|---|---|---|---|
+| 1 | POST | `/api/device-tokens` | Android FCM registration token 등록/upsert | O | O |
+| 2 | POST | `/api/notifications/test` | 현재 사용자 active token 대상 테스트 푸시 발송 | O | local/test only |
+
+---
+
 # 5. 상세 API 명세
 
 ---
@@ -466,6 +475,92 @@ Authorization: Bearer {accessToken}
   },
   "error": null
 }
+```
+
+## 5.6 FCM 디바이스 토큰 등록
+
+Android 앱이 Firebase Cloud Messaging에서 발급받은 registration token을 백엔드 사용자와 연결한다.
+
+```http
+POST /api/device-tokens
+Authorization: Bearer {accessToken}
+```
+
+운영 인증 강제 전환 전에는 `MockUserProvider` 호환 경로로 현재 사용자를 결정할 수 있다.
+
+### Request
+
+```json
+{
+  "token": "fcm_registration_token",
+  "deviceType": "ANDROID"
+}
+```
+
+규칙:
+
+```text
+token: 필수, 512자 이하
+deviceType: 선택, 30자 이하, 생략 시 ANDROID 기본값
+```
+
+현재 구현은 token unique 기준으로 신규 등록과 재등록을 같은 경로에서 처리한다.
+같은 token이 다시 들어오면 userId, deviceType, active, lastUsedAt을 최신값으로 갱신한다.
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "deviceTokenId": 1,
+    "active": true
+  },
+  "error": null
+}
+```
+
+응답에는 FCM token 원문을 반환하지 않는다.
+
+## 5.7 테스트 푸시 발송
+
+개발/검증용 API다.
+`NotificationTestController`는 `local`, `test` profile에서만 route를 등록한다.
+
+```http
+POST /api/notifications/test
+Authorization: Bearer {accessToken}
+```
+
+### Request
+
+```json
+{
+  "title": "ClueRoom",
+  "body": "테스트 푸시 알림입니다."
+}
+```
+
+규칙:
+
+```text
+title: 필수, 100자 이하
+body: 필수, 500자 이하
+```
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+주의:
+
+```text
+운영 profile에서는 /api/notifications/test route가 없어야 한다.
+FCM_ENABLED=false 또는 FirebaseApp 미초기화 상태에서는 N001 FCM_DISABLED로 실패한다.
 ```
 
 ---
@@ -2021,6 +2116,7 @@ POST /api/auth/dev
 POST /api/auth/refresh
 POST /api/auth/logout
 GET /api/auth/me
+POST /api/device-tokens
 GET /api/scenarios
 GET /api/scenarios/{scenarioId}
 POST /api/play-sessions
@@ -2051,6 +2147,7 @@ POST /api/scenarios/{scenarioId}/publish
 ```
 
 커뮤니티 API는 현재 컨트롤러가 없으므로 1차 MVP 필수 목록에서 제외한다.
+`POST /api/notifications/test`는 local/test profile 전용 검증 API라 운영 1차 필수 목록에는 넣지 않는다.
 시나리오 상세의 `isBookmarked`, `rating`, `ratingCount` 같은 표시 필드는 응답에 있을 수 있지만, 쓰기 API가 있다는 뜻은 아니다.
 
 ---
@@ -2226,6 +2323,9 @@ validationStatus / validationScore / checkItems 반환
 | `FINAL_DEDUCTION_ALREADY_SUBMITTED` | 이미 최종 추리를 제출함 |
 | `AI_REQUEST_FAILED` | AI 요청 실패 |
 | `SCENARIO_VALIDATION_FAILED` | 시나리오 검증 실패 |
+| `N001` / `FCM_DISABLED` | FCM 비활성 또는 FirebaseApp 미초기화 |
+| `N002` / `FCM_SEND_FAILED` | FCM push 발송 실패 |
+| `N003` / `DEVICE_TOKEN_SAVE_FAILED` | 디바이스 토큰 저장 실패 |
 
 ---
 
