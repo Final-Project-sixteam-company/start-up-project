@@ -329,9 +329,11 @@ mysql -e "DROP TABLE scenarios"
 ```bash
 cp .env .env.bak-$(date +%Y%m%d_%H%M%S)
 sudo cp /etc/nginx/sites-available/clueroom-api /etc/nginx/sites-available/clueroom-api.bak-$(date +%Y%m%d_%H%M%S)
-ssh clueroom-data
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
 /opt/clueroom-data/backup-mysql.sh
 /opt/clueroom-data/upload-mysql-backup-s3.sh
+REMOTE
 ```
 
 Backup file은 public git으로 옮기면 안 된다.

@@ -722,9 +722,11 @@ curl -I https://api.clueroom.xyz/actuator/health
 따라서 운영 백업 완료 기준은 data 서버의 `/opt/clueroom-data` 경로에서 수행되는 백업과 S3 업로드다.
 
 ```bash
-ssh clueroom-data
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
 /opt/clueroom-data/backup-mysql.sh
 /opt/clueroom-data/upload-mysql-backup-s3.sh
+REMOTE
 ```
 
 백업 위치:
@@ -736,9 +738,12 @@ ssh clueroom-data
 확인:
 
 ```bash
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
 ls -lh /opt/clueroom-data/backups/mysql
 cat /opt/clueroom-data/backups/mysql/*.sha256 | tail -n 5
 cat /opt/clueroom-data/backups/mysql/s3-upload-state.env
+REMOTE
 ```
 
 prod app 서버의 local-data 백업 스크립트는 rollback/local copy 확인용이다.
@@ -1001,11 +1006,14 @@ nc -vz 172.26.1.185 6379
 data 서버 직접 확인:
 
 ```bash
-ssh clueroom-data
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
 docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 DATA_MYSQL_CONTAINER="$(docker ps --format '{{.Names}} {{.Image}}' | awk '/mysql/ {print $1; exit}')"
 docker logs --tail=100 "$DATA_MYSQL_CONTAINER"
-docker exec -it "$DATA_MYSQL_CONTAINER" mysql -uroot -p
+REMOTE
+
+ssh -t clueroom-data 'DATA_MYSQL_CONTAINER="$(docker ps --format '\''{{.Names}} {{.Image}}'\'' | awk '\''/mysql/ {print $1; exit}'\'')" && docker exec -it "$DATA_MYSQL_CONTAINER" mysql -uroot -p'
 ```
 
 local-data/rollback copy 확인이 필요할 때만 compose `mysql` 서비스를 본다.

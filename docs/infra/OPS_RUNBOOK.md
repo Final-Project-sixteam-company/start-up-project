@@ -1256,8 +1256,7 @@ prod local compose mysql
 수동 확인:
 
 ```bash
-ssh clueroom-data
-crontab -l | grep -E 'backup-mysql|upload-mysql-backup-s3|data-health|s3-backup-health'
+ssh clueroom-data 'crontab -l | grep -E "backup-mysql|upload-mysql-backup-s3|data-health|s3-backup-health"'
 ```
 
 백업 성공 기준:
@@ -1434,8 +1433,7 @@ external-data 운영 source of truth 백업으로 사용하지 않는다.
 external-data source of truth 백업 파일은 data server에서 확인한다.
 
 ```bash
-ssh clueroom-data
-ls -lh /opt/clueroom-data/backups/mysql
+ssh clueroom-data 'ls -lh /opt/clueroom-data/backups/mysql'
 ```
 
 local-data / rollback copy 백업 파일은 prod app 서버에서만 아래 경로로 확인한다.
@@ -2405,10 +2403,12 @@ df -h
 ```
 
 ```bash
-ssh clueroom-data
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
 docker compose ps
 /opt/clueroom-data/data-health-push.sh
 /opt/clueroom-data/s3-backup-health-push.sh
+REMOTE
 ```
 
 ---
@@ -2521,10 +2521,12 @@ cat /etc/nginx/conf.d/clueroom-upstream.conf
 ### Backup
 
 ```bash
-ssh clueroom-data
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
 /opt/clueroom-data/backup-mysql.sh
 /opt/clueroom-data/upload-mysql-backup-s3.sh
 cat /opt/clueroom-data/backups/mysql/s3-upload-state.env
+REMOTE
 ```
 
 ### Resource
