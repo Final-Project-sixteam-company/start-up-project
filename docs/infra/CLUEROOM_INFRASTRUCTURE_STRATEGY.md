@@ -1661,12 +1661,18 @@ external-data source of truth 백업 스크립트의 처리 순서는 아래를 
 Candidate S3 upload command:
 
 ```bash
-aws s3 cp "$BACKUP_FILE" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/$DATE_PATH/$(basename "$BACKUP_FILE")" \
+BACKUP_DIR="$(dirname "$BACKUP_FILE")"
+BACKUP_BASE="$(basename "$BACKUP_FILE")"
+
+test -s "$BACKUP_FILE"
+gzip -t "$BACKUP_FILE"
+(cd "$BACKUP_DIR" && sha256sum "$BACKUP_BASE" > "$BACKUP_BASE.sha256")
+
+aws s3 cp "$BACKUP_FILE" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/$DATE_PATH/${BACKUP_BASE}" \
   --only-show-errors \
   --server-side-encryption AES256
 
-sha256sum "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
-aws s3 cp "$BACKUP_FILE.sha256" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/$DATE_PATH/$(basename "$BACKUP_FILE").sha256" \
+aws s3 cp "$BACKUP_FILE.sha256" "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/$DATE_PATH/${BACKUP_BASE}.sha256" \
   --only-show-errors \
   --server-side-encryption AES256
 ```
