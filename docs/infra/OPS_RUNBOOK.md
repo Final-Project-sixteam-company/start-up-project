@@ -2,7 +2,7 @@
 
 > 목적: ClueRoom 운영 서버를 유지보수하면서 자주 쓰는 명령어, Blue-Green 배포, CD 후 정리 자동화, 롤백, 로그 확인, 백업/복구, 장애 대응 순서를 빠르게 확인하기 위한 운영 메모입니다.
 > 운영 서버 기준 경로는 `/opt/clueroom`입니다.
-> 운영/인프라 Agent에게 서버 상태를 전달할 때는 `docs/infra/agent/OPS_SNAPSHOT_SPEC.md`를 따릅니다.
+> 운영/인프라 Agent에게 서버 상태를 전달할 때는 `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md`의 Ops Snapshot Contract를 따릅니다.
 > Agent 기반 운영 분석과 자동 조치 제안은 `docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md`의 승인 정책을 따릅니다.
 
 ---
@@ -22,6 +22,7 @@ API Base URL:
 https://api.clueroom.xyz
 
 Swagger:
+https://api.clueroom.xyz/swagger-ui.html
 https://api.clueroom.xyz/swagger-ui/index.html
 
 Health Check:
@@ -54,12 +55,13 @@ https://api.clueroom.xyz/actuator/health
 → 현재 active 반대편 슬롯으로 자동 롤백하는 스크립트
 
 /opt/clueroom/backup-mysql.sh
-→ MySQL 백업 스크립트
+→ local-data / rollback copy MySQL 백업 스크립트
 
 /opt/clueroom/backups/mysql
 → MySQL 백업 파일 저장 위치
 
-MySQL 백업 S3 업로드와 복구 리허설 정책은 `docs/infra/MYSQL_BACKUP_AND_RESTORE_POLICY.md`를 따른다.
+External-data 운영에서는 data server MySQL이 source of truth다.
+`backup-mysql.sh`는 compose `mysql` 서비스가 있는 local-data/rollback copy 백업용이며, 운영 source of truth 백업은 이 runbook의 external-data 백업 절차를 따른다.
 
 /opt/clueroom/backups/env
 → .env 백업 파일 이동 위치
@@ -306,7 +308,8 @@ S3
 FCM
 ```
 
-prod local MySQL/Redis는 external-data cutover 직후 즉시 삭제하거나 중지하지 않는다. rollback/비교용으로 일시 유지하고, helper PR merge, 새 helper 기준 배포 성공, 팀 기능 테스트, data 서버 백업 정상 확인 후 stop만 검토한다.
+prod 서버의 운영 app은 data 서버 MySQL/Redis를 사용한다.
+prod local MySQL/Redis는 운영 source of truth가 아니며, 남아 있더라도 rollback/local-data copy 또는 stop-only 정리 대상이다.
 
 현재 active는 아래 명령어로 확인한다.
 
@@ -324,7 +327,7 @@ X-ClueRoom-Upstream: 127.0.0.1:8082
 
 ### 운영 보안 hardening 적용 상태
 
-운영 서버에는 아래 hardening을 적용한다.
+운영 서버에는 아래 hardening을 적용했다.
 
 ```text
 1. 외부에서 /actuator/prometheus 접근 차단
@@ -332,14 +335,17 @@ X-ClueRoom-Upstream: 127.0.0.1:8082
 3. /.env, /.git, wp-admin, phpmyadmin 등 봇 스캔 경로 차단
 4. legacy app(start-up-app) 중지, Blue-Green 슬롯(app-blue/app-green)만 운영
 5. Fail2Ban sshd jail 적용
+6. Nginx API per-IP rate limit enforced
+7. Nginx per-IP connection limit enforced
+8. CN IPv4 CIDR block 적용
+9. manual blocklist snippet 준비
 ```
 
 외부에서 허용되는 actuator endpoint는 health check뿐이다.
-Rate Limit 정책은 `docs/infra/RATE_LIMIT_POLICY.md`를 기준으로 설계한다.
-실제 차단 전 관찰 절차는 `docs/infra/RATE_LIMIT_DRY_RUN_RUNBOOK.md`를 따른다.
-프론트 E2E QA가 완료되기 전까지 운영 Nginx에 실제 `429` 차단을 적용하지 않는다.
-Grafana Alert 정책은 `docs/infra/GRAFANA_ALERT_POLICY.md`를 기준으로 설계하며, Slack 알림 실제 연동은 별도 INFRA-09 작업에서 진행한다.
-해외 봇성 트래픽과 국가 기반 차단 PoC는 `docs/infra/GEOIP_BOT_TRAFFIC_POLICY.md`를 기준으로 조사하며, 운영 `api.clueroom.xyz`에 즉시 광역 국가 차단을 적용하지 않는다.
+Rate Limit, CN block, manual blocklist 정책은 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 기준으로 운영한다.
+현재 운영 Nginx는 dry-run이 아니라 enforcement 상태이며, 403/429는 Grafana/n8n/Slack alert에서 warning으로 본다.
+새로운 threshold 변경, 국가 차단 확대, manual blocklist 추가는 증거와 rollback 경로를 확인한 뒤 적용한다.
+Grafana Alert 정책은 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 기준으로 한다.
 
 ```bash
 curl -I https://api.clueroom.xyz/actuator/health
@@ -1158,7 +1164,8 @@ https://api.clueroom.xyz/actuator/prometheus 외부 접근은 Nginx에서 차단
 
 서버 로그:
 인프라 담당자가 SSH로 확인
-추후 필요 시 Loki/Promtail 도입
+ops Loki/Alloy는 snapshot 확인 대상
+원문 secret/user input이 노출되지 않도록 query와 공유 범위를 제한
 ```
 
 3000/9090 포트는 운영 서버 방화벽에 열지 않는다. Compose host binding도 `127.0.0.1` 기준으로 유지한다.
@@ -1214,13 +1221,222 @@ http://localhost:9090
 
 ## 16. MySQL 백업
 
-### 수동 백업
+백업 정책과 S3 보관 원칙은 `CLUEROOM_INFRASTRUCTURE_STRATEGY.md`의 backup/restore 전략을 따른다.
+이 Runbook은 운영자가 실행할 명령어만 관리한다.
+
+### 백업 대상 판정
+
+external-data cutover 이후 운영 기준은 아래처럼 분리한다.
+
+```text
+data server MySQL
+→ 운영 source of truth
+→ 반드시 external-data 백업 명령으로 dump한다.
+
+prod local compose mysql
+→ rollback/local-data copy
+→ backup-mysql.sh로 백업할 수 있지만 운영 source of truth 백업으로 간주하지 않는다.
+```
+
+`backup-mysql.sh`는 `docker compose exec ... mysql`을 사용한다.
+따라서 external-data 운영에서 local `mysql` 서비스가 `local-data` profile 뒤로 빠졌거나 rollback copy로만 남아 있으면, 이 스크립트는 실 운영 DB가 아닌 local copy를 백업할 수 있다.
+
+### data server 자동 백업 / S3 업로드 기준
+
+현재 운영 source of truth 백업은 data 서버에서 실행한다.
+
+```text
+# host: clueroom-data-01
+10 3 * * * /opt/clueroom-data/backup-mysql.sh
+20 3 * * * /opt/clueroom-data/upload-mysql-backup-s3.sh
+* * * * * /opt/clueroom-data/data-health-push.sh
+*/5 * * * * /opt/clueroom-data/s3-backup-health-push.sh
+```
+
+수동 확인:
+
+```bash
+ssh clueroom-data 'crontab -l | grep -E "backup-mysql|upload-mysql-backup-s3|data-health|s3-backup-health"'
+```
+
+백업 성공 기준:
+
+```text
+- /opt/clueroom-data/backups/mysql/*.sql.gz 생성
+- gzip -t 통과
+- .sha256 sidecar 생성
+- S3 daily prefix에 .sql.gz와 .sha256 업로드
+- s3-upload-state.env의 S3_UPLOAD_STATUS=OK
+- S3_BACKUP_HEALTH status=OK가 ops Loki에 push됨
+```
+
+### external-data 운영 DB 수동 백업
+
+운영 source of truth를 백업할 때 사용한다.
+기본 실행 위치는 data server다.
+prod app 서버의 `/opt/clueroom/app` 경로와 `/opt/clueroom/backup-mysql.sh`는 local-data/rollback copy용이므로 source-of-truth 백업 절차의 기본 경로로 쓰지 않는다.
+
+권장: data server에서 직접 실행한다.
+
+```bash
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
+
+/opt/clueroom-data/backup-mysql.sh
+
+DATE_PATH="$(date +%Y/%m/%d)"
+BACKUP_FILE="$(ls -t /opt/clueroom-data/backups/mysql/*.sql.gz | head -n 1)"
+BACKUP_DIR="$(dirname "$BACKUP_FILE")"
+BACKUP_BASE="$(basename "$BACKUP_FILE")"
+test -s "$BACKUP_FILE"
+gzip -t "$BACKUP_FILE"
+(cd "$BACKUP_DIR" && sha256sum "$BACKUP_BASE" > "$BACKUP_BASE.sha256")
+ls -lh "$BACKUP_FILE" "$BACKUP_FILE.sha256"
+REMOTE
+```
+
+대안: `mysqldump` client가 설치된 app/ops host에서 data server를 원격 dump한다.
+이 경로는 app host에 MySQL client가 없으면 사용할 수 없다.
+아래 명령은 prod app `.env`의 `APP_DB_HOST`/`APP_DB_PORT`를 우선 사용하고, 없으면 `DB_HOST`/`DB_PORT`를 fallback으로 사용한다.
+
+```bash
+cd /opt/clueroom/app
+set -euo pipefail
+set -a
+. ./.env
+set +a
+
+TARGET_DB_HOST="${APP_DB_HOST:-${DB_HOST:-}}"
+TARGET_DB_PORT="${APP_DB_PORT:-${DB_PORT:-3306}}"
+TARGET_DB_USER="${DB_USERNAME:-root}"
+TARGET_DB_NAME="${DB_NAME:-startup}"
+
+test -n "$TARGET_DB_HOST"
+test -n "${DB_PASSWORD:-}"
+
+TS="$(date +%Y%m%d_%H%M%S)"
+DATE_PATH="$(date +%Y/%m/%d)"
+BACKUP_DIR="/opt/clueroom/backups/mysql/external"
+BACKUP_FILE="${BACKUP_DIR}/${TARGET_DB_NAME}_external_${TS}.sql.gz"
+
+mkdir -p "$BACKUP_DIR"
+rm -f "$BACKUP_FILE" "$BACKUP_FILE.sha256"
+
+MYSQL_PWD="$DB_PASSWORD" mysqldump \
+  -h "$TARGET_DB_HOST" \
+  -P "$TARGET_DB_PORT" \
+  -u "$TARGET_DB_USER" \
+  --single-transaction \
+  --quick \
+  --routines \
+  --triggers \
+  "$TARGET_DB_NAME" | gzip > "$BACKUP_FILE"
+
+test -s "$BACKUP_FILE"
+gzip -t "$BACKUP_FILE"
+chmod 600 "$BACKUP_FILE"
+(cd "$BACKUP_DIR" && sha256sum "$(basename "$BACKUP_FILE")" > "$(basename "$BACKUP_FILE").sha256")
+ls -lh "$BACKUP_FILE" "$BACKUP_FILE.sha256"
+```
+
+### external-data S3 업로드
+
+S3 업로드는 private backup bucket과 전용 IAM principal이 준비된 뒤에만 수행한다.
+AWS credential은 git, PR, Slack, AI prompt에 남기지 않는다.
+
+```bash
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
+
+set -a
+. /opt/clueroom-data/secrets/aws-backup.env
+set +a
+
+DATE_PATH="$(date +%Y/%m/%d)"
+BACKUP_FILE="$(ls -t /opt/clueroom-data/backups/mysql/*.sql.gz | head -n 1)"
+BACKUP_DIR="$(dirname "$BACKUP_FILE")"
+BACKUP_BASE="$(basename "$BACKUP_FILE")"
+
+test -s "$BACKUP_FILE"
+gzip -t "$BACKUP_FILE"
+(cd "$BACKUP_DIR" && sha256sum -c "$BACKUP_BASE.sha256")
+
+aws s3 cp "$BACKUP_FILE" \
+  "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/${BACKUP_BASE}" \
+  --only-show-errors \
+  --server-side-encryption AES256
+
+aws s3 cp "$BACKUP_FILE.sha256" \
+  "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/${BACKUP_BASE}.sha256" \
+  --only-show-errors \
+  --server-side-encryption AES256
+
+aws s3api head-object \
+  --bucket "$S3_BACKUP_BUCKET" \
+  --key "${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/${BACKUP_BASE}" \
+  --query '{Size:ContentLength, LastModified:LastModified}'
+REMOTE
+```
+
+### cron 확인
+
+운영 서버 또는 data server에서 현재 어떤 DB를 백업하는지 먼저 확인한다.
+
+```bash
+crontab -l | grep -E 'backup|mysql|mysqldump' || true
+sudo grep -R -nE 'backup|mysql|mysqldump' /etc/cron* 2>/dev/null || true
+```
+
+판정:
+
+```text
+cron이 /opt/clueroom/backup-mysql.sh를 실행한다
+→ local compose mysql 백업이다.
+→ external-data 운영 source of truth 백업으로 간주하면 안 된다.
+
+cron이 data server host를 대상으로 mysqldump를 실행한다
+→ source of truth 백업 후보가 될 수 있다.
+→ 백업 파일, checksum, S3 업로드, restore rehearsal까지 확인한다.
+```
+
+external-data 운영 백업 cron 예시:
+
+권장 실행 위치는 data server다.
+
+```cron
+# host: clueroom-data-01
+10 3 * * * /opt/clueroom-data/backup-mysql.sh >> /opt/clueroom-data/logs/mysql-backup.log 2>&1
+20 3 * * * /opt/clueroom-data/upload-mysql-backup-s3.sh >> /opt/clueroom-data/logs/mysql-backup-s3.log 2>&1
+```
+
+app/ops host에서 원격 dump를 수행하는 대안 경로는 명시적으로 host label을 붙인다.
+
+```cron
+# host: clueroom-api-prod-01 or clueroom-ops-01
+0 3 * * * /opt/clueroom/backup-mysql-external.sh >> /opt/clueroom/logs/mysql-backup-external.log 2>&1
+```
+
+이 PR은 실제 운영 서버 cron을 변경하지 않는다.
+운영 cron이 여전히 `backup-mysql.sh`만 실행 중이면 문서 모순이 아니라 실제 백업 공백이므로 data-server-aware 백업 스크립트로 별도 조치한다.
+
+### local-data / rollback copy 수동 백업
 
 ```bash
 /opt/clueroom/backup-mysql.sh
 ```
 
+이 명령은 compose `mysql` 서비스가 대상이다.
+external-data 운영 source of truth 백업으로 사용하지 않는다.
+
 ### 백업 파일 확인
+
+external-data source of truth 백업 파일은 data server에서 확인한다.
+
+```bash
+ssh clueroom-data 'ls -lh /opt/clueroom-data/backups/mysql'
+```
+
+local-data / rollback copy 백업 파일은 prod app 서버에서만 아래 경로로 확인한다.
 
 ```bash
 ls -lh /opt/clueroom/backups/mysql
@@ -1228,20 +1444,11 @@ ls -lh /opt/clueroom/backups/mysql
 
 ### 백업 로그 확인
 
+현재 `backup-mysql.sh` 자체는 로그 파일을 직접 생성하지 않는다.
+아래 로그는 cron redirect를 설정한 경우에만 존재한다.
+
 ```bash
 tail -f /opt/clueroom/logs/mysql-backup.log
-```
-
-### cron 확인
-
-```bash
-crontab -l
-```
-
-예상:
-
-```cron
-0 3 * * * /opt/clueroom/backup-mysql.sh >> /opt/clueroom/logs/mysql-backup.log 2>&1
 ```
 
 ---
@@ -1249,20 +1456,84 @@ crontab -l
 ## 17. MySQL 복구
 
 > 복구는 DB를 덮어쓸 수 있으므로 반드시 신중하게 실행한다.
-> 복구 전 현재 DB를 한 번 더 백업하는 것을 권장한다.
+> 복구 전 현재 source of truth DB를 한 번 더 백업하는 것을 권장한다.
+> 운영 DB 직접 복구 전에 rehearsal host 또는 임시 MySQL 컨테이너에서 복구 검증을 먼저 수행한다.
 
-### 복구 전 백업
+### 복구 전 백업 대상 확인
 
 ```bash
-/opt/clueroom/backup-mysql.sh
+cd /opt/clueroom/app
+set -a
+. ./.env
+set +a
+
+TARGET_DB_HOST="${APP_DB_HOST:-${DB_HOST:-}}"
+TARGET_DB_PORT="${APP_DB_PORT:-${DB_PORT:-3306}}"
+TARGET_DB_USER="${DB_USERNAME:-root}"
+TARGET_DB_NAME="${DB_NAME:-startup}"
+
+test -n "$TARGET_DB_HOST"
+test -n "$DB_PASSWORD"
+echo "restore target: ${TARGET_DB_HOST}:${TARGET_DB_PORT}/${TARGET_DB_NAME}"
 ```
 
-### 복구 명령어
+external-data 운영에서는 위 target이 data server private IP 또는 내부 DNS인지 확인한다.
+`mysql` 또는 `localhost`로 나오면 local rollback copy를 복구하는 것이므로 운영 source of truth 복구가 아니다.
+
+### 복구 전 source of truth 재백업
+
+복구 직전에는 section 16의 external-data 백업 명령으로 현재 source of truth를 한 번 더 백업한다.
+`backup-mysql.sh`만 실행하면 local copy만 백업할 수 있다.
+
+### external-data 운영 DB 복구 명령어
+
+운영 source of truth에 직접 restore하는 명령이다.
+담당자 승인, 쓰기 트래픽 차단 또는 점검창 확보, rehearsal 성공 후에만 실행한다.
+
+아래 primary path는 app/ops host에서 실행한다. 이 절차는 `/opt/clueroom/app/.env`에서 `TARGET_DB_*`와 `DB_PASSWORD`를 읽으므로, data server 로컬 경로를 직접 `BACKUP`으로 쓰지 않는다. data server의 백업 파일은 먼저 app/ops host의 `/tmp/clueroom-restore/`로 복사한다.
+
+```bash
+mkdir -p /tmp/clueroom-restore
+
+scp clueroom-data:/opt/clueroom-data/backups/mysql/백업파일명.sql.gz \
+  /tmp/clueroom-restore/
+
+scp clueroom-data:/opt/clueroom-data/backups/mysql/백업파일명.sql.gz.sha256 \
+  /tmp/clueroom-restore/ 2>/dev/null || true
+```
+
+```bash
+BACKUP=/tmp/clueroom-restore/백업파일명.sql.gz
+BACKUP_DIR="$(dirname "$BACKUP")"
+BACKUP_BASE="$(basename "$BACKUP")"
+
+set -o pipefail
+test -f "$BACKUP"
+gzip -t "$BACKUP"
+if [ -f "$BACKUP.sha256" ]; then
+  (cd "$BACKUP_DIR" && sha256sum -c "$BACKUP_BASE.sha256")
+fi
+
+gunzip -c "$BACKUP" | MYSQL_PWD="$DB_PASSWORD" mysql \
+  -h "$TARGET_DB_HOST" \
+  -P "$TARGET_DB_PORT" \
+  -u "$TARGET_DB_USER" \
+  "$TARGET_DB_NAME"
+```
+
+### local-data / rollback copy 복구 명령어
+
+compose local `mysql` 서비스에 복구할 때만 사용한다.
+external-data 운영 source of truth 복구 명령이 아니다.
 
 ```bash
 cd /opt/clueroom/app
 DB_PASSWORD="$(grep -E '^DB_PASSWORD=' .env | tail -n 1 | cut -d '=' -f2-)"
-gunzip -c /opt/clueroom/backups/mysql/백업파일명.sql.gz | \
+BACKUP=/opt/clueroom/backups/mysql/백업파일명.sql.gz
+set -o pipefail
+test -f "$BACKUP"
+gzip -t "$BACKUP"
+gunzip -c "$BACKUP" | \
   docker compose exec -T -e MYSQL_PWD="$DB_PASSWORD" mysql mysql -uroot
 ```
 
@@ -1271,13 +1542,407 @@ gunzip -c /opt/clueroom/backups/mysql/백업파일명.sql.gz | \
 ```bash
 cd /opt/clueroom/app
 DB_PASSWORD="$(grep -E '^DB_PASSWORD=' .env | tail -n 1 | cut -d '=' -f2-)"
-gunzip -c /opt/clueroom/backups/mysql/startup_20260523_030000.sql.gz | \
+BACKUP=/opt/clueroom/backups/mysql/startup_20260523_030000.sql.gz
+set -o pipefail
+test -f "$BACKUP"
+gzip -t "$BACKUP"
+gunzip -c "$BACKUP" | \
   docker compose exec -T -e MYSQL_PWD="$DB_PASSWORD" mysql mysql -uroot
+```
+
+### 복구 rehearsal 절차
+
+운영 DB를 덮어쓰기 전에 임시 MySQL 컨테이너에서 백업 파일이 복구 가능한지 검증한다.
+
+```bash
+BACKUP=/tmp/clueroom-restore/백업파일명.sql.gz
+BACKUP_DIR="$(dirname "$BACKUP")"
+BACKUP_BASE="$(basename "$BACKUP")"
+
+set -o pipefail
+test -f "$BACKUP"
+gzip -t "$BACKUP"
+if [ -f "$BACKUP.sha256" ]; then
+  (cd "$BACKUP_DIR" && sha256sum -c "$BACKUP_BASE.sha256")
+fi
+```
+
+```bash
+docker run -d --name clueroom-restore-check \
+  -e MYSQL_ROOT_PASSWORD=restorecheck \
+  -e MYSQL_DATABASE=startup \
+  mysql:8
+```
+
+```bash
+sleep 20
+set -o pipefail
+gzip -t "$BACKUP"
+gunzip -c "$BACKUP" | \
+  docker exec -i clueroom-restore-check \
+  mysql -uroot -prestorecheck startup
+```
+
+```bash
+docker exec -i clueroom-restore-check \
+  mysql -uroot -prestorecheck -e "SHOW TABLES;" startup
+```
+
+검증 후 정리:
+
+```bash
+docker rm -f clueroom-restore-check
+```
+
+복구 rehearsal에서 확인할 것:
+
+```text
+- gzip 파일이 정상 해제되는가?
+- SQL import가 중간에 실패하지 않는가?
+- 주요 테이블이 존재하는가?
+- 운영 DB에 직접 넣기 전에 백업 파일 경로가 맞는가?
 ```
 
 ---
 
-## 18. Git 상태 확인
+## 18. Nginx Rate Limit / IP Block 운영
+
+정책 기준은 `SECURITY_TRAFFIC_ALERT_POLICY.md`를 따른다.
+현재 운영 Nginx는 rate limit enforcement 상태다. Dry-run은 신규 threshold 검증이나 rollback 시 참고하는 절차이며, 현재 기본 상태가 아니다.
+
+### 현재 방어 구조
+
+```text
+Client
+  ↓
+Nginx
+  ├─ CN IPv4 block
+  ├─ manual blocklist
+  ├─ API per-IP rate limit
+  ├─ per-IP connection limit
+  └─ upstream app-blue/app-green
+```
+
+### 현재 설정 요약
+
+```text
+limit_req_zone clueroom_api_per_ip: 20r/s
+burst=60 nodelay
+limit_req_dry_run off
+limit_req_status 429
+limit_conn per IP: 30
+CN IPv4 CIDR block 적용
+manual blocklist snippet 준비
+```
+
+### 설정 확인
+
+```bash
+ssh clueroom
+sudo nginx -T 2>/dev/null | grep -nE 'limit_req_zone|limit_conn_zone|limit_req_dry_run|limit_req zone|limit_conn|limit_req_status|clueroom-blocked-ips|clueroom-cn|clueroom_is_cn_ip'
+```
+
+기대:
+
+```text
+limit_req_dry_run off
+limit_req zone=clueroom_api_per_ip burst=60 nodelay
+limit_conn clueroom_conn_per_ip 30
+geo $clueroom_is_cn_ip
+include /etc/nginx/snippets/clueroom-cn-block.conf
+include /etc/nginx/snippets/clueroom-blocked-ips.conf
+```
+
+dry-run이 켜져 있으면 현재 운영 기준과 다르다.
+
+```bash
+sudo nginx -T 2>/dev/null | grep 'limit_req_dry_run on' || echo "dry-run off confirmed"
+```
+
+### Health / 정상 요청 확인
+
+```bash
+curl -I https://api.clueroom.xyz/actuator/health
+curl https://api.clueroom.xyz/actuator/health
+```
+
+반복 health smoke:
+
+```bash
+for i in $(seq 1 30); do
+  curl -s -o /dev/null -w "%{http_code}\n" https://api.clueroom.xyz/actuator/health
+done | sort | uniq -c
+```
+
+기대:
+
+```text
+30 200
+```
+
+### 403 / 429 의미
+
+```text
+403
+→ 요청 차단
+→ CN block, manual blocklist, 민감 경로 차단 등이 원인
+
+429
+→ rate limit
+→ 짧은 시간에 너무 많은 요청을 제한
+```
+
+주의:
+
+```text
+rate limit은 자동 ban이 아니다.
+스캐너가 다시 요청하면 제한 범위 안에서는 재시도 가능하다.
+403/429 증가는 보통 방어가 작동 중이라는 의미지만, 정상 사용자 영향 여부를 확인해야 한다.
+```
+
+### 403 / 429 Loki 확인
+
+ops 서버:
+
+```bash
+ssh clueroom-ops
+```
+
+최근 403/429:
+
+```bash
+curl -G -s "http://127.0.0.1:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={job="nginx", instance="clueroom-api-prod-01", log_type="access"} |~ ` HTTP/[0-9.]+" (403|429) ` ' \
+  --data-urlencode 'limit=100' \
+  --data-urlencode 'direction=backward' \
+| jq -r '.data.result[] as $s | $s.values[] | "\((.[0][0:10] | tonumber | strftime("%Y-%m-%d %H:%M:%S"))) \(.[1])"'
+```
+
+IP별 집계:
+
+```bash
+curl -G -s "http://127.0.0.1:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={job="nginx", instance="clueroom-api-prod-01", log_type="access"} |~ ` HTTP/[0-9.]+" (403|429) ` ' \
+  --data-urlencode 'limit=200' \
+  --data-urlencode 'direction=backward' \
+| jq -r '.data.result[] as $s | $s.values[] | .[1]' \
+| awk '{print $1}' \
+| sort \
+| uniq -c \
+| sort -nr \
+| head -n 20
+```
+
+### 민감 경로 스캔 확인
+
+```bash
+curl -G -s "http://127.0.0.1:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={job="nginx", instance="clueroom-api-prod-01", log_type="access"} |~ `([.]env|[.]git|wp-admin|wp-login|phpmyadmin|pma|terraform[.]tfvars)`' \
+  --data-urlencode 'limit=100' \
+  --data-urlencode 'direction=backward'
+```
+
+### CN block 확인
+
+CN block 설정 파일:
+
+```text
+/etc/nginx/conf.d/clueroom-cn-geo.conf
+/etc/nginx/snippets/clueroom-cn-block.conf
+/etc/nginx/geoip/cn-aggregated.map
+```
+
+특정 IP가 CN map에 포함되는지 확인:
+
+```bash
+python3 - << 'PY'
+import ipaddress
+
+ips = [
+    "67.205.139.199",
+    "106.75.184.142",
+]
+
+nets = []
+with open("/etc/nginx/geoip/cn-aggregated.map") as f:
+    for line in f:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        cidr = line.split()[0]
+        nets.append(ipaddress.ip_network(cidr, strict=False))
+
+for ip in ips:
+    addr = ipaddress.ip_address(ip)
+    print(ip, "CN_MATCH=", any(addr in net for net in nets))
+PY
+```
+
+### Manual blocklist 추가
+
+반복 악성 IP가 명확한 경우에만 추가한다.
+
+```bash
+sudo cp /etc/nginx/snippets/clueroom-blocked-ips.conf \
+  /etc/nginx/snippets/clueroom-blocked-ips.conf.before-manual-blocklist-change-$(date +%Y%m%d_%H%M%S)
+
+sudo nano /etc/nginx/snippets/clueroom-blocked-ips.conf
+```
+
+예:
+
+```nginx
+deny 67.205.139.199;
+```
+
+적용:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://api.clueroom.xyz/actuator/health
+```
+
+주의:
+
+```text
+팀원 IP 또는 정상 사용자 IP를 넣지 않는다.
+일회성 스캐너는 굳이 수동 ban하지 않는다.
+```
+
+### Manual blocklist 회수 / 복구
+
+정상 사용자 IP를 잘못 차단했거나 오탐이 의심되면 먼저 해당 IP만 제거한다.
+
+```bash
+BAD_IP="203.0.113.10"
+sudo cp /etc/nginx/snippets/clueroom-blocked-ips.conf \
+  /etc/nginx/snippets/clueroom-blocked-ips.conf.before-manual-blocklist-unblock-$(date +%Y%m%d_%H%M%S)
+
+awk -v ip="$BAD_IP" '$0 != "deny " ip ";" { print }' \
+  /etc/nginx/snippets/clueroom-blocked-ips.conf \
+| sudo tee /etc/nginx/snippets/clueroom-blocked-ips.conf.tmp > /dev/null
+sudo mv /etc/nginx/snippets/clueroom-blocked-ips.conf.tmp \
+  /etc/nginx/snippets/clueroom-blocked-ips.conf
+
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://api.clueroom.xyz/actuator/health
+```
+
+여러 줄을 잘못 수정했거나 즉시 원복이 필요하면 백업 파일을 복구한다.
+
+```bash
+ls -al /etc/nginx/snippets | grep 'clueroom-blocked-ips.conf.before-manual-blocklist' || true
+
+BLOCKLIST_BACKUP=/etc/nginx/snippets/clueroom-blocked-ips.conf.before-manual-blocklist-change-YYYYMMDD_HHMMSS
+test -f "$BLOCKLIST_BACKUP"
+sudo cp "$BLOCKLIST_BACKUP" /etc/nginx/snippets/clueroom-blocked-ips.conf
+
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://api.clueroom.xyz/actuator/health
+```
+
+### CN blocklist 업데이트
+
+수동 실행:
+
+```bash
+/opt/clueroom/update-cn-blocklist.sh
+```
+
+cron 확인:
+
+```bash
+crontab -l | grep update-cn-blocklist
+```
+
+예상:
+
+```text
+30 4 * * 1 /opt/clueroom/update-cn-blocklist.sh
+```
+
+로그:
+
+```bash
+tail -n 100 /opt/clueroom/logs/cn-block-update.log
+```
+
+### Rate Limit 완화
+
+정상 사용자가 429를 많이 받으면 threshold를 완화한다. 변경 전에는 현재 설정을 백업한다.
+
+```bash
+sudo cp /etc/nginx/sites-available/clueroom-api \
+  /etc/nginx/sites-available/clueroom-api.before-rate-limit-change-$(date +%Y%m%d_%H%M%S)
+
+sudo cp /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf \
+  /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf.before-rate-limit-change-$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+```
+
+snippet을 수정한다.
+
+```bash
+sudo nano /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf
+```
+
+예:
+
+```nginx
+limit_req zone=clueroom_api_per_ip burst=100 nodelay;
+limit_req_dry_run off;
+limit_req_status 429;
+```
+
+검증:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://api.clueroom.xyz/actuator/health
+```
+
+### 긴급 rollback
+
+백업 파일을 먼저 찾는다.
+
+```bash
+ls -al /etc/nginx/sites-available | grep -E 'before-rate-limit|clueroom-api.*bak' || true
+ls -al /etc/nginx/snippets | grep -E 'before-rate-limit|clueroom-api-rate-limit-dryrun.*bak' || true
+sudo find /etc/nginx -maxdepth 3 -type f -name '*before-rate-limit*' -print
+```
+
+백업 파일명은 실제 출력값으로 교체한다.
+
+```bash
+SITE_BACKUP=/etc/nginx/sites-available/clueroom-api.before-rate-limit-change-YYYYMMDD_HHMMSS
+SNIPPET_BACKUP=/etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf.before-rate-limit-change-YYYYMMDD_HHMMSS
+
+test -f "$SITE_BACKUP"
+sudo cp "$SITE_BACKUP" /etc/nginx/sites-available/clueroom-api
+
+if [ -f "$SNIPPET_BACKUP" ]; then
+  sudo cp "$SNIPPET_BACKUP" /etc/nginx/snippets/clueroom-api-rate-limit-dryrun.conf
+else
+  echo "optional snippet backup not found; site config rollback will continue"
+fi
+```
+
+검증 후 reload한다.
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://api.clueroom.xyz/actuator/health
+```
+
+rate limit 자체를 일시 중단해야 하는 경우에는 snippet include 또는 `limit_req` 라인을 제거/주석 처리한다.
+그 변경은 정상 사용자 영향이 큰 경우에만 수행하고, 변경 전후 403/429와 health를 확인한다.
+---
+
+## 19. Git 상태 확인
 
 ### 서버 레포 상태 확인
 
@@ -1316,13 +1981,14 @@ git clean -fdx
 
 ---
 
-## 19. 자주 생기는 문제와 대응
+## 20. 자주 생기는 문제와 대응
 
 ### 문제 1. Swagger가 열리지 않음
 
 확인:
 
 ```bash
+curl -I https://api.clueroom.xyz/swagger-ui.html
 curl -I https://api.clueroom.xyz/swagger-ui/index.html
 curl -I https://api.clueroom.xyz/v3/api-docs
 curl -I https://api.clueroom.xyz/actuator/health
@@ -1624,7 +2290,7 @@ curl -I https://api.clueroom.xyz/actuator/health
 
 ---
 
-## 20. 장애 발생 시 기본 확인 순서
+## 21. 장애 발생 시 기본 확인 순서
 
 장애가 나면 아래 순서로 확인한다.
 
@@ -1663,6 +2329,61 @@ OPS_LOKI_BASE_URL=http://172.26.15.52:3100 \
 Snapshot 출력은 AI 도구나 팀 채팅에 붙이기 전에 secret 값이 없는지 사람이 한 번 확인한다.
 `.env` 전체, Firebase JSON, API key, DB password, private key는 snapshot이나 팀 채팅에 붙이지 않는다.
 
+### n8n Workflow 운영 확인
+
+ops 서버의 n8n은 Grafana alert routing, periodic ops status, LLMOps summary, Codex handoff report를 담당한다.
+현재 workflow 원문 JSON은 secret-safe 문서가 아니므로 public repo에 커밋하지 않는다.
+
+현재 운영 workflow:
+
+| Workflow | Purpose | Trigger | Expected Output |
+|---|---|---|---|
+| `ClueRoom - Grafana Alert Router v8 Budgeted Gemini 3.5` | Grafana alert event routing | Grafana webhook | Basic Slack alert first, optional Gemini analysis second |
+| `ClueRoom - Ops Snapshot Agent v5 Lite Daily Budget` | Periodic ops health report | Manual / every 24h | Basic ops status first, optional Gemini ops analysis second |
+| `ClueRoom - LLMOps Light Monitor v4 Budgeted Gemini 3.5` | Hourly AI_CALL cost/failure/latency summary | Manual / every 1h | Basic LLMOps summary first, optional Gemini analysis second |
+| `ClueRoom - Infra Codex Handoff Report v1` | Daily infra review handoff | Manual / every 24h | Slack report for human/Codex review |
+| `ClueRoom - LLMOps Codex Handoff Report v2` | Daily LLMOps review handoff | Manual / every 24h | Slack report for human/Codex review |
+
+Check n8n health from the ops server:
+
+```bash
+curl -I http://127.0.0.1:5678/
+docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E 'n8n|NAME'
+docker logs --tail=120 n8n
+```
+
+If the container name is different, confirm it with `docker ps` first.
+
+n8n workflow verification after import/edit:
+
+```text
+1. Confirm workflow is active only after reviewing credentials and webhook target.
+2. Run manual trigger for non-webhook workflows.
+3. Confirm basic Slack message is sent before Gemini analysis.
+4. Confirm Gemini failure, timeout, or daily budget skip does not block basic Slack.
+5. Confirm Slack output does not include .env values, API keys, DB passwords, private keys, raw user questions, raw AI answers, or scenario spoilers.
+6. Confirm Grafana webhook workflow receives only expected alert payloads.
+```
+
+Workflow export/backup rule:
+
+```text
+- Store workflow backups in a private ops backup location, not the public repo.
+- Redact or exclude webhook paths, credential IDs, Slack channel IDs, API URLs with keys, and prompt bodies before sharing.
+- Public documentation may include workflow name, trigger type, monitored signal, output type, model name, retry count, and daily budget.
+```
+
+Current Gemini fail-soft policy:
+
+```text
+Grafana Alert Router: gemini-3.5-flash, daily limit 3, retry once after 70s
+LLMOps Light Monitor: gemini-3.5-flash, daily limit 2, retry once after 70s
+Ops Snapshot Agent: gemini-2.5-flash-lite, daily limit 1, retry once after 70s
+```
+
+Codex handoff workflows create reports only.
+They do not grant Codex permission to deploy, rollback, mutate production config, edit secrets, or run destructive commands.
+
 ```bash
 /opt/clueroom/bg-status.sh
 ```
@@ -1700,13 +2421,17 @@ df -h
 ```
 
 ```bash
-docker compose logs --tail=100 mysql
-docker compose logs --tail=100 redis
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
+docker compose ps
+/opt/clueroom-data/data-health-push.sh
+/opt/clueroom-data/s3-backup-health-push.sh
+REMOTE
 ```
 
 ---
 
-## 21. 운영 중 변경 전 체크리스트
+## 22. 운영 중 변경 전 체크리스트
 
 배포 또는 설정 변경 전에 확인한다.
 
@@ -1727,7 +2452,7 @@ DB 변경이 있거나 위험한 작업 전에는 백업한다.
 
 ---
 
-## 22. AI 에이전트에게 맡길 때 주의사항
+## 23. AI 에이전트에게 맡길 때 주의사항
 
 AI 에이전트가 인프라 명령어를 제안하거나 실행하게 할 때는 아래 원칙을 지킨다.
 
@@ -1744,7 +2469,7 @@ AI 에이전트가 인프라 명령어를 제안하거나 실행하게 할 때�
 
 ---
 
-## 23. 빠른 명령어 요약
+## 24. 빠른 명령어 요약
 
 ### Health
 
@@ -1814,8 +2539,12 @@ cat /etc/nginx/conf.d/clueroom-upstream.conf
 ### Backup
 
 ```bash
-/opt/clueroom/backup-mysql.sh
-ls -lh /opt/clueroom/backups/mysql
+ssh clueroom-data 'bash -se' << 'REMOTE'
+set -euo pipefail
+/opt/clueroom-data/backup-mysql.sh
+/opt/clueroom-data/upload-mysql-backup-s3.sh
+cat /opt/clueroom-data/backups/mysql/s3-upload-state.env
+REMOTE
 ```
 
 ### Resource

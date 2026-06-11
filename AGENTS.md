@@ -1,8 +1,8 @@
 # CaseLab AI — Codex Review Guide
 
 AI 용의자 심문형 추리게임 플랫폼. Android(Kotlin) + Spring Boot(Java 21, Spring Boot 4) 백엔드.
-프로젝트 상세 컨텍스트는 `CLAUDE.md`를 함께 참조한다.
-구현 규칙 상세는 `docs/BACKEND_IMPLEMENTATION_GUIDE.md`를 따른다.
+프로젝트 상세 컨텍스트는 [CLAUDE.md](CLAUDE.md)를 함께 참조한다.
+구현 규칙 상세는 [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md)를 따른다.
 
 ---
 
@@ -48,7 +48,7 @@ com.startup
 
 새 도메인 패키지는 `domain/example/` 구조를 따른다.
 AI 호출 관련 코드는 `domain/ai`에 집중한다 — 다른 도메인 Service에서 프롬프트를 직접 만들지 않는다.
-패키지/계층/예외/트랜잭션 상세 규칙은 `docs/BACKEND_IMPLEMENTATION_GUIDE.md`를 따른다.
+패키지/계층/예외/트랜잭션 상세 규칙은 [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md)를 따른다.
 
 ---
 
@@ -60,10 +60,12 @@ bash scripts/compose-up.sh     # Docker 빌드 + 실행
 ./gradlew bootJar              # jar 생성
 ```
 
-실행, Android 연결, Docker Compose, 배포 명령 요약은 `docs/RUN_AND_DEPLOY.md`를 따른다.
-상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응은 `docs/infra/OPS_RUNBOOK.md`를 따른다.
-인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보는 `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`를 따른다.
-운영/인프라 Agent 권한, Snapshot, Monitoring, Codex, LLMOps 기준은 `docs/infra/agent/`와 `docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md`를 따른다.
+실행, Android 연결, Docker Compose, 배포 명령 요약은 [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md)를 따른다.
+상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응은 [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md)를 따른다.
+인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보는 [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md)를 따른다.
+보안/트래픽/알림 정책은 [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md)를 따른다.
+운영/인프라 Agent 권한, Snapshot, Monitoring, Codex 기준은 [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md)를 따른다.
+LLMOps 기준은 [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md)를 따른다.
 
 ---
 
@@ -106,8 +108,9 @@ AI에게 전달되는 정보가 다음으로 한정되는지 확인:
 프롬프트 인젝션 방어 문구가 System Prompt에 포함되는지 확인.
 프롬프트 문자열이 AiPromptBuilder에 집중되어 있는지 확인 (여러 Service에 분산되면 안 된다).
 프롬프트 템플릿이 resources/prompts/ 파일 기반인지 확인 (하드코딩 금지).
-상세 기준: `docs/AI_NPC_PROMPT_POLICY.md`
 ```
+
+상세 기준: [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md)
 
 ### 트랜잭션과 AI 호출 분리
 
@@ -163,28 +166,27 @@ AI가 설정에 없는 사실을 만드는 구조를 허용하지 않는다.
 
 ## 참조 문서
 
-```text
-CLAUDE.md                                   프로젝트 전체 컨텍스트
-docs/CaseLab_AI_PRD.md                      제품 요구사항
-docs/CaseLab_AI_API_Spec.md                 API 명세 (Request/Response 포함)
-docs/ANDROID_SCREEN_API_MAPPING.md          Android 화면-API 매핑
-docs/AI_NPC_PROMPT_POLICY.md                AI 심문 프롬프트 정책 정본
-docs/OFFICIAL_SCENARIO_DEMO_DAY.md          공식 데모 시나리오 정본 (채점 기준 포함)
-docs/BACKEND_IMPLEMENTATION_GUIDE.md        백엔드 구현 규칙 정본
-docs/CaseLab_AI_ERD_Design.md               ERD 설계 / 비판적 리뷰
-docs/RUN_AND_DEPLOY.md                      실행 / Android 연결 / Docker Compose / 배포 명령 요약
-docs/infra/OPS_RUNBOOK.md                   운영 명령어 / Blue-Green rollback / 백업 / 장애 대응
-docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md    인프라 선택 이유 / 운영 구조 / 확장 계획
-docs/infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md  MVP 이후 인프라 고도화 로드맵
-docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md   운영/인프라 Agent 권한 / 금지 / 승인 정책
-docs/infra/agent/OPS_SNAPSHOT_SPEC.md       Agent 전달용 secret-safe 운영 snapshot 형식
-docs/infra/agent/MONITORING_AGENT_PLAN.md   Monitoring Agent 계획
-docs/infra/agent/INFRA_CODEX_AGENT_PLAYBOOK.md    Infra Codex Agent 작업 플레이북
-docs/infra/agent/LLMOPS_AGENT_PLAN.md       LLMOps Agent 계획
-docs/scenarios/README.md                    시나리오 문서 공개 범위 / 내부 스포일러 문서 관리 기준
-```
+| 문서 | 역할 |
+|---|---|
+| [CLAUDE.md](CLAUDE.md) | 프로젝트 전체 컨텍스트 |
+| [docs/README.md](docs/README.md) | 문서 index / 정본 지도 / 흡수 이력 |
+| [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md) | 제품 요구사항 |
+| [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md) | API 명세 (Request/Response 포함) |
+| [docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) | Android/Frontend 화면 흐름 / API 매핑 |
+| [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) | AI 심문 프롬프트 정책 정본 |
+| [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 정본 (채점 기준 포함) |
+| [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 구현 규칙 정본 |
+| [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md) | ERD 설계 / 비판적 리뷰 |
+| [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 실행 / Android 연결 / Docker Compose / 배포 명령 요약 |
+| [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) | 운영 명령어 / Blue-Green rollback / 백업 / 장애 대응 |
+| [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유 / 운영 구조 / 확장 계획 |
+| [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md) | 보안 / 트래픽 / 알림 정책 |
+| [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 운영/인프라 Agent / Snapshot / Monitoring / Codex 기준 |
+| [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) | LLMOps telemetry / smoke / PromQL / agent 기준 |
+| [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md) | 시나리오 YAML 구조 / 공개 범위 / private seed 경계 |
+| [docs/QA_HANDOFF.md](docs/QA_HANDOFF.md) | QA 이슈 / 해결 상태 / 재검증 항목 |
 
 리뷰 요청 시 **리뷰 지시서**가 함께 전달된다. 지시서에는 작업 목표, 변경 범위, 핵심 결정, 리뷰 초점, 참조 문서가 포함된다.
-리뷰 우선순위: 지시서의 "리뷰 초점" → AGENTS.md의 체크포인트 → 일반 코드 품질 순서.
+리뷰 우선순위: 지시서의 "리뷰 초점" → [AGENTS.md](AGENTS.md)의 체크포인트 → 일반 코드 품질 순서.
 지시서에서 참조 문서가 지정되면 해당 문서의 해당 섹션을 기준으로 검증한다.
 예: "AI_NPC_PROMPT_POLICY.md 섹션 8~9 기준으로 프롬프트 구조를 검증해줘"
