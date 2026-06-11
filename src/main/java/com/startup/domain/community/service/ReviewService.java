@@ -87,7 +87,7 @@ public class ReviewService {
     // 시나리오 리뷰 수정
     @Transactional
     public ReviewResponse updateReview(Long userId, Long reviewId, ReviewUpdateRequest request) {
-        ScenarioReview review = reviewRepository.findById(reviewId)
+        ScenarioReview review = reviewRepository.findWithUserById(reviewId)
                 .orElseThrow(() -> new CommunityException(CommunityErrorCode.REVIEW_NOT_FOUND));
 
         if (!review.getUserId().equals(userId)) {
