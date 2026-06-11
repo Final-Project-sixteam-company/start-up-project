@@ -37,7 +37,6 @@ guidance가 추리 보조인지 정답 경로 고정인지: 정답 경로 고정
 | Priority | Scenario | Finding | Evidence | Expected | Actual | Impact | Recommended Action |
 |---|---|---|---|---|---|---|---|
 | P0 | Cross-scenario | 2026-06-10 P0 스포일러성 API 메타데이터가 2026-06-11에도 지속됨 | 현재 운영 응답에서 evidence `importance=CORE/FAKE`, suspect `culpritEligible`, 역할성 asset path가 확인됨 | 플레이어용 API에는 정답성/레드헤링/비후보 판정 메타데이터가 없어야 함 | API-only 사용자나 네트워크 로그 사용자는 핵심/가짜 증거와 배제 후보를 추정 가능 | 추리게임 핵심 경험과 blind QA 신뢰성을 직접 훼손함 | public DTO에서 `importance`, `culpritEligible`, 역할성 asset path 제거. admin/debug DTO와 분리 |
-| P0 | Cross-scenario | `includeLocked=true`로 잠긴 증거 제목이 노출되는 문제가 유지됨 | fresh session 초반 조회에서 locked evidence의 title과 unlockHint가 반환됨 | 잠긴 증거는 placeholder 또는 개수만 노출 | description은 null이어도 title만으로 후반 추리 방향이 노출됨 | 증거 해금 전부터 후반 추리 방향을 알 수 있음 | 일반 사용자 권한에서 `includeLocked=true` 차단 또는 title까지 마스킹 |
 | P1 | Cross-scenario | 50턴 안에 최종 후보를 안전하게 확정하지 못함 | fresh/API-only 기준 두 시나리오 모두 50턴 진행 후 최종 제출 보류 | guidance와 심문만으로 1~2명까지 후보 축소 | 일부 축소는 됐지만, 수단/기회/은폐를 한 명에게 묶는 근거가 부족 | 신규 유저가 찍기 제출을 하거나 중도 이탈할 가능성 | 핵심 증거별 reading/compare/question을 5분, 10분 해금 증거까지 확장 |
 | P1 | Cross-scenario | 10일에 지적된 AI 회피 답변 문제가 11일에도 재현됨 | `단정할 수 없다`, `추가 증거 필요`, `기록을 함께 봐야 한다` 반복 | 증거 제시 시 인정 가능한 사실과 다음 비교 대상을 제공 | 답변이 안전하지만 후보 귀속을 충분히 돕지 못함 | 사용자가 잘못된 후보로 확신할 수 있음 | prompt responseShape와 policy allowedFacts에 `인정 사실/부인 범위/다음 비교 대상` 강제 |
 | P1 | Cross-scenario | Android suggested-question chip이 prefill-only가 아니라 즉시 AI 호출을 수행함 | Frontend E2E follow-up에서 guidance chip tap 시 자동 심문 호출 확인 | chip tap은 심문 화면 이동과 입력창 prefill까지만 수행 | 사용자가 전송 전 질문 수정/취소할 기회 없이 AI 호출됨 | 원치 않는 심문 로그가 생성되고 QA prompt의 P1 기준을 위반함 | Android chip handler를 navigate/prefill 전용으로 바꾸고 send는 전송 버튼 클릭에만 연결 |
@@ -163,7 +162,7 @@ AI behavior: 정답/범인 직접 누설 없음, 대부분 1~2문장 유지, 증
 
 | Owner | Priority | Action |
 |---|---|---|
-| Backend | P0 | public play API에서 `importance`, `culpritEligible`, 역할성 asset path, locked title 노출 제거 |
+| Backend | P0 | public play API에서 `importance`, `culpritEligible`, 역할성 asset path 노출 제거 |
 | Scenario seed | P1 | 5분/10분/조건 해금 증거에 guidance coverage 확장 |
 | Backend | P1 | unlock reason/recent unlocks 응답 계약 추가 |
 | Backend | P2 | guidance null coverage를 smoke metric으로 추가 |
@@ -232,7 +231,7 @@ docs/QA_HANDOFF.md
 | June 10 Issue | June 11 Status | Strengthened Judgment |
 |---|---|---|
 | API 스포일러 메타데이터 | 여전히 재현. `importance=CORE/FAKE`, `culpritEligible`, 역할성 asset path 확인 | P0 유지. 앱에서 숨겨도 네트워크/API 사용자에게 정답성 메타가 보이므로 데모 전 차단 필요 |
-| `includeLocked=true` 잠긴 증거명 노출 | 11일 fresh session 초반에도 locked title이 반환됨 | P0 유지. description masking만으로 부족하고 title 자체가 후반 추리 방향을 노출함 |
+| locked evidence masking | 11일 fresh session 초반에도 locked title/unlockHint가 반환됨 | P0 회수. 현재 API/FE contract상 title/unlockHint는 Evidence 탭 정상 표시이며, 검증 초점은 description/oneLine/imageAssetKey/imageUrl/locationName/relatedSuspects/code 같은 민감 필드 masking 유지 |
 | AI 답변 회피 반복 | 11일에도 50턴 내 확정 불가. post-submit result는 private artifact로 분리 | P1 유지. 단순 UX 불편이 아니라 후보 귀속 근거 부족으로 이어짐 |
 | 시간 답변 guard 부족 | 10일의 22시대 hallucination만큼 심하지는 않지만 11일에도 공개 시간축과 맞지 않는 표현 발생 | P2 유지. prompt/context hard guard가 아직 충분하지 않음 |
 | 증거 해금 이유 불명확 | 11일에도 증거 수가 단계적으로 급증하지만 이유 설명은 API-only 기준 확인 불가 | P1 유지. guidance가 생겨도 unlock reason 없으면 진행감이 약함 |
@@ -255,7 +254,8 @@ docs/QA_HANDOFF.md
 
 공통:
   답변 길이와 직접 정답 누설 방지는 계속 양호하다.
-  locked evidence detail의 description masking은 일부 작동하지만, title 노출 때문에 충분하지 않다.
+  locked evidence title/unlockHint 표시는 현재 contract상 정상이다.
+  잠긴 증거의 description/image/relatedSuspects/code 등 민감 필드 masking은 계속 spot check한다.
 ```
 
 ### 13.3 Newly Added In June 11
@@ -501,9 +501,9 @@ Basic app smoke:
 Frontend blockers:
   - evidence guidance가 모델/UI에 구현되어 있지 않다.
   - suggested question chip이 prefill-only가 아니라 즉시 AI 호출을 수행한다.
-  - locked evidence title 노출이 실제 앱 UI에서도 재현된다.
   - suspect candidate metadata와 suspicion score가 UI에서 후보 축소 신호로 노출된다.
   - timeline API가 앱에서 사용되지 않고 placeholder가 표시된다.
 ```
 
-June 10/11 QA에서 반복된 문제 중 `guidance`, `chip 자동 전송`, `locked evidence 노출`, `candidate metadata 노출`은 API-only 문제가 아니라 실제 프론트 플레이 화면에서도 재현되므로 우선순위를 유지하거나 강화해야 한다.
+June 10/11 QA에서 반복된 문제 중 `guidance`, `chip 자동 전송`, `candidate metadata 노출`은 API-only 문제가 아니라 실제 프론트 플레이 화면에서도 재현되므로 우선순위를 유지하거나 강화해야 한다.
+`locked evidence title/unlockHint` 표시는 현재 contract상 정상 흐름이므로 blocker에서 제외하고, locked row의 민감 필드 masking만 별도 spot check로 유지한다.
