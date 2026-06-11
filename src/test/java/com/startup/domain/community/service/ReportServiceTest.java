@@ -1,7 +1,6 @@
 package com.startup.domain.community.service;
 
 import com.startup.domain.community.dto.ReportCreateRequest;
-import com.startup.domain.community.enums.ReportReason;
 import com.startup.domain.community.error.CommunityErrorCode;
 import com.startup.domain.community.error.CommunityException;
 import com.startup.domain.community.repository.ScenarioReportRepository;
@@ -54,7 +53,7 @@ public class ReportServiceTest {
     @Test
     @DisplayName("신고 등록 성공")
     void addReport_success() {
-        ReportCreateRequest request = new ReportCreateRequest(ReportReason.SPOILER, "스포일러가 있어요");
+        ReportCreateRequest request = new ReportCreateRequest("스포일러", "스포일러가 있어요");
         
         reportService.addReport(REPORTER_ID, publishedScenario.getId(), request);
 
@@ -64,7 +63,7 @@ public class ReportServiceTest {
     @Test
     @DisplayName("신고 등록 실패: 중복 신고 방어 (Negative)")
     void addReport_fail_alreadyReported() {
-        ReportCreateRequest request = new ReportCreateRequest(ReportReason.SPOILER, "스포일러가 있어요");
+        ReportCreateRequest request = new ReportCreateRequest("스포일러", "스포일러가 있어요");
         reportService.addReport(REPORTER_ID, publishedScenario.getId(), request);
 
         assertThatThrownBy(() -> reportService.addReport(REPORTER_ID, publishedScenario.getId(), request))

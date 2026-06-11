@@ -1,6 +1,5 @@
 package com.startup.domain.community.entity;
 
-import com.startup.domain.community.enums.ReportReason;
 import com.startup.domain.community.enums.ReportStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -51,9 +50,8 @@ public class ScenarioReport {
     @Column(name = "reporter_id", nullable = false)
     private Long reporterId;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 255)
-    private ReportReason reason;
+    private String reason;
 
     @Column(columnDefinition = "TEXT")
     private String detail;
@@ -70,7 +68,7 @@ public class ScenarioReport {
     private LocalDateTime processedAt;
 
     @Builder
-    private ScenarioReport(Long scenarioId, Long reporterId, ReportReason reason, String detail) {
+    private ScenarioReport(Long scenarioId, Long reporterId, String reason, String detail) {
         this.scenarioId = scenarioId;
         this.reporterId = reporterId;
         this.reason = reason;
