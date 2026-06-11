@@ -611,6 +611,10 @@ public class CustomScenarioService {
             throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE);
         }
 
+        if (isEvidenceUsedInResponsePolicy(scenario.getId(), evidenceId)) {
+            throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE);
+        }
+
         evidenceSuspectRepository.deleteByEvidenceId(evidenceId);
         evidenceUnlockRuleRepository.deleteByEvidenceId(evidenceId);
 
@@ -666,6 +670,53 @@ public class CustomScenarioService {
             } catch (Exception e) {
                 // 파싱 실패 시, 혹시 모를 의존성이 있을 수 있으므로 안전하게 삭제 차단(fail-closed)
                 return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isEvidenceUsedInResponsePolicy(Long scenarioId, Long evidenceId) {
+        List<Suspect> suspects = suspectRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+        if (suspects.isEmpty()) return false;
+
+        List<Long> suspectIds = suspects.stream().map(Suspect::getId).toList();
+        List<SuspectResponsePolicy> policies = suspectResponsePolicyRepository.findAllBySuspectIdIn(suspectIds);
+
+        for (SuspectResponsePolicy policy : policies) {
+            if (evidenceId.equals(policy.getPresentedEvidenceId())) {
+                return true;
+            }
+            if (policy.getRequiredEvidenceIds() != null && !policy.getRequiredEvidenceIds().isBlank()) {
+                try {
+                    JsonNode node = jsonMapper.readTree(policy.getRequiredEvidenceIds());
+                    if (node.isArray()) {
+                        for (JsonNode idNode : node) {
+                            if (evidenceId.equals(idNode.asLong())) return true;
+                        }
+                    } else if (node.isNumber() && evidenceId.equals(node.asLong())) {
+                        return true;
+                    } else if (node.isTextual() && evidenceId.toString().equals(node.asText())) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    return true; // fail-closed
+                }
+            }
+            if (policy.getExcludedEvidenceIds() != null && !policy.getExcludedEvidenceIds().isBlank()) {
+                try {
+                    JsonNode node = jsonMapper.readTree(policy.getExcludedEvidenceIds());
+                    if (node.isArray()) {
+                        for (JsonNode idNode : node) {
+                            if (evidenceId.equals(idNode.asLong())) return true;
+                        }
+                    } else if (node.isNumber() && evidenceId.equals(node.asLong())) {
+                        return true;
+                    } else if (node.isTextual() && evidenceId.toString().equals(node.asText())) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    return true; // fail-closed
+                }
             }
         }
         return false;
