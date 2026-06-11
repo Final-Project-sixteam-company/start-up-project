@@ -3,6 +3,7 @@ package com.startup.domain.community.controller;
 import com.startup.common.auth.MockUserProvider;
 import com.startup.common.dto.ApiResponse;
 import com.startup.domain.community.dto.ReportCreateRequest;
+import com.startup.domain.community.dto.ReportStatusResponse;
 import com.startup.domain.community.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -24,12 +25,12 @@ public class ReportController {
 
     @Operation(summary = "시나리오 신고")
     @PostMapping
-    public ResponseEntity<ApiResponse<Void>> addReport(
+    public ResponseEntity<ApiResponse<ReportStatusResponse>> addReport(
             @PathVariable Long scenarioId,
             @Valid @RequestBody ReportCreateRequest request
     ) {
         Long reporterId = mockUserProvider.currentUserId();
-        reportService.addReport(reporterId, scenarioId, request);
-        return ResponseEntity.ok(ApiResponse.empty());
+        ReportStatusResponse response = reportService.addReport(reporterId, scenarioId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
