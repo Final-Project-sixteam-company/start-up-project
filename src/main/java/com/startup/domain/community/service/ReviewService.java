@@ -36,7 +36,7 @@ public class ReviewService {
 
     // 시나리오 리뷰 작성
     @Transactional
-    public void addReview(Long userId, Long scenarioId, ReviewCreateRequest request) {
+    public Long addReview(Long userId, Long scenarioId, ReviewCreateRequest request) {
         Scenario scenario = findPublishedScenario(scenarioId);
 
         if (scenario.getCreatorId() != null && scenario.getCreatorId().equals(userId)) {
@@ -58,11 +58,14 @@ public class ReviewService {
                     .content(request.content())
                     .isSpoiler(request.isSpoiler())
                     .build();
-            reviewRepository.save(review);
             
-            // 리뷰 저장 후 부모 시나리오의 평점을 원자적으로 갱신 (Lost Update 방어)
-            scenarioRepository.addRating(scenarioId, request.rating());
+            ScenarioReview savedReview = reviewRepository.save(review);
             
+            // 리뷰 추가 후 즉시 평균 평점 및 리뷰 개수 동기화
+            reviewRepository.flush(); // 실제 반영
+            scenarioRepository.addRating(scenario.getId(), request.rating());
+
+            return savedReview.getId();
         } catch (DataIntegrityViolationException e) {
             log.warn("리뷰 중복 작성 감지 (따닥 방어): userId={}, scenarioId={}", userId, scenarioId);
             throw new CommunityException(CommunityErrorCode.ALREADY_REVIEWED);

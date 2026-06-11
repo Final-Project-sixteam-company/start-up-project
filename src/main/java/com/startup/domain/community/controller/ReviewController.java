@@ -4,6 +4,7 @@ import com.startup.common.auth.MockUserProvider;
 import com.startup.common.dto.ApiResponse;
 import com.startup.common.dto.PageResponse;
 import com.startup.domain.community.dto.ReviewCreateRequest;
+import com.startup.domain.community.dto.ReviewIdResponse;
 import com.startup.domain.community.dto.ReviewResponse;
 import com.startup.domain.community.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,13 +24,13 @@ public class ReviewController {
 
     @Operation(summary = "시나리오 리뷰 작성")
     @PostMapping
-    public ResponseEntity<ApiResponse<Void>> addReview(
+    public ResponseEntity<ApiResponse<ReviewIdResponse>> addReview(
             @PathVariable Long scenarioId,
             @Valid @RequestBody ReviewCreateRequest request
     ) {
         Long userId = mockUserProvider.currentUserId();
-        reviewService.addReview(userId, scenarioId, request);
-        return ResponseEntity.ok(ApiResponse.empty());
+        Long reviewId = reviewService.addReview(userId, scenarioId, request);
+        return ResponseEntity.ok(ApiResponse.success(new ReviewIdResponse(reviewId)));
     }
 
     @Operation(summary = "시나리오 리뷰 목록 조회")
