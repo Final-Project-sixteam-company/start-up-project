@@ -45,6 +45,7 @@
 - DB 직접 조회
 - 서버 파일 직접 grep으로 정답 찾기
 - 결과 API를 최종 제출 전에 호출해서 정답/해설 확인하기
+- Swagger/API 문서의 solution 등록/조회 예시 또는 final-result 예시처럼 정답성 정보를 포함한 섹션
 
 특히 아래 행동은 금지한다.
 
@@ -52,6 +53,7 @@
 정답을 찾기 위해 repo에서 "culprit", "solution", "범인", "정답" 검색
 DB에서 scenarios / solutions / variant_solutions 직접 조회
 GET /api/play-sessions/{sessionId}/result 를 최종 추리 제출 전에 호출
+Swagger/API 문서에서 solution, culprit, correctness, fullExplanation 포함 예시 열람
 sessionId, raw token, private URL, secret 값을 보고서에 그대로 기록
 ```
 
@@ -64,12 +66,14 @@ sessionId, raw token, private URL, secret 값을 보고서에 그대로 기록
 - Android 앱 UI
 - 공개 운영 API `https://api.clueroom.xyz`
 - 앱이 정상적으로 호출하는 public play API
-- Swagger/API 문서의 request/response shape 확인
+- Swagger/API 문서의 spoiler-free endpoint shape / OpenAPI schema 확인
 - 앱 화면 캡처 또는 public-safe observation
 - Loki/Grafana 로그는 운영자가 별도로 제공한 redacted snippet만 사용
 
 API를 사용할 경우에도 앱 사용자 관점에서 가능한 호출만 사용한다.
 DB, private seed, solution source는 사용하지 않는다.
+Swagger/API 문서를 볼 때는 method/path, request field, response field name만 확인한다.
+solution 등록/조회, final-deduction result, correctness/fullExplanation 예시 섹션은 열람하지 않는다.
 
 ---
 
@@ -356,18 +360,21 @@ API-only fallback을 사용할 때도 아래 순서를 지킨다.
 3. 시나리오 상세 확인
 4. active session 조회는 복구 UX 확인용으로만 별도 기록
 5. 신규 유저 흐름 측정은 active session을 재사용하지 않고 fresh session에서 시작
-6. fresh session의 dashboard / locations / evidences / suspects / timeline 조회
-7. 해금 증거 상세에서 guidance 확인
-8. FREE 심문으로 기본 알리바이 확인
-9. EVIDENCE_PRESENTED 심문으로 증거 반응 확인
-10. 새로 해금된 증거가 있는지 다시 조회
-11. 30~50회 범위에서 후보 축소 기록
-12. 최종 추리 제출
-13. 제출 후에만 result 조회
+6. POST /api/play-sessions가 409 P002로 막히면 active session 내용을 보지 말고 abandon 후 create를 1회 재시도
+7. abandon이 실패하거나 권한이 없으면 "fresh-session unavailable"로 표시
+8. fresh session의 dashboard / locations / evidences / suspects / timeline 조회
+9. 해금 증거 상세에서 guidance 확인
+10. FREE 심문으로 기본 알리바이 확인
+11. EVIDENCE_PRESENTED 심문으로 증거 반응 확인
+12. 새로 해금된 증거가 있는지 다시 조회
+13. 30~50회 범위에서 후보 축소 기록
+14. 최종 추리 제출
+15. 제출 후에만 result 조회
 ```
 
 active session 복구는 별도 UX 점검 항목이다.
 이미 진행된 active session에는 해금 증거, 이전 심문, 시간 기반 해금 상태가 섞일 수 있으므로 30~50회 후보 축소 측정에 사용하지 않는다.
+fresh session 생성을 막는 active session이 있으면 해당 sessionId를 기록하지 않고 `POST /api/play-sessions/{sessionId}/abandon`을 호출한 뒤 새 세션 생성을 재시도한다.
 fresh session을 만들 수 없는 환경이면 "fresh-session unavailable"로 표시하고 candidate narrowing 평가는 보류한다.
 
 API endpoint shape:
@@ -377,6 +384,7 @@ GET  /api/scenarios
 GET  /api/scenarios/{scenarioId}
 GET  /api/play-sessions/active?scenarioId={scenarioId}
 POST /api/play-sessions
+POST /api/play-sessions/{sessionId}/abandon
 GET  /api/play-sessions/{sessionId}/dashboard
 GET  /api/play-sessions/{sessionId}/locations
 GET  /api/play-sessions/{sessionId}/evidences
@@ -394,6 +402,8 @@ GET  /api/play-sessions/{sessionId}/result
 
 ```text
 GET /api/play-sessions/{sessionId}/result 는 final-deduction 제출 후에만 호출한다.
+POST /api/play-sessions/{sessionId}/abandon 은 409 P002로 fresh session 생성이 막힌 경우 QA reset 목적으로만 호출한다.
+abandon 전후 active session 내용, 해금 증거, 이전 심문, result는 조회하지 않는다.
 GET /api/play-sessions/{sessionId}/evidences?includeLocked=true 는 Evidence 탭의 정상 조회 경로다.
 이 호출로 해금/잠금 증거 목록과 locked evidence masking을 확인한다.
 잠긴 증거의 내부 code 또는 스포일러성 상세가 노출되면 P1로 기록한다.
