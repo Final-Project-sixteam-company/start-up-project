@@ -1271,10 +1271,51 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
         "time": "22:16",
         "title": "음료 컵이 데모룸 앞에 놓임"
       }
-    ]
+    ],
+    "guidance": {
+      "readingPoints": [
+        "이 증거의 시간대가 다른 기록과 일치하는지 확인한다."
+      ],
+      "compareEvidences": [
+        {
+          "evidenceId": 2,
+          "evidenceCode": "EVIDENCE_UNLOCKED_SAMPLE",
+          "title": "해금된 비교 증거",
+          "isUnlocked": true
+        },
+        {
+          "evidenceId": 3,
+          "title": "잠긴 비교 증거",
+          "isUnlocked": false,
+          "unlockHint": "조사 단계 진행 시 공개"
+        }
+      ],
+      "suggestedQuestions": [
+        {
+          "targetCharacterCode": "SUSPECT_SAMPLE",
+          "targetSuspectId": 1,
+          "targetName": "박재민",
+          "question": "이 증거와 다른 기록의 차이를 설명할 수 있습니까?",
+          "presentedEvidenceId": 1,
+          "questionType": "EVIDENCE_PRESENTED"
+        }
+      ]
+    }
   },
   "error": null
 }
+```
+
+`guidance`는 optional이다. 해당 증거에 guidance seed가 없으면 `null` 또는 생략될 수 있다.
+
+마스킹 규칙:
+
+```text
+현재 증거가 잠겨 있으면 기존 정책대로 상세 조회 자체가 차단된다.
+compareEvidences의 해금 증거는 evidenceCode를 포함할 수 있다.
+compareEvidences의 잠긴 증거는 evidenceCode를 포함하지 않는다.
+잠긴 비교 증거는 title / isUnlocked / unlockHint 수준만 사용한다.
+suggestedQuestions는 심문 입력 prefill 용도이며 자동 전송하면 안 된다.
 ```
 
 ---

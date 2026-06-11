@@ -4,13 +4,13 @@ import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.ScenarioStatus;
+import com.startup.domain.scenario.enums.ScenarioVisibility;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-// 초기 MVP에서는 모든 접근을 허용한다.
 // 인증/거래 도입 후 무료/유료/작성자/구매 여부 검증을 이 서비스 안으로 모은다.
 public class ScenarioAccessService {
 
@@ -21,9 +21,8 @@ public class ScenarioAccessService {
 
         if (scenario == null) return false;
 
-        // 작성자 본인이거나, PUBLISHED 상태인 경우에만 플레이 가능
         boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
-        return isCreator || scenario.getStatus() == ScenarioStatus.PUBLISHED;
+        return isCreator || isPubliclyAccessible(scenario);
     }
 
     public boolean canEdit(Long userId, Long scenarioId) {
@@ -37,9 +36,8 @@ public class ScenarioAccessService {
         Scenario scenario = scenarioRepository.findById(scenarioId).orElse(null);
         if (scenario == null) return false;
         
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) return true;
-        
-        return userId != null && userId.equals(scenario.getCreatorId());
+        boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
+        return isCreator || isPubliclyAccessible(scenario);
     }
 
     public void validatePlayable(Long userId, Long scenarioId) {
@@ -58,5 +56,14 @@ public class ScenarioAccessService {
         if (!canView(userId, scenarioId)) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
+    }
+
+    private boolean isPubliclyAccessible(Scenario scenario) {
+        if (scenario.getStatus() != ScenarioStatus.PUBLISHED) {
+            return false;
+        }
+        return scenario.getVisibility() == ScenarioVisibility.PUBLIC
+                || scenario.getVisibility() == ScenarioVisibility.OFFICIAL
+                || scenario.getVisibility() == ScenarioVisibility.UNLISTED;
     }
 }

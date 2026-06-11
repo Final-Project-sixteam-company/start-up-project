@@ -122,6 +122,116 @@ docker-compose.bluegreen.yml
 docker-compose.bluegreen.external-data.yml
 ```
 
+### Auth/JWT schema 반영
+
+Auth 1단계 배포 전 운영 DB에는 아래 migration을 먼저 적용한다.
+
+```bash
+cd /opt/clueroom/app
+mysql -h 172.26.1.185 -u <user> -p <database> < docs/db/migrations/20260609_add_auth_jwt_schema.sql
+```
+
+검증:
+
+```bash
+mysql -h 172.26.1.185 -u <user> -p <database> \
+  -e "SHOW TABLES LIKE 'users'; SHOW TABLES LIKE 'user_oauth_accounts'; SHOW TABLES LIKE 'auth_refresh_tokens';"
+```
+
+운영 env는 `/opt/clueroom/secrets/env.d/oauth.env` 등 secret env로만 주입한다.
+
+```text
+JWT_SECRET
+JWT_ISSUER
+JWT_ACCESS_TOKEN_TTL_SECONDS
+JWT_REFRESH_TOKEN_TTL_DAYS
+AUTH_DEV_LOGIN_ENABLED
+AUTH_MOCK_FALLBACK_ENABLED
+AUTH_REQUIRE_AUTHENTICATION
+AUTH_ADMIN_SEED_ENABLED
+AUTH_ADMIN_SEED_EMAIL
+AUTH_ADMIN_SEED_NICKNAME
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_IDS
+KAKAO_APP_ID
+```
+
+`AUTH_REQUIRE_AUTHENTICATION=true`, `AUTH_DEV_LOGIN_ENABLED=true`, `GOOGLE_CLIENT_ID(S)` 또는 `KAKAO_APP_ID`가 설정된 상태에서 `JWT_SECRET`이 비어 있거나 32자 미만이면 앱은 부팅 단계에서 실패한다.
+
+1단계에서는 기존 API 호환을 위해 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`를 유지한다.
+Android가 OAuth login과 Bearer token 첨부를 완료한 뒤 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한다.
+보호 모드에서는 명시 public endpoint를 제외한 `/api/**`가 기본 인증 대상이다.
+OAuth email 기반 기존 계정 연결은 provider verified email에만 허용한다.
+보호 모드에서는 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 요청에 `MOCK_USER_ID`를 부여하지 않는다.
+CORS preflight `OPTIONS` 요청은 인증 없이 통과해야 한다.
+AI rate limit 검증용 admin 계정은 `AUTH_ADMIN_SEED_*` 값으로만 생성/승격한다. 실제 admin email은 서버 secret env에만 저장하고 공개 문서/PR에 기록하지 않는다.
+
+Admin seed 설정 예:
+
+```text
+AUTH_ADMIN_SEED_ENABLED=true
+AUTH_ADMIN_SEED_EMAIL=<server-secret-admin-email>
+AUTH_ADMIN_SEED_NICKNAME=ClueRoom Admin
+```
+
+Admin seed 검증:
+
+```bash
+mysql -h 172.26.1.185 -u <user> -p <database> \
+  -e "SELECT id, role, status FROM users WHERE email = '<server-secret-admin-email>';"
+```
+
+기대:
+
+```text
+role=ADMIN
+status=ACTIVE
+```
+
+Admin seed rollback:
+
+```text
+1. AUTH_ADMIN_SEED_ENABLED=false 로 되돌리고 Blue-Green 재배포한다.
+2. 잘못 승격한 계정이 있으면 운영 DB 백업과 승인 후 role을 USER로 되돌린다.
+3. auth_refresh_tokens/user_oauth_accounts/users 테이블 삭제는 하지 않는다.
+```
+
+수동 demotion이 승인된 경우에만 실행:
+
+```sql
+UPDATE users
+SET role = 'USER'
+WHERE email = '<server-secret-admin-email>'
+  AND role = 'ADMIN';
+```
+
+보호 모드 검증:
+
+```bash
+curl -i https://api.clueroom.xyz/api/play-sessions/active?scenarioId=1
+```
+
+기대:
+
+```text
+HTTP/1.1 401
+code C003
+```
+
+보호 모드 Rollback:
+
+```text
+AUTH_REQUIRE_AUTHENTICATION=false 로 되돌리고 Blue-Green 재배포한다.
+JWT/auth schema는 유지한다.
+```
+
+Auth schema Rollback:
+
+```text
+앱 배포 직후 auth API를 사용하지 않았고 token 데이터가 없으면 이전 app 슬롯으로 Blue-Green rollback한다.
+auth_refresh_tokens/user_oauth_accounts/users 테이블 삭제는 운영 백업과 승인 후에만 수행한다.
+```
+
 ---
 
 ## 2. 절대 하지 말 것

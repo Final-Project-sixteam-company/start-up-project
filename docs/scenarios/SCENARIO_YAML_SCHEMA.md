@@ -203,10 +203,69 @@ evidences:
     tags:
       - timeline
     sortOrder: 10
+    guidance:
+      readingPoints:
+        - "What the player should notice in this evidence."
+      compareWithEvidenceCodes:
+        - EVIDENCE_RELATED_SAMPLE
+      suggestedQuestions:
+        - targetCharacterCode: SUSPECT_SAMPLE
+          question: "What should be clarified about this evidence?"
 ```
 
 `baseDetail` is the default text shown with image evidence in the UI. If a
 specific variant needs different wording, use `evidenceVariantStates`.
+
+`guidance` is optional player-facing UX metadata for the evidence detail API.
+It is imported into `evidences.guidance_json` and returned only when the
+current evidence detail is visible to the player.
+
+Guidance rules:
+
+- `readingPoints` are short observations the player should notice.
+- `compareWithEvidenceCodes` must reference existing `evidences[].code` values.
+- `compareWithEvidenceCodes` must not reference the current evidence itself.
+- `suggestedQuestions[].targetCharacterCode` must reference an existing
+  `characters[].code`.
+- `suggestedQuestions[].question` must be player-facing and answer-neutral.
+- Guidance must not contain culprit identity, active variant truth, solution
+  text, private seed notes, or answer-bearing reasoning.
+- Guidance text is rejected when it contains private/solution markers such as
+  `culprit`, `culpritCode`, `variant`, `activeVariant`, `solution`,
+  `solutionText`, `proofDimensions`, `정답`, or `범인`.
+
+Guidance and hints have different jobs:
+
+```text
+guidance: tells the player how to read or compare visible evidence.
+hint: grants or explains additional case content when the player asks for help.
+```
+
+Allowed Korean guidance examples:
+
+```text
+이 시간이 행동 시점인지 확인 질문을 해보세요.
+이 증거의 위치가 이전 기록과 같은지 비교해 보세요.
+이 증거만으로 단정하지 말고 관련 증거와 함께 보세요.
+```
+
+Forbidden Korean guidance examples:
+
+```text
+이 인물의 주장은 거짓입니다.
+이 증거가 정답 경로입니다.
+범인은 이 증거와 직접 연결됩니다.
+현재 Variant의 진실을 확인하세요.
+```
+
+Runtime exposure:
+
+- Locked current evidence returns no detail response, same as the existing
+  evidence detail policy.
+- Compared locked evidence may be returned only with lock-safe fields such as
+  title, lock state, and unlock hint. It must not expose `evidenceCode`.
+- Suggested questions are UI prefill data. The Android app must let the player
+  review and send manually.
 
 ## Timeline Events
 
@@ -409,6 +468,11 @@ For `PUBLISHED` content, the validator must enforce:
 - `victim.deathLocationCode` exists in `locations`
 - `evidences[].locationCode` exists in `locations`
 - `evidences[].relatedCharacterCodes` exist in `characters`
+- `evidences[].guidance.compareWithEvidenceCodes` exist in `evidences`
+- `evidences[].guidance.compareWithEvidenceCodes` do not reference the current evidence
+- `evidences[].guidance.suggestedQuestions[].targetCharacterCode` exists in `characters`
+- `evidences[].guidance.suggestedQuestions[].question` is not blank
+- `evidences[].guidance` text does not contain blocked private/solution markers
 - `timelineEvents[].eventOrder` values are unique
 - `timelineEvents[].locationCode` exists in `locations`
 - `timelineEvents[].relatedEvidenceCode` exists in `evidences`

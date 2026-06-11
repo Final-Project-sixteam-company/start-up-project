@@ -83,6 +83,19 @@ class AiPromptBuilderTest {
     }
 
     @Test
+    @DisplayName("심문 템플릿 해시는 사용자 질문과 시나리오 값 없이 템플릿 기준으로만 생성된다")
+    void interrogationTemplateHash_isStablePerTemplateType() {
+        String freeHash = promptBuilder.interrogationTemplateHash(QuestionType.RECOMMENDED);
+        String freeHashAgain = promptBuilder.interrogationTemplateHash(QuestionType.FREE);
+        String evidenceHash = promptBuilder.interrogationTemplateHash(QuestionType.EVIDENCE_PRESENTED);
+
+        assertThat(freeHash).hasSize(12);
+        assertThat(freeHash).isEqualTo(freeHashAgain);
+        assertThat(evidenceHash).hasSize(12);
+        assertThat(evidenceHash).isNotEqualTo(freeHash);
+    }
+
+    @Test
     @DisplayName("일반 심문 프롬프트에는 허용 사실만 렌더링된다")
     void buildInterrogationPrompt_includesAllowedFactsOnly() {
         ResponsePolicyResult policy = buildPolicy(
