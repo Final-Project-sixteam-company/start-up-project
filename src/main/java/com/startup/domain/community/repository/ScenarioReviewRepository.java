@@ -13,4 +13,7 @@ public interface ScenarioReviewRepository extends JpaRepository<ScenarioReview, 
 
     @Query("SELECT r FROM ScenarioReview r JOIN FETCH r.user WHERE r.scenarioId = :scenarioId")
     Page<ScenarioReview> findAllByScenarioId(@Param("scenarioId") Long scenarioId, Pageable pageable);
+
+    @Query("SELECT r FROM ScenarioReview r JOIN FETCH r.user WHERE r.id = :reviewId")
+    java.util.Optional<ScenarioReview> findWithUserById(@Param("reviewId") Long reviewId);
 }
