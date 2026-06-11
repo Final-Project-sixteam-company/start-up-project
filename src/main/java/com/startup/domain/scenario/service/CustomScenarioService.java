@@ -6,6 +6,10 @@ import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.entity.*;
 import com.startup.domain.ai.entity.SuspectResponsePolicy;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
+import com.startup.domain.scenario.enums.EvidenceUnlockType;
+import com.startup.domain.scenario.enums.RelationType;
+import com.startup.domain.scenario.error.ScenarioErrorCode;
+import com.startup.domain.scenario.error.ScenarioException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import com.startup.domain.scenario.enums.ScenarioStatus;
@@ -16,10 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -45,16 +46,16 @@ public class CustomScenarioService {
 
         // 동시에 장소를 추가하더라도 Race Condition 차단
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 이미 발행된(PUBLISHED) 시나리오에는 더 이상 장소 추가 불가
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         // DB Lock이 걸려있으므로 여러 트랜잭션이 중복된 숫자를 가져갈 수 없음
         Integer maxSortOrder = locationRepository.findMaxSortOrderByScenarioId(scenarioId);
-        int nextSortOrder = maxSortOrder + 1;
+        int nextSortOrder = request.getSortOrder() != null ? request.getSortOrder() : ((maxSortOrder == null ? 0 : maxSortOrder) + 1);
 
         // 엔티티 생성
         ScenarioLocation location = ScenarioLocation.builder()
@@ -77,26 +78,50 @@ public class CustomScenarioService {
         return new CustomLocationCreateResponse(savedLocation.getId());
     }
 
-    // 상단에 private final VictimRepository victimRepository; 추가 필요
+
+    @Transactional(readOnly = true)
+    public List<CustomLocationResponse> getLocations(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        List<ScenarioLocation> locations = locationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+        
+        List<Object[]> evidenceCounts = evidenceRepository.countByLocationIdForScenario(scenarioId);
+        Map<Long, Long> countsMap = evidenceCounts.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+
+        return locations.stream()
+                .map(loc -> new CustomLocationResponse(
+                        loc.getId(),
+                        loc.getName(),
+                        loc.getDescription(),
+                        loc.getMapX(),
+                        loc.getMapY(),
+                        countsMap.getOrDefault(loc.getId(), 0L).intValue()
+                ))
+                .toList();
+    }
 
     @Transactional
     public CustomVictimCreateResponse createOrUpdateVictim(Long userId, Long scenarioId, CustomVictimCreateRequest request) {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 상태 방어 (발행된 시나리오는 수정 불가)
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         // 입력받은 발견 장소가 현재 시나리오 소속인지 검사
         if (request.getFoundLocationId() != null) {
             ScenarioLocation location = locationRepository.findById(request.getFoundLocationId())
-                    .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "장소를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.LOCATION_NOT_FOUND));
             if (!location.getScenarioId().equals(scenarioId)) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "다른 시나리오의 장소를 피해자 발견 위치로 지정할 수 없습니다.");
+                throw new ScenarioException(ScenarioErrorCode.INVALID_LOCATION_OWNERSHIP);
             }
         }
 
@@ -132,16 +157,35 @@ public class CustomScenarioService {
         return new CustomVictimCreateResponse(savedVictim.getId());
     }
 
+    @Transactional(readOnly = true)
+    public CustomVictimResponse getVictim(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+        
+        Victim victim = victimRepository.findByScenarioId(scenarioId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.VICTIM_NOT_FOUND));
+                
+        return CustomVictimResponse.from(victim);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CustomSuspectResponse> getSuspects(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        return suspectRepository.findAllByScenarioIdOrderBySortOrder(scenarioId).stream()
+                .map(suspect -> CustomSuspectResponse.from(suspect, jsonMapper))
+                .toList();
+    }
+
     @Transactional
     public CustomSuspectCreateResponse createSuspect(Long userId, Long scenarioId, CustomSuspectCreateRequest request) {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 발행된 시나리오는 수정 불가
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         Integer maxSortOrder = suspectRepository.findMaxSortOrderByScenarioId(scenarioId);
@@ -189,25 +233,168 @@ public class CustomScenarioService {
         return new CustomSuspectCreateResponse(savedSuspect.getId());
     }
 
+    @Transactional
+    public CustomSuspectResponse updateSuspect(Long userId, Long suspectId, CustomSuspectUpdateRequest request) {
+        Suspect suspect = suspectRepository.findById(suspectId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SUSPECT_NOT_FOUND));
+
+        scenarioAccessService.validateEditable(userId, suspect.getScenarioId());
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(suspect.getScenarioId())
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
+        }
+
+        if (request.getCulpritEligible() != null && !request.getCulpritEligible()) {
+            solutionRepository.findByScenarioId(suspect.getScenarioId()).ifPresent(solution -> {
+                if (suspect.getId().equals(solution.getCulpritSuspectId())) {
+                    throw new ScenarioException(ScenarioErrorCode.SUSPECT_IS_CULPRIT);
+                }
+            });
+        }
+
+        suspect.update(
+                request.getName(),
+                request.getRole(),
+                request.getCharacterType(),
+                request.getCulpritEligible(),
+                request.getRelationToVictim(),
+                request.getPublicProfile(),
+                request.getPublicStatement(),
+                request.getAlibi(),
+                request.getPersonalityPrompt(),
+                request.getResponsePolicyJson() != null ? request.getResponsePolicyJson().toString() : null,
+                request.getPortraitAssetKey(),
+                request.getSuspicionLevel(),
+                request.getSortOrder()
+        );
+
+        if (request.getResponsePolicyJson() != null) {
+            suspectResponsePolicyRepository.deleteBySuspectId(suspect.getId());
+            suspectResponsePolicyRepository.flush();
+            
+            JsonNode policyNode = request.getResponsePolicyJson();
+            if (policyNode.isArray()) {
+                for (JsonNode node : policyNode) {
+                    validatePolicyEvidenceIds(suspect.getScenarioId(), node);
+                    saveSuspectResponsePolicy(suspect.getId(), node);
+                }
+            } else {
+                validatePolicyEvidenceIds(suspect.getScenarioId(), policyNode);
+                saveSuspectResponsePolicy(suspect.getId(), policyNode);
+            }
+        }
+
+        scenario.forceUpdateModifiedAt();
+
+        return CustomSuspectResponse.from(suspect, jsonMapper);
+    }
+
+    @Transactional
+    public void deleteSuspect(Long userId, Long suspectId) {
+        Suspect suspect = suspectRepository.findById(suspectId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SUSPECT_NOT_FOUND));
+
+        scenarioAccessService.validateEditable(userId, suspect.getScenarioId());
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(suspect.getScenarioId())
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
+        }
+
+        solutionRepository.findByScenarioId(scenario.getId())
+                .ifPresent(solution -> {
+                    if (solution.getCulpritSuspectId() != null && solution.getCulpritSuspectId().equals(suspectId)) {
+                        throw new ScenarioException(ScenarioErrorCode.SUSPECT_IS_CULPRIT);
+                    }
+                });
+
+        if (isSuspectUsedAsPrerequisite(scenario.getId(), suspect.getCode())) {
+            throw new ScenarioException(ScenarioErrorCode.SUSPECT_IS_PREREQUISITE);
+        }
+
+        evidenceSuspectRepository.deleteBySuspectId(suspectId);
+        suspectResponsePolicyRepository.deleteBySuspectId(suspectId);
+
+        suspectRepository.delete(suspect);
+
+        scenario.forceUpdateModifiedAt();
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<CustomEvidenceResponse> getEvidences(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        List<Evidence> evidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+        if (evidences.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> evidenceIds = evidences.stream().map(Evidence::getId).toList();
+
+        // 장소 정보 In-Memory 조인을 위한 Map 구축 (N+1 방지)
+        Map<Long, String> locationNameMap = locationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId).stream()
+                .collect(java.util.stream.Collectors.toMap(ScenarioLocation::getId, ScenarioLocation::getName));
+
+        // 증거-용의자 매핑 정보 In-Memory 조인을 위한 구축 (N+1 방지)
+        List<EvidenceSuspect> allMappings = evidenceSuspectRepository.findAllByEvidenceIdIn(evidenceIds);
+        
+        List<Long> suspectIds = allMappings.stream()
+                .map(EvidenceSuspect::getSuspectId)
+                .distinct()
+                .toList();
+
+        Map<Long, String> suspectNameMap = Collections.emptyMap();
+        if (!suspectIds.isEmpty()) {
+            suspectNameMap = suspectRepository.findAllById(suspectIds).stream()
+                    .collect(java.util.stream.Collectors.toMap(Suspect::getId, Suspect::getName));
+        }
+
+        Map<Long, List<CustomEvidenceResponse.RelatedSuspectDto>> evidenceSuspectMap = new java.util.HashMap<>();
+        for (EvidenceSuspect mapping : allMappings) {
+            String suspectName = suspectNameMap.get(mapping.getSuspectId());
+            if (suspectName != null) {
+                evidenceSuspectMap.computeIfAbsent(mapping.getEvidenceId(), k -> new java.util.ArrayList<>())
+                        .add(CustomEvidenceResponse.RelatedSuspectDto.builder()
+                                .suspectId(mapping.getSuspectId())
+                                .name(suspectName)
+                                .build());
+            }
+        }
+
+        // 4. 최종 조립
+        return evidences.stream()
+                .map(evidence -> {
+                    String locationName = evidence.getLocationId() != null ? locationNameMap.get(evidence.getLocationId()) : null;
+                    List<CustomEvidenceResponse.RelatedSuspectDto> relatedSuspects = evidenceSuspectMap.getOrDefault(evidence.getId(), java.util.Collections.emptyList());
+                    return CustomEvidenceResponse.from(evidence, locationName, relatedSuspects, jsonMapper);
+                })
+                .toList();
+    }
 
     @Transactional
     public CustomEvidenceCreateResponse createEvidence(Long userId, Long scenarioId, CustomEvidenceCreateRequest request) {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 발행된 시나리오 수정 금지
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         // 넘겨받은 장소 ID가 다른 시나리오의 장소가 아닌지 검증
         if (request.getLocationId() != null) {
             ScenarioLocation location = locationRepository.findById(request.getLocationId())
-                    .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "장소를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.LOCATION_NOT_FOUND));
             if (!location.getScenarioId().equals(scenarioId)) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "다른 시나리오의 장소를 증거 위치로 지정할 수 없습니다.");
+                throw new ScenarioException(ScenarioErrorCode.INVALID_LOCATION_OWNERSHIP);
             }
         }
 
@@ -216,7 +403,7 @@ public class CustomScenarioService {
             List<Long> uniqueSuspectIds = request.getRelatedSuspectIds().stream().distinct().toList();
             int validCount = suspectRepository.findAllByIdInAndScenarioId(uniqueSuspectIds, scenarioId).size();
             if (validCount != uniqueSuspectIds.size()) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "현재 시나리오에 소속되지 않은 용의자가 포함되어 있습니다.");
+                throw new ScenarioException(ScenarioErrorCode.INVALID_SUSPECT_OWNERSHIP);
             }
         }
 
@@ -255,18 +442,14 @@ public class CustomScenarioService {
                     .map(suspectId -> EvidenceSuspect.builder()
                             .evidenceId(savedEvidence.getId())
                             .suspectId(suspectId)
-                            .relationType(com.startup.domain.scenario.enums.RelationType.RELATED) // 기본 연관 관계
+                            .relationType(RelationType.RELATED) // 기본 연관 관계
                             .build())
                     .toList();
             evidenceSuspectRepository.saveAll(evidenceSuspects);
         }
 
-        // 언락 조건 규칙 보존 (NONE이 아니면 저장)
-        if (request.getUnlockType() != null && request.getUnlockType() != com.startup.domain.scenario.enums.EvidenceUnlockType.NONE) {
-            String processedConditionJson = request.getUnlockConditionJson();
-            if (request.getUnlockType() == com.startup.domain.scenario.enums.EvidenceUnlockType.EVIDENCE_PRESENTED) {
-                processedConditionJson = validateAndTranslateEvidencePresentedCondition(scenarioId, processedConditionJson);
-            }
+        if (request.getUnlockType() != null && request.getUnlockType() != EvidenceUnlockType.NONE) {
+            String processedConditionJson = validateAndTranslateUnlockCondition(scenarioId, savedEvidence.getId(), request.getUnlockType(), request.getUnlockConditionJson());
 
             EvidenceUnlockRule rule = EvidenceUnlockRule.builder()
                     .scenarioId(scenarioId)
@@ -286,25 +469,286 @@ public class CustomScenarioService {
         return new CustomEvidenceCreateResponse(savedEvidence.getId());
     }
 
-    private String validateAndTranslateEvidencePresentedCondition(Long scenarioId, String conditionJson) {
+    @Transactional
+    public CustomEvidenceResponse updateEvidence(Long userId, Long evidenceId, CustomEvidenceUpdateRequest request) {
+        Evidence evidence = evidenceRepository.findById(evidenceId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.EVIDENCE_NOT_FOUND));
+
+        scenarioAccessService.validateEditable(userId, evidence.getScenarioId());
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(evidence.getScenarioId())
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
+        }
+
+        if (request.getLocationId() != null) {
+            ScenarioLocation location = locationRepository.findById(request.getLocationId())
+                    .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.LOCATION_NOT_FOUND));
+            if (!location.getScenarioId().equals(evidence.getScenarioId())) {
+                throw new ScenarioException(ScenarioErrorCode.INVALID_LOCATION_OWNERSHIP);
+            }
+        }
+
+        evidence.update(
+                request.getTitle(),
+                request.getDescription(),
+                request.getOneLine(),
+                request.getLocationId(),
+                request.getEvidenceType(),
+                request.getImportance(),
+                request.getImageUrl(),
+                request.getImageAssetKey(),
+                request.getThumbnailAssetKey(),
+                request.getTagsJson(),
+                request.getUnlockPhase(),
+                request.getIsInitialPublic(),
+                request.getUnlockType(),
+                request.getUnlockConditionJson(),
+                request.getUnlockAfterMinutes(),
+                request.getSortOrder()
+        );
+
+        if (evidence.getUnlockType() == EvidenceUnlockType.NONE) {
+            evidence.clearUnlockConditions();
+        }
+
+        if (request.getRelatedSuspectIds() != null) {
+            evidenceSuspectRepository.deleteByEvidenceId(evidence.getId());
+            evidenceSuspectRepository.flush();
+
+            if (!request.getRelatedSuspectIds().isEmpty()) {
+                List<Long> uniqueSuspectIds = request.getRelatedSuspectIds().stream().distinct().toList();
+                int validCount = suspectRepository.findAllByIdInAndScenarioId(uniqueSuspectIds, evidence.getScenarioId()).size();
+                if (validCount != uniqueSuspectIds.size()) {
+                    throw new ScenarioException(ScenarioErrorCode.INVALID_SUSPECT_OWNERSHIP);
+                }
+
+                List<EvidenceSuspect> evidenceSuspects = uniqueSuspectIds.stream()
+                        .map(suspectId -> EvidenceSuspect.builder()
+                                .evidenceId(evidence.getId())
+                                .suspectId(suspectId)
+                                .relationType(RelationType.RELATED)
+                                .build())
+                        .toList();
+                evidenceSuspectRepository.saveAll(evidenceSuspects);
+            }
+        }
+
+        boolean ruleChanged = request.getUnlockType() != null
+                || request.getUnlockConditionJson() != null
+                || request.getUnlockPhase() != null
+                || request.getSortOrder() != null;
+
+        if (ruleChanged) {
+            evidenceUnlockRuleRepository.deleteByEvidenceId(evidence.getId());
+            evidenceUnlockRuleRepository.flush();
+
+            if (evidence.getUnlockType() != EvidenceUnlockType.NONE) {
+                String processedConditionJson = validateAndTranslateUnlockCondition(evidence.getScenarioId(), evidence.getId(), evidence.getUnlockType(), evidence.getUnlockConditionJson());
+
+                EvidenceUnlockRule rule = EvidenceUnlockRule.builder()
+                        .scenarioId(evidence.getScenarioId())
+                        .evidenceId(evidence.getId())
+                        .evidenceCode(evidence.getCode())
+                        .unlockType(evidence.getUnlockType().name())
+                        .requiredPhase(evidence.getUnlockPhase())
+                        .conditionJson(processedConditionJson)
+                        .sortOrder(evidence.getSortOrder())
+                        .build();
+                evidenceUnlockRuleRepository.save(rule);
+            }
+        }
+
+        scenario.forceUpdateModifiedAt();
+
+        String locationName = null;
+        if (evidence.getLocationId() != null) {
+            locationName = locationRepository.findById(evidence.getLocationId())
+                    .map(ScenarioLocation::getName)
+                    .orElse(null);
+        }
+
+        List<CustomEvidenceResponse.RelatedSuspectDto> relatedSuspects = java.util.Collections.emptyList();
+        List<EvidenceSuspect> currentMappings = evidenceSuspectRepository.findAllByEvidenceIdIn(java.util.List.of(evidence.getId()));
+        if (!currentMappings.isEmpty()) {
+            List<Long> sIds = currentMappings.stream().map(EvidenceSuspect::getSuspectId).toList();
+            relatedSuspects = suspectRepository.findAllById(sIds).stream()
+                    .map(s -> CustomEvidenceResponse.RelatedSuspectDto.builder()
+                            .suspectId(s.getId())
+                            .name(s.getName())
+                            .build())
+                    .toList();
+        }
+
+        return CustomEvidenceResponse.from(evidence, locationName, relatedSuspects, jsonMapper);
+    }
+
+    @Transactional
+    public void deleteEvidence(Long userId, Long evidenceId) {
+        Evidence evidence = evidenceRepository.findById(evidenceId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.EVIDENCE_NOT_FOUND));
+
+        scenarioAccessService.validateEditable(userId, evidence.getScenarioId());
+
+        Scenario scenario = scenarioRepository.findByIdForUpdate(evidence.getScenarioId())
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
+        }
+
+        solutionRepository.findByScenarioId(scenario.getId())
+                .ifPresent(solution -> {
+                    List<Long> keyEvidenceIds = solution.parseKeyEvidenceIds();
+                    if (keyEvidenceIds.contains(evidenceId)) {
+                        throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_KEY);
+                    }
+                });
+
+        if (isEvidenceUsedAsPrerequisite(scenario.getId(), evidence.getCode())) {
+            throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE);
+        }
+
+        if (isEvidenceUsedInResponsePolicy(scenario.getId(), evidenceId)) {
+            throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE);
+        }
+
+        evidenceSuspectRepository.deleteByEvidenceId(evidenceId);
+        evidenceUnlockRuleRepository.deleteByEvidenceId(evidenceId);
+
+        evidenceRepository.delete(evidence);
+
+        scenario.forceUpdateModifiedAt();
+    }
+
+    private boolean isSuspectUsedAsPrerequisite(Long scenarioId, String suspectCode) {
+        List<EvidenceUnlockRule> rules = evidenceUnlockRuleRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+        for (EvidenceUnlockRule rule : rules) {
+            if (rule.getConditionJson() == null || rule.getConditionJson().isBlank()) continue;
+            try {
+                JsonNode root = jsonMapper.readTree(rule.getConditionJson());
+                if (root.has("requiredCharacterCode") && !root.get("requiredCharacterCode").isNull()) {
+                    if (suspectCode.equals(root.get("requiredCharacterCode").asText())) {
+                        return true;
+                    }
+                }
+            } catch (Exception e) {
+                // 파싱 실패 시, 혹시 모를 의존성이 있을 수 있으므로 안전하게 삭제 차단(fail-closed)
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isEvidenceUsedAsPrerequisite(Long scenarioId, String evidenceCode) {
+        List<EvidenceUnlockRule> rules = evidenceUnlockRuleRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+        for (EvidenceUnlockRule rule : rules) {
+            if (rule.getConditionJson() == null || rule.getConditionJson().isBlank()) continue;
+            try {
+                JsonNode root = jsonMapper.readTree(rule.getConditionJson());
+                if (root.has("requiredPresentedEvidenceCode") && !root.get("requiredPresentedEvidenceCode").isNull()) {
+                    if (evidenceCode.equals(root.get("requiredPresentedEvidenceCode").asText())) {
+                        return true;
+                    }
+                }
+                if (root.has("requiredEvidenceCodes") && !root.get("requiredEvidenceCodes").isNull()) {
+                    JsonNode reqCodes = root.get("requiredEvidenceCodes");
+                    if (reqCodes.isArray()) {
+                        for (JsonNode node : reqCodes) {
+                            if (evidenceCode.equals(node.asText())) {
+                                return true;
+                            }
+                        }
+                    } else if (reqCodes.isTextual()) {
+                        if (evidenceCode.equals(reqCodes.asText())) {
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // 파싱 실패 시, 혹시 모를 의존성이 있을 수 있으므로 안전하게 삭제 차단(fail-closed)
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isEvidenceUsedInResponsePolicy(Long scenarioId, Long evidenceId) {
+        List<Suspect> suspects = suspectRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
+        if (suspects.isEmpty()) return false;
+
+        List<Long> suspectIds = suspects.stream().map(Suspect::getId).toList();
+        List<SuspectResponsePolicy> policies = suspectResponsePolicyRepository.findAllBySuspectIdIn(suspectIds);
+
+        for (SuspectResponsePolicy policy : policies) {
+            if (evidenceId.equals(policy.getPresentedEvidenceId())) {
+                return true;
+            }
+            if (policy.getRequiredEvidenceIds() != null && !policy.getRequiredEvidenceIds().isBlank()) {
+                try {
+                    JsonNode node = jsonMapper.readTree(policy.getRequiredEvidenceIds());
+                    if (node.isArray()) {
+                        for (JsonNode idNode : node) {
+                            if (evidenceId.equals(idNode.asLong())) return true;
+                        }
+                    } else if (node.isNumber() && evidenceId.equals(node.asLong())) {
+                        return true;
+                    } else if (node.isTextual() && evidenceId.toString().equals(node.asText())) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    return true; // fail-closed
+                }
+            }
+            if (policy.getExcludedEvidenceIds() != null && !policy.getExcludedEvidenceIds().isBlank()) {
+                try {
+                    JsonNode node = jsonMapper.readTree(policy.getExcludedEvidenceIds());
+                    if (node.isArray()) {
+                        for (JsonNode idNode : node) {
+                            if (evidenceId.equals(idNode.asLong())) return true;
+                        }
+                    } else if (node.isNumber() && evidenceId.equals(node.asLong())) {
+                        return true;
+                    } else if (node.isTextual() && evidenceId.toString().equals(node.asText())) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    return true; // fail-closed
+                }
+            }
+        }
+        return false;
+    }
+
+    private String validateAndTranslateUnlockCondition(Long scenarioId, Long targetEvidenceId, EvidenceUnlockType unlockType, String conditionJson) {
         if (conditionJson == null || conditionJson.isBlank()) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "EVIDENCE_PRESENTED 조건은 필수입니다.");
+            if (unlockType == EvidenceUnlockType.EVIDENCE_PRESENTED) {
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "EVIDENCE_PRESENTED 조건은 필수입니다.");
+            }
+            return conditionJson;
         }
         try {
             ObjectNode root = (ObjectNode) jsonMapper.readTree(conditionJson);
             
-            Long presentedEvidenceId = root.has("requiredPresentedEvidenceId") ? root.get("requiredPresentedEvidenceId").asLong() : 
-                                       (root.has("evidenceId") ? root.get("evidenceId").asLong() : null);
-            if (presentedEvidenceId == null) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거 ID(requiredPresentedEvidenceId)가 누락되었습니다.");
+            if (unlockType == EvidenceUnlockType.EVIDENCE_PRESENTED) {
+                Long presentedEvidenceId = root.has("requiredPresentedEvidenceId") ? root.get("requiredPresentedEvidenceId").asLong() : 
+                                           (root.has("evidenceId") ? root.get("evidenceId").asLong() : null);
+                if (presentedEvidenceId == null) {
+                    throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거 ID(requiredPresentedEvidenceId)가 누락되었습니다.");
+                }
+                if (presentedEvidenceId.equals(targetEvidenceId)) {
+                    throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "자기 자신을 해금 조건으로 설정할 수 없습니다.");
+                }
+                Evidence presented = evidenceRepository.findById(presentedEvidenceId)
+                        .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "제시 대상 증거를 찾을 수 없습니다."));
+                if (!scenarioId.equals(presented.getScenarioId())) {
+                    throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거가 현재 시나리오 소속이 아닙니다.");
+                }
+                root.put("requiredPresentedEvidenceCode", presented.getCode());
             }
-            Evidence presented = evidenceRepository.findById(presentedEvidenceId)
-                    .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "제시 대상 증거를 찾을 수 없습니다."));
-            if (!scenarioId.equals(presented.getScenarioId())) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거가 현재 시나리오 소속이 아닙니다.");
-            }
-            root.put("requiredPresentedEvidenceCode", presented.getCode());
-            
+
             if (root.has("requiredCharacterId") && !root.get("requiredCharacterId").isNull()) {
                 Long characterId = root.get("requiredCharacterId").asLong();
                 Suspect suspect = suspectRepository.findById(characterId)
@@ -316,9 +760,21 @@ public class CustomScenarioService {
             }
 
             if (root.has("requiredEvidenceIds") && !root.get("requiredEvidenceIds").isNull()) {
+                JsonNode reqNodes = root.get("requiredEvidenceIds");
+                if (!reqNodes.isArray()) {
+                    throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "requiredEvidenceIds는 배열 형태여야 합니다.");
+                }
+
                 List<String> codes = new ArrayList<>();
-                for (JsonNode idNode : root.get("requiredEvidenceIds")) {
+                for (JsonNode idNode : reqNodes) {
+                    if (!idNode.isNumber()) {
+                        throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "requiredEvidenceIds의 원소는 숫자여야 합니다.");
+                    }
+
                     Long prerequisiteId = idNode.asLong();
+                    if (prerequisiteId.equals(targetEvidenceId)) {
+                        throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "자기 자신을 선행 해금 증거로 설정할 수 없습니다.");
+                    }
                     Evidence prerequisite = evidenceRepository.findById(prerequisiteId)
                             .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "선행 해금 증거를 찾을 수 없습니다."));
                     if (!scenarioId.equals(prerequisite.getScenarioId())) {
@@ -339,19 +795,28 @@ public class CustomScenarioService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public List<CustomHintResponse> getHints(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        return hintRepository.findAllByScenarioIdOrderByHintLevel(scenarioId).stream()
+                .map(CustomHintResponse::from)
+                .toList();
+    }
+
     @Transactional
     public CustomHintCreateResponse createHint(Long userId, Long scenarioId, CustomHintCreateRequest request) {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         Integer maxHintLevel = hintRepository.findMaxHintLevelByScenarioId(scenarioId);
-        int nextHintLevel = maxHintLevel + 1;
+        int nextHintLevel = request.getHintLevel() != null ? request.getHintLevel() : ((maxHintLevel == null ? 0 : maxHintLevel) + 1);
 
         Hint hint = Hint.builder()
                 .scenarioId(scenarioId)
@@ -373,15 +838,15 @@ public class CustomScenarioService {
         scenarioAccessService.validateEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "시나리오를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이미 발행된 시나리오는 수정할 수 없습니다.");
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
         // 진범 용의자가 이 시나리오에 소속되어 있는지 검증
         Suspect culprit = suspectRepository.findByIdAndScenarioId(request.getCulpritSuspectId(), scenarioId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.INVALID_REQUEST, "해당 용의자는 이 시나리오 소속이 아닙니다."));
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.INVALID_SUSPECT_OWNERSHIP));
         
         if (!culprit.getCulpritEligible()) {
             throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이 용의자는 범인으로 지목될 수 없습니다.");
@@ -389,11 +854,12 @@ public class CustomScenarioService {
 
         String keyEvidenceStr = "";
         if (request.getKeyEvidenceIds() != null && !request.getKeyEvidenceIds().isEmpty()) {
-            long validCount = evidenceRepository.countByIdInAndScenarioId(request.getKeyEvidenceIds(), scenarioId);
-            if (validCount != request.getKeyEvidenceIds().size()) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "일부 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
+            List<Long> uniqueEvidences = request.getKeyEvidenceIds().stream().distinct().toList();
+            long validCount = evidenceRepository.countByIdInAndScenarioId(uniqueEvidences, scenarioId);
+            if (validCount != uniqueEvidences.size()) {
+                throw new ScenarioException(ScenarioErrorCode.INVALID_EVIDENCE_OWNERSHIP);
             }
-            keyEvidenceStr = String.join(",", request.getKeyEvidenceIds().stream().map(String::valueOf).toList());
+            keyEvidenceStr = String.join(",", uniqueEvidences.stream().map(String::valueOf).toList());
         }
 
         // UPSERT 분기
@@ -436,23 +902,23 @@ public class CustomScenarioService {
 
         Integer maxSentences = node.has("maxSentences") && !node.get("maxSentences").isNull() ? node.get("maxSentences").asInt() : null;
         if (maxSentences != null) {
-            if (policyBuilder.length() > 0) policyBuilder.append(" ");
+            if (!policyBuilder.isEmpty()) policyBuilder.append(" ");
             policyBuilder.append("답변은 최대 ").append(maxSentences).append("문장으로 제한한다.");
         }
 
         Boolean allowExternalFacts = node.has("allowExternalFacts") && !node.get("allowExternalFacts").isNull() ? node.get("allowExternalFacts").asBoolean() : null;
         if (allowExternalFacts != null && !allowExternalFacts) {
-            if (policyBuilder.length() > 0) policyBuilder.append(" ");
+            if (!policyBuilder.isEmpty()) policyBuilder.append(" ");
             policyBuilder.append("설정에 없는 외부 사실을 임의로 지어내지 않는다.");
         }
 
         String defaultStance = node.has("defaultStance") && !node.get("defaultStance").isNull() ? node.get("defaultStance").asText() : null;
         if (defaultStance != null && basePolicy.isEmpty()) {
-            if (policyBuilder.length() > 0) policyBuilder.append(" ");
+            if (!policyBuilder.isEmpty()) policyBuilder.append(" ");
             policyBuilder.append("기본 태도: ").append(defaultStance).append(".");
         }
 
-        String finalPolicyText = policyBuilder.length() > 0 ? policyBuilder.toString().trim() : "기본 응답";
+        String finalPolicyText = !policyBuilder.isEmpty() ? policyBuilder.toString().trim() : "기본 응답";
         String tone = node.has("tone") && !node.get("tone").isNull() ? node.get("tone").asText() : defaultStance;
 
         SuspectResponsePolicy policy = SuspectResponsePolicy.builder()
@@ -497,7 +963,7 @@ public class CustomScenarioService {
             }
             long validCount = evidenceRepository.countByIdInAndScenarioId(java.util.List.of(presented.asLong()), scenarioId);
             if (validCount != 1) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "정책에 포함된 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
+                throw new ScenarioException(ScenarioErrorCode.INVALID_EVIDENCE_OWNERSHIP);
             }
         }
 
@@ -523,10 +989,21 @@ public class CustomScenarioService {
         }
 
         if (!evidenceIds.isEmpty()) {
-            long validCount = evidenceRepository.countByIdInAndScenarioId(evidenceIds, scenarioId);
-            if (validCount != evidenceIds.size()) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "정책에 포함된 증거가 존재하지 않거나 이 시나리오 소속이 아닙니다.");
+            List<Long> uniqueIds = evidenceIds.stream().distinct().toList();
+            long validCount = evidenceRepository.countByIdInAndScenarioId(uniqueIds, scenarioId);
+            if (validCount != uniqueIds.size()) {
+                throw new ScenarioException(ScenarioErrorCode.INVALID_EVIDENCE_OWNERSHIP);
             }
         }
+    }
+
+    @Transactional(readOnly = true)
+    public CustomSolutionResponse getSolution(Long userId, Long scenarioId) {
+        scenarioAccessService.validateEditable(userId, scenarioId);
+
+        Solution solution = solutionRepository.findByScenarioId(scenarioId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SOLUTION_NOT_FOUND));
+
+        return CustomSolutionResponse.from(solution);
     }
 }

@@ -16,4 +16,5 @@ public class CustomLocationCreateRequest {
     private Integer mapX;
     private Integer mapY;
     private String imageAssetKey;
+    private Integer sortOrder;
 }

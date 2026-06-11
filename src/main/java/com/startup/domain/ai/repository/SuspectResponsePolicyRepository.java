@@ -10,4 +10,6 @@ public interface SuspectResponsePolicyRepository extends JpaRepository<SuspectRe
     List<SuspectResponsePolicy> findAllBySuspectId(Long suspectId);
 
     List<SuspectResponsePolicy> findAllBySuspectIdIn(List<Long> suspectIds);
+
+    void deleteBySuspectId(Long suspectId);
 }

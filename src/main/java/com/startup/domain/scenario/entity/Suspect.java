@@ -86,4 +86,23 @@ public class Suspect extends BaseEntity {
         this.suspicionLevel = suspicionLevel != null ? suspicionLevel : 0;
         this.sortOrder = sortOrder;
     }
+
+    public void update(String name, String role, String characterType, Boolean culpritEligible,
+                       String relationToVictim, String publicProfile, String publicStatement,
+                       String alibi, String personalityPrompt, String responsePolicyJson,
+                       String portraitAssetKey, Integer suspicionLevel, Integer sortOrder) {
+        if (name != null) this.name = name;
+        if (role != null) this.role = role;
+        if (characterType != null) this.characterType = characterType;
+        if (culpritEligible != null) this.culpritEligible = culpritEligible;
+        if (relationToVictim != null) this.relationToVictim = relationToVictim;
+        if (publicProfile != null) this.publicProfile = publicProfile;
+        if (publicStatement != null) this.publicStatement = publicStatement;
+        if (alibi != null) this.alibi = alibi;
+        if (personalityPrompt != null) this.personalityPrompt = personalityPrompt;
+        if (responsePolicyJson != null) this.responsePolicyJson = responsePolicyJson;
+        if (portraitAssetKey != null) this.portraitAssetKey = portraitAssetKey;
+        if (suspicionLevel != null) this.suspicionLevel = suspicionLevel;
+        if (sortOrder != null) this.sortOrder = sortOrder;
+    }
 }
