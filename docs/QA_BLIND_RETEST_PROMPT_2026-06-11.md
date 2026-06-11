@@ -186,12 +186,14 @@ chip tap
 ```text
 기존 입력창에 사용자가 작성 중인 질문이 있음
 -> guidance 추천 질문 chip 선택
--> confirm bottom sheet 또는 명확한 확인 절차가 나오는가?
--> 확인 전에는 기존 draft를 덮어쓰지 않는가?
--> 취소하면 기존 draft가 유지되는가?
+-> 현행 frontend contract 기준 기존 draft는 추천 질문으로 override되는 것이 기본 정책이다.
+-> override 후에도 자동 전송 없이 입력창 prefill 상태로 멈추는가?
+-> 사용자가 전송 전 질문을 수정하거나 비울 수 있는가?
+-> override 정책이 UI에서 혼란을 만들면 UX friction으로 기록한다.
 ```
 
-무확인 override가 발생하면 P1로 기록한다.
+기존 draft override 자체는 P1로 기록하지 않는다.
+단, chip tap만으로 AI 호출이 발생하거나, 사용자가 전송 전 통제할 수 없으면 P1로 기록한다.
 
 ## D. AI 심문 품질
 
@@ -490,7 +492,7 @@ locked compare evidence code가 노출되지 않는가?
 suggestedQuestions가 있는가?
 target suspect가 유효한가?
 chip tap 시 prefill-only인가?
-draft confirm 정책이 지켜지는가?
+draft override 정책이 현행 frontend contract와 맞는가?
 ```
 
 ## 5. 심문 진행
@@ -742,7 +744,7 @@ compareEvidences:
 suggestedQuestions:
 locked compare masking:
 chip prefill-only:
-draft confirm:
+draft override policy:
 ```
 
 ### 5.3 Interrogation / Deduction Path
@@ -784,7 +786,7 @@ compareEvidences:
 suggestedQuestions:
 locked compare masking:
 chip prefill-only:
-draft confirm:
+draft override policy:
 ```
 
 ### 6.3 Interrogation / Deduction Path
@@ -852,7 +854,6 @@ P0:
 
 P1:
   guidance chip 자동 전송
-  기존 draft 무확인 덮어쓰기
   locked compare evidence의 내부 code 노출
   정답/범인을 AI가 직접 말함
   50회 내 후보 축소가 사실상 불가능
@@ -860,6 +861,7 @@ P1:
 P2:
   guidance가 너무 약함
   suggested question target이 부정확함
+  draft override 정책이 UI에서 혼란을 만듦
   AI가 회피만 반복함
   결과 화면 복구 UX 불명확
   timeline/active session UX 혼동
@@ -902,7 +904,7 @@ P3:
 1. guidance가 실제로 보이는가
 2. guidance가 너무 정답 유도처럼 느껴지지 않는가
 3. suggested question chip이 자동 전송되지 않는가
-4. 기존 draft가 confirm 없이 덮어써지지 않는가
+4. 기존 draft override가 현행 frontend contract대로 prefill-only에 머무르는가
 5. locked compare evidence가 내부 code 없이 마스킹되는가
 6. 심문 30~50회 안에 후보가 좁혀지는가
 7. AI_CALL_CONTEXT가 runtime smoke에서 보이는가
