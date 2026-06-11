@@ -11,6 +11,7 @@ import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
+import com.startup.domain.scenario.service.ScenarioAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,11 +25,12 @@ public class ReportService {
 
     private final ScenarioReportRepository reportRepository;
     private final ScenarioRepository scenarioRepository;
+    private final ScenarioAccessService scenarioAccessService;
 
     // 시나리오 신고 접수
     @Transactional
     public ReportStatusResponse addReport(Long reporterId, Long scenarioId, ReportCreateRequest request) {
-        Scenario scenario = findPublishedScenario(scenarioId);
+        Scenario scenario = getAccessibleScenario(reporterId, scenarioId);
 
         // 1차 방어: 애플리케이션 레벨 중복 신고 체크
         if (reportRepository.existsByReporterIdAndScenarioId(reporterId, scenarioId)) {
@@ -53,14 +55,10 @@ public class ReportService {
         }
     }
 
-    private Scenario findPublishedScenario(Long scenarioId) {
-        Scenario scenario = scenarioRepository.findById(scenarioId)
+    // 인증 및 접근 권한 검증 후 시나리오 조회
+    private Scenario getAccessibleScenario(Long userId, Long scenarioId) {
+        scenarioAccessService.validateViewable(userId, scenarioId);
+        return scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
-
-        if (scenario.getStatus() != ScenarioStatus.PUBLISHED) {
-            throw new CommunityException(CommunityErrorCode.SCENARIO_NOT_PUBLISHED);
-        }
-
-        return scenario;
     }
 }

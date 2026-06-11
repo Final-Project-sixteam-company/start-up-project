@@ -8,6 +8,8 @@ import com.startup.domain.scenario.enums.Difficulty;
 import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.enums.ScenarioType;
 import com.startup.domain.scenario.enums.ScenarioVisibility;
+import com.startup.domain.scenario.error.ScenarioErrorCode;
+import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,11 +72,12 @@ public class BookmarkServiceTest {
     }
 
     @Test
-    @DisplayName("북마크 등록 실패: 초안 상태 시나리오는 북마크 불가 (Negative)")
-    void addBookmark_fail_notPublished() {
-        assertThatThrownBy(() -> bookmarkService.addBookmark(USER_ID, draftScenario.getId()))
-                .isInstanceOf(CommunityException.class)
-                .hasMessageContaining(CommunityErrorCode.SCENARIO_NOT_PUBLISHED.getMessage());
+    @DisplayName("북마크 등록 실패: 권한 없는 시나리오는 북마크 불가 (Negative)")
+    void addBookmark_fail_accessDenied() {
+        Long otherUserId = 2L;
+        assertThatThrownBy(() -> bookmarkService.addBookmark(otherUserId, draftScenario.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SCENARIO_ACCESS_DENIED.getMessage());
     }
 
     @Test

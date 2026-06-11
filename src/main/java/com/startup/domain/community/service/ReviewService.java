@@ -33,11 +33,12 @@ public class ReviewService {
     private final ScenarioReviewRepository reviewRepository;
     private final ScenarioRepository scenarioRepository;
     private final UserRepository userRepository;
+    private final com.startup.domain.scenario.service.ScenarioAccessService scenarioAccessService;
 
     // 시나리오 리뷰 작성
     @Transactional
     public Long addReview(Long userId, Long scenarioId, ReviewCreateRequest request) {
-        Scenario scenario = findPublishedScenario(scenarioId);
+        Scenario scenario = getAccessibleScenario(userId, scenarioId);
 
         if (scenario.getCreatorId() != null && scenario.getCreatorId().equals(userId)) {
             throw new CommunityException(CommunityErrorCode.CANNOT_REVIEW_OWN);
@@ -75,10 +76,7 @@ public class ReviewService {
     // 시나리오 리뷰 목록 조회
     @Transactional(readOnly = true)
     public PageResponse<ReviewResponse> getReviews(Long scenarioId, boolean includeSpoiler, Pageable pageable) {
-        // 시나리오 존재 여부 검증
-        if (!scenarioRepository.existsById(scenarioId)) {
-            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
-        }
+        scenarioAccessService.validateViewable(null, scenarioId);
 
         Page<ScenarioReview> reviewPage;
         if (includeSpoiler) {
@@ -88,7 +86,7 @@ public class ReviewService {
         }
         
         return PageResponse.from(
-                reviewPage.map(ReviewResponse::from)
+            reviewPage.map(ReviewResponse::from)
         );
     }
 
@@ -129,14 +127,10 @@ public class ReviewService {
         scenarioRepository.recalculateRating(scenarioId);
     }
 
-    private Scenario findPublishedScenario(Long scenarioId) {
-        Scenario scenario = scenarioRepository.findById(scenarioId)
+    // 인증 및 접근 권한 검증 후 시나리오 조회
+    private Scenario getAccessibleScenario(Long userId, Long scenarioId) {
+        scenarioAccessService.validateViewable(userId, scenarioId);
+        return scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
-
-        if (scenario.getStatus() != ScenarioStatus.PUBLISHED) {
-            throw new CommunityException(CommunityErrorCode.SCENARIO_NOT_PUBLISHED);
-        }
-
-        return scenario;
     }
 }

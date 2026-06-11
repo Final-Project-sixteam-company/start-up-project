@@ -9,6 +9,7 @@ import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
+import com.startup.domain.scenario.service.ScenarioAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -22,11 +23,12 @@ public class BookmarkService {
 
     private final ScenarioBookmarkRepository bookmarkRepository;
     private final ScenarioRepository scenarioRepository;
+    private final ScenarioAccessService scenarioAccessService;
 
     // 시나리오 북마크 등록
     @Transactional
     public void addBookmark(Long userId, Long scenarioId) {
-        Scenario scenario = findPublishedScenario(scenarioId);
+        Scenario scenario = getAccessibleScenario(userId, scenarioId);
 
         // 중복 체크
         if (bookmarkRepository.existsByUserIdAndScenarioId(userId, scenarioId)) {
@@ -53,15 +55,10 @@ public class BookmarkService {
                 .ifPresent(bookmarkRepository::delete);
     }
 
-    //PUBLISHED 상태인 시나리오를 조회
-    private Scenario findPublishedScenario(Long scenarioId) {
-        Scenario scenario = scenarioRepository.findById(scenarioId)
+    // 인증 및 접근 권한 검증 후 시나리오 조회
+    private Scenario getAccessibleScenario(Long userId, Long scenarioId) {
+        scenarioAccessService.validateViewable(userId, scenarioId);
+        return scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
-
-        if (scenario.getStatus() != ScenarioStatus.PUBLISHED) {
-            throw new CommunityException(CommunityErrorCode.SCENARIO_NOT_PUBLISHED);
-        }
-
-        return scenario;
     }
 }
