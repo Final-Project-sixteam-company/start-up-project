@@ -31,4 +31,9 @@ public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
     @Query("UPDATE Scenario s SET s.playCount = s.playCount + 1 WHERE s.id = :id")
     void incrementPlayCount(@Param("id") Long id);
 
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Scenario s SET s.ratingCount = s.ratingCount + 1, "
+         + "s.averageRating = (s.averageRating * s.ratingCount + :newRating) / (s.ratingCount + 1) "
+         + "WHERE s.id = :scenarioId")
+    void addRating(@Param("scenarioId") Long scenarioId, @Param("newRating") int newRating);
 }
