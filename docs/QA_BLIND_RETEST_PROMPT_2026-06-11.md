@@ -388,8 +388,11 @@ GET  /api/play-sessions/{sessionId}/result
 
 ```text
 GET /api/play-sessions/{sessionId}/result 는 final-deduction 제출 후에만 호출한다.
-GET /api/play-sessions/{sessionId}/evidences?includeLocked=true 는 일반 플레이 동선이 아니다.
-includeLocked를 spoiler-safety 확인용으로 호출하더라도 raw locked title/code를 보고서에 쓰지 않는다.
+GET /api/play-sessions/{sessionId}/evidences?includeLocked=true 는 Evidence 탭의 정상 조회 경로다.
+이 호출로 해금/잠금 증거 목록과 locked evidence masking을 확인한다.
+잠긴 증거의 내부 code 또는 스포일러성 상세가 노출되면 P1로 기록한다.
+공개 보고서에는 raw locked title/code 목록을 그대로 쓰지 않고 masking 결과만 요약한다.
+증거 제시 모달과 최종 추리 증거 선택은 GET /api/play-sessions/{sessionId}/evidences?status=unlocked만 사용한다.
 ```
 
 대표 request shape:
