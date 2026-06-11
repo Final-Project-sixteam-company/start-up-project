@@ -352,9 +352,9 @@ API-only fallback을 사용할 때도 아래 순서를 지킨다.
 1. health 확인
 2. 시나리오 목록에서 대상 시나리오 ID 직접 확인
 3. 시나리오 상세 확인
-4. active session 조회
-5. active가 없으면 새 session 생성
-6. dashboard / locations / evidences / suspects / timeline 조회
+4. active session 조회는 복구 UX 확인용으로만 별도 기록
+5. 신규 유저 흐름 측정은 active session을 재사용하지 않고 fresh session에서 시작
+6. fresh session의 dashboard / locations / evidences / suspects / timeline 조회
 7. 해금 증거 상세에서 guidance 확인
 8. FREE 심문으로 기본 알리바이 확인
 9. EVIDENCE_PRESENTED 심문으로 증거 반응 확인
@@ -363,6 +363,10 @@ API-only fallback을 사용할 때도 아래 순서를 지킨다.
 12. 최종 추리 제출
 13. 제출 후에만 result 조회
 ```
+
+active session 복구는 별도 UX 점검 항목이다.
+이미 진행된 active session에는 해금 증거, 이전 심문, 시간 기반 해금 상태가 섞일 수 있으므로 30~50회 후보 축소 측정에 사용하지 않는다.
+fresh session을 만들 수 없는 환경이면 "fresh-session unavailable"로 표시하고 candidate narrowing 평가는 보류한다.
 
 API endpoint shape:
 
@@ -439,7 +443,7 @@ API response를 기록할 때:
 
 ```text
 sessionId -> <redacted>
-activeSessionId -> <activeSessionId>
+activeSessionId -> <redacted> 또는 "active session found"
 suspectId/evidenceId -> public report에는 필요할 때만 역할/화면 위치로 표현
 evidenceCode -> public report에 쓰지 않음
 정답/결과 해설 -> public report에 쓰지 않음
