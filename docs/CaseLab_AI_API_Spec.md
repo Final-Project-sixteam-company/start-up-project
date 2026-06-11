@@ -217,12 +217,11 @@ FAILED
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/api/auth/signup` | 회원가입 | X | 인증 도입 후 |
-| 2 | POST | `/api/auth/login` | 로그인 | X | 인증 도입 후 |
-| 3 | POST | `/api/auth/logout` | 로그아웃 | O | 인증 도입 후 |
-| 4 | POST | `/api/auth/refresh` | Access Token 재발급 | X/Refresh | 인증 도입 후 |
-| 5 | GET | `/api/users/me` | 내 정보 조회 | O | 인증 도입 후 |
-| 6 | PATCH | `/api/users/me` | 내 정보 수정 | O | 인증 도입 후 |
+| 1 | POST | `/api/auth/oauth` | Google/Kakao provider token으로 ClueRoom token 발급 | X | O |
+| 2 | POST | `/api/auth/dev` | local/staging 개발용 로그인. 운영 기본 disabled | X | O |
+| 3 | POST | `/api/auth/refresh` | Refresh token rotation + 새 access token 발급 | X/Refresh | O |
+| 4 | POST | `/api/auth/logout` | 제출한 refresh token revoke | X/Refresh | O |
+| 5 | GET | `/api/auth/me` | 현재 인증 사용자 조회 | O | O |
 
 ---
 
@@ -234,11 +233,11 @@ FAILED
 | 2 | GET | `/api/scenarios/{scenarioId}` | 시나리오 상세 조회 | 선택 | O |
 | 3 | POST | `/api/scenarios` | 커스텀 시나리오 생성 | O | O |
 | 4 | PATCH | `/api/scenarios/{scenarioId}` | 시나리오 기본 정보 수정 | O | O |
-| 5 | DELETE | `/api/scenarios/{scenarioId}` | 시나리오 삭제 | O | △ |
+| 5 | DELETE | `/api/scenarios/{scenarioId}` | 시나리오 삭제 | O | △ 미구현 |
 | 6 | POST | `/api/scenarios/{scenarioId}/publish` | 시나리오 공개 등록 | O | O |
-| 7 | POST | `/api/scenarios/{scenarioId}/hide` | 시나리오 비공개/숨김 | O | △ |
-| 8 | GET | `/api/scenarios/me` | 내가 만든 시나리오 조회 | O | △ |
-| 9 | GET | `/api/scenarios/bookmarked` | 북마크한 시나리오 조회 | O | △ |
+| 7 | POST | `/api/scenarios/{scenarioId}/hide` | 시나리오 비공개/숨김 | O | △ 미구현 |
+| 8 | GET | `/api/scenarios/me` | 내가 만든 시나리오 조회 | O | △ 미구현 |
+| 9 | GET | `/api/scenarios/bookmarked` | 북마크한 시나리오 조회 | O | △ 미구현 |
 
 ---
 
@@ -247,21 +246,24 @@ FAILED
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/scenarios/{scenarioId}/locations` | 장소 등록 | O | O |
-| 2 | GET | `/api/scenarios/{scenarioId}/locations` | 장소 목록 조회 | O | O |
+| 2 | GET | `/api/scenarios/{scenarioId}/locations` | 장소 목록 조회 | O | △ 미구현 |
 | 3 | POST | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 등록/수정 | O | O |
-| 4 | GET | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 조회 | O | O |
+| 4 | GET | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 조회 | O | △ 미구현 |
 | 5 | POST | `/api/scenarios/{scenarioId}/suspects` | 용의자 등록 | O | O |
-| 6 | GET | `/api/scenarios/{scenarioId}/suspects` | 용의자 목록 조회 | O | O |
-| 7 | PATCH | `/api/suspects/{suspectId}` | 용의자 수정 | O | O |
-| 8 | DELETE | `/api/suspects/{suspectId}` | 용의자 삭제 | O | △ |
+| 6 | GET | `/api/scenarios/{scenarioId}/suspects` | 용의자 목록 조회 | O | △ 미구현 |
+| 7 | PATCH | `/api/suspects/{suspectId}` | 용의자 수정 | O | △ 미구현 |
+| 8 | DELETE | `/api/suspects/{suspectId}` | 용의자 삭제 | O | △ 미구현 |
 | 9 | POST | `/api/scenarios/{scenarioId}/evidences` | 증거 등록 | O | O |
-| 10 | GET | `/api/scenarios/{scenarioId}/evidences` | 증거 목록 조회 | O | O |
-| 11 | PATCH | `/api/evidences/{evidenceId}` | 증거 수정 | O | O |
-| 12 | DELETE | `/api/evidences/{evidenceId}` | 증거 삭제 | O | △ |
+| 10 | GET | `/api/scenarios/{scenarioId}/evidences` | 증거 목록 조회 | O | △ 미구현 |
+| 11 | PATCH | `/api/evidences/{evidenceId}` | 증거 수정 | O | △ 미구현 |
+| 12 | DELETE | `/api/evidences/{evidenceId}` | 증거 삭제 | O | △ 미구현 |
 | 13 | POST | `/api/scenarios/{scenarioId}/hints` | 힌트 등록 | O | O |
-| 14 | GET | `/api/scenarios/{scenarioId}/hints` | 힌트 목록 조회 | O | O |
+| 14 | GET | `/api/scenarios/{scenarioId}/hints` | 힌트 목록 조회 | O | △ 미구현 |
 | 15 | POST | `/api/scenarios/{scenarioId}/solution` | 정답 등록/수정 | O/작성자·관리자 | O |
-| 16 | GET | `/api/scenarios/{scenarioId}/solution` | 정답 조회 | O/작성자·관리자 전용, Android 플레이 화면 호출 금지 | △ |
+| 16 | GET | `/api/scenarios/{scenarioId}/solution` | 정답 조회 | O/작성자·관리자 전용, Android 플레이 화면 호출 금지 | △ 미구현 |
+
+현재 `develop` 기준 커스텀 시나리오 컨트롤러는 POST create/upsert 6종만 구현되어 있다.
+GET/PATCH/DELETE 계열은 후속 구현 대상으로 본다.
 
 ---
 
@@ -269,10 +271,13 @@ FAILED
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/api/ai/scenarios/draft` | AI 시나리오 초안 생성 | O | △ |
+| 1 | POST | `/api/ai/scenarios/draft` | AI 시나리오 초안 생성 | O | △ 미구현 |
 | 2 | POST | `/api/ai/scenarios/{scenarioId}/validate` | 시나리오 논리 검증 | O | O |
 | 3 | GET | `/api/scenarios/{scenarioId}/validation-result` | 검증 결과 조회 | O | O |
-| 4 | GET | `/api/ai/logs` | 내 AI 요청 로그 조회 | O | △ |
+| 4 | GET | `/api/ai/logs` | 내 AI 요청 로그 조회 | O | △ 미구현 |
+
+현재 공개 AI 컨트롤러는 시나리오 검증 요청과 검증 결과 조회만 제공한다.
+AI draft 생성과 AI log 조회 REST API는 아직 없다.
 
 ---
 
@@ -304,7 +309,7 @@ FAILED
 | 1 | POST | `/api/play-sessions/{sessionId}/interrogations` | AI 용의자 심문 | O | O |
 | 2 | GET | `/api/play-sessions/{sessionId}/interrogations` | 심문 로그 조회 | O | O |
 | 3 | GET | `/api/play-sessions/{sessionId}/interrogations?suspectId={suspectId}` | 특정 용의자 심문 로그 조회 | O | △ |
-| 4 | GET | `/api/play-sessions/{sessionId}/recommended-questions` | 추천 질문 조회 | O | △ |
+| 4 | GET | `/api/play-sessions/{sessionId}/recommended-questions` | 별도 추천 질문 API | O | X 미구현. 증거 기반 질문은 증거 상세 `guidance.suggestedQuestions` 사용 |
 
 ---
 
@@ -322,13 +327,22 @@ FAILED
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/api/scenarios/{scenarioId}/bookmarks` | 시나리오 북마크 | O | O |
-| 2 | DELETE | `/api/scenarios/{scenarioId}/bookmarks` | 북마크 취소 | O | O |
-| 3 | POST | `/api/scenarios/{scenarioId}/reviews` | 리뷰 작성 | O | O |
-| 4 | GET | `/api/scenarios/{scenarioId}/reviews` | 리뷰 목록 조회 | 선택 | O |
-| 5 | PATCH | `/api/reviews/{reviewId}` | 리뷰 수정 | O | △ |
-| 6 | DELETE | `/api/reviews/{reviewId}` | 리뷰 삭제 | O | △ |
+| 1 | POST | `/api/scenarios/{scenarioId}/bookmarks` | 시나리오 북마크 | O | △ 미구현 |
+| 2 | DELETE | `/api/scenarios/{scenarioId}/bookmarks` | 북마크 취소 | O | △ 미구현 |
+| 3 | POST | `/api/scenarios/{scenarioId}/reviews` | 리뷰 작성 | O | △ 미구현 |
+| 4 | GET | `/api/scenarios/{scenarioId}/reviews` | 리뷰 목록 조회 | 선택 | △ 미구현 |
+| 5 | PATCH | `/api/reviews/{reviewId}` | 리뷰 수정 | O | △ 미구현 |
+| 6 | DELETE | `/api/reviews/{reviewId}` | 리뷰 삭제 | O | △ 미구현 |
 | 7 | POST | `/api/scenarios/{scenarioId}/reports` | 시나리오 신고 | O | △ |
+
+---
+
+## 4.9 푸시 알림 API
+
+| No | Method | Endpoint | 설명 | 인증 | MVP |
+|---:|---|---|---|---|---|
+| 1 | POST | `/api/device-tokens` | Android FCM registration token 등록/upsert | O | O |
+| 2 | POST | `/api/notifications/test` | 현재 사용자 active token 대상 테스트 푸시 발송 | O | local/test only |
 
 ---
 
@@ -336,80 +350,115 @@ FAILED
 
 ---
 
-> 초기 MVP에서는 로그인 없이 `MockUserProvider`로 사용자를 식별한다.
-> 5.1~5.3의 인증 API는 JWT 인증 도입 단계의 계약으로 유지한다.
+> 현재 인증 foundation은 구현되어 있다.
+> 운영 전환 중에는 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`로 token 없는 기존 gameplay API를 `MOCK_USER_ID`에 fallback할 수 있다.
+> Android 상세 연동 기준은 [ANDROID_AUTH_INTEGRATION_GUIDE.md](ANDROID_AUTH_INTEGRATION_GUIDE.md)를 따른다.
 
-## 5.1 회원가입
+## 5.1 OAuth 로그인
 
 ```http
-POST /api/auth/signup
+POST /api/auth/oauth
 ```
 
 ### Request
 
+Google:
+
 ```json
 {
-  "email": "user@example.com",
-  "password": "password1234",
-  "nickname": "탐정순구"
+  "provider": "GOOGLE",
+  "idToken": "google-id-token-from-android",
+  "deviceId": "android-installation-id"
+}
+```
+
+Kakao:
+
+```json
+{
+  "provider": "KAKAO",
+  "accessToken": "kakao-access-token-from-android",
+  "deviceId": "android-installation-id"
 }
 ```
 
 ### Response
 
-```json
-{
-  "success": true,
-  "data": {
-    "userId": 1,
-    "email": "user@example.com",
-    "nickname": "탐정순구"
-  },
-  "error": null
-}
-```
-
----
-
-## 5.2 로그인
-
-```http
-POST /api/auth/login
-```
-
-### Request
-
-```json
-{
-  "email": "user@example.com",
-  "password": "password1234"
-}
-```
-
-### Response
+`/api/auth/oauth`, `/api/auth/dev`, `/api/auth/refresh`는 같은 token response shape를 반환한다.
 
 ```json
 {
   "success": true,
   "data": {
     "accessToken": "jwt-access-token",
-    "refreshToken": "jwt-refresh-token",
+    "refreshToken": "opaque-refresh-token",
+    "tokenType": "Bearer",
+    "expiresIn": 1800,
     "user": {
       "userId": 1,
       "email": "user@example.com",
-      "nickname": "탐정순구"
+      "nickname": "탐정순구",
+      "profileImageUrl": null,
+      "role": "USER"
     }
   },
   "error": null
 }
 ```
 
----
-
-## 5.3 내 정보 조회
+## 5.2 개발용 로그인
 
 ```http
-GET /api/users/me
+POST /api/auth/dev
+```
+
+운영 기본값은 disabled다.
+`AUTH_DEV_LOGIN_ENABLED=false`이면 `AUTH_001`로 실패한다.
+
+```json
+{
+  "email": "dev@example.com",
+  "nickname": "Dev User",
+  "deviceId": "android-emulator"
+}
+```
+
+## 5.3 Token refresh
+
+```http
+POST /api/auth/refresh
+```
+
+Refresh token은 JWT가 아닌 opaque random token이다.
+refresh 성공 시 기존 refresh token은 revoke되고 새 access/refresh token pair가 발급된다.
+
+```json
+{
+  "refreshToken": "stored-refresh-token",
+  "deviceId": "android-installation-id"
+}
+```
+
+## 5.4 Logout
+
+```http
+POST /api/auth/logout
+```
+
+제출한 refresh token만 revoke한다.
+모든 기기 세션을 한 번에 revoke하는 API는 아직 없다.
+
+```json
+{
+  "refreshToken": "stored-refresh-token"
+}
+```
+
+## 5.5 내 정보 조회
+
+```http
+GET /api/auth/me
+Authorization: Bearer {accessToken}
 ```
 
 ### Response
@@ -426,6 +475,92 @@ GET /api/users/me
   },
   "error": null
 }
+```
+
+## 5.6 FCM 디바이스 토큰 등록
+
+Android 앱이 Firebase Cloud Messaging에서 발급받은 registration token을 백엔드 사용자와 연결한다.
+
+```http
+POST /api/device-tokens
+Authorization: Bearer {accessToken}
+```
+
+운영 인증 강제 전환 전에는 `MockUserProvider` 호환 경로로 현재 사용자를 결정할 수 있다.
+
+### Request
+
+```json
+{
+  "token": "fcm_registration_token",
+  "deviceType": "ANDROID"
+}
+```
+
+규칙:
+
+```text
+token: 필수, 512자 이하
+deviceType: 선택, 30자 이하, 생략 시 ANDROID 기본값
+```
+
+현재 구현은 token unique 기준으로 신규 등록과 재등록을 같은 경로에서 처리한다.
+같은 token이 다시 들어오면 userId, deviceType, active, lastUsedAt을 최신값으로 갱신한다.
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "deviceTokenId": 1,
+    "active": true
+  },
+  "error": null
+}
+```
+
+응답에는 FCM token 원문을 반환하지 않는다.
+
+## 5.7 테스트 푸시 발송
+
+개발/검증용 API다.
+`NotificationTestController`는 `local`, `test` profile에서만 route를 등록한다.
+
+```http
+POST /api/notifications/test
+Authorization: Bearer {accessToken}
+```
+
+### Request
+
+```json
+{
+  "title": "ClueRoom",
+  "body": "테스트 푸시 알림입니다."
+}
+```
+
+규칙:
+
+```text
+title: 필수, 100자 이하
+body: 필수, 500자 이하
+```
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+주의:
+
+```text
+운영 profile에서는 /api/notifications/test route가 없어야 한다.
+FCM_ENABLED=false 또는 FirebaseApp 미초기화 상태에서는 N001 FCM_DISABLED로 실패한다.
 ```
 
 ---
@@ -940,6 +1075,9 @@ POST /api/scenarios/{scenarioId}/solution
 
 ## 8.1 AI 시나리오 초안 생성 (2차)
 
+현재 `develop` 기준 컨트롤러가 없는 후속 API다.
+아래 request/response는 2차 MVP 후보 계약으로만 본다.
+
 ```http
 POST /api/ai/scenarios/draft
 ```
@@ -1314,7 +1452,8 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 현재 증거가 잠겨 있으면 기존 정책대로 상세 조회 자체가 차단된다.
 compareEvidences의 해금 증거는 evidenceCode를 포함할 수 있다.
 compareEvidences의 잠긴 증거는 evidenceCode를 포함하지 않는다.
-잠긴 비교 증거는 title / isUnlocked / unlockHint 수준만 사용한다.
+잠긴 비교 증거는 `evidenceId`가 내려오더라도 `isUnlocked=false`이면 상세 이동에 사용하지 않는다.
+프론트 표시에는 title / isUnlocked / unlockHint 수준만 사용한다.
 suggestedQuestions는 심문 입력 prefill 용도이며 자동 전송하면 안 된다.
 ```
 
@@ -1626,39 +1765,37 @@ GET /api/play-sessions/{sessionId}/interrogations
 
 ## 10.4 추천 질문 조회
 
+현재 백엔드는 별도 `recommended-questions` 컨트롤러를 제공하지 않는다.
+증거 기반 추천 질문은 증거 상세 API의 `guidance.suggestedQuestions`를 사용한다.
+
 ```http
 GET /api/play-sessions/{sessionId}/recommended-questions
 ```
 
-### Query Parameters
+```text
+상태:
+미구현 / 호출 금지
 
-| 이름 | 타입 | 필수 | 설명 |
-|---|---|---|---|
-| suspectId | Long | N | 특정 용의자 기준 추천 질문 |
-| evidenceId | Long | N | 특정 증거 기준 추천 질문 |
+현재 대체 계약:
+GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
+→ guidance.suggestedQuestions[]
+```
 
-### Response
+`guidance.suggestedQuestions`는 질문 chip prefill 용도다.
+자동 제출하지 않으며, 사용자가 전송 버튼을 눌렀을 때만 심문 API를 호출한다.
+
+증거 기반 추천 질문을 전송할 때는 아래 값을 사용한다.
 
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "question": "사건 당시 어디에 있었습니까?",
-      "questionType": "RECOMMENDED"
-    },
-    {
-      "question": "피해자와 마지막으로 대화한 것은 언제입니까?",
-      "questionType": "RECOMMENDED"
-    },
-    {
-      "question": "이 증거에 대해 설명해주시겠습니까?",
-      "questionType": "EVIDENCE_PRESENTED"
-    }
-  ],
-  "error": null
+  "suspectId": 3,
+  "questionType": "EVIDENCE_PRESENTED",
+  "question": "이 증거에 대해 설명해주시겠습니까?",
+  "presentedEvidenceId": 10
 }
 ```
+
+`QuestionType.RECOMMENDED` enum은 남아 있지만, 현재 evidence guidance chip 경로에서는 사용하지 않는다.
 
 ---
 
@@ -1805,6 +1942,9 @@ GET /api/play-sessions/me
 ---
 
 # 12. 커뮤니티 API
+
+현재 `develop` 기준 리뷰/북마크 컨트롤러는 없다.
+이 절의 북마크/리뷰 API는 1차 MVP 구현 계약이 아니라 후속 커뮤니티 기능 후보로 본다.
 
 ## 12.1 시나리오 북마크
 
@@ -1953,36 +2093,17 @@ POST /api/scenarios/{scenarioId}/reports
 
 ---
 
-# 13. Android 화면별 API 매핑
+# 13. Android / Frontend 화면별 API 매핑
 
-| Android 화면 | 주요 API |
-|---|---|
-| 스플래시 / 온보딩 | 없음 |
-| 로그인(인증 도입 후) | `POST /api/auth/login` |
-| 회원가입(인증 도입 후) | `POST /api/auth/signup` |
-| 홈 | `GET /api/scenarios?sort=popular` |
-| 시나리오 라이브러리 | `GET /api/scenarios` |
-| 시나리오 상세 | `GET /api/scenarios/{scenarioId}`, `GET /api/scenarios/{scenarioId}/reviews` |
-| 사건 시작 | `POST /api/play-sessions` |
-| 사건 브리핑 | `GET /api/scenarios/{scenarioId}`, `GET /api/play-sessions/{sessionId}/dashboard` |
-| 탐정 대시보드 | `GET /api/play-sessions/{sessionId}/dashboard` |
-| 현장 정보 | `GET /api/play-sessions/{sessionId}/locations` |
-| 증거 보드 | `GET /api/play-sessions/{sessionId}/evidences` |
-| 증거 상세 | `GET /api/play-sessions/{sessionId}/evidences/{evidenceId}` |
-| 용의자 목록 | `GET /api/play-sessions/{sessionId}/suspects` |
-| 용의자 상세 | `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` |
-| 심문 채팅 | `POST /api/play-sessions/{sessionId}/interrogations` |
-| 심문 로그 | `GET /api/play-sessions/{sessionId}/interrogations` |
-| 타임라인 | `GET /api/play-sessions/{sessionId}/timeline` |
-| 힌트 | `GET /api/play-sessions/{sessionId}/hints`, `POST /api/play-sessions/{sessionId}/hints/{hintId}/use` |
-| 최종 추리 제출 | `POST /api/play-sessions/{sessionId}/final-deduction` |
-| 결과 / 해설 | `GET /api/play-sessions/{sessionId}/result` |
-| 커스텀 제작 | `POST /api/scenarios`, `POST /api/scenarios/{scenarioId}/suspects`, `POST /api/scenarios/{scenarioId}/evidences` |
-| AI 초안 생성 | `POST /api/ai/scenarios/draft` |
-| AI 검증 | `POST /api/ai/scenarios/{scenarioId}/validate` |
-| 내 기록 | `GET /api/play-sessions/me`, `GET /api/scenarios/me`, `GET /api/scenarios/bookmarked` |
-| 리뷰 작성 | `POST /api/scenarios/{scenarioId}/reviews` |
-| 북마크 | `POST /api/scenarios/{scenarioId}/bookmarks` |
+화면별 호출 순서와 Android/Frontend 상태 처리는 아래 정본 문서로 분리한다.
+이 API Spec은 request/response 계약과 에러 코드만 관리한다.
+
+```text
+docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
+```
+
+화면 흐름 표를 이 문서에 다시 복제하지 않는다.
+같은 API가 계약 문서와 화면 문서에 서로 다른 상태로 남는 것을 막기 위해서다.
 
 ---
 
@@ -1991,6 +2112,12 @@ POST /api/scenarios/{scenarioId}/reports
 ## 14.1 1차 MVP 필수
 
 ```text
+POST /api/auth/oauth
+POST /api/auth/dev
+POST /api/auth/refresh
+POST /api/auth/logout
+GET /api/auth/me
+POST /api/device-tokens
 GET /api/scenarios
 GET /api/scenarios/{scenarioId}
 POST /api/play-sessions
@@ -1998,9 +2125,12 @@ GET /api/play-sessions/active
 GET /api/play-sessions/{sessionId}/dashboard
 GET /api/play-sessions/{sessionId}/locations
 GET /api/play-sessions/{sessionId}/evidences
+GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 GET /api/play-sessions/{sessionId}/suspects
 GET /api/play-sessions/{sessionId}/suspects/{suspectId}
+GET /api/play-sessions/{sessionId}/timeline
 POST /api/play-sessions/{sessionId}/interrogations
+GET /api/play-sessions/{sessionId}/interrogations
 GET /api/play-sessions/{sessionId}/hints
 POST /api/play-sessions/{sessionId}/hints/{hintId}/use
 POST /api/play-sessions/{sessionId}/final-deduction
@@ -2015,20 +2145,17 @@ POST /api/scenarios/{scenarioId}/hints
 POST /api/scenarios/{scenarioId}/solution
 POST /api/ai/scenarios/{scenarioId}/validate
 POST /api/scenarios/{scenarioId}/publish
-GET /api/scenarios/{scenarioId}/reviews
-POST /api/scenarios/{scenarioId}/reviews
-POST /api/scenarios/{scenarioId}/bookmarks
-DELETE /api/scenarios/{scenarioId}/bookmarks
 ```
+
+커뮤니티 API는 현재 컨트롤러가 없으므로 1차 MVP 필수 목록에서 제외한다.
+`POST /api/notifications/test`는 local/test profile 전용 검증 API라 운영 1차 필수 목록에는 넣지 않는다.
+시나리오 상세의 `isBookmarked`, `rating`, `ratingCount` 같은 표시 필드는 응답에 있을 수 있지만, 쓰기 API가 있다는 뜻은 아니다.
 
 ---
 
 ## 14.2 2차 MVP
 
 ```text
-POST /api/auth/signup
-POST /api/auth/login
-GET /api/users/me
 POST /api/ai/scenarios/draft
 GET /api/play-sessions/me
 GET /api/scenarios/me
@@ -2067,21 +2194,22 @@ AuthService
 UserService
 
 ScenarioService
-ScenarioEditorService
-ScenarioValidationService
+CustomScenarioService
+ScenarioAccessService
+ScenarioVariantService
 ScenarioRankingService
 
 PlaySessionService
-EvidenceUnlockService
-InterrogationService
+InterrogationEvidenceUnlockService
+TimeEvidenceUnlockSyncer
+AiInterrogationService
 ResponsePolicyResolver
 HintService
-FinalDeductionService
-ScoringService
+AiDeductionScorer
+RuleBasedScorer
 
-AiGenerationService
-AiValidationService
-AiInterrogationService
+AiScenarioValidationService
+AiCallRecorder / AiCallLogWriter
 ```
 
 ---
@@ -2121,23 +2249,31 @@ interrogation_logs 저장
 ```text
 사용자 최종 추리 제출
   ↓
-PlaySession Pessimistic Lock 또는 @Version으로 상태 확인
+세션 소유자 확인
   ↓
-이미 COMPLETED이면 중복 제출 오류
+중복 제출 확인 + final deduction lock 획득
   ↓
-solution 조회
+세션 시나리오/active variant 확인
   ↓
-범인 일치 여부 확인
+시간 기반 증거 해금 동기화
   ↓
-동기 / 방법 / 은폐 텍스트 AI 또는 규칙 기반 평가
+선택한 용의자가 해당 시나리오 소속인지 확인
   ↓
-결정적 증거 선택 여부 확인
+선택한 증거가 모두 해금됐는지 확인
   ↓
-점수 계산
+active variant의 VariantSolution 조회
   ↓
-final_deductions 저장
+variant 정답이 없으면 legacy Solution 조회 경로로 fallback
   ↓
-play_session COMPLETED 처리
+RuleBasedScorer가 범인/동기/방법/은폐/증거 점수 계산
+  ↓
+힌트 사용 penalty 반영
+  ↓
+AI feedback 생성, 실패 시 fallback feedback 사용
+  ↓
+final_deductions와 final_deduction_evidences 저장
+  ↓
+저장 성공 시 play_session COMPLETED 처리
   ↓
 결과 해설 반환
 ```
@@ -2149,17 +2285,21 @@ play_session COMPLETED 처리
 ```text
 시나리오 작성 완료
   ↓
-기본 필수 항목 검사
+DRAFT 상태 확인
   ↓
-범인 설정 여부 검사
+시나리오 검증 lock 획득
   ↓
-증거 / 힌트 / 용의자 존재 여부 검사
+ScenarioDataReader가 검증용 데이터 로드
   ↓
-AI 검증 요청
+RuleBasedScenarioValidator가 필수 항목 / 범인 / 증거 / 힌트 / 정책 구조 검사
   ↓
-논리적 문제와 보완 제안 저장
+hard blocker가 있으면 AI 호출 없이 rule-only 결과 저장
   ↓
-검증 통과 시 공개 가능
+hard blocker가 없으면 AI 검증 호출
+  ↓
+ScenarioValidationResult 저장
+  ↓
+validationStatus / validationScore / checkItems 반환
 ```
 
 ---
@@ -2184,6 +2324,9 @@ AI 검증 요청
 | `FINAL_DEDUCTION_ALREADY_SUBMITTED` | 이미 최종 추리를 제출함 |
 | `AI_REQUEST_FAILED` | AI 요청 실패 |
 | `SCENARIO_VALIDATION_FAILED` | 시나리오 검증 실패 |
+| `N001` / `FCM_DISABLED` | FCM 비활성 또는 FirebaseApp 미초기화 |
+| `N002` / `FCM_SEND_FAILED` | FCM push 발송 실패 |
+| `N003` / `DEVICE_TOKEN_SAVE_FAILED` | 디바이스 토큰 저장 실패 |
 
 ---
 

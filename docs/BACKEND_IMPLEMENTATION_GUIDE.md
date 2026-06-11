@@ -66,7 +66,6 @@ Client: Android Kotlin
 아래 기능은 현재 MVP에서 완성하지 않는다.
 
 ```text
-JWT 인증 완성
 실제 결제
 크레딧 구매
 유료 시나리오 접근 제한
@@ -74,6 +73,10 @@ JWT 인증 완성
 랜덤 매칭 멀티플레이
 AI 시나리오 초안 생성 고도화
 ```
+
+JWT/OAuth foundation은 구현돼 있다.
+다만 운영 전환 중에는 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true` 조합으로
+기존 MockUser 호환 모드를 유지할 수 있다. 완전한 인증 강제 전환은 Android token flow 검증 후 별도 배포 단계로 진행한다.
 
 단, 아래 확장 필드는 제거하지 않는다.
 
@@ -85,6 +88,23 @@ AI 시나리오 초안 생성 고도화
 | Review/Bookmark | `userId`, `scenarioId` |
 
 DB 컬럼명은 snake_case를 사용하고, Java/DTO 필드명은 camelCase를 사용한다.
+
+### 1.4 현재 백엔드 구현 지도
+
+코드 SoT 기준으로 현재 백엔드 구현은 아래 범위까지 들어와 있다.
+
+| 영역 | 현재 구현 | 주요 코드 |
+|---|---|---|
+| 인증/JWT | OAuth login, dev login, refresh rotation, logout, `/api/auth/me`, JWT filter, Mock fallback compatibility | `domain/auth`, `common/auth`, `SecurityConfig` |
+| 시나리오 | 목록/상세, 커스텀 기본 CRUD, publish validation, official YAML import, variant/asset/timeline/evidence guidance import | `domain/scenario`, `ScenarioYamlImportService`, `ScenarioYamlValidator` |
+| 플레이 | session create/active/detail, dashboard, locations, evidences, evidence detail, suspects, timeline, hints, abandon | `domain/play`, `PlaySessionService` |
+| 증거 해금 | initial public, time/phase, required evidence, manual, `EVIDENCE_PRESENTED` 심문 기반 해금 | `EvidenceUnlockPolicy`, `TimeEvidenceUnlockSyncer`, `InterrogationEvidenceUnlockService` |
+| 증거 안내 UX | `evidences.guidance_json` 저장, evidence detail `guidance.readingPoints/compareEvidences/suggestedQuestions` 응답 | `PlayEvidenceDetailResponse`, `PlaySessionService.buildGuidance` |
+| AI 심문 | context load, ResponsePolicyResolver, prompt template, AI call, fallback, log save, unlock diff 반환 | `AiInterrogationService`, `AiPromptBuilder` |
+| 최종 추리 | rule-based scoring, AI feedback, hint penalty, final-deduction in-flight lock, result 조회 | `AiDeductionScorer`, `RuleBasedScorer`, `FinalDeductionLockManager` |
+| 시나리오 검증 | rule validation + AI JSON validation, Redis lock, latest result 저장/조회 | `AiScenarioValidationService`, `RuleBasedScenarioValidator` |
+| LLMOps | `AI_CALL` structured log, Micrometer metric, optional DB log, `AI_CALL_CONTEXT` prompt block estimate log | `AiCallRecorder`, `AiCallLogWriter`, `AiPromptContextLogger` |
+| 푸시 알림 | FCM registration token 등록/upsert, local/test 테스트 푸시, FCM 비활성 fail-safe | `domain/notification`, `DeviceTokenController`, `FcmNotificationService` |
 
 ---
 
@@ -102,15 +122,13 @@ com.startup
  │   └─ util
  │
  ├─ domain
- │   ├─ user
+ │   ├─ auth
  │   ├─ scenario
  │   ├─ play
  │   ├─ ai
- │   ├─ review
- │   └─ bookmark
+ │   └─ notification
  │
  └─ infrastructure
-     ├─ persistence
      └─ redis
 ```
 
@@ -127,8 +145,8 @@ error
 support
 ```
 
-MVP 초반에는 `domain.user`, `domain.scenario`, `domain.play`, `domain.ai` 중심으로 시작한다.  
-리뷰/북마크는 1차 MVP 확장 시 분리하고, 거래/인증은 후속 단계에서 분리한다.
+현재 구현은 `domain.auth`, `domain.scenario`, `domain.play`, `domain.ai` 중심이다.
+리뷰/북마크/거래/크레딧은 아직 별도 도메인 구현이 없으며, API/화면에 표시 필드가 있어도 쓰기 API가 있다는 뜻은 아니다.
 
 ---
 
@@ -331,24 +349,19 @@ FAILED
 
 ## 6. 사용자 식별과 접근 권한
 
-### 6.1 MockUserProvider
+### 6.1 CurrentUserProvider / MockUserProvider
 
-초기 MVP에서는 인증 없이 MockUser를 사용한다.
+현재 사용자 식별은 `CurrentUserProvider`가 담당한다.
+`MockUserProvider`는 기존 서비스/테스트 호환을 유지하는 wrapper이며, 내부적으로 `CurrentUserProvider`를 우선 사용한다.
 
-```java
-@Component
-public class MockUserProvider {
+```text
+Authorization: Bearer accessToken 있음
+→ JwtAuthenticationFilter가 SecurityContext에 AuthenticatedUserPrincipal 저장
+→ CurrentUserProvider.currentUserId()가 인증 userId 반환
 
-    private final Long mockUserId;
-
-    public MockUserProvider(@Value("${app.mock-user-id:1}") Long mockUserId) {
-        this.mockUserId = mockUserId;
-    }
-
-    public Long currentUserId() {
-        return mockUserId;
-    }
-}
+Bearer token 없음
+→ AUTH_REQUIRE_AUTHENTICATION=false && AUTH_MOCK_FALLBACK_ENABLED=true이면 MOCK_USER_ID 반환
+→ 그 외에는 401
 ```
 
 코드에 `1L`을 직접 하드코딩하지 않는다.
@@ -364,6 +377,9 @@ Long userId = 1L;
 ```java
 Long userId = mockUserProvider.currentUserId();
 ```
+
+신규 코드에서 인증 전환 호환이 중요하면 `CurrentUserProvider`를 직접 사용해도 된다.
+기존 domain service가 이미 `MockUserProvider`에 의존하는 경우에는 즉시 교체하지 말고 wrapper 의미를 유지한다.
 
 ### 6.2 ScenarioAccessService
 
@@ -558,11 +574,11 @@ AI 호출 관련 코드는 `domain.ai`에 집중한다.
 
 ```text
 AiClient
-PromptTemplateService
-NpcInterrogationService
-ScenarioValidationAiService
-FinalDeductionScoringAiService
-AiGenerationLogService
+AiPromptBuilder
+AiInterrogationService
+AiScenarioValidationService
+AiDeductionScorer
+AiCallRecorder / AiCallLogWriter
 ResponsePolicyResolver
 ```
 
@@ -598,15 +614,30 @@ ResponsePolicyResolver가 결정한 답변 정책
 
 ```text
 사용자 질문
-→ PlaySession 조회
-→ 현재 해금 증거 조회
-→ 용의자 조회
+→ TimeEvidenceUnlockSyncer로 시간/phase 해금 동기화
+→ InterrogationContextLoader가 세션/소유자/용의자/제시 증거/해금 증거 검증
 → ResponsePolicyResolver가 답변 정책 결정
-→ PromptTemplateService가 프롬프트 생성
+→ AiPromptBuilder가 프롬프트 생성
+→ AI_CALL_CONTEXT 로그 best-effort 기록
 → AiClient 호출
 → InterrogationLog 저장
+→ InterrogationCompletedEvent 발행
+→ EVIDENCE_PRESENTED unlock rule 평가
+→ 이번 호출로 새로 해금된 증거 diff 반환
 → 응답 반환
 ```
+
+트랜잭션 경계:
+
+```text
+context load: readOnly transaction
+AI call: transaction 밖
+interrogation log save: write transaction
+EVIDENCE_PRESENTED unlock: play domain의 REQUIRES_NEW write transaction
+```
+
+심문 prompt에는 `SolutionReader`가 유입되지 않는다.
+정답/variant solution은 final deduction과 scenario validation에서만 사용한다.
 
 ### 8.4 ResponsePolicyResolver
 
@@ -615,17 +646,19 @@ ResponsePolicyResolver가 결정한 답변 정책
 입력:
 
 ```text
-sessionId
 suspectId
-question
-presentedEvidenceId
 unlockedEvidenceIds
+presentedEvidenceId
 ```
+
+현재 구현 기준으로 `ResponsePolicyResolver.resolve(...)`는 `sessionId`와 사용자 질문 원문을 직접 받지 않는다.
+정책 선택은 `suspectId`, 현재 해금 증거 ID 목록, 제시 증거 ID 기준으로 수행한다.
 
 출력:
 
 ```text
-responsePolicyText
+conditionKey
+policyText
 allowedFacts
 forbiddenFacts
 tone
@@ -646,6 +679,69 @@ Fallback 후보:
 추천 질문 기반 정적 답변 반환
 AI 실패 로그 저장
 ```
+
+### 8.6 AI 호출/관측 로그
+
+`AiClient`는 provider 호출, mock 호출, fallback 호출을 모두 `AiCallRecorder`로 기록한다.
+
+```text
+AI_CALL:
+- featureType
+- provider / model / promptVersion
+- scenarioId / sessionId / suspectId / npcCode
+- latencyMs / success / errorCode / fallbackUsed
+- promptTokens / completionTokens / totalTokens
+```
+
+`AI_CALL`은 LLMOps 상관분석용 식별자를 포함한다.
+반면 `AI_CALL_CONTEXT`는 prompt context 비용 분석용 로그이며, raw prompt/answer/user question과 세션/시나리오/용의자 ID를 남기지 않는다.
+
+```text
+AI_CALL_CONTEXT:
+- featureType / provider / model / promptVersion
+- systemRuleTokens / policyContextTokens / npcProfileTokens
+- evidenceContextTokens / historyTokens / questionTokens
+- promptCharLength / historyTurns / includedEvidenceCount / templateHash
+```
+
+`AI_CALL_CONTEXT` 기록은 best-effort다.
+로깅 실패는 warn만 남기고 실제 AI 호출을 계속 진행해야 한다.
+
+### 8.7 최종 추리 채점
+
+최종 추리는 `AiDeductionScorer`가 담당한다.
+
+```text
+1. 세션 소유자 검증
+2. final-deduction 중복 제출/in-flight lock 확인
+3. 시간 해금 동기화
+4. 선택 용의자/선택 증거 유효성 검증
+5. 현재 session variant의 SolutionInfo 로드
+6. RuleBasedScorer로 점수 계산
+7. hint penalty 차감
+8. AI feedback 생성, 실패 시 fallback feedback
+9. FinalDeduction 저장 후 세션 COMPLETED 처리
+```
+
+채점 prompt에는 정답 정보가 들어간다.
+이 prompt는 플레이 중 NPC 심문 prompt가 아니며, 제출 이후 피드백/결과 생성을 위한 별도 경로다.
+
+### 8.8 시나리오 검증
+
+시나리오 검증은 `AiScenarioValidationService`가 담당한다.
+
+```text
+1. Redis lock으로 같은 scenario validation 중복 실행 차단
+2. DRAFT scenario만 검증
+3. RuleBasedScenarioValidator로 필수 구조 검증
+4. hard blocker가 없으면 AI JSON validation 실행
+5. AI 실패 시 FAILED 처리
+6. public check item을 정렬해 response 반환
+7. 전체 check item은 ScenarioValidationResult에 저장
+```
+
+시나리오 검증 prompt에는 solution이 들어간다.
+이 경로도 NPC 심문이 아니므로 정답 누설 금지 기준은 "플레이어 API/문서/로그로 흘러가지 않게 하는 것"에 둔다.
 
 ---
 
@@ -694,30 +790,41 @@ FAILED
 
 ## 10. 인증/인가 확장 계획
 
-### 10.1 Phase 1: MVP Mock 단계
+### 10.1 현재 상태: JWT foundation + Mock compatibility
 
 ```text
-로그인 없음
-MockUserProvider 사용
-MOCK_USER_ID=1
-모든 시나리오 접근 허용
-모든 시나리오 무료 취급
+구현됨:
+- POST /api/auth/oauth
+- POST /api/auth/dev
+- POST /api/auth/refresh
+- POST /api/auth/logout
+- GET /api/auth/me
+- JwtAuthenticationFilter
+- CurrentUserProvider
+- AuthRefreshToken rotation
+- Google/Kakao provider token verification client
+
+전환 모드:
+- AUTH_REQUIRE_AUTHENTICATION=false
+- AUTH_MOCK_FALLBACK_ENABLED=true
+- Bearer token이 없으면 MOCK_USER_ID fallback
 ```
 
-### 10.2 Phase 2: JWT 인증 도입
+### 10.2 다음 단계: 인증 강제 전환
 
 목표:
 
 ```text
-회원가입 / 로그인
-JWT 기반 사용자 식별
-내 시나리오 / 내 플레이 기록 / 내 북마크 구분
+Android OAuth/JWT 저장/refresh flow 검증
+운영 JWT_SECRET 설정
+AUTH_REQUIRE_AUTHENTICATION=true 전환
+token 없는 gameplay/write API 401 확인
+Mock fallback 축소 또는 QA/Admin 전용화
 ```
 
-변경:
+전환 후 권한 정책:
 
 ```text
-MockUserProvider를 SecurityContext 기반 provider로 교체
 creatorId 기반 수정 권한 적용
 PRIVATE 시나리오는 작성자만 접근
 UNLISTED 시나리오는 링크 기반 접근
@@ -808,7 +915,20 @@ suspectId
 토큰/비용 정보
 ```
 
-프롬프트 전문 저장은 민감도와 비용을 고려해 별도 정책을 둔다.
+현재 구현 기준:
+
+```text
+AI_CALL log/metric:
+- 요청 식별, latency, success/fallback, token usage 중심
+- LLMOps 분석용으로 sessionId/scenarioId/suspectId/npcCode 포함
+
+AI_CALL_CONTEXT log:
+- prompt block별 token estimate와 templateHash 중심
+- raw prompt, raw answer, 사용자 질문 전문 미저장
+- sessionId/scenarioId/suspectId/npcCode 미저장
+```
+
+운영 로그에는 사용자 질문/최종 추리 원문이 Hibernate bind TRACE 등으로 노출되지 않아야 한다.
 
 ### 12.2 게임 로그
 
@@ -838,7 +958,8 @@ MockUserProvider
 AI 심문 Fallback
 최종 추리 중복 제출 방지
 커스텀 시나리오 공개 전 검증
-리뷰/북마크 중복 방지
+FCM device token 등록/upsert
+local/test 테스트 푸시가 운영 profile에 노출되지 않는지
 ```
 
 테스트 이름은 행위와 기대 결과가 드러나게 작성한다.
@@ -851,7 +972,56 @@ canPlay_withMockUser_returnsTrue
 
 ---
 
-## 14. 개발 AI 금지 사항
+## 14. FCM 푸시 알림 구현
+
+현재 notification 도메인은 Android FCM registration token 등록과 개발/검증용 테스트 푸시를 담당한다.
+
+```text
+POST /api/device-tokens
+→ Android가 발급한 FCM registration token 저장
+→ 현재 사용자는 MockUserProvider / CurrentUserProvider 호환 경로 사용
+→ token unique 기준 upsert
+→ 응답은 deviceTokenId / active만 반환하고 token 원문은 반환하지 않음
+
+POST /api/notifications/test
+→ local/test profile 전용
+→ 현재 사용자 active token 목록 조회 후 FCM multicast 발송
+```
+
+구현 경계:
+
+```text
+DeviceTokenService:
+- token trim
+- deviceType 기본값 ANDROID 보정
+- DB unique key 기반 upsert
+- Entity 대신 DeviceTokenResponse 반환
+
+FcmNotificationService:
+- Firebase Admin SDK 호출 집중
+- fcm.enabled=false이면 FCM_DISABLED로 명시 실패
+- multicast는 500 token 단위로 chunk 전송
+- 실패 token cleanup은 후속 작업
+
+NotificationTestController:
+- @Profile({"local", "test"})
+- 운영 profile에서는 route 등록하지 않음
+- DB 조회 후 외부 FCM 호출 수행
+```
+
+운영 secret:
+
+```text
+FCM_ENABLED=true
+FCM_PROJECT_ID=...
+FCM_SERVICE_ACCOUNT_PATH=/opt/clueroom/secrets/firebase-service-account.json
+```
+
+Firebase service account JSON은 Git/Android 앱에 넣지 않는다.
+
+---
+
+## 15. 개발 AI 금지 사항
 
 개발 AI는 아래 작업을 하지 않는다.
 
@@ -871,7 +1041,7 @@ ScenarioAccessService를 우회해서 권한 판단하기
 
 ---
 
-## 15. PR 체크리스트
+## 16. PR 체크리스트
 
 - [ ] Controller는 요청/응답 경계만 담당하는가?
 - [ ] Service에 트랜잭션 경계가 있는가?

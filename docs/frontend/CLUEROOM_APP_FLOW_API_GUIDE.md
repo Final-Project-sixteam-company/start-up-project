@@ -1,9 +1,9 @@
 # ClueRoom App Flow API Guide
 
-> 작성 범위: 1~6단계 - 현재 백엔드 구현 기준 API 표준화, 게임 시작 전 사용자 흐름, 게임 내부 탭 흐름, 심문/증거 제시 흐름, 최종 추리/결과 흐름, 로딩/오류/미구현 기능 처리
+> 작성 범위: 현재 백엔드 구현 기준 API 표준화, Android/Frontend 화면 구조, 게임 시작 전 사용자 흐름, 게임 내부 탭 흐름, 심문/증거 제시 흐름, 최종 추리/결과 흐름, 로딩/오류/미구현 기능 처리
 >
 > 이 문서는 Android/Frontend가 "어떤 화면에서 어떤 API를 호출해야 하는지"를 실제 백엔드 구현 기준으로 정리한다.
-> `docs/ANDROID_SCREEN_API_MAPPING.md`보다 현재 백엔드 구현 상태를 우선 반영한다.
+> `docs/ANDROID_SCREEN_API_MAPPING.md`의 고유 내용은 이 문서로 흡수됐고, 원문은 Git history에서 확인한다.
 
 ---
 
@@ -34,7 +34,7 @@ src/main/java/com/startup/domain/ai/controller/AiDeductionController.java
 
 | 문서 | 사용 방식 |
 |---|---|
-| `docs/ANDROID_SCREEN_API_MAPPING.md` | 기존 화면/API 매핑 초안 |
+| `docs/ANDROID_SCREEN_API_MAPPING.md` | 흡수 완료 후 제거. 원문 확인은 Git history 사용 |
 | `docs/CaseLab_AI_API_Spec.md` | 계획 API와 DTO 설계 참고 |
 | `docs/CaseLab_AI_PRD.md` | 사용자 진행 흐름과 MVP 기능 참고 |
 | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` | 공식 시나리오 표시 필드 기준 |
@@ -107,6 +107,50 @@ Authorization Header 없이 호출 가능
 ```
 
 JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
+
+### 2.4 ID 필드명 규칙
+
+API DTO의 ID 필드명은 `CaseLab_AI_API_Spec.md`를 따른다.
+엔티티 내부 PK가 `id`여도 Android 응답 DTO에서는 아래 이름을 우선 사용한다.
+
+| 대상 | API DTO 필드명 |
+|---|---|
+| User | `userId` |
+| Scenario | `scenarioId` |
+| PlaySession | `sessionId` |
+| Suspect | `suspectId` |
+| Evidence | `evidenceId` |
+| Hint | `hintId` |
+| Review | `reviewId` |
+
+프론트 모델에서 `id` 별칭을 추가할 수는 있지만, API boundary와 navigation argument에서는 위 필드명을 유지한다.
+
+### 2.5 Android 화면 구조
+
+Bottom Navigation 기본 구조:
+
+```text
+홈
+시나리오
+제작
+내 기록
+마이페이지
+```
+
+`내 기록`, `마이페이지`는 인증 도입 후 완성한다.
+MVP에서는 mock 또는 비활성 상태로 둘 수 있다.
+
+플레이 세션이 시작된 뒤 게임 내부 탭은 아래 구조를 기준으로 한다.
+
+```text
+현장
+증거
+용의자
+타임라인
+추리 제출
+```
+
+탭별 API 기준은 7절을 따른다.
 
 ---
 
@@ -203,6 +247,7 @@ guidance.suggestedQuestions
 `guidance`는 현재 해금되어 상세 조회 가능한 증거에서만 사용한다.
 잠긴 비교 증거는 `title`, `isUnlocked`, `unlockHint` 수준으로만 표시하고,
 `evidenceCode`는 기대하지 않는다.
+현재 응답에서 `evidenceId`가 함께 내려올 수 있지만, `isUnlocked=false`이면 상세 이동에 사용하지 않는다.
 
 이미지 관련 필드는 아래처럼 처리한다.
 
@@ -221,8 +266,11 @@ guidance.suggestedQuestions
 | 호출 시점 | 용의자 탭 진입, 심문 후 interrogation count 갱신 |
 | 응답 핵심 | `suspectId`, `name`, `role`, `relationToVictim`, `publicStatement`, `alibi`, `portraitImageUrl`, `suspicionLevel`, `interrogationCount` |
 
-현재 별도 용의자 상세 API는 없다.
-용의자 상세 화면은 목록 응답의 선택된 suspect item을 그대로 사용한다.
+용의자 단건 상세는 아래 API를 사용한다.
+
+```text
+GET /api/play-sessions/{sessionId}/suspects/{suspectId}
+```
 
 ### 3.7 심문 로그 조회
 
@@ -256,6 +304,7 @@ RECOMMENDED
 EVIDENCE_PRESENTED
 ```
 
+`RECOMMENDED` enum은 호환성상 남아 있지만, 증거 상세 `guidance.suggestedQuestions` chip은 `EVIDENCE_PRESENTED`로 prefill한다.
 증거 제시 질문일 때만 `presentedEvidenceId`를 넣는다.
 현재 구현에서는 `unlockedEvidences`가 비어 있을 수 있으므로, 심문 성공 후에는 증거 목록과 대시보드를 다시 조회한다.
 
@@ -331,6 +380,22 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 | 호출 시점 | 사용자가 진행 중 사건 포기를 확정할 때 |
 | 응답 | `success=true`, `data` 없음 |
 
+### 3.14 FCM 디바이스 토큰 등록
+
+| 항목 | 내용 |
+|---|---|
+| Method | `POST` |
+| Path | `/api/device-tokens` |
+| 사용 화면 | 앱 시작 / 로그인 후 / FCM token refresh 시점 |
+| 호출 시점 | Android FCM registration token을 확보했을 때 |
+| Request | `token`, `deviceType` |
+| 응답 핵심 | `deviceTokenId`, `active` |
+
+`token` 원문은 응답에 돌아오지 않는다.
+같은 token을 다시 보내도 백엔드는 token unique 기준으로 upsert한다.
+`/api/device-tokens`는 보호 API이므로 Android는 Auth token provider 연결 이후 best-effort로 호출한다.
+`POST /api/notifications/test`는 local/test profile 전용 검증 API이므로 운영 앱에서 호출하지 않는다.
+
 ---
 
 ## 4. 현재 구현되지 않은 문서상 예정 API
@@ -340,11 +405,8 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 
 | 예정 API | 현재 대체 방식 |
 |---|---|
-| `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` | `GET /suspects` 목록에서 선택한 item을 상세에 사용 |
-| `GET /api/play-sessions/{sessionId}/timeline` | 타임라인 화면은 임시 empty/placeholder 유지 |
 | `GET /api/play-sessions/{sessionId}/recommended-questions` | 별도 추천 질문 API는 호출하지 않음. 증거 기반 질문은 evidence detail `guidance.suggestedQuestions` 사용 |
 | `GET /api/play-sessions/me` | 내 기록 화면은 인증/기록 API 전까지 더미 또는 empty state |
-| `GET /api/users/me` | 마이페이지는 인증 API 전까지 더미 또는 empty state |
 | `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` | 북마크 UI는 비활성 또는 optimistic action 금지 |
 | `GET/POST /api/scenarios/{scenarioId}/reviews` | 리뷰 UI는 더미 또는 숨김 |
 
@@ -358,9 +420,13 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 GET  /api/scenarios
 GET  /api/scenarios/{scenarioId}
 POST /api/play-sessions
+GET  /api/play-sessions/active?scenarioId={scenarioId}
 GET  /api/play-sessions/{sessionId}/dashboard
 GET  /api/play-sessions/{sessionId}/evidences
+GET  /api/play-sessions/{sessionId}/evidences/{evidenceId}
 GET  /api/play-sessions/{sessionId}/suspects
+GET  /api/play-sessions/{sessionId}/suspects/{suspectId}
+GET  /api/play-sessions/{sessionId}/timeline
 GET  /api/play-sessions/{sessionId}/interrogations
 POST /api/play-sessions/{sessionId}/interrogations
 GET  /api/play-sessions/{sessionId}/hints
@@ -368,6 +434,7 @@ POST /api/play-sessions/{sessionId}/hints/{hintId}/use
 POST /api/play-sessions/{sessionId}/final-deduction
 GET  /api/play-sessions/{sessionId}/result
 POST /api/play-sessions/{sessionId}/abandon
+POST /api/device-tokens
 ```
 
 게임 시작 이후의 상세 화면 흐름은 6~9절을 따른다.
@@ -600,7 +667,7 @@ GET /api/play-sessions/{sessionId}/dashboard
 | 현장 | 실제 연동 | `GET /api/play-sessions/{sessionId}/locations` |
 | 증거 | 실제 연동 | `GET /api/play-sessions/{sessionId}/evidences` |
 | 용의자 | 실제 연동 | `GET /api/play-sessions/{sessionId}/suspects` |
-| 타임라인 | placeholder | 없음 |
+| 타임라인 | 실제 연동 | `GET /api/play-sessions/{sessionId}/timeline` |
 | 힌트 | 실제 연동 | `GET /api/play-sessions/{sessionId}/hints`, `POST /api/play-sessions/{sessionId}/hints/{hintId}/use` |
 | 추리 제출 | 실제 연동 | `POST /api/play-sessions/{sessionId}/final-deduction` |
 
@@ -715,6 +782,7 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 
 `guidance.compareEvidences`의 잠긴 증거는 `evidenceCode`가 내려오지 않을 수 있다.
 프론트는 잠긴 비교 증거를 code 기반으로 라우팅하지 말고 `isUnlocked=false`와 `unlockHint` 중심으로 표시한다.
+`evidenceId`가 있더라도 `isUnlocked=false`이면 상세 이동 버튼을 만들지 않는다.
 
 ### 7.5 용의자 탭
 
@@ -729,7 +797,7 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 
 | 사용자 액션 | 처리 |
 |---|---|
-| 용의자 카드 클릭 | 목록 item 데이터로 용의자 상세 화면 표시 |
+| 용의자 카드 클릭 | 단건 상세 API 호출 후 용의자 상세 화면 표시 |
 | 검색어 입력 | 현재는 프론트 로컬 필터 가능 |
 | 정렬/필터 | 현재는 프론트 로컬 처리 가능 |
 
@@ -737,8 +805,11 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 
 ### 7.6 용의자 상세
 
-현재 별도 용의자 상세 API는 없다.
-용의자 상세 화면은 용의자 목록에서 받은 item을 그대로 사용한다.
+용의자 상세 화면은 단건 상세 API를 호출한다.
+
+```text
+GET /api/play-sessions/{sessionId}/suspects/{suspectId}
+```
 
 | 영역 | 사용 필드 |
 |---|---|
@@ -762,20 +833,19 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 
 ### 7.7 타임라인 탭
 
-현재 타임라인 API는 구현되어 있지 않다.
+타임라인 탭은 서버 timeline API를 호출한다.
 
 ```text
 GET /api/play-sessions/{sessionId}/timeline
 ```
 
-위 API는 문서상 예정 API지만 현재 컨트롤러에는 없다.
-따라서 MVP에서는 아래 중 하나로 처리한다.
+응답이 비어 있으면 empty state를 보여준다.
 
 | 방식 | 설명 |
 |---|---|
-| 권장 | empty state: `타임라인은 수사 기록이 쌓이면 제공됩니다.` |
-| 임시 | 프론트 더미 타임라인 표시 |
-| 후속 | 백엔드 timeline API 구현 후 실제 연동 |
+| 정상 | 서버 timeline event 목록 표시 |
+| empty | `타임라인은 수사 기록이 쌓이면 제공됩니다.` |
+| 금지 | 정답/범인/숨겨진 실제 사건 순서를 프론트 더미로 노출 |
 
 타임라인 더미를 쓰더라도 정답/범인/숨겨진 실제 사건 순서를 노출하면 안 된다.
 유저가 이미 확인한 공개 사건 흐름만 표시한다.
@@ -839,9 +909,9 @@ MVP에서는 30~60초 간격 또는 탭 재진입 시 갱신으로 충분하다.
 1. 게임 화면 공통 상태는 dashboard를 기준으로 한다.
 2. 현장 탭은 locations API를 기본 호출로 사용하고, 피해자/발견 장소 briefing은 dashboard를 보조로 사용한다.
 3. 증거 탭은 evidences?includeLocked=true를 기본 호출로 사용한다.
-4. 증거 상세는 별도 API 없이 목록 item을 사용한다.
-5. 용의자 상세도 별도 API 없이 목록 item을 사용한다.
-6. 타임라인은 현재 placeholder로 둔다.
+4. 증거 상세는 `GET /api/play-sessions/{sessionId}/evidences/{evidenceId}`를 사용한다.
+5. 용의자 상세는 `GET /api/play-sessions/{sessionId}/suspects/{suspectId}`를 사용한다.
+6. 타임라인은 `GET /api/play-sessions/{sessionId}/timeline`을 사용하고, 빈 응답만 empty state로 처리한다.
 7. 힌트는 목록 조회와 사용 API를 실제 연동한다.
 8. dashboard/evidences 조회가 자동 증거 해금 동기화 지점이라는 점을 고려해 탭 복귀 시 갱신한다.
 ```
@@ -1381,12 +1451,11 @@ missedParts
 ```text
 1. 현재 백엔드 컨트롤러 구현
 2. 이 문서: docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
-3. docs/ANDROID_SCREEN_API_MAPPING.md
-4. docs/CaseLab_AI_API_Spec.md
-5. docs/CaseLab_AI_PRD.md
+3. docs/CaseLab_AI_API_Spec.md
+4. docs/CaseLab_AI_PRD.md
 ```
 
-`ANDROID_SCREEN_API_MAPPING.md`와 `CaseLab_AI_API_Spec.md`에는 계획 API가 포함되어 있다.
+`CaseLab_AI_API_Spec.md`에는 계획 API가 포함되어 있다.
 따라서 실제 구현 여부가 애매하면 이 문서의 "현재 구현되지 않은 문서상 예정 API" 표를 우선 확인한다.
 
 ### 10.2 공통 로딩 상태
@@ -1419,7 +1488,7 @@ missedParts
 | 잠긴 증거 필터 | 잠긴 증거가 없음 | 모든 증거가 해금되었거나 조건 없음 표시 |
 | 용의자 목록 | 배열이 비어 있음 | 시나리오 데이터 문제로 표시 |
 | 힌트 목록 | 배열이 비어 있음 | 사용 가능한 힌트 없음 |
-| 타임라인 | API 없음 | placeholder 유지 |
+| 타임라인 | 응답 배열이 비어 있음 | 공개된 사건 흐름이 아직 없음을 안내 |
 | 결과 조회 | 결과 없음 | 아직 최종 추리가 제출되지 않았음을 안내 |
 
 empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는다.
@@ -1475,8 +1544,8 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 |---|---|
 | S3 assetKey 직접 변환 | 프론트에서 임의 조립하지 않음 |
 | 증거 상세 API | `GET /api/play-sessions/{sessionId}/evidences/{evidenceId}` 사용 |
-| 용의자 상세 API | 목록 item으로 상세 표시 |
-| 타임라인 API | empty/placeholder |
+| 용의자 상세 API | `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` 사용 |
+| 타임라인 API | `GET /api/play-sessions/{sessionId}/timeline` 사용. 빈 응답만 empty state |
 | 추천 질문 API | 별도 API는 호출하지 않음. 증거 기반 질문은 detail `guidance.suggestedQuestions` 사용 |
 | 내 기록 API | empty/mock |
 | 마이페이지 API | empty/mock |
@@ -1537,7 +1606,48 @@ placeholder는 "아직 구현 전"이라는 내부 표현보다 유저 관점의
 11. GET result로 점수/해설이 표시된다.
 ```
 
-### 10.9 프론트 구현 금지사항
+### 10.9 Android 구현 우선순위
+
+1순위는 공식 시나리오 플레이 전체 흐름이다.
+
+```text
+시나리오 목록
+시나리오 상세
+게임 세션 시작
+탐정 대시보드
+현장 정보
+증거 목록 / 상세
+용의자 목록 / 상세
+심문 채팅
+힌트
+최종 추리 제출
+결과 / 해설
+```
+
+2순위는 커스텀 제작 기본형이다.
+
+```text
+시나리오 생성 / 수정
+장소 / 피해자 / 용의자 / 증거 / 힌트 / 정답 등록
+AI 검증
+공개 등록
+```
+
+3순위 이후는 커뮤니티/계정/거래 기능이다.
+
+```text
+리뷰 조회 / 작성
+북마크 추가 / 해제
+내 기록
+마이페이지
+AI 시나리오 초안 생성
+인증 / JWT
+구매 / 크레딧
+```
+
+현재 컨트롤러가 없는 API는 UI를 숨기거나 disabled/mock 상태로 둔다.
+
+### 10.10 프론트 구현 금지사항
 
 아래 처리는 하지 않는다.
 
@@ -1548,9 +1658,23 @@ S3 object key를 조합해서 임의 URL 만들기
 추천 질문에 정답 유도 문구 넣기
 결과 화면 데이터를 진행 중 화면에 섞어서 보여주기
 미구현 API를 실제 API처럼 호출하기
+DTO ID 필드명을 navigation/API boundary에서 임의로 id로 축약하기
+API 응답 JSON 예시를 프론트 문서에 새로 복제하기
 ```
 
-### 10.10 6단계 결정사항
+Android 개발 AI는 다음 기준을 따른다.
+
+```text
+1. Request/Response JSON 예시는 CaseLab_AI_API_Spec.md를 기준으로 한다.
+2. DTO 필드명은 CaseLab_AI_API_Spec.md를 기준으로 한다.
+3. 화면 목적과 MVP 범위는 CaseLab_AI_PRD.md를 기준으로 한다.
+4. AI 심문 화면은 AI_NPC_PROMPT_POLICY.md의 답변 제약을 따른다.
+5. 공식 시나리오 데이터는 OFFICIAL_SCENARIO_DEMO_DAY.md를 기준으로 한다.
+6. 1차 MVP에서는 인증/거래/크레딧을 필수 흐름으로 만들지 않는다.
+7. sessionId, scenarioId, evidenceId, suspectId 필드명을 임의로 id로 축약하지 않는다.
+```
+
+### 10.11 최종 결정사항
 
 최종 프론트 연동 기준은 아래로 고정한다.
 

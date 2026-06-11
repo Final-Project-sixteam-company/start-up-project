@@ -38,7 +38,7 @@ NPC 답변은 1~2줄, 최대 2문장으로 제한한다.
 트랜잭션 안에서 AI API를 호출하지 않는다.
 ```
 
-AI 프롬프트 상세 기준은 `docs/AI_NPC_PROMPT_POLICY.md`를 따른다.
+AI 프롬프트 상세 기준은 [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md)를 따른다.
 
 ---
 
@@ -69,7 +69,7 @@ AI 시나리오 초안 생성 고도화
 내 기록 / 마이페이지 완성
 ```
 
-제품 범위와 우선순위 정본은 `docs/CaseLab_AI_PRD.md`를 따른다.
+제품 범위와 우선순위 정본은 [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md)를 따른다.
 
 ---
 
@@ -87,7 +87,7 @@ com.startup
 ```
 
 새 도메인 패키지는 `domain/example/`의 구조를 따른다.
-상세 구현 규칙은 `docs/BACKEND_IMPLEMENTATION_GUIDE.md`를 따른다.
+상세 구현 규칙은 [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md)를 따른다.
 
 ---
 
@@ -107,10 +107,8 @@ DTO ID 필드명은 API Spec을 따른다.
 
 정본:
 
-```text
-docs/BACKEND_IMPLEMENTATION_GUIDE.md
-docs/CaseLab_AI_API_Spec.md
-```
+- [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md)
+- [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md)
 
 ---
 
@@ -145,13 +143,14 @@ AI 호출 흐름:
 DB 조회
 → 트랜잭션 종료
 → ResponsePolicyResolver 정책 결정
-→ PromptTemplateService 프롬프트 생성
+→ AiPromptBuilder 프롬프트 생성
 → AiClient 호출
 → 새 트랜잭션으로 InterrogationLog 저장
 → 응답 반환
 ```
 
-프롬프트, Fallback, 모델 파라미터 상세는 `docs/AI_NPC_PROMPT_POLICY.md`를 따른다.
+프롬프트, Fallback, 모델 파라미터 상세는 [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md)를 따른다.
+운영 관측은 현재 구현된 `AI_CALL` 구조화 로그와 Prometheus metric을 기준으로 확인한다.
 
 ---
 
@@ -177,7 +176,7 @@ GET  /api/play-sessions/{sessionId}/suspects
 GET  /api/play-sessions/{sessionId}/hints
 ```
 
-API 명세 전체는 `docs/CaseLab_AI_API_Spec.md`를 따른다.
+API 명세 전체는 [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md)를 따른다.
 
 ---
 
@@ -190,9 +189,9 @@ bash scripts/compose-down.sh
 ./gradlew bootJar
 ```
 
-로컬 실행, Android 연결, Docker Compose, 배포 명령 요약은 `docs/RUN_AND_DEPLOY.md`를 따른다.
-상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응은 `docs/infra/OPS_RUNBOOK.md`를 따른다.
-인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보는 `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md`를 따른다.
+로컬 실행, Android 연결, Docker Compose, 배포 명령 요약은 [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md)를 따른다.
+상세 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응은 [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md)를 따른다.
+인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보는 [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md)를 따른다.
 
 ---
 
@@ -213,31 +212,38 @@ bash scripts/compose-down.sh
 
 | 문서 | 역할 |
 |---|---|
-| `docs/CaseLab_AI_PRD.md` | 제품 요구사항, MVP 범위, 구현 우선순위 |
-| `docs/CaseLab_AI_API_Spec.md` | API 경로, Request/Response, DTO 필드명 정본 |
-| `docs/ANDROID_SCREEN_API_MAPPING.md` | Android 화면별 호출 API 매핑 |
-| `docs/CaseLab_AI_ERD_Design.md` | ERD 설계, 엔티티, 관계, Enum |
-| `docs/CaseLab_AI_ERDCloud.sql` | ERDCloud import SQL |
-| `docs/AI_NPC_PROMPT_POLICY.md` | AI NPC 프롬프트 정책 정본 |
-| `docs/BACKEND_IMPLEMENTATION_GUIDE.md` | 백엔드 구현 규칙 정본 |
-| `docs/RUN_AND_DEPLOY.md` | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 |
-| `docs/infra/OPS_RUNBOOK.md` | 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 |
-| `docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md` | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
-| `docs/scenarios/README.md` | 시나리오 문서 공개 범위, 내부 스포일러 문서 관리 기준 |
-| `docs/OFFICIAL_SCENARIO_DEMO_DAY.md` | 공식 데모 시나리오 seed 정본 |
+| [docs/README.md](docs/README.md) | 문서 index, 정본 지도, 흡수/제거 이력 |
+| [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md) | 제품 요구사항, MVP 범위, 구현 우선순위 |
+| [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md) | API 경로, Request/Response, DTO 필드명 정본 |
+| [docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) | Android/Frontend 화면 흐름, 호출 순서, E2E API 매핑 |
+| [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md) | ERD 설계, 엔티티, 관계, Enum |
+| [docs/CaseLab_AI_ERDCloud.sql](docs/CaseLab_AI_ERDCloud.sql) | ERDCloud import SQL |
+| [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) | AI NPC 프롬프트 정책 정본 |
+| [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 구현 규칙 정본 |
+| [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 로컬 실행, Android 연결, Docker Compose, 배포 명령 요약 |
+| [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) | 운영 명령어, Blue-Green rollback, 백업/복구, 장애 대응 |
+| [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유, 운영 구조, 확장 계획, PoC/ADR 후보 |
+| [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md) | 보안, 트래픽, Rate Limit, GeoIP/Bot, Grafana Alert 정책 |
+| [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | Infra Agent, Ops Snapshot, Monitoring Agent, Codex 운영 기준 |
+| [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) | LLMOps telemetry, smoke, PromQL, agent 운영 기준 |
+| [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md) | 시나리오 YAML 구조, 공개 범위, private seed 경계 |
+| [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 정본 |
+| [docs/QA_HANDOFF.md](docs/QA_HANDOFF.md) | QA 이슈, 해결 상태, 재검증 항목 |
 
 권장 읽기 순서:
 
-```text
-CLAUDE.md
-→ CaseLab_AI_PRD.md
-→ CaseLab_AI_API_Spec.md
-→ ANDROID_SCREEN_API_MAPPING.md
-→ CaseLab_AI_ERD_Design.md
-→ AI_NPC_PROMPT_POLICY.md
-→ BACKEND_IMPLEMENTATION_GUIDE.md
-→ RUN_AND_DEPLOY.md
-→ OPS_RUNBOOK.md
-→ CLUEROOM_INFRASTRUCTURE_STRATEGY.md
-→ docs/scenarios/README.md
-```
+1. [CLAUDE.md](CLAUDE.md)
+2. [docs/README.md](docs/README.md)
+3. [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md)
+4. [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md)
+5. [docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md)
+6. [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md)
+7. [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md)
+8. [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md)
+9. [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md)
+10. [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md)
+11. [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md)
+12. [docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md](docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md)
+13. [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md)
+14. [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md)
+15. [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md)
