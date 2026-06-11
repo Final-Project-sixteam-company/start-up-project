@@ -6,20 +6,26 @@ import java.time.LocalDateTime;
 
 public record ReviewResponse(
         Long reviewId,
-        Long userId,
-        String nickname,
-        String profileImageUrl,
+        ReviewUserResponse user,
         int rating,
         String content,
         boolean isSpoiler,
         LocalDateTime createdAt
 ) {
+    public record ReviewUserResponse(
+            Long userId,
+            String nickname,
+            String profileImageUrl
+    ) {}
+
     public static ReviewResponse from(ScenarioReview review) {
         return new ReviewResponse(
                 review.getId(),
-                review.getUser().getId(),
-                review.getUser().getNickname(),
-                review.getUser().getProfileImageUrl(),
+                new ReviewUserResponse(
+                        review.getUser().getId(),
+                        review.getUser().getNickname(),
+                        review.getUser().getProfileImageUrl()
+                ),
                 review.getRating(),
                 review.getContent(),
                 review.isSpoiler(),

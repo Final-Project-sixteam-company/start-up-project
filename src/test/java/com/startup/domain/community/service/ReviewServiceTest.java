@@ -120,7 +120,7 @@ public class ReviewServiceTest {
         PageResponse<ReviewResponse> response = reviewService.getReviews(publishedScenario.getId(), true, PageRequest.of(0, 10));
 
         assertThat(response.content()).hasSize(1);
-        assertThat(response.content().get(0).nickname()).isEqualTo("리뷰어"); // User FETCH JOIN 검증
+        assertThat(response.content().get(0).user().nickname()).isEqualTo("리뷰어"); // User FETCH JOIN 검증
         assertThat(response.content().get(0).rating()).isEqualTo(5);
     }
 
