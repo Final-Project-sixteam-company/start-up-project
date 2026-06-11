@@ -536,7 +536,7 @@ Agent는 style 또는 latency 문제보다 secret-safety regression을 더 높�
 ## 13. LLMOps Smoke And Rollout Runbook 절차
 
 이 섹션은 `LLMOPS_SMOKE_RUNBOOK.md`를 흡수한다.
-AI telemetry 또는 LLMOps persistence를 변경하는 backend deploy 후 사용한다. Prompt context logging은 현재 브랜치의 필수 smoke 대상이 아니며, 해당 구현이 병합된 뒤 별도 optional check로 본다.
+AI telemetry, prompt-context logging, LLMOps persistence를 변경하는 backend deploy 후 사용한다.
 
 ### 13.1 Runtime Signals 런타임 신호
 
@@ -544,6 +544,7 @@ AI telemetry 또는 LLMOps persistence를 변경하는 backend deploy 후 사용
 
 ```text
 AI_CALL structured log
+AI_CALL_CONTEXT prompt-shape/cost log
 ai_requests_total
 ai_failures_total
 ai_fallbacks_total
@@ -551,7 +552,8 @@ ai_tokens_total
 ai_latency_seconds
 ```
 
-Prompt context logging은 현재 코드 기준 runtime smoke 대상이 아니다.
+`AI_CALL_CONTEXT`는 심문 AI 호출 직전의 prompt 구성 비용을 보는 best-effort 로그다.
+원문 prompt, 원문 answer, 사용자 질문 전문, direct gameplay identifier를 남기지 않고 token/length/count/hash 같은 파생값만 남긴다.
 
 Optional DB persistence 선택 DB 저장:
 
@@ -598,7 +600,7 @@ token_type
 ```
 
 `sessionId`, `scenarioId`, `suspectId`, `npcCode` 같은 request-level ID는 structured log나 optional DB row에 사용할 수 있지만 Prometheus label로 만들면 안 된다.
-Prompt context logging을 별도로 도입하는 경우, 해당 로그는 prompt-shape/cost signal이어야 하며 raw prompt, raw answer, user question body, direct gameplay identifier를 포함하면 안 된다.
+`AI_CALL_CONTEXT`는 prompt-shape/cost signal이므로 raw prompt, raw answer, user question body, `sessionId`, `scenarioId`, `suspectId`, `npcCode`를 포함하면 안 된다.
 
 ### 13.3 Preconditions 사전 조건
 
@@ -637,14 +639,22 @@ Prometheus는 server local 또는 ops path에서 query한다.
 Active app log는 Blue-Green helper로 확인한다.
 
 ```bash
-/opt/clueroom/bg-compose logs --tail=300 app-blue | grep 'AI_CALL'
-/opt/clueroom/bg-compose logs --tail=300 app-green | grep 'AI_CALL'
+ACTIVE_SERVICE="$(/opt/clueroom/bg-status.sh | awk -F': ' '/Active service/{print $2}')"
+
+/opt/clueroom/bg-compose logs --tail=500 "$ACTIVE_SERVICE" | grep 'AI_CALL featureType=' | tail -n 10
+/opt/clueroom/bg-compose logs --tail=500 "$ACTIVE_SERVICE" | grep 'AI_CALL_CONTEXT featureType=' | tail -n 10
 ```
 
 기대 `AI_CALL` 형태:
 
 ```text
 AI_CALL featureType=INTERROGATION provider=... model=... promptVersion=... scenarioId=... sessionId=... suspectId=... npcCode=... latencyMs=... success=... errorCode=... fallbackUsed=... promptTokens=... completionTokens=... totalTokens=...
+```
+
+기대 `AI_CALL_CONTEXT` 형태:
+
+```text
+AI_CALL_CONTEXT featureType=INTERROGATION provider=... model=... promptVersion=... systemRuleTokens=... policyContextTokens=... npcProfileTokens=... evidenceContextTokens=... historyTokens=... questionTokens=... promptCharLength=... historyTurns=... includedEvidenceCount=... templateHash=...
 ```
 
 기대 safety:
@@ -656,8 +666,11 @@ AI_CALL featureType=INTERROGATION provider=... model=... promptVersion=... scena
 - solution text 없음
 - culprit data 없음
 - API key 없음
-- Prompt context logging이 별도 구현된 경우에도 sessionId/scenarioId/suspectId/npcCode 없음
+- AI_CALL_CONTEXT에는 sessionId/scenarioId/suspectId/npcCode 없음
 ```
+
+`AI_CALL_CONTEXT`가 없고 `AI_CALL`만 보이면 prompt-context logging regression으로 본다.
+단, `AI_CALL_CONTEXT logging failed but AI call will continue` warning만 있고 실제 AI 호출이 성공했다면 사용자 기능은 정상이며 telemetry 쪽을 별도 조사한다.
 
 ### 13.6 Verify Prometheus Metrics Prometheus 지표 확인
 
