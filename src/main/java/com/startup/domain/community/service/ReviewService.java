@@ -1,10 +1,12 @@
 package com.startup.domain.community.service;
 
+import com.startup.common.dto.PageResponse;
 import com.startup.common.error.CommonErrorCode;
 import com.startup.common.error.BusinessException;
 import com.startup.domain.auth.entity.User;
 import com.startup.domain.auth.repository.UserRepository;
 import com.startup.domain.community.dto.ReviewCreateRequest;
+import com.startup.domain.community.dto.ReviewResponse;
 import com.startup.domain.community.entity.ScenarioReview;
 import com.startup.domain.community.error.CommunityErrorCode;
 import com.startup.domain.community.error.CommunityException;
@@ -17,6 +19,8 @@ import com.startup.domain.scenario.repository.ScenarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +66,21 @@ public class ReviewService {
             log.warn("리뷰 중복 작성 감지 (따닥 방어): userId={}, scenarioId={}", userId, scenarioId);
             throw new CommunityException(CommunityErrorCode.ALREADY_REVIEWED);
         }
+    }
+
+    // 시나리오 리뷰 목록 조회
+    @Transactional(readOnly = true)
+    public PageResponse<ReviewResponse> getReviews(Long scenarioId, Pageable pageable) {
+        // 시나리오 존재 여부 검증
+        if (!scenarioRepository.existsById(scenarioId)) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
+        }
+
+        Page<ScenarioReview> reviewPage = reviewRepository.findAllByScenarioId(scenarioId, pageable);
+        
+        return PageResponse.from(
+                reviewPage.map(ReviewResponse::from)
+        );
     }
 
     private Scenario findPublishedScenario(Long scenarioId) {
