@@ -391,8 +391,9 @@ Alert를 만들기 전에 Grafana Explore에서 실제 Prometheus metric name을
 
 | Alert | 후보 metric/expression | Window | Threshold | Severity |
 |---|---|---:|---:|---|
-| AI failures spike 감지 | `sum(increase(ai_failures_total[5m]))` | 5m | `>= 23` | WARNING first |
-| AI p95 latency high 감지 | `histogram_quantile(0.95, sum(rate(ai_latency_seconds_bucket[5m])) by (le, feature_type))` | 5m | `> 23s` | WARNING first |
+| AI failures spike 감지 | `sum(increase(ai_failures_total[5m]))` | 5m | `>= 3` | WARNING first |
+| AI interrogation p95 latency high 감지 | `histogram_quantile(0.95, sum(rate(ai_latency_seconds_bucket{feature_type="INTERROGATION"}[5m])) by (le))` | 5m | `> 8s` | WARNING first |
+| AI final deduction p95 latency high 감지 | `histogram_quantile(0.95, sum(rate(ai_latency_seconds_bucket{feature_type="FINAL_DEDUCTION"}[5m])) by (le))` | 5m | `> 60s` | WARNING first |
 | AI fallback spike 감지 | `sum(increase(ai_fallbacks_total[5m]))` | 5m | baseline 이후 조정 | WARNING first |
 | Blue-Green 양쪽 target down | `sum(up{job=~"clueroom-app-blue|clueroom-app-green"}) == 0` | 1~3m | true | CRITICAL candidate |
 | Prometheus scrape down 감지 | `up{job="prometheus"} == 0` | 1~3m | true | CRITICAL candidate |
@@ -404,6 +405,8 @@ Alert를 만들기 전에 Grafana Explore에서 실제 Prometheus metric name을
 Prometheus로 export된 Micrometer 이름은 underscore 형태를 사용한다.
 따라서 Java metric 이름 `ai.failures`, `ai.latency`, `ai.fallbacks`는 `ai_failures_total`, `ai_latency_seconds_*`, `ai_fallbacks_total`로 예상한다.
 Bucket series가 없으면 histogram publishing을 확인하기 전까지 p95 alert를 만들지 않는다.
+AI failure `>= 3`, interrogation p95 `> 8s`, final deduction p95 `> 60s`는 LLMOps 운영 가이드의 초기 후보 기준과 맞춘 값이다.
+실제 Grafana rule로 승격하기 전에는 n8n 60m summary와 Prometheus Explore baseline을 보고 조정한다.
 
 ## 11. Notification Policy 알림 정책
 

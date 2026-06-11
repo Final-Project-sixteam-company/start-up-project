@@ -902,6 +902,9 @@ EOF
 
 #### 10.1.7 DB patch 확인
 
+아래 쿼리는 public-safe shape다.
+실제 guidance 대상 evidence code 목록과 대상 개수는 공개 문서에 남기지 않고, `.private/deploy/apply_guidance_json_YYYYMMDD.sql` 또는 비공개 handoff에서 확인한다.
+
 ```bash
 ssh -i "$KEY" "$DATA" 'bash -s' <<'EOF'
 set -euo pipefail
@@ -922,15 +925,7 @@ JOIN scenarios s ON s.id = e.scenario_id
 WHERE s.status = 'PUBLISHED'
   AND s.visibility = 'PUBLIC'
   AND s.content_version = '1.1.0'
-  AND e.code IN (
-    'EVIDENCE_BEDROOM_WATER_BOTTLE_AND_CUP',
-    'EVIDENCE_PERSONAL_NIGHT_MEDICATION_CASE',
-    'EVIDENCE_WEARABLE_VITAL_RAW_LOG',
-    'EVIDENCE_MARK9_TAPE_LIFTED_EDGE_GEL',
-    'EVIDENCE_PROMPTER_REFLECTION_BROLL_STILL',
-    'EVIDENCE_NONSTANDARD_DIFFUSION_FILTER_FRAME',
-    'EVIDENCE_SAFETY_LATCH_CLOSEUP'
-  )
+  AND e.code IN (<private guidance target evidence codes>)
 ORDER BY s.code, e.code;
 "
 EOF
@@ -939,7 +934,7 @@ EOF
 기대:
 
 ```text
-대상 evidence 7개 모두 has_guidance = 1
+private patch 대상 row가 모두 has_guidance = 1
 ```
 
 #### 10.1.8 Blue-Green 재배포와 importer skip 확인
