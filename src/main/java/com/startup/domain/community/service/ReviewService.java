@@ -7,6 +7,7 @@ import com.startup.domain.auth.entity.User;
 import com.startup.domain.auth.repository.UserRepository;
 import com.startup.domain.community.dto.ReviewCreateRequest;
 import com.startup.domain.community.dto.ReviewResponse;
+import com.startup.domain.community.dto.ReviewUpdateRequest;
 import com.startup.domain.community.entity.ScenarioReview;
 import com.startup.domain.community.error.CommunityErrorCode;
 import com.startup.domain.community.error.CommunityException;
@@ -81,6 +82,43 @@ public class ReviewService {
         return PageResponse.from(
                 reviewPage.map(ReviewResponse::from)
         );
+    }
+
+    // 시나리오 리뷰 수정
+    @Transactional
+    public ReviewResponse updateReview(Long userId, Long reviewId, ReviewUpdateRequest request) {
+        ScenarioReview review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new CommunityException(CommunityErrorCode.REVIEW_NOT_FOUND));
+
+        if (!review.getUserId().equals(userId)) {
+            throw new CommunityException(CommunityErrorCode.NOT_REVIEW_OWNER);
+        }
+
+        review.updateReview(request.rating(), request.content(), request.isSpoiler());
+        
+        // flush 후 평점 재계산 (수정 시 별점이 변경되었을 수 있으므로)
+        reviewRepository.flush();
+        scenarioRepository.recalculateRating(review.getScenarioId());
+        
+        return ReviewResponse.from(review);
+    }
+
+    // 시나리오 리뷰 삭제
+    @Transactional
+    public void deleteReview(Long userId, Long reviewId) {
+        ScenarioReview review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new CommunityException(CommunityErrorCode.REVIEW_NOT_FOUND));
+
+        if (!review.getUserId().equals(userId)) {
+            throw new CommunityException(CommunityErrorCode.NOT_REVIEW_OWNER);
+        }
+
+        Long scenarioId = review.getScenarioId();
+        reviewRepository.delete(review);
+        
+        // flush 후 평점 재계산
+        reviewRepository.flush();
+        scenarioRepository.recalculateRating(scenarioId);
     }
 
     private Scenario findPublishedScenario(Long scenarioId) {

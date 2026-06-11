@@ -36,4 +36,12 @@ public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
          + "s.averageRating = (s.averageRating * s.ratingCount + :newRating) / (s.ratingCount + 1) "
          + "WHERE s.id = :scenarioId")
     void addRating(@Param("scenarioId") Long scenarioId, @Param("newRating") int newRating);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Scenario s SET s.ratingCount = "
+         + "(SELECT COUNT(r) FROM ScenarioReview r WHERE r.scenarioId = s.id), "
+         + "s.averageRating = COALESCE("
+         + "(SELECT AVG(CAST(r.rating AS double)) FROM ScenarioReview r WHERE r.scenarioId = s.id), 0.0) "
+         + "WHERE s.id = :scenarioId")
+    void recalculateRating(@Param("scenarioId") Long scenarioId);
 }
