@@ -631,7 +631,8 @@ public class CustomScenarioService {
                     }
                 }
             } catch (Exception e) {
-                // 파싱 에러 무시
+                // 파싱 실패 시, 혹시 모를 의존성이 있을 수 있으므로 안전하게 삭제 차단(fail-closed)
+                return true;
             }
         }
         return false;
@@ -648,15 +649,23 @@ public class CustomScenarioService {
                         return true;
                     }
                 }
-                if (root.has("requiredEvidenceCodes") && root.get("requiredEvidenceCodes").isArray()) {
-                    for (JsonNode node : root.get("requiredEvidenceCodes")) {
-                        if (evidenceCode.equals(node.asText())) {
+                if (root.has("requiredEvidenceCodes") && !root.get("requiredEvidenceCodes").isNull()) {
+                    JsonNode reqCodes = root.get("requiredEvidenceCodes");
+                    if (reqCodes.isArray()) {
+                        for (JsonNode node : reqCodes) {
+                            if (evidenceCode.equals(node.asText())) {
+                                return true;
+                            }
+                        }
+                    } else if (reqCodes.isTextual()) {
+                        if (evidenceCode.equals(reqCodes.asText())) {
                             return true;
                         }
                     }
                 }
             } catch (Exception e) {
-                // 파싱 에러 무시
+                // 파싱 실패 시, 혹시 모를 의존성이 있을 수 있으므로 안전하게 삭제 차단(fail-closed)
+                return true;
             }
         }
         return false;
