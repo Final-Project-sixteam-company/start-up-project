@@ -71,13 +71,18 @@ public class ReviewService {
 
     // 시나리오 리뷰 목록 조회
     @Transactional(readOnly = true)
-    public PageResponse<ReviewResponse> getReviews(Long scenarioId, Pageable pageable) {
+    public PageResponse<ReviewResponse> getReviews(Long scenarioId, boolean includeSpoiler, Pageable pageable) {
         // 시나리오 존재 여부 검증
         if (!scenarioRepository.existsById(scenarioId)) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
         }
 
-        Page<ScenarioReview> reviewPage = reviewRepository.findAllByScenarioId(scenarioId, pageable);
+        Page<ScenarioReview> reviewPage;
+        if (includeSpoiler) {
+            reviewPage = reviewRepository.findAllByScenarioId(scenarioId, pageable);
+        } else {
+            reviewPage = reviewRepository.findAllByScenarioIdAndIsSpoilerFalse(scenarioId, pageable);
+        }
         
         return PageResponse.from(
                 reviewPage.map(ReviewResponse::from)

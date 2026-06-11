@@ -11,11 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/scenarios/{scenarioId}/reviews")
@@ -37,12 +33,13 @@ public class ReviewController {
     }
 
     @Operation(summary = "시나리오 리뷰 목록 조회")
-    @org.springframework.web.bind.annotation.GetMapping
+    @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> getReviews(
             @PathVariable Long scenarioId,
+            @RequestParam(required = false, defaultValue = "true") boolean includeSpoiler,
             Pageable pageable
     ) {
-        PageResponse<ReviewResponse> response = reviewService.getReviews(scenarioId, pageable);
+        PageResponse<ReviewResponse> response = reviewService.getReviews(scenarioId, includeSpoiler, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

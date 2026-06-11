@@ -112,12 +112,12 @@ public class ReviewServiceTest {
     }
 
     @Test
-    @DisplayName("리뷰 목록 페이징 조회 성공")
+    @DisplayName("리뷰 목록 페이징 조회 성공 (FETCH JOIN)")
     void getReviews_success() {
         ReviewCreateRequest request = new ReviewCreateRequest(5, "정말 재밌어요", false);
         reviewService.addReview(reviewer.getId(), publishedScenario.getId(), request);
 
-        PageResponse<ReviewResponse> response = reviewService.getReviews(publishedScenario.getId(), PageRequest.of(0, 10));
+        PageResponse<ReviewResponse> response = reviewService.getReviews(publishedScenario.getId(), true, PageRequest.of(0, 10));
 
         assertThat(response.content()).hasSize(1);
         assertThat(response.content().get(0).nickname()).isEqualTo("리뷰어"); // User FETCH JOIN 검증
