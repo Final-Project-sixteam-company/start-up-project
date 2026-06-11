@@ -75,6 +75,19 @@ DB, private seed, solution source는 사용하지 않는다.
 Swagger/API 문서를 볼 때는 method/path, request field, response field name만 확인한다.
 solution 등록/조회, final-deduction result, correctness/fullExplanation 예시 섹션은 열람하지 않는다.
 
+API-only fallback에서 public play API를 gameplay surface로 사용할 때는 deduction을 시작하기 전에 응답 마스킹을 적용한다.
+아래 필드는 spoiler-leak verification 단계에서만 별도로 확인하고, 30~50턴 후보 축소 판단에는 사용하지 않는다.
+
+```text
+importance / CORE / FAKE
+culpritEligible
+candidate/suspicion score류 메타데이터
+역할을 암시하는 imageAssetKey / imageUrl / asset path / file name
+정답성, 레드헤링, 비후보 여부를 암시하는 debug/admin 필드
+```
+
+runner/tooling이 위 필드를 숨기거나 무시할 수 없으면 API-only candidate narrowing 평가는 "blind invalid"로 표시하고 Android UI retest로 넘긴다.
+
 ---
 
 # QA 에이전트 응답 방식
@@ -360,22 +373,24 @@ API-only fallback을 사용할 때도 아래 순서를 지킨다.
 3. 시나리오 상세 확인
 4. active session 조회는 복구 UX 확인용으로만 별도 기록
 5. 신규 유저 흐름 측정은 active session을 재사용하지 않고 fresh session에서 시작
-6. POST /api/play-sessions가 409 P002로 막히면 active session 내용을 보지 말고 abandon 후 create를 1회 재시도
-7. abandon이 실패하거나 권한이 없으면 "fresh-session unavailable"로 표시
-8. fresh session의 dashboard / locations / evidences / suspects / timeline 조회
-9. 해금 증거 상세에서 guidance 확인
-10. FREE 심문으로 기본 알리바이 확인
-11. EVIDENCE_PRESENTED 심문으로 증거 반응 확인
-12. 새로 해금된 증거가 있는지 다시 조회
-13. 30~50회 범위에서 후보 축소 기록
-14. 최종 추리 제출
-15. 제출 후에만 result 조회
+6. API-only runner/tooling은 spoiler metadata 마스킹을 켠다
+7. POST /api/play-sessions가 409 P002로 막히면 active session 내용을 보지 말고 abandon 후 create를 1회 재시도
+8. abandon이 실패하거나 권한이 없으면 "fresh-session unavailable"로 표시
+9. fresh session의 dashboard / locations / evidences / suspects / timeline 조회
+10. 해금 증거 상세에서 guidance 확인
+11. FREE 심문으로 기본 알리바이 확인
+12. EVIDENCE_PRESENTED 심문으로 증거 반응 확인
+13. 새로 해금된 증거가 있는지 다시 조회
+14. 30~50회 범위에서 후보 축소 기록
+15. 최종 추리 제출
+16. 제출 후에만 result 조회
 ```
 
 active session 복구는 별도 UX 점검 항목이다.
 이미 진행된 active session에는 해금 증거, 이전 심문, 시간 기반 해금 상태가 섞일 수 있으므로 30~50회 후보 축소 측정에 사용하지 않는다.
 fresh session 생성을 막는 active session이 있으면 해당 sessionId를 기록하지 않고 `POST /api/play-sessions/{sessionId}/abandon`을 호출한 뒤 새 세션 생성을 재시도한다.
 fresh session을 만들 수 없는 환경이면 "fresh-session unavailable"로 표시하고 candidate narrowing 평가는 보류한다.
+API-only 마스킹 없이 spoiler metadata가 보이는 상태로 진행했다면 candidate narrowing 결과를 blind retest 근거로 쓰지 않는다.
 
 API endpoint shape:
 
@@ -404,6 +419,8 @@ GET  /api/play-sessions/{sessionId}/result
 GET /api/play-sessions/{sessionId}/result 는 final-deduction 제출 후에만 호출한다.
 POST /api/play-sessions/{sessionId}/abandon 은 409 P002로 fresh session 생성이 막힌 경우 QA reset 목적으로만 호출한다.
 abandon 전후 active session 내용, 해금 증거, 이전 심문, result는 조회하지 않는다.
+API-only gameplay 중에는 importance, culpritEligible, candidate/suspicion score, 역할성 asset path를 숨기고 무시한다.
+이 필드들의 존재 여부는 별도 spoiler-leak verification 결과로만 기록한다.
 GET /api/play-sessions/{sessionId}/evidences?includeLocked=true 는 Evidence 탭의 정상 조회 경로다.
 이 호출로 해금/잠금 증거 목록과 locked evidence masking을 확인한다.
 잠긴 증거의 내부 code 또는 스포일러성 상세가 노출되면 P1로 기록한다.

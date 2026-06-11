@@ -8,7 +8,7 @@
 - Device: not available in this terminal
 - App build: not verified
 - Backend commit/version: not verified
-- Constraint: Android-only chip/draft behavior could not be directly verified
+- Constraint: initial gameplay was API-only; later frontend E2E follow-up confirmed Android chip auto-send behavior
 
 ## 1. Spoiler Safety Declaration
 
@@ -26,7 +26,7 @@
 
 ```text
 전체 판단: PARTIAL
-가장 큰 blocker: 10일 P0 API 스포일러 메타데이터가 지속되고, guidance/prompt 약점 때문에 30~50회 내 최종 후보 확정이 어렵다.
+가장 큰 blocker: 10일 P0 API 스포일러 메타데이터가 지속되고, guidance chip 자동 전송과 guidance/prompt 약점 때문에 30~50회 내 최종 후보 확정이 어렵다.
 최종 제출 여부: 50턴 기준 두 시나리오 모두 보류. user 요청 후 extended retest에서 두 시나리오 모두 제출 완료.
 30~50회 심문 내 후보 축소 가능성: 후보군을 줄이는 것은 가능하나 1명 확정은 어려움.
 guidance가 추리 보조인지 정답 경로 고정인지: 정답 경로 고정은 아니지만, 많은 증거에서 guidance가 없어 보조력이 약함.
@@ -40,14 +40,13 @@ guidance가 추리 보조인지 정답 경로 고정인지: 정답 경로 고정
 | P0 | Cross-scenario | `includeLocked=true`로 잠긴 증거 제목이 노출되는 문제가 유지됨 | fresh session 초반 조회에서 locked evidence의 title과 unlockHint가 반환됨 | 잠긴 증거는 placeholder 또는 개수만 노출 | description은 null이어도 title만으로 후반 추리 방향이 노출됨 | 증거 해금 전부터 후반 추리 방향을 알 수 있음 | 일반 사용자 권한에서 `includeLocked=true` 차단 또는 title까지 마스킹 |
 | P1 | Cross-scenario | 50턴 안에 최종 후보를 안전하게 확정하지 못함 | fresh/API-only 기준 두 시나리오 모두 50턴 진행 후 최종 제출 보류 | guidance와 심문만으로 1~2명까지 후보 축소 | 일부 축소는 됐지만, 수단/기회/은폐를 한 명에게 묶는 근거가 부족 | 신규 유저가 찍기 제출을 하거나 중도 이탈할 가능성 | 핵심 증거별 reading/compare/question을 5분, 10분 해금 증거까지 확장 |
 | P1 | Cross-scenario | 10일에 지적된 AI 회피 답변 문제가 11일에도 재현됨 | `단정할 수 없다`, `추가 증거 필요`, `기록을 함께 봐야 한다` 반복 | 증거 제시 시 인정 가능한 사실과 다음 비교 대상을 제공 | 답변이 안전하지만 후보 귀속을 충분히 돕지 못함 | 사용자가 잘못된 후보로 확신할 수 있음 | prompt responseShape와 policy allowedFacts에 `인정 사실/부인 범위/다음 비교 대상` 강제 |
-| P1 | Cross-scenario | 추천 질문 API/문서 불일치가 유지됨 | `GET /api/play-sessions/{sessionId}/recommended-questions`가 404 반환 | 문서화된 API는 200이거나 문서에서 제거되어야 함 | guidance detail은 일부 생겼지만 endpoint 자체는 여전히 없음 | Android/QA가 추천 질문 진입점을 혼동할 수 있음 | endpoint 구현 또는 API/FE 문서에서 제거. guidance-only 전략이면 명시 |
+| P1 | Cross-scenario | Android suggested-question chip이 prefill-only가 아니라 즉시 AI 호출을 수행함 | Frontend E2E follow-up에서 guidance chip tap 시 자동 심문 호출 확인 | chip tap은 심문 화면 이동과 입력창 prefill까지만 수행 | 사용자가 전송 전 질문 수정/취소할 기회 없이 AI 호출됨 | 원치 않는 심문 로그가 생성되고 QA prompt의 P1 기준을 위반함 | Android chip handler를 navigate/prefill 전용으로 바꾸고 send는 전송 버튼 클릭에만 연결 |
 | P1 | Cross-scenario | 증거 해금 이유가 여전히 플레이어에게 설명되지 않음 | 서월채 7->13->20->25, 스튜디오9 8->14->29->35로 급증 | 시간/질문/증거제시 중 무엇으로 열렸는지 표시 | API-only 기준 count만 바뀌고 이유 UX는 확인 불가 | “내가 잘해서 열린 건지 기다려서 열린 건지” 진행감이 약함 | unlock reason 이벤트, 최근 해금 내역, toast/snackbar 계약 추가 |
 | P1 | Cross-scenario | 핵심 이미지/기록형 증거의 판독값 텍스트화가 여전히 부족함 | 여러 증거가 “함께 봐야 한다”만 말하고 작은 이미지/기록 판독을 별도 구조로 제공하지 않음 | 관찰 정보/판독 결과/비교 대상/물어볼 대상 분리 | description에 섞여 있거나 일부 증거에는 없음 | 모바일에서 핵심 단서 판독 실패 가능성 지속 | evidence detail에 `readingPoints`를 전 증거로 확대하고 판독값을 텍스트 필드로 분리 |
 | P2 | 서월채 | guidance coverage가 초기와 중후반 증거에서 부족함 | 초기 7개 중 2개만 guidance 존재, 5분/10분 해금 증거 대부분 `guidance: null` | 최소 3개 이상 해금 증거에서 읽을 점, 비교 대상, 질문 방향 제공 | 일부 핵심 증거와 조건 해금 증거에만 guidance 존재 | 질문 설계가 증거 설명문과 QA tester 추론에 의존함 | 시간 해금 증거에도 guidance를 균등 적용 |
 | P2 | 스튜디오9 | 초기/5분 구간 guidance가 전무하고 10분 후에도 낮음 | 초기 8개 0개, 5분 14개 0개, 10분 29개 중 2개만 guidance 존재 | 초반부터 읽을 점과 비교 방향을 제공 | 10분 전까지 추천 질문 chip을 확인할 수 없음 | 초반 플레이어가 무엇을 물어야 할지 알기 어렵다 | 초기 CORE 증거와 5분 해금 증거에 guidance 우선 추가 |
 | P2 | 서월채 | 일부 AI 답변이 공개 타임라인과 충돌하는 시간 표현을 생성함 | 한 보안 계층 답변에서 공개 시간대와 다른 “밤 10시부터 11시 사이” 표현 후 재질문에서 다른 시간대로 변경 | 설정에 없는 시간/장소를 만들지 않음 | 정확한 기준 시각이 흔들림 | 플레이어가 잘못된 시간축으로 추리할 수 있음 | ResponsePolicy 또는 prompt context에 공개 타임라인 기준 준수 문구 강화 |
 | P2 | Cross-scenario | active session 복구 UX는 10일 이슈가 해결됐다고 볼 수 없음 | 11일 API-only에서도 스튜디오9는 기존 active session 때문에 신규 생성 409 발생, abandon 후 fresh 생성 | 사용자는 이어하기/포기 후 새 시작을 명확히 선택 | API는 동작하지만 Android UX는 미검증 | 실제 앱에서 10일과 같은 진입 차단이 재발할 수 있음 | Android E2E로 P002 modal/이어하기/포기 후 새 시작 재검증 |
-| P2 | Cross-scenario | Android chip prefill-only와 draft override 정책은 초기 API-only retest에서 미확인 | 터미널 API-only 환경 | chip tap, 자동 전송 없음, 현행 frontend contract의 draft override 정책 확인 | API-only 단계에서는 UI를 조작할 수 없어 확인 불가 | QA 핵심 항목 일부가 미검증 | Android 기기/에뮬레이터로 별도 retest 필요 |
 | P3 | Cross-scenario | suggestedQuestions payload에 내부 캐릭터 코드가 포함됨 | guidance가 있는 증거의 suggestedQuestions에서 내부 character code 필드 확인 | public response에는 UI에 필요한 식별자만 노출 | target suspect id/name 외 내부 코드도 내려옴 | UI가 실수로 표시하면 내부 식별자 노출 가능 | API에서 제거하거나 Android에서 절대 렌더링하지 않도록 contract 명시 |
 
 ## 4. Summary
@@ -75,8 +74,8 @@ readingPoints: 일부 초기 증거와 조건 해금 증거에서 확인
 compareEvidences: guidance가 있는 증거에서는 비교 방향 제공
 suggestedQuestions: guidance가 있는 증거에서는 EVIDENCE_PRESENTED + presentedEvidenceId 형태 확인
 locked compare masking: locked compare evidenceCode 노출 없음
-chip prefill-only: API-only라 미확인
-draft override policy: API-only라 미확인
+chip prefill-only: 초기 API-only 단계에서는 미확인, Frontend E2E follow-up에서 자동 전송 재현(P1)
+draft override policy: chip 자동 전송 때문에 전송 전 수정/override 통제 검증 불가
 ```
 
 ### 5.3 Interrogation / Deduction Path
@@ -118,8 +117,8 @@ readingPoints: 10분 해금 후 일부 증거에서만 확인
 compareEvidences: guidance가 있는 증거에서는 제공
 suggestedQuestions: guidance가 있는 증거에서는 EVIDENCE_PRESENTED + presentedEvidenceId 형태 확인
 locked compare masking: locked compare evidenceCode 노출 없음
-chip prefill-only: API-only라 미확인
-draft override policy: API-only라 미확인
+chip prefill-only: 초기 API-only 단계에서는 미확인, Frontend E2E follow-up에서 자동 전송 재현(P1)
+draft override policy: chip 자동 전송 때문에 전송 전 수정/override 통제 검증 불가
 ```
 
 ### 6.3 Interrogation / Deduction Path
@@ -146,7 +145,7 @@ UX friction: fresh session은 active session abandon 후에야 생성 가능했�
 
 ```text
 What improved: locked evidence detail masking은 대체로 안전함. AI 답변은 직접 정답 누설 없이 짧게 유지됨.
-What still blocks users: 10일 P0 API 스포일러 메타데이터 지속, guidance coverage 부족, Android chip/draft behavior 미확인, 50턴 내 최종 확정 어려움.
+What still blocks users: 10일 P0 API 스포일러 메타데이터 지속, guidance coverage 부족, Android chip 자동 전송, 50턴 내 최종 확정 어려움.
 Whether guidance feels like a clue-reading aid or answer railroading: railroading은 아님. 오히려 부족한 쪽.
 Whether 30~50 interrogation target is realistic: 후보 축소는 가능하지만 최종 제출 기준 충족은 어려움.
 ```
@@ -155,7 +154,7 @@ Whether 30~50 interrogation target is realistic: 후보 축소는 가능하지�
 
 ```text
 Backend: health, scenario list/detail, fresh session, active recovery, evidence unlock, interrogation API 정상.
-Android: 미확인.
+Android: Frontend E2E follow-up에서 guidance chip 자동 전송 등 핵심 blocker를 확인했다.
 Scenario seed: 증거 설명문 자체는 레드헤링과 비교 방향을 일부 제공함.
 AI behavior: 정답/범인 직접 누설 없음, 대부분 1~2문장 유지, 증거 단독 확정을 피함.
 ```
@@ -166,11 +165,11 @@ AI behavior: 정답/범인 직접 누설 없음, 대부분 1~2문장 유지, 증
 |---|---|---|
 | Backend | P0 | public play API에서 `importance`, `culpritEligible`, 역할성 asset path, locked title 노출 제거 |
 | Scenario seed | P1 | 5분/10분/조건 해금 증거에 guidance coverage 확장 |
-| Backend | P1 | recommended-questions endpoint 구현 또는 문서 제거 |
 | Backend | P1 | unlock reason/recent unlocks 응답 계약 추가 |
 | Backend | P2 | guidance null coverage를 smoke metric으로 추가 |
-| Android | P2 | chip prefill-only, draft override policy를 실제 기기에서 재검증 |
+| Android | P1 | guidance suggested question chip 자동 전송 제거, prefill-only 동작으로 수정 |
 | Android | P2 | active session P002 복구 UX와 timeline/image 판독 UX를 10일 체크리스트 기준으로 재검증 |
+| Android | P2 | chip auto-send 수정 후 draft override policy를 실제 기기에서 재검증 |
 | AI policy | P2 | 공개 타임라인 밖 시간 생성 방지 문구 강화 |
 | Backend/Android | P3 | suggestedQuestions 내부 character code 필드 미노출 또는 UI 미렌더링 contract 명시 |
 
@@ -238,7 +237,7 @@ docs/QA_HANDOFF.md
 | 시간 답변 guard 부족 | 10일의 22시대 hallucination만큼 심하지는 않지만 11일에도 공개 시간축과 맞지 않는 표현 발생 | P2 유지. prompt/context hard guard가 아직 충분하지 않음 |
 | 증거 해금 이유 불명확 | 11일에도 증거 수가 단계적으로 급증하지만 이유 설명은 API-only 기준 확인 불가 | P1 유지. guidance가 생겨도 unlock reason 없으면 진행감이 약함 |
 | 이미지/기록 판독 어려움 | 11일 API-only라 모바일 판독은 미확인. 다만 description/guidance coverage가 낮아 텍스트 판독값 부족은 계속 보임 | P1 유지. `readingPoints`를 모든 핵심 이미지/기록 증거로 확대 필요 |
-| 추천 질문 API 404 | 11일에도 recommended-questions endpoint 404 확인 | P1 유지. guidance detail로 전략을 바꿨다면 문서/API를 정리해야 함 |
+| guidance chip 자동 전송 | Frontend E2E follow-up에서 suggested question chip 즉시 AI 호출 확인 | P1. QA prompt와 FE contract의 prefill-only 요구를 위반하므로 Android 수정 필요 |
 | active session 복구 UX | 11일 API-only에서도 active session 충돌 후 abandon이 필요했음. Android UX는 미확인 | P2/P1 경계. 10일 Android 실패가 해결됐다고 볼 근거 없음 |
 
 ### 13.2 Improved Since June 10
