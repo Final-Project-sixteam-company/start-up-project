@@ -253,11 +253,11 @@ ECS는 컨테이너 오케스트레이션에 적합하지만, 이번 프로젝�
 docs/infra/diagrams/current-production-request-flow.mmd
 docs/infra/diagrams/observability-alert-flow.mmd
 docs/infra/diagrams/backup-restore-flow.mmd
-docs/infra/diagrams/planned-scaleout-manual-lb.mmd
+docs/infra/diagrams/scaleout-manual-lb-poc.mmd
 ```
 
 발표/포트폴리오용 이미지 자산은 아래 경로에 둔다.
-이 이미지는 공식 로고 원본이 아니라 운영 구조 설명을 위한 로고 스타일 시각 자료이며, 운영 정본은 Mermaid 원본과 본 전략 문서다.
+이 이미지는 공식 로고 원본이 아니라 운영 구조 설명을 위한 로고 스타일 시각 자료다. scale-out 이미지는 PoC 전 계획 이미지이므로 최신 정본은 `POC-006-scaleout-manual-lb.md`와 `scaleout-manual-lb-poc.mmd`를 우선한다.
 
 ```text
 docs/infra/images/clueroom_current_production_architecture_logo_style.png
@@ -897,13 +897,14 @@ PoC 종료 후 임시 app node 리소스와 scaleout key/port 리소스는 정�
 구성:
 
 ```text
-Nginx Load Balancer Server
-  ├─ app-server-01
-  └─ app-server-02
+prod Nginx / prod control server
+  ├─ local active Blue-Green slot
+  ├─ app01
+  └─ app02
 
-Shared DB
-Shared Redis
-S3
+data server MySQL/Redis
+ops Loki/Grafana/n8n
+S3 backup/storage
 ```
 
 필수 조건:
@@ -943,104 +944,72 @@ S3
 
 ---
 
-## 9. 멀티 인스턴스 PoC 계획
+## 9. 멀티 인스턴스 PoC 결과
 
 ### 9.1 목적
 
-실제 운영 적용이 아니라, 수동 Nginx 로드밸런싱과 DB/Redis 분리 구조를 검증하기 위한 학습/포트폴리오용 PoC다.
+실제 운영 기준 구조 전환이 아니라, 수동 Nginx 로드밸런싱과 DB/Redis 분리 구조가 app node scale-out에 충분한지 검증하기 위한 학습/포트폴리오용 PoC다.
 
 ```text
-운영 적용 ❌
+운영 기준 구조 전환 ❌
 학습/검증/인증샷 ⭕
+2026-06-12 PoC 성공 ⭕
 ```
 
-### 9.2 초기 권장 PoC 구조
+### 9.2 2026-06-12 실제 검증 구조
 
 ```text
-선택 사항인 격리형 PoC API domain
+api.clueroom.xyz
   ↓
-clueroom-poc-lb-01
-  ↓
-┌──────────────────────┐
-↓                      ↓
-clueroom-poc-app-01   clueroom-poc-app-02
-  ↓                      ↓
-  └──────────┬───────────┘
-             ↓
-      clueroom-poc-db-01
-             ↓
-      clueroom-poc-redis-01
-
-S3는 동일하게 사용
+prod Nginx / prod control server
+  ├─ local active Blue-Green slot: 127.0.0.1:8081
+  ├─ app01: 172.26.6.201:8080
+  └─ app02: 172.26.2.166:8080
+        ↓
+data server MySQL/Redis
+        ↓
+ops Loki/Grafana/n8n
 ```
 
-위 구조는 PoC 초기에 검토한 격리형 구성이다.
-2026-06-12 실제 POC-006은 별도 `poc-api` 도메인/LB 서버를 만들지 않고, prod 제어형 방식으로 임시 app node를 생성한 뒤 기존 prod Nginx upstream에 canary/equal 모드로 붙여 검증했다.
-실제 검증 결과와 재실행 절차는 `docs/infra/poc/POC-006-scaleout-manual-lb.md`, `docs/infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md`를 따른다.
+이 PoC는 별도 `poc-api` 도메인이나 별도 LB 서버를 만들지 않았다. Terraform으로 임시 app01/app02를 만들고, prod 서버에서 jar/env/secrets/scenarios를 동기화한 뒤 기존 prod Nginx upstream에 canary/equal 모드로 붙여 검증했다.
 
-서버 역할:
+정본:
 
 ```text
-clueroom-poc-lb-01
-- Nginx Load Balancer
-- 외부 80/443 공개
-
-clueroom-poc-app-01
-- Spring Boot App
-- DB/Redis 없음
-
-clueroom-poc-app-02
-- Spring Boot App
-- DB/Redis 없음
-
-clueroom-poc-db-01
-- MySQL Docker
-
-clueroom-poc-redis-01
-- Redis Docker
+docs/infra/poc/POC-006-scaleout-manual-lb.md
+docs/infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md
+docs/infra/diagrams/scaleout-manual-lb-poc.mmd
 ```
 
-### 9.3 왜 5대인가
-
-직접 Nginx 로드밸런싱을 하려면 LB 역할 서버가 필요하다.
+### 9.3 검증 결과
 
 ```text
-필수:
-- LB 서버 1대
-- App 서버 2대
-- DB 서버 1대
-- Redis 서버 1대
+Terraform으로 app01/app02 생성
+prod inventory로 app node 관리
+prod에서 jar/env/secrets/scenarios 동기화
+app01/app02 Spring Boot 기동
+data 서버 MySQL/Redis 연결
+app node Alloy -> ops Loki 수집
+Nginx upstream에 local active + app01 + app02 추가
+equal mode 60회 요청에서 21 / 19 / 20 분산 확인
 ```
 
-따라서 가장 깔끔한 PoC는 5대다.
+### 9.4 검증한 upstream
 
-### 9.4 4대 타협안
-
-비용이나 시간이 부족하면 아래처럼 구성할 수 있다.
-
-```text
-server-01: Nginx LB + app-01
-server-02: app-02
-server-03: MySQL
-server-04: Redis
+```nginx
+upstream clueroom_backend {
+    server 127.0.0.1:8081 max_fails=3 fail_timeout=10s weight=1;
+    server 172.26.6.201:8080 max_fails=3 fail_timeout=10s weight=1;
+    server 172.26.2.166:8080 max_fails=3 fail_timeout=10s weight=1;
+}
 ```
 
-단점:
-
-```text
-- LB와 app-01이 같은 서버라 역할 분리가 애매함
-- app-01과 app-02가 대칭 구조가 아님
-- server-01 장애 시 LB와 app-01이 같이 죽음
-```
-
-따라서 문서에는 PoC 비용 절감용 타협안이라고 명시한다.
-
-### 9.5 PoC 인증샷
+### 9.5 PoC 인증샷과 증거
 
 ```text
 - Terraform app01/app02 생성 결과
 - prod inventory app01.env/app02.env
-- app01/app02 docker ps와 actuator health
+- app01/app02 actuator health
 - app01/app02 secret/scenario set 여부
 - ops Loki docker-app 로그 조회
 - Nginx upstream 설정
@@ -1051,14 +1020,14 @@ server-04: Redis
 
 ### 9.6 PoC 종료
 
-PoC는 계속 운영하지 않는다.
+PoC는 성공으로 보되, 추가 app node를 기본 운영 기준 구조로 계속 운영하지 않는다.
 
 ```text
 1. 인증샷 촬영
 2. 설정 문서화
 3. Nginx upstream을 local active only로 원복
 4. app node runtime reset
-5. Terraform destroy로 temporary app node, scaleout key pair, port resource 정리
+5. Terraform destroy로 임시 app node, scaleout key pair, port resource 정리
 ```
 
 ---
@@ -1069,7 +1038,7 @@ PoC는 계속 운영하지 않는다.
 
 ```text
 - Lightsail 서버 Running 상태
-- Static IP 연결
+- 운영 서버 Static IP/public IP 연결 상태
 - Lightsail 방화벽 22 / 80 / 443
 - docker ps: app / mysql / redis
 - Nginx 설정 파일
@@ -1366,7 +1335,7 @@ DB/Redis HA, managed load balancer, managed autoscaling 완료를 의미하지 �
 - secret 값, Firebase JSON, DB password, JWT 값, API key는 공개 문서와 git에 넣지 않는다.
 ```
 
-### Immediate LLMOps Path
+### 즉시 적용 가능한 LLMOps 경로
 
 Scale-out 전에 LLMOps는 별도 DB migration보다 구조화 로그와 Prometheus/Loki smoke를 먼저 사용한다.
 
@@ -1377,7 +1346,7 @@ AI call context -> app log AI_CALL_CONTEXT -> Alloy/Loki -> privacy/query smoke
 
 DB persistence가 필요하면 feature flag로 켜고, 운영 DB 부하와 privacy를 먼저 검토한다.
 
-### Required Application Conditions
+### 애플리케이션 필수 조건
 
 Scale-out PoC 전에 애플리케이션은 아래 조건을 만족해야 한다.
 
@@ -1390,7 +1359,7 @@ Scale-out PoC 전에 애플리케이션은 아래 조건을 만족해야 한다.
 - actuator health가 instance별로 확인 가능
 ```
 
-### PoC 1. Two-Server Role Separation
+### PoC 1. 두 서버 역할 분리
 
 목적:
 
@@ -1410,9 +1379,9 @@ data server
   - Redis
 ```
 
-현재 external-data cutover 구조가 이 PoC의 운영 baseline에 가깝다.
+현재 external-data cutover 구조가 이 PoC의 운영 기준 구조에 가깝다.
 
-### PoC 2. Manual Nginx Load Balancing
+### PoC 2. 수동 Nginx Load Balancing
 
 목적:
 
@@ -1447,7 +1416,7 @@ curl -sI https://api.clueroom.xyz/actuator/health | grep -i 'X-ClueRoom-Upstream
 /opt/clueroom/scaleout/scripts/verify-lb-distribution.sh 60 scaleout
 ```
 
-2026-06-12 result:
+2026-06-12 결과:
 
 ```text
 21 / 19 / 20
@@ -1460,7 +1429,9 @@ Rollback 확인:
 curl -sI https://api.clueroom.xyz/actuator/health | grep -i 'X-ClueRoom-Upstream'
 ```
 
-### PoC 3. Server-Level Blue-Green
+### 향후 후보. 서버 단위 Blue-Green
+
+이 항목은 2026-06-12 POC-006의 검증 범위가 아니다. 이번 PoC에서 검증한 것은 prod Nginx에 local active slot과 임시 app01/app02를 수동 upstream으로 붙이는 방식이다.
 
 목적:
 
@@ -1477,42 +1448,42 @@ shared data server
 Nginx upstream switch
 ```
 
-Nginx active upstream file idea:
+Nginx active upstream 예시:
 
 ```nginx
-upstream clueroom_poc_backend {
-    server 10.0.0.31:8080;
+upstream clueroom_backend {
+    server <app-blue-private-ip>:8080;
 }
 ```
 
-Switch target:
+전환 대상 예시:
 
 ```nginx
-upstream clueroom_poc_backend {
-    server 10.0.0.32:8080;
+upstream clueroom_backend {
+    server <app-green-private-ip>:8080;
 }
 ```
 
-Procedure:
+절차:
 
 ```text
-1. current active: app-blue-01
-2. deploy new app version to app-green-01
-3. check green health through private IP
-4. switch Nginx upstream to green
+1. 현재 active: app-blue-01
+2. 새 app 버전을 app-green-01에 배포
+3. private IP로 green health 확인
+4. Nginx upstream을 green으로 전환
 5. nginx -t
-6. reload Nginx
-7. external health check
-8. keep blue running for rollback window
+6. Nginx reload
+7. 외부 health check
+8. rollback window 동안 blue 유지
 ```
 
 Rollback:
 
 ```text
-switch Nginx upstream back to app-blue-01 and reload
+Nginx upstream을 app-blue-01로 되돌리고 reload
 ```
 
-### Shared Data And State
+### 공유 데이터와 상태
 
 공유되어야 하는 것:
 
@@ -1520,21 +1491,21 @@ switch Nginx upstream back to app-blue-01 and reload
 MySQL
 Redis
 S3
-secret distribution policy
-AI provider config
-monitoring/logging path
+secret 배포 정책
+AI provider 설정
+monitoring/logging 경로
 ```
 
 공유하면 안 되는 것:
 
 ```text
-container local filesystem uploads
+container local filesystem upload
 local in-memory lock
 local-only session state
-manual DB dump copy as live sync
+수동 DB dump copy를 live sync처럼 사용하는 방식
 ```
 
-### Verification Checklist
+### 검증 체크리스트
 
 ```text
 - app-01/app-02 health가 각각 200인지
