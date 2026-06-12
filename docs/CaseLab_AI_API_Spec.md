@@ -2043,7 +2043,8 @@ GET /api/scenarios/{scenarioId}/reviews
         "reviewId": 1,
         "user": {
           "userId": 2,
-          "nickname": "추리러버"
+          "nickname": "추리러버",
+          "profileImageUrl": "https://cdn.clueroom.xyz/profiles/2.jpg"
         },
         "rating": 5,
         "content": "증거 조합이 재밌었습니다.",
