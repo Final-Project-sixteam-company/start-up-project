@@ -6,7 +6,9 @@ CREATE TABLE IF NOT EXISTS scenario_bookmarks (
     user_id BIGINT NOT NULL,
     created_at DATETIME NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_scenario_bookmarks_user_scenario (user_id, scenario_id)
+    UNIQUE KEY uk_scenario_bookmarks_user_scenario (user_id, scenario_id),
+    CONSTRAINT fk_scenario_bookmarks_scenario FOREIGN KEY (scenario_id) REFERENCES scenarios (id),
+    CONSTRAINT fk_scenario_bookmarks_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS scenario_reviews (
@@ -20,7 +22,9 @@ CREATE TABLE IF NOT EXISTS scenario_reviews (
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_scenario_reviews_user_scenario (user_id, scenario_id),
-    KEY idx_scenario_reviews_scenario (scenario_id, created_at)
+    KEY idx_scenario_reviews_scenario (scenario_id, created_at),
+    CONSTRAINT fk_scenario_reviews_scenario FOREIGN KEY (scenario_id) REFERENCES scenarios (id),
+    CONSTRAINT fk_scenario_reviews_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS scenario_reports (
@@ -35,5 +39,7 @@ CREATE TABLE IF NOT EXISTS scenario_reports (
     PRIMARY KEY (id),
     UNIQUE KEY uk_scenario_reports_reporter_scenario (reporter_id, scenario_id),
     KEY idx_scenario_reports_scenario (scenario_id, status),
-    KEY idx_scenario_reports_reporter (reporter_id)
+    KEY idx_scenario_reports_reporter (reporter_id),
+    CONSTRAINT fk_scenario_reports_scenario FOREIGN KEY (scenario_id) REFERENCES scenarios (id),
+    CONSTRAINT fk_scenario_reports_reporter FOREIGN KEY (reporter_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
