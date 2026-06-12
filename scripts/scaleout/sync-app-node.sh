@@ -28,9 +28,10 @@ ls -lh "$JAR_FILE"
 
 echo "[3/9] Prepare app node directories"
 ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "
+  set -Eeuo pipefail
   mkdir -p '$APP_NODE_APP_DIR/build/libs'
   mkdir -p '$APP_NODE_SECRET_ENV_DIR'
-  chmod 700 /opt/clueroom/secrets /opt/clueroom/secrets/env.d 2>/dev/null || true
+  chmod 700 /opt/clueroom/secrets /opt/clueroom/secrets/env.d
 "
 
 echo "[4/9] Sync app source without build artifacts"
@@ -59,12 +60,40 @@ scp "${SSH_OPTS[@]}" "$JAR_FILE" "$SSH_TARGET:${APP_NODE_APP_DIR}/build/libs/app
 echo "[6/9] Sync secret env files"
 cd /opt/clueroom
 tar -czf - secrets/env.d \
-| ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "
-  cd /opt/clueroom &&
-  tar -xzf - &&
-  chmod 700 /opt/clueroom/secrets /opt/clueroom/secrets/env.d &&
-  chmod 600 /opt/clueroom/secrets/env.d/* 2>/dev/null || true
-"
+| ssh "${SSH_OPTS[@]}" "$SSH_TARGET" '
+  set -Eeuo pipefail
+
+  TARGET="/opt/clueroom/secrets/env.d"
+  STAGING="/opt/clueroom/secrets/.env-d-sync.$$"
+  BACKUP="/opt/clueroom/secrets/.env-d-prev.$$"
+
+  cleanup_env_sync() {
+    status=$?
+    if [ "$status" -ne 0 ] && [ -n "${BACKUP:-}" ] && [ -d "$BACKUP" ] && [ ! -e "$TARGET" ]; then
+      mv "$BACKUP" "$TARGET" || true
+    fi
+    rm -rf "$STAGING"
+    return "$status"
+  }
+
+  trap cleanup_env_sync EXIT
+
+  rm -rf "$STAGING" "$BACKUP"
+  mkdir -p "$STAGING"
+  tar -xzf - -C "$STAGING" --strip-components=2
+  test "$(find "$STAGING" -type f | wc -l)" -gt 0
+  chmod 700 /opt/clueroom/secrets "$STAGING"
+  find "$STAGING" -type f -exec chmod 600 {} +
+  find "$STAGING" -type d -exec chmod 700 {} +
+
+  if [ -d "$TARGET" ]; then
+    mv "$TARGET" "$BACKUP"
+  fi
+  mv "$STAGING" "$TARGET"
+  rm -rf "$BACKUP"
+  BACKUP=""
+  trap - EXIT
+'
 
 echo "[7/9] Sync Firebase/scenario secrets"
 /opt/clueroom/scaleout/scripts/sync-app-node-extra-secrets.sh
