@@ -40,7 +40,7 @@ guidance가 추리 보조인지 정답 경로 고정인지: 있는 guidance는 �
 | Priority | Scenario | Finding | Evidence | Expected | Actual | Impact | Recommended Action |
 |---|---|---|---|---|---|---|---|
 | P1 | 공통 | API evidence response에 spoiler-like metadata 필드가 노출됨 | locked/unlocked evidence raw field names에 `importance`, `imageAssetKey`, `imageUrl` 존재 | public play API는 후보성/중요도/asset 기반 역할 추론 필드를 gameplay 응답에서 제거하거나 서버에서 redaction | API-only runner가 별도 마스킹하지 않으면 blind validity가 깨질 수 있음 | QA/외부 클라이언트가 CORE/FAKE 또는 역할성 asset 추론을 볼 위험 | public DTO에서 제거하거나 앱 전용 안전 필드만 반환 |
-| P1 | 스튜디오9 | 50턴 내 후보를 1~2명으로 좁히기 어려움 | 50턴 후에도 프롬프터/조명/안전장치/마킹 동선 축이 병렬로 남음 | guidance와 AI 답변이 비교 순서를 제시해 후보가 단계적으로 축소됨 | 물리 단서는 늘어나지만 사용자가 직접 비교 그래프를 구성해야 함 | 신규 유저가 찍기 없이 최종 제출하기 어려움 | 핵심 증거군별 reading/compare/question guidance를 앞당겨 추가 |
+| P1 | 스튜디오9 | 50턴 내 후보를 1~2명으로 좁히기 어려움 | 50턴 후에도 여러 현장 조건, 역할, 동선 축이 병렬로 남음 | guidance와 AI 답변이 비교 순서를 제시해 후보가 단계적으로 축소됨 | 물리 단서는 늘어나지만 사용자가 직접 비교 그래프를 구성해야 함 | 신규 유저가 찍기 없이 최종 제출하기 어려움 | 핵심 증거군별 reading/compare/question guidance를 앞당겨 추가 |
 | P1 | 서월채 | 50턴 내 최종 후보 확정 기준 미충족 | 접근/동선 신호는 생기지만 동기/수단/기회/은폐가 한 후보로 수렴하지 않음 | 30~50턴 안에 최종 후보 1~2명 수준까지 축소 | 중반 이후에도 여러 축이 남아 최종 제출 보류 | 최종 추리 제출 흐름까지 자연스럽게 도달하지 못함 | 5분 해금 증거에도 guidance를 확장하고 비교 순서를 명확히 제공 |
 | P2 | 공통 | guidance coverage가 낮음 | 서월채: 5분 후 13개 해금 중 2개 guidance, 스튜디오9: 10분 후 29개 해금 중 2개 guidance | 주요 해금 증거에는 readingPoints/compareEvidences/suggestedQuestions 제공 | 일부 증거에만 제공되어 사용자가 다음 질문을 직접 설계해야 함 | 진행감은 있으나 UX 안내가 약함 | 핵심/분기 증거마다 최소 readingPoints와 next compare target 제공 |
 | P2 | 공통 | Android chip prefill-only 동작 미확인 | 현재 세션에서 Android UI 조작 불가 | chip tap, draft override, 자동 전송 여부 검증 | API-only로는 UI 동작을 검증할 수 없음 | 프론트 계약 핵심 항목이 미검증 상태 | Android retest에서 별도 확인 필요 |
@@ -94,18 +94,18 @@ Turn 1~10:
   evidence used: initial motive/meeting evidence
   public narrowing delta: broader
   AI answer quality: mostly concise; some evasive
-  next interrogation plan: dinner/item movement and 2F route comparison
+  next interrogation plan: initial timeline and movement comparison
 
 Turn 11~20:
   main targets: all suspects
-  evidence used: dinner/item/water evidence
+  evidence used: initial public evidence set
   public narrowing delta: narrower
   AI answer quality: helpful enough, no direct spoiler
-  next interrogation plan: medication and blind-spot route
+  next interrogation plan: newly unlocked clue comparison
 
 Turn 21~30:
   main targets: all suspects
-  evidence used: medication/2F blind-spot evidence
+  evidence used: newly unlocked location/context evidence
   public narrowing delta: narrower but not decisive
   AI answer quality: concise; several "cannot confirm" answers
   next interrogation plan: wait for timed unlock and compare logs
@@ -163,7 +163,7 @@ turns used: 50
 candidate narrowing: broad -> multiple axes, but final 1~2명 확정 실패
 blind validity: API metadata masking 적용
 blocked moments: 초기 30턴 동안 guidance가 전혀 없어 질문 설계 부담이 큼
-public narrowing summary: 마킹/프롬프터/조명/안전장치/예산 축이 병렬로 남음
+public narrowing summary: 여러 역할, 현장 조건, 운영 단서 축이 병렬로 남음
 rejected-candidate rationale detail: omitted from public report; private note only
 remaining doubt: public-safe broad summary only
 ```
@@ -186,21 +186,21 @@ Turn 11~20:
   next interrogation plan: repeat comparison without guidance
 
 Turn 21~30:
-  main targets: prompt/lighting/safety/record roles
+  main targets: several production/context roles
   evidence used: initial evidence only
   public narrowing delta: stalled
   AI answer quality: useful but non-decisive
   next interrogation plan: wait for timed unlock
 
 Turn 31~40:
-  main targets: actor/safety/production/record roles
+  main targets: several role/context groups
   evidence used: 5-minute unlock physical evidence
   public narrowing delta: narrower, still multiple axes
-  AI answer quality: one strong physical trace signal, still no final certainty
+  AI answer quality: one late evidence signal became stronger, still no final certainty
   next interrogation plan: 10-minute unlock and guidance check
 
 Turn 41~50:
-  main targets: prompt/lighting/safety/actor roles
+  main targets: remaining role/context groups
   evidence used: 10-minute unlock guidance and related evidence
   public narrowing delta: narrower but not enough for final submit
   AI answer quality: safe and mostly helpful
@@ -286,26 +286,26 @@ public report policy:
 ### 12.1 서월채 Extended Result
 
 ```text
-candidate narrowing: additional evidence unlocked and narrowed the method path substantially
-key public-safe shift: generic medication/wine possibilities weakened, direct in-room consumption path strengthened
+candidate narrowing: additional evidence unlocked and narrowed candidate reasoning substantially
+key public-safe shift: late evidence made one hypothesis more supportable while earlier broad alternatives became less persuasive
 confidence after extra turns: submit-ready
-original 30~50 target impact: still PARTIAL because the decisive narrowing required turn 62+ unlock/interrogation
+original 30~50 target impact: still PARTIAL because submit-ready narrowing required turn 62+ unlock/interrogation
 ```
 
-추가 심문 중 남은 증거가 해금되면서 시간대와 섭취 경로를 더 직접적으로 비교할 수 있었다.
+추가 심문 중 남은 증거가 해금되면서 후보별 설명 가능성을 더 안전하게 비교할 수 있었다.
 이후 같은 증거를 여러 용의자에게 제시해 반응 차이를 확인했고, 최종 제출 가능한 수준까지 후보 논리가 수렴했다.
 
 ### 12.2 스튜디오9 Extended Result
 
 ```text
-candidate narrowing: all evidence unlocked; direct failure path separated from secondary risk conditions
-key public-safe shift: marking/prompt/lighting signals remained important but read more like enabling or distracting conditions, while the direct safety-failure path became stronger
+candidate narrowing: all evidence unlocked; primary hypothesis separated from secondary contextual conditions
+key public-safe shift: late comparison evidence made one hypothesis stronger while several contextual signals became secondary
 confidence after extra turns: submit-ready
 original 30~50 target impact: still PARTIAL/FAIL because decisive separation required all-evidence interrogation after turn 50
 ```
 
-추가 심문에서는 위치 유도, 프롬프터, 조명, 안전장치를 분리해서 물었다.
-그 결과 여러 위험 조건 중 직접 실패 원인으로 볼 축이 더 선명해졌고, 최종 제출 가능한 수준까지 후보 논리가 수렴했다.
+추가 심문에서는 여러 현장 조건과 행동 단서를 분리해서 물었다.
+그 결과 여러 가능성 중 핵심 설명 축이 더 선명해졌고, 최종 제출 가능한 수준까지 후보 논리가 수렴했다.
 
 ### 12.3 Updated Public-Safe Follow-up
 
