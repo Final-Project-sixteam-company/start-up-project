@@ -39,7 +39,9 @@ public class ReviewService {
     // 시나리오 리뷰 작성
     @Transactional
     public Long addReview(Long userId, Long scenarioId, ReviewCreateRequest request) {
-        Scenario scenario = getAccessibleScenario(userId, scenarioId);
+        scenarioAccessService.validateViewable(userId, scenarioId);
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         if (scenario.getCreatorId() != null && scenario.getCreatorId().equals(userId)) {
             throw new CommunityException(CommunityErrorCode.CANNOT_REVIEW_OWN);
@@ -105,6 +107,9 @@ public class ReviewService {
             throw new CommunityException(CommunityErrorCode.NOT_REVIEW_OWNER);
         }
 
+        // 동시성 제어를 위해 시나리오 락 획득
+        scenarioRepository.findByIdForUpdate(review.getScenarioId());
+
         review.updateReview(request.rating(), request.content(), request.isSpoiler());
         
         // flush 후 평점 재계산 (수정 시 별점이 변경되었을 수 있으므로)
@@ -125,17 +130,14 @@ public class ReviewService {
         }
 
         Long scenarioId = review.getScenarioId();
+        
+        // 동시성 제어를 위해 시나리오 락 획득
+        scenarioRepository.findByIdForUpdate(scenarioId);
+
         reviewRepository.delete(review);
         
         // flush 후 평점 재계산
         reviewRepository.flush();
         scenarioRepository.recalculateRating(scenarioId);
-    }
-
-    // 인증 및 접근 권한 검증 후 시나리오 조회
-    private Scenario getAccessibleScenario(Long userId, Long scenarioId) {
-        scenarioAccessService.validateViewable(userId, scenarioId);
-        return scenarioRepository.findById(scenarioId)
-                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
     }
 }
