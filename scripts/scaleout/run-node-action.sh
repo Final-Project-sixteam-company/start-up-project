@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-NODE="${1:?Usage: run-node-action.sh <node-key> <sync|start|check|reset|alloy|verify-secrets>}"
-ACTION="${2:?Usage: run-node-action.sh <node-key> <sync|start|check|reset|alloy|verify-secrets>}"
+NODE="${1:?Usage: run-node-action.sh <node-key> <sync|start|check|reset|alloy|verify-secrets|scrub-secrets>}"
+ACTION="${2:?Usage: run-node-action.sh <node-key> <sync|start|check|reset|alloy|verify-secrets|scrub-secrets>}"
 
 BASE_DIR="/opt/clueroom/scaleout"
 SCRIPTS_DIR="$BASE_DIR/scripts"
@@ -20,5 +20,6 @@ case "$ACTION" in
   reset) "$SCRIPTS_DIR/reset-app-node-runtime.sh" ;;
   alloy) "$SCRIPTS_DIR/install-app-node-alloy.sh" ;;
   verify-secrets) "$SCRIPTS_DIR/verify-app-node-secrets.sh" ;;
+  scrub-secrets) "$SCRIPTS_DIR/scrub-app-node-secrets.sh" ;;
   *) echo "ERROR: unknown action: $ACTION"; exit 1 ;;
 esac

@@ -1402,11 +1402,12 @@ PoC 후 정리 순서:
 1. Nginx local-only 원복
 2. verify-lb-distribution.sh 20 local-only로 local active만 확인
 3. run-all-nodes.sh reset
-4. terraform plan -destroy
-5. destroy 대상이 app nodes/key pair/ports뿐인지 확인
-6. terraform apply destroy
-7. Lightsail app node 제거 확인
-8. prod inventory stale 파일 백업 후 정리
+4. 필요 시 CONFIRM_SCRUB_APP_NODE_SECRETS=YES /opt/clueroom/scaleout/scripts/run-all-nodes.sh scrub-secrets
+5. terraform plan -destroy
+6. destroy 대상이 app nodes/key pair/ports뿐인지 확인
+7. terraform apply destroy
+8. Lightsail app node 제거 확인
+9. prod inventory stale 파일 백업 후 정리
 ```
 
 절대 하지 말 것:

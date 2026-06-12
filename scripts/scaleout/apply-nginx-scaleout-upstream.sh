@@ -7,11 +7,39 @@ COMMON_ENV="$BASE_DIR/common.env"
 NODES_DIR="$BASE_DIR/nodes"
 BACKUP_DIR="$BASE_DIR/backups/nginx-upstream"
 UPSTREAM_CONF="/etc/nginx/conf.d/clueroom-upstream.conf"
+LOCK_FILE="/tmp/clueroom-scaleout-nginx.lock"
+TMP_CONF=""
+BACKUP_FILE=""
 
 test -f "$COMMON_ENV"
 test -d "$NODES_DIR"
 source "$COMMON_ENV"
 mkdir -p "$BACKUP_DIR"
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "ERROR: another scaleout Nginx operation is already running"
+  exit 1
+fi
+
+cleanup() {
+  if [ -n "${TMP_CONF:-}" ]; then
+    rm -f "$TMP_CONF"
+  fi
+}
+
+restore_upstream() {
+  if [ -z "${BACKUP_FILE:-}" ] || [ ! -s "$BACKUP_FILE" ]; then
+    echo "ERROR: cannot restore upstream because backup is missing"
+    return 1
+  fi
+
+  echo "restore upstream config from backup: $BACKUP_FILE"
+  sudo cp "$BACKUP_FILE" "$UPSTREAM_CONF"
+  sudo nginx -t && sudo systemctl reload nginx || true
+}
+
+trap cleanup EXIT
 
 case "$MODE" in
   canary) LOCAL_WEIGHT=3; NODE_WEIGHT=1 ;;
@@ -102,8 +130,15 @@ if grep -Eq 'server 127[.]0[.]0[.]1:80([[:space:];]|$)' "$TMP_CONF"; then
 fi
 
 sudo cp "$TMP_CONF" "$UPSTREAM_CONF"
-sudo nginx -t
-sudo systemctl reload nginx
+if ! sudo nginx -t; then
+  restore_upstream
+  exit 1
+fi
+
+if ! sudo systemctl reload nginx; then
+  restore_upstream
+  exit 1
+fi
 
 curl -I https://api.clueroom.xyz/actuator/health
 

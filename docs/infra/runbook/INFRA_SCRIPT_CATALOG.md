@@ -48,8 +48,8 @@
 | `scripts/scaleout/init-inventory-from-current.sh` | prod 서버 | MAINTENANCE | 기존 `scaleout.env`에서 `common.env`와 단일 node env를 생성한다. | `/opt/clueroom/scaleout/scaleout.env` 존재, private IP/Loki URL 값 | `/opt/clueroom/scaleout/*.env`는 운영 제어 파일이므로 public 문서에 붙이지 않는다. |
 | `scripts/scaleout/build-node-envs-from-terraform-output.sh` | prod 서버 | MAINTENANCE | Terraform output JSON에서 `/opt/clueroom/scaleout/nodes/*.env`를 생성한다. | `app_private_ips.json`, `app_public_ips.json`, `jq` | Terraform output 파일은 repo에 커밋하지 않는다. |
 | `scripts/scaleout/select-scaleout-node.sh` | prod 서버 | MAINTENANCE | 선택한 node env와 `common.env`를 합쳐 active `scaleout.env`를 만든다. | node key, `common.env`, `nodes/<key>.env` | 이후 sync/start/check 대상이 바뀐다. public IP와 Loki push URL은 출력 시 redacted 처리한다. |
-| `scripts/scaleout/run-node-action.sh` | prod 서버 | ARG_DEPENDENT | 단일 node 선택 후 `sync/start/check/reset/alloy/verify-secrets` 중 하나를 실행한다. | node key, action 오타 여부 | action의 위험도를 그대로 따른다. `reset`은 DESTRUCTIVE다. |
-| `scripts/scaleout/run-all-nodes.sh` | prod 서버 | ARG_DEPENDENT | 모든 node에 동일 action을 순차 실행한다. | nodes directory 대상 목록 | 모든 node에 영향을 준다. `reset`, `sync`, `start`, `alloy`는 특히 재확인한다. |
+| `scripts/scaleout/run-node-action.sh` | prod 서버 | ARG_DEPENDENT | 단일 node 선택 후 `sync/start/check/reset/alloy/verify-secrets/scrub-secrets` 중 하나를 실행한다. | node key, action 오타 여부 | action의 위험도를 그대로 따른다. `reset`, `scrub-secrets`는 DESTRUCTIVE다. |
+| `scripts/scaleout/run-all-nodes.sh` | prod 서버 | ARG_DEPENDENT | 모든 node에 동일 action을 순차 실행한다. | nodes directory 대상 목록 | 모든 node에 영향을 준다. `reset`, `scrub-secrets`, `sync`, `start`, `alloy`는 특히 재확인한다. |
 | `scripts/scaleout/sync-app-node.sh` | prod 서버 -> app node | DEPLOY | prod의 app source, jar, env, secret env, Firebase/scenario secret을 app node로 동기화한다. | SSH key, node private IP, prod app files, bootJar 성공 | `.private`, Terraform 산출물, key 파일은 tar 제외된다. secret 내용은 출력하지 않는다. |
 | `scripts/scaleout/sync-app-node-extra-secrets.sh` | prod 서버 -> app node | DEPLOY | Firebase service account와 scenario secret directory를 app node로 복사한다. | prod secret 파일/디렉터리 존재, scenario file count | 파일 존재와 크기만 확인한다. secret JSON 내용은 출력하지 않는다. Firebase 전송용 임시 파일은 실패/중단 시 cleanup trap으로 제거하고, scenario directory는 staging 성공 후 교체한다. |
 | `scripts/scaleout/start-app-node.sh` | prod 서버 -> app node | DEPLOY | app node의 `.env`를 external data 기준으로 보정하고 `start-up-app` container를 기동한다. | sync 완료, data server 3306/6379 TCP, runtime env 파일 생성 | health timeout 시 container를 제거하고 진단 로그를 출력한다. secret이 합쳐진 runtime env는 종료/중단 시 cleanup한다. |
@@ -57,8 +57,9 @@
 | `scripts/scaleout/verify-app-node-secrets.sh` | prod 서버 -> app node | READ_ONLY | host/container에서 Firebase, scenarios, JWT secret 존재 여부를 확인한다. | app node SSH, optional app container running | 값은 출력하지 않는다. container count는 container 내부에서 계산하고, 존재 여부와 count만 본다. |
 | `scripts/scaleout/install-app-node-alloy.sh` | prod 서버 -> app node | DEPLOY | app node에 Grafana Alloy container를 설치/재시작하고 Docker app log를 ops Loki로 전송한다. | `OPS_LOKI_PUSH_URL`, Docker socket, app node SSH | 기존 `clueroom-app-node-alloy` container를 제거 후 재생성한다. Loki push URL이 들어간 local/remote temp config와 최종 `config.alloy`는 `600` 권한으로 유지한다. |
 | `scripts/scaleout/reset-app-node-runtime.sh` | prod 서버 -> app node | DESTRUCTIVE | app node의 `start-up-app`, Alloy container, runtime env 파일을 제거한다. | PoC 종료/정리 대상 node 확인 | 실행 후 해당 app node는 traffic 대상이면 안 된다. 먼저 Nginx local-only rollback을 확인한다. |
-| `scripts/scaleout/apply-nginx-scaleout-upstream.sh` | prod 서버 | DEPLOY | local active backend와 healthy app nodes를 Nginx upstream에 넣고 reload한다. `canary/equal` 모드 지원. | local active health, node health, `common.env`, `nodes/*.env` | 적용 전 upstream backup 생성. `127.0.0.1:80`/port 누락 guard가 있다. |
-| `scripts/scaleout/rollback-nginx-scaleout-upstream.sh` | prod 서버 | DEPLOY | Nginx upstream을 local-only 또는 최신 backup으로 되돌린다. | local active `8081/8082` 감지, Nginx config | 기본은 `local-only`다. PoC 종료 시 먼저 이 스크립트로 app node traffic을 제거한다. |
+| `scripts/scaleout/scrub-app-node-secrets.sh` | prod 서버 -> app node | DESTRUCTIVE | PoC app node에 복사된 env.d, Firebase JSON, scenario files, app `.env`, Alloy config를 제거한다. | Nginx local-only rollback 완료, target node 확인, `CONFIRM_SCRUB_APP_NODE_SECRETS=YES` | destroy 전 app node를 잠시 유지할 때 secret 잔존을 줄인다. 실행 후 app runtime은 재기동할 수 없다. |
+| `scripts/scaleout/apply-nginx-scaleout-upstream.sh` | prod 서버 | DEPLOY | local active backend와 healthy app nodes를 Nginx upstream에 넣고 reload한다. `canary/equal` 모드 지원. | local active health, node health, `common.env`, `nodes/*.env` | flock으로 동시 실행을 막는다. 적용 전 upstream backup 생성. `nginx -t`/reload 실패 시 backup으로 자동 원복한다. `127.0.0.1:80`/port 누락 guard가 있다. |
+| `scripts/scaleout/rollback-nginx-scaleout-upstream.sh` | prod 서버 | DEPLOY | Nginx upstream을 local-only 또는 최신 backup으로 되돌린다. | local active `8081/8082` 감지, Nginx config | flock으로 동시 실행을 막는다. 기본은 `local-only`다. rollback 적용 전 backup을 만들고 실패 시 원복한다. PoC 종료 시 먼저 이 스크립트로 app node traffic을 제거한다. |
 | `scripts/scaleout/verify-lb-distribution.sh` | 로컬 PC 또는 prod 서버 | READ_ONLY | public health header의 `X-ClueRoom-Upstream` 분산 결과를 집계하고 기대 상태를 검증한다. | 기대값 `scaleout/local-only/any`, 요청 횟수 | health 요청만 보낸다. `127.0.0.1:80` 또는 port 누락이 보이면 즉시 rollback한다. |
 
 ## 5. 대표 실행 흐름
@@ -114,6 +115,7 @@ PoC 종료 시:
 /opt/clueroom/scaleout/scripts/rollback-nginx-scaleout-upstream.sh local-only
 /opt/clueroom/scaleout/scripts/verify-lb-distribution.sh 20 local-only
 /opt/clueroom/scaleout/scripts/run-all-nodes.sh reset
+CONFIRM_SCRUB_APP_NODE_SECRETS=YES /opt/clueroom/scaleout/scripts/run-all-nodes.sh scrub-secrets
 ```
 
 Terraform destroy는 local workstation에서 별도 절차로 수행한다.

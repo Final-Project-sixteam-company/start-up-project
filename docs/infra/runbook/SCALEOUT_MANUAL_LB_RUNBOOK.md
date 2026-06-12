@@ -117,6 +117,8 @@ Loki: app node docker-app 로그 확인 가능
 
 검증 스크립트는 secret에 대해 presence yes/no 또는 file-visible/missing 상태만 출력해야 한다. secret 내용 자체를 출력하면 안 된다.
 
+`start-app-node.sh` 실패 diagnostics에는 `docker logs --tail` 결과가 포함된다. 이 출력은 원인 파악용이며 Slack, PR, 문서, AI 채팅에 붙일 때는 raw user input, prompt, answer, token, secret, SQL bind 값을 먼저 마스킹한다.
+
 ## Nginx Upstream 적용
 
 apply 스크립트는 `X-ClueRoom-Upstream`, `/etc/nginx/conf.d/clueroom-upstream.conf`, `/opt/clueroom/bg-status.sh` 중 가능한 경로에서 active local Blue-Green upstream을 감지한다.
@@ -159,6 +161,9 @@ PoC 중 초기 upstream rewrite 경로에서 `127.0.0.1:80` 또는 active app po
 - local upstream에 port가 없으면 생성된 upstream config를 거부함
 - 127.0.0.1:80 또는 port 없는 127.0.0.1이 보이면 분산 검증 실패
 - reload 전에 Nginx config test 수행
+- apply/rollback은 `/tmp/clueroom-scaleout-nginx.lock`으로 동시 실행을 막음
+- apply 중 `nginx -t` 또는 reload 실패 시 scale-out 적용 전 backup upstream으로 자동 원복
+- rollback 중 `nginx -t` 또는 reload 실패 시 rollback 적용 전 backup upstream으로 자동 원복
 ```
 
 잘못된 upstream이 감지되면 즉시 rollback한다.
@@ -203,6 +208,23 @@ app node runtime을 정리한다.
 
 ```bash
 /opt/clueroom/scaleout/scripts/run-all-nodes.sh reset
+```
+
+app node를 바로 destroy하지 않고 잠시 유지하거나 인증샷/검증을 이어갈 때는 복사된 secret을 별도로 scrub한다.
+
+```bash
+CONFIRM_SCRUB_APP_NODE_SECRETS=YES /opt/clueroom/scaleout/scripts/run-all-nodes.sh scrub-secrets
+```
+
+scrub 대상:
+
+```text
+/opt/clueroom/secrets/env.d/*
+/opt/clueroom/secrets/firebase-service-account.json
+/opt/clueroom/secrets/scenarios
+/opt/clueroom/app/.env
+/tmp/clueroom-app-node-runtime.env
+/opt/clueroom/alloy/config.alloy
 ```
 
 Terraform destroy는 별도의 로컬 작업 PC 절차다. 적용 전에 destroy plan 대상이 임시 app node, scaleout key pair, 관련 Lightsail port resource뿐인지 확인한다.

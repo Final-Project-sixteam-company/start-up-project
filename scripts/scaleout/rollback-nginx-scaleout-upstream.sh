@@ -5,6 +5,36 @@ MODE="${1:-local-only}"
 BASE_DIR="/opt/clueroom/scaleout"
 BACKUP_DIR="$BASE_DIR/backups/nginx-upstream"
 UPSTREAM_CONF="/etc/nginx/conf.d/clueroom-upstream.conf"
+LOCK_FILE="/tmp/clueroom-scaleout-nginx.lock"
+TMP_CONF=""
+CURRENT_BACKUP=""
+TS="$(date +%Y%m%d_%H%M%S)"
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "ERROR: another scaleout Nginx operation is already running"
+  exit 1
+fi
+
+cleanup() {
+  if [ -n "${TMP_CONF:-}" ]; then
+    rm -f "$TMP_CONF"
+  fi
+}
+
+trap cleanup EXIT
+mkdir -p "$BACKUP_DIR"
+
+CURRENT_BACKUP="$BACKUP_DIR/clueroom-upstream.conf.before-rollback-$TS"
+sudo cp "$UPSTREAM_CONF" "$CURRENT_BACKUP"
+
+restore_current_upstream() {
+  if [ -s "$CURRENT_BACKUP" ]; then
+    echo "restore upstream config from pre-rollback backup: $CURRENT_BACKUP"
+    sudo cp "$CURRENT_BACKUP" "$UPSTREAM_CONF"
+    sudo nginx -t && sudo systemctl reload nginx || true
+  fi
+}
 
 detect_local_active() {
   local active
@@ -54,6 +84,13 @@ EOF
     ;;
 esac
 
-sudo nginx -t
-sudo systemctl reload nginx
+if ! sudo nginx -t; then
+  restore_current_upstream
+  exit 1
+fi
+
+if ! sudo systemctl reload nginx; then
+  restore_current_upstream
+  exit 1
+fi
 curl -sI https://api.clueroom.xyz/actuator/health | grep -i 'X-ClueRoom-Upstream' || true

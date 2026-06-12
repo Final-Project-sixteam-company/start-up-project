@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ACTION="${1:?Usage: run-all-nodes.sh <sync|start|check|reset|alloy|verify-secrets>}"
+ACTION="${1:?Usage: run-all-nodes.sh <sync|start|check|reset|alloy|verify-secrets|scrub-secrets>}"
 BASE_DIR="/opt/clueroom/scaleout"
 NODES_DIR="$BASE_DIR/nodes"
 SCRIPTS_DIR="$BASE_DIR/scripts"
