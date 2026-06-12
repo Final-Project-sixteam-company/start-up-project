@@ -69,11 +69,36 @@ echo "[5/7] Sync scenarios directory using sudo tar on prod"
 sudo tar -C /opt/clueroom -czf - secrets/scenarios \
 | ssh "${SSH_OPTS[@]}" "$SSH_TARGET" '
   set -Eeuo pipefail
-  cd /opt/clueroom
-  rm -rf /opt/clueroom/secrets/scenarios
-  tar -xzf -
-  chmod 700 /opt/clueroom/secrets /opt/clueroom/secrets/scenarios
-  chmod -R go-rwx /opt/clueroom/secrets/scenarios
+
+  TARGET="/opt/clueroom/secrets/scenarios"
+  STAGING="/opt/clueroom/secrets/.scenarios-sync.$$"
+  BACKUP="/opt/clueroom/secrets/.scenarios-prev.$$"
+
+  cleanup_scenario_sync() {
+    status=$?
+    if [ "$status" -ne 0 ] && [ -n "${BACKUP:-}" ] && [ -d "$BACKUP" ] && [ ! -e "$TARGET" ]; then
+      mv "$BACKUP" "$TARGET" || true
+    fi
+    rm -rf "$STAGING"
+    return "$status"
+  }
+
+  trap cleanup_scenario_sync EXIT
+
+  rm -rf "$STAGING" "$BACKUP"
+  mkdir -p "$STAGING"
+  tar -xzf - -C "$STAGING" --strip-components=2
+  test "$(find "$STAGING" -type f | wc -l)" -gt 0
+  chmod 700 /opt/clueroom/secrets "$STAGING"
+  chmod -R go-rwx "$STAGING"
+
+  if [ -d "$TARGET" ]; then
+    mv "$TARGET" "$BACKUP"
+  fi
+  mv "$STAGING" "$TARGET"
+  rm -rf "$BACKUP"
+  BACKUP=""
+  trap - EXIT
 '
 
 echo "[6/7] Verify app node extra secrets on host"
