@@ -193,7 +193,98 @@ PromptVersion별 요약:
 - 2026-06-10 App ERROR 샘플은 LLM 호출 실패와 직접 연결된 증거가 아니므로 별도 애플리케이션 로그 분석이 필요하다.
 - `templateHashCount=2`는 배포 차이, prompt template 분기, 또는 hash 계산 기준 차이일 수 있으므로 현재 수치만으로 drift라고 단정하지 않는다.
 
-## 4. 조치 계획
+## 4. 비용 절감 개선 의견
+
+현재 비용 절감의 핵심은 모델 교체가 아니라 `npc_interrogation_v1`의 prompt context를 줄이는 것이다. 2026-06-13 v3 기준 completion은 호출당 평균 64 tokens에 불과하고, prompt가 호출당 평균 2,967 tokens다. 따라서 completion 길이를 줄이는 것보다 evidence/history context를 줄이는 작업이 우선순위가 높다.
+
+### 4.1 우선순위 판단
+
+| Priority | 개선 후보 | 근거 | 기대 효과 | 주의점 |
+|---|---|---|---|---|
+| P0 | Evidence relevance top-k | 최신 v3 평균 evidence token 1,830, top 구간 evidence count 35 | prompt/call의 가장 큰 block을 직접 축소 | 정답 단서 누락 위험. 사용자가 제시한 증거와 현재 suspect 관련 증거는 무조건 포함 |
+| P0 | Evidence token budget | top token 샘플에서 promptTokens 5,000대 반복 | 극단값을 제한해 비용/지연 spike 완화 | 단순 자르기는 위험. evidence별 요약/우선순위가 필요 |
+| P1 | History compaction | 최신 v3 평균 history token 579, top 구간 historyTurns 8~10 | 장기 심문에서 비용 증가를 완화 | 최근 발화와 이미 확인된 사실 요약을 분리해야 함 |
+| P1 | Static context 축약 | system/policy/NPC 합계는 evidence보다 작지만 매 호출 반복 | 작은 폭이지만 모든 호출에 누적 절감 | 안전 정책 문구를 과도하게 줄이면 누설 방어가 약해질 수 있음 |
+| P2 | Final deduction latency 추적 | `FINAL_DEDUCTION` 평균 3487ms지만 표본 2건 | 지연 원인 후보 확인 | 호출량/토큰 비중이 낮아 비용 절감 1순위는 아님 |
+
+### 4.2 권장 설계
+
+`npc_interrogation_v2_compact`는 아래 원칙으로 설계한다.
+
+```text
+1. 항상 포함:
+   - NPC public profile / alibi / public statement
+   - 사용자가 이번 질문에 직접 제시한 증거
+   - 현재 심문 대상 suspect와 직접 연결된 해금 증거
+   - ResponsePolicyResolver가 요구하는 allowed facts
+
+2. 제한 포함:
+   - 최근 해금 증거 top N
+   - 질문 키워드와 matching되는 증거
+   - 같은 장소/시간대/관련 인물로 연결되는 증거
+
+3. 제외 또는 요약:
+   - 질문/대상 suspect와 직접 관련이 약한 오래된 해금 증거
+   - 이미 여러 번 prompt에 들어간 장문 증거 설명
+   - UI 표시용 상세 설명 중 AI 답변에 필요 없는 문장
+```
+
+증거 top-k는 spoiler metadata를 쓰면 안 된다. `importance=CORE`, `culpritEligible` 같은 truth-adjacent field를 relevance 계산에 쓰면 비용은 줄어도 blind gameplay 안전성을 해친다. 대신 public-safe signal을 사용한다.
+
+```text
+허용 후보:
+- user-presented evidence id
+- relatedSuspects
+- location/time overlap
+- recent unlock
+- question keyword match
+- previous conversation references
+
+피해야 할 후보:
+- culpritEligible
+- solution/variant truth
+- importance=CORE/FAKE
+- private seed role
+```
+
+### 4.3 예상 절감 효과
+
+실제 단가가 없으므로 token 기반 상대 비교로만 본다.
+
+| 실험 | 목표 | 상대 절감 추정 |
+|---|---|---:|
+| evidence count cap 35 -> 12 이하 | top token 샘플의 evidence block 축소 | top 구간 prompt 30~45% 감소 가능 |
+| average evidence tokens 1,830 -> 900~1,200 | 평균 호출 비용 축소 | 전체 `INTERROGATION` prompt 20~35% 감소 가능 |
+| history turns 8~10 -> 최근 4~6 + summary | 장기 심문 비용 증가 완화 | history block 30~50% 감소 가능 |
+| static context 중복 문구 축약 | 모든 호출에 누적되는 고정 비용 축소 | 전체 prompt 3~8% 감소 가능 |
+
+위 수치는 `AI_CALL_CONTEXT` estimate 기반 추정이다. 실제 절감률은 동일 시나리오/동일 질문 세트로 v1과 v2를 비교해야 확정할 수 있다.
+
+### 4.4 품질 리스크와 방어선
+
+비용 절감이 추리 품질을 깨면 안 된다. 특히 현재 QA에서 30~50턴 내 후보 축소가 약하다는 문제가 있었기 때문에, context를 줄이되 “다음 비교 방향”을 잃지 않아야 한다.
+
+필수 방어선:
+
+```text
+- 사용자가 명시적으로 제시한 증거는 항상 포함
+- NPC가 알 수 없는 private solution/culprit fact는 계속 제외
+- compact prompt에서도 answer shape는 인정 사실 / 모르는 범위 / 다음 비교 대상 유지
+- evidence top-k에서 제외된 증거 때문에 답변이 "단정 불가"만 반복되는지 QA로 확인
+- promptVersion별로 token뿐 아니라 usefulness/safety를 같이 기록
+```
+
+### 4.5 다음 실험 계획
+
+| Step | 실험 | 성공 기준 |
+|---|---|---|
+| 1 | `npc_interrogation_v2_compact` shadow build | raw prompt 저장 없이 `AI_CALL_CONTEXT` block tokens만 비교 가능 |
+| 2 | 동일 시나리오/유사 질문 30~50개로 v1/v2 비교 | avgTotalTokensPerCall 30% 이상 감소, failure/fallback 0 유지 |
+| 3 | top token 구간 재현 | promptTokens 5,000대 샘플이 3,500 이하로 내려가는지 확인 |
+| 4 | blind QA 재검 | 답변이 더 짧아져도 후보 축소에 필요한 비교 방향이 유지되는지 확인 |
+| 5 | rollout | promptVersion별 dashboard에서 token/latency/safety를 같이 추적 |
+
+## 5. 조치 계획
 
 ### 바로 할 일
 
@@ -203,6 +294,7 @@ PromptVersion별 요약:
 4. `AI_CALL_CONTEXT`는 raw prompt 없이 block token, evidenceCount, historyTurns, promptVersion, templateHash만 남긴다.
 5. DB logging이 꺼진 상태에서도 호출량/실패율/지연시간/토큰 집계를 볼 수 있는 metric 또는 로그 경로를 만든다.
 6. `AI_CALL`과 `AI_CALL_CONTEXT` LogQL은 substring 충돌이 없도록 `AI_CALL `, `AI_CALL_CONTEXT `처럼 공백 포함 prefix로 분리한다.
+7. 비용 절감 실험은 token 절감률만 보지 말고 blind QA의 후보 축소 성공률과 함께 본다.
 
 ### 다음 단계
 
@@ -219,8 +311,10 @@ PromptVersion별 요약:
 - Prometheus label에 sessionId, scenarioId, suspectId, npcCode 같은 고카디널리티 값을 넣지 않는다.
 - failure가 0건이라는 이유로 token warning을 무시하지 않는다.
 - 비용 문제를 모델 교체로만 해결하려 하지 않는다. 현재 병목은 컨텍스트 크기다.
+- `importance=CORE`, `culpritEligible`, solution truth 같은 spoiler metadata를 relevance top-k에 사용하지 않는다.
+- 단순 evidence count cap만 걸고 품질 QA 없이 배포하지 않는다.
 
-## 5. 코드/운영 확인 지점
+## 6. 코드/운영 확인 지점
 
 | 영역 | 확인할 것 |
 |---|---|
@@ -232,8 +326,9 @@ PromptVersion별 요약:
 | Metrics | DB logging off 상태에서도 AI_CALL 지표가 남는지 확인 |
 | Alerts | high prompt ratio, high evidenceCount, high historyTurns, AI_CALL zero-rate, Loki/Alloy ingest freshness 알림 검토 |
 | LogQL | `AI_CALL `과 `AI_CALL_CONTEXT ` 쿼리가 서로 섞이지 않는지 확인 |
+| QA | compact prompt가 30~50턴 후보 축소와 정답 누설 방지에 미치는 영향 확인 |
 
-## 6. 중복 제거 기준
+## 7. 중복 제거 기준
 
 - 같은 기간의 v2/v3 LLMOps 보고서는 모두 보관 가치가 있지만, 원인 분석은 context breakdown이 있는 v3를 우선한다.
 - Infra health 반복 내용은 2026-06-13 최신 LLMOps v3 상태만 통합 결론에 반영했다.
