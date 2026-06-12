@@ -11,6 +11,8 @@ import com.startup.domain.community.dto.ReviewUpdateRequest;
 import com.startup.domain.community.error.CommunityErrorCode;
 import com.startup.domain.community.error.CommunityException;
 import com.startup.domain.community.repository.ScenarioReviewRepository;
+import com.startup.domain.play.entity.PlaySession;
+import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.Difficulty;
 import com.startup.domain.scenario.enums.ScenarioStatus;
@@ -35,6 +37,7 @@ public class ReviewServiceTest {
     @Autowired private ScenarioReviewRepository reviewRepository;
     @Autowired private ScenarioRepository scenarioRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private PlaySessionRepository playSessionRepository;
 
     private User reviewer;
     private User creator;
@@ -66,11 +69,19 @@ public class ReviewServiceTest {
                 .creatorId(creator.getId())
                 .status(ScenarioStatus.PUBLISHED)
                 .build());
+
+        PlaySession session = PlaySession.builder()
+                .userId(reviewer.getId())
+                .scenarioId(publishedScenario.getId())
+                .build();
+        session.markCompleted();
+        playSessionRepository.save(session);
     }
 
     @AfterEach
     void tearDown() {
         reviewRepository.deleteAllInBatch();
+        playSessionRepository.deleteAllInBatch();
         scenarioRepository.deleteAllInBatch();
         userRepository.deleteAllInBatch();
     }
@@ -97,6 +108,23 @@ public class ReviewServiceTest {
         assertThatThrownBy(() -> reviewService.addReview(creator.getId(), publishedScenario.getId(), request))
                 .isInstanceOf(CommunityException.class)
                 .hasMessageContaining(CommunityErrorCode.CANNOT_REVIEW_OWN.getMessage());
+    }
+
+    @Test
+    @DisplayName("리뷰 등록 실패: 플레이를 완료하지 않은 시나리오")
+    void addReview_fail_notCompleted() {
+        User unplayedUser = userRepository.save(User.builder()
+                .email("unplayed@test.com")
+                .nickname("미플레이어")
+                .role(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .build());
+
+        ReviewCreateRequest request = new ReviewCreateRequest(5, "안해봤지만 재밌을듯", false);
+
+        assertThatThrownBy(() -> reviewService.addReview(unplayedUser.getId(), publishedScenario.getId(), request))
+                .isInstanceOf(CommunityException.class)
+                .hasMessageContaining(CommunityErrorCode.MUST_PLAY_BEFORE_REVIEW.getMessage());
     }
 
     @Test
