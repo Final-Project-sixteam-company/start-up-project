@@ -94,6 +94,8 @@
 |---|---|---|
 | [QA_HANDOFF.md](QA_HANDOFF.md) | 현재 미해결 QA 이슈, 해결된 이슈, 재검증 항목 | 새 정본이다. 날짜별 QA 문서의 결론을 흡수한다. |
 | [QA_BLIND_RETEST_PROMPT_2026-06-11.md](QA_BLIND_RETEST_PROMPT_2026-06-11.md) | 정답을 모르는 새 AI에게 줄 블라인드 재검증 지시서 | 기존 QA 결과와 private seed를 보지 않는 fresh QA용 prompt다. |
+| [QA_BLIND_RETEST_REPORT_2026-06-12.md](QA_BLIND_RETEST_REPORT_2026-06-12.md) | 2026-06-12 backend/API blind and extended retest 결과 | public-safe QA 보고서다. raw session id, 정답 상세, 점수 breakdown은 포함하지 않는다. |
+| [QA_E2E_FOLLOWUP_REPORT_2026-06-12.md](QA_E2E_FOLLOWUP_REPORT_2026-06-12.md) | 2026-06-10~12 backend/API/front E2E follow-up 요약 | public-safe 추가 QA 보고서다. raw session id, 정답 상세, 점수/등급 breakdown은 포함하지 않는다. |
 
 ## 3. 흡수/제거 이력
 
