@@ -98,7 +98,7 @@ public class ScenarioPublishValidator {
                     .ifPresentOrElse(
                             result -> {
                                 String status = result.getValidationStatus();
-                                if (scenario.getUpdatedAt() != null && !result.getCheckedAt().isAfter(scenario.getUpdatedAt())) {
+                                if (scenario.getUpdatedAt() != null && scenario.getUpdatedAt().isAfter(result.getCheckedAt())) {
                                     errors.add("AI 검증 이후 시나리오가 수정되었습니다. 다시 검증해주세요.");
                                 } else if (!"PASSED".equals(status) && !"PASSED_WITH_WARNINGS".equals(status)) {
                                     errors.add("AI 논리 검증을 통과하지 못함 (최근 상태: " + status + ")");
