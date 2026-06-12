@@ -89,8 +89,8 @@ candidate narrowing: API-only diagnostic 기준 넓음 -> 여러 증거 축 비�
 blind validity: INVALID. runner-side spoiler metadata masking 또는 수동 무시 절차 기록 없음
 blocked moments: 15분 비교 증거 전에는 수단/기회/은폐를 한 명에게 묶기 어려움
 red herring handling: 일부 동기 증거는 직접 방법 증거가 아님을 분리 가능
-why non-final candidates became less likely: private note 분리
-remaining doubt: 최종 후보 확정에 필요한 비교 증거와 재질문 턴 부족
+rejected-candidate rationale detail: public report 생략, private note 분리
+remaining doubt: public-safe 범주 요약만 기록. 상세 근거는 private note 분리
 10-turn summaries: not captured in public 10-turn format; this is a report-format gap and the aggregate narrowing above is diagnostic only
 ```
 
@@ -134,8 +134,8 @@ candidate narrowing: API-only diagnostic 기준 넓음 -> 여러 공개 단서 �
 blind validity: INVALID. runner-side spoiler metadata masking 또는 수동 무시 절차 기록 없음
 blocked moments: 10분 전까지 guidance가 없어 초반 질문 방향이 약함
 red herring handling: 일부 비최종 후보군 반박은 private note 분리
-why non-final candidates became less likely: private note 분리
-remaining doubt: 핵심 귀속 계층 확정 부족. 상세 근거는 private note 분리
+rejected-candidate rationale detail: public report 생략, private note 분리
+remaining doubt: public-safe 범주 요약만 기록. 상세 근거는 private note 분리
 10-turn summaries: not captured in public 10-turn format; this is a report-format gap and the aggregate narrowing above is diagnostic only
 ```
 

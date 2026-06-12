@@ -661,8 +661,8 @@ Turn 01
 turn range:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 ```
@@ -681,7 +681,7 @@ turn range:
 점수/등급/정오답/세부 채점 breakdown은 public report에 기록하지 않고 private note로 분리
 정답 상세/해설도 private note로 분리
 제출했다면 왜 그 후보를 선택했는지 public-safe 수준으로 요약
-제출하지 않았다면 어떤 반증/추가 증거가 부족했는지 요약
+제출하지 않았다면 부족했던 반증/추가 증거는 public-safe 범주 수준으로만 요약하고 후보별 상세 근거는 private note로 분리
 ```
 
 ## 7. 운영/로그 privacy spot check
@@ -783,13 +783,13 @@ draft override policy:
 
 ```text
 turns used:
-candidate narrowing:
+candidate narrowing: broad stage only; no suspect-level list
 blind validity:
 blocked moments:
 red herring handling: public-safe broad summary only
 public narrowing summary:
-rejected-candidate rationale: private note only
-remaining doubt:
+rejected-candidate rationale detail: omitted from public report; private note only
+remaining doubt: public-safe broad summary only
 ```
 
 ### 5.4 10-Turn Summaries
@@ -798,40 +798,40 @@ remaining doubt:
 Turn 1~10:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 
 Turn 11~20:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 
 Turn 21~30:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 
 Turn 31~40:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 
 Turn 41~50:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 ```
@@ -871,13 +871,13 @@ draft override policy:
 
 ```text
 turns used:
-candidate narrowing:
+candidate narrowing: broad stage only; no suspect-level list
 blind validity:
 blocked moments:
 red herring handling: public-safe broad summary only
 public narrowing summary:
-rejected-candidate rationale: private note only
-remaining doubt:
+rejected-candidate rationale detail: omitted from public report; private note only
+remaining doubt: public-safe broad summary only
 ```
 
 ### 6.4 10-Turn Summaries
@@ -886,40 +886,40 @@ remaining doubt:
 Turn 1~10:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 
 Turn 11~20:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 
 Turn 21~30:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 
 Turn 31~40:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 
 Turn 41~50:
   main targets:
   evidence used:
-  what became more plausible:
-  what became less plausible:
+  public narrowing delta: broader / narrower / stalled only; no suspect-level eliminations
+  elimination rationale detail: omitted from public report; private note only
   AI answer quality:
   next interrogation plan:
 ```
