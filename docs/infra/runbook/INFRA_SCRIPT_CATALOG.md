@@ -45,8 +45,8 @@
 
 | 스크립트 | 주 실행 위치 | 위험도 | 용도 | 실행 전 확인 | 롤백/주의 |
 |---|---|---|---|---|---|
-| `scripts/scaleout/init-inventory-from-current.sh` | prod 서버 | MAINTENANCE | 기존 `scaleout.env`에서 `common.env`와 단일 node env를 생성한다. | `/opt/clueroom/scaleout/scaleout.env` 존재, private IP/Loki URL 값 | `/opt/clueroom/scaleout/*.env`는 운영 제어 파일이므로 public 문서에 붙이지 않는다. |
-| `scripts/scaleout/build-node-envs-from-terraform-output.sh` | prod 서버 | MAINTENANCE | Terraform output JSON에서 `/opt/clueroom/scaleout/nodes/*.env`를 생성한다. | `app_private_ips.json`, `app_public_ips.json`, `jq` | Terraform output 파일은 repo에 커밋하지 않는다. |
+| `scripts/scaleout/init-inventory-from-current.sh` | prod 서버 | MAINTENANCE | 기존 `scaleout.env`에서 `common.env`와 단일 node env를 생성한다. | `/opt/clueroom/scaleout/scaleout.env` 존재, private IP/Loki URL 값 | `/opt/clueroom/scaleout/*.env`는 운영 제어 파일이므로 public 문서에 붙이지 않는다. env 값은 source-safe escaping으로 기록한다. |
+| `scripts/scaleout/build-node-envs-from-terraform-output.sh` | prod 서버 | MAINTENANCE | Terraform output JSON에서 `/opt/clueroom/scaleout/nodes/*.env`를 생성한다. | `app_private_ips.json`, `app_public_ips.json`, `jq` | Terraform output 파일은 repo에 커밋하지 않는다. env 값은 source-safe escaping으로 기록한다. |
 | `scripts/scaleout/select-scaleout-node.sh` | prod 서버 | MAINTENANCE | 선택한 node env와 `common.env`를 합쳐 active `scaleout.env`를 만든다. | node key, `common.env`, `nodes/<key>.env` | 이후 sync/start/check 대상이 바뀐다. public IP와 Loki push URL은 출력 시 redacted 처리한다. |
 | `scripts/scaleout/run-node-action.sh` | prod 서버 | ARG_DEPENDENT | 단일 node 선택 후 `sync/start/check/reset/alloy/verify-secrets/scrub-secrets` 중 하나를 실행한다. | node key, action 오타 여부 | action의 위험도를 그대로 따른다. `reset`, `scrub-secrets`는 DESTRUCTIVE다. |
 | `scripts/scaleout/run-all-nodes.sh` | prod 서버 | ARG_DEPENDENT | 모든 node에 동일 action을 순차 실행한다. | nodes directory 대상 목록 | 모든 node에 영향을 준다. `reset`, `scrub-secrets`, `sync`, `start`, `alloy`는 특히 재확인한다. |
