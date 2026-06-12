@@ -206,3 +206,22 @@ app node runtime을 정리한다.
 ```
 
 Terraform destroy는 별도의 로컬 작업 PC 절차다. 적용 전에 destroy plan 대상이 임시 app node, scaleout key pair, 관련 Lightsail port resource뿐인지 확인한다.
+`ssh_allowed_cidrs`는 required variable이므로 destroy plan에도 전달한다.
+
+```bash
+cd infra/terraform/lightsail-app-scaleout
+export AWS_PROFILE=clueroom-scaleout
+
+PROD_CONTROL_PUBLIC_KEY="$(cat /tmp/clueroom-app-node-control.pub)"
+EMERGENCY_PUBLIC_KEY="$(cat ~/.ssh/clueroom-scaleout-emergency.pub)"
+SSH_ALLOWED_CIDRS='["203.0.113.10/32"]'
+
+terraform plan -destroy \
+  -var-file=scaleout-2nodes.tfvars \
+  -var "prod_control_public_key=${PROD_CONTROL_PUBLIC_KEY}" \
+  -var "emergency_public_key=${EMERGENCY_PUBLIC_KEY}" \
+  -var "ssh_allowed_cidrs=${SSH_ALLOWED_CIDRS}" \
+  -out=destroy-scaleout-2nodes.tfplan
+
+terraform apply destroy-scaleout-2nodes.tfplan
+```

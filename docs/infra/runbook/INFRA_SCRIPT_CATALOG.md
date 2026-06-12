@@ -33,7 +33,7 @@
 | `scripts/compose-down.sh` | 로컬 개발 PC | LOCAL_DEV | 로컬 Docker Compose를 down 한다. named volume은 보존한다. | 현재 compose project가 로컬 개발용인지 확인 | DB 초기화가 필요하면 별도로 `docker compose down -v`를 직접 판단한다. |
 | `scripts/bg-compose.sh` | prod 서버 | ARG_DEPENDENT | Blue-Green/external-data compose file과 secret env를 묶어 `docker compose` 명령을 실행하는 helper다. | `/opt/clueroom/app/.env`, `/opt/clueroom/secrets/env.d/*` 읽기 권한 | 전달한 `up`, `stop`, `logs`, `ps` 등에 따라 위험도가 달라진다. |
 | `scripts/bg-status.sh` | prod 서버 | READ_ONLY | 현재 active upstream, active/standby service, 외부 health, container 상태를 출력한다. | `/etc/nginx/conf.d/clueroom-upstream.conf`, `/opt/clueroom/bg-compose` 존재 | 조회 전용이다. active port가 `8081/8082`가 아니면 즉시 원인 확인한다. |
-| `scripts/deploy-bluegreen.sh` | prod 서버 | DEPLOY | `develop` 최신 코드를 pull/build하고 standby slot을 새 target으로 띄운 뒤 Nginx upstream을 전환한다. | git 상태, secret env, active port, target health, Nginx config | 실패 시 upstream backup 또는 이전 active port로 rollback한다. 성공 후 이전 slot은 수동 정리한다. |
+| `scripts/deploy-bluegreen.sh` | prod 서버 | DEPLOY | `develop` 최신 코드를 pull/build하고 standby slot을 새 target으로 띄운 뒤 Nginx upstream을 전환한다. 운영 배치 경로는 `/opt/clueroom/deploy.sh`다. | git 상태, secret env, active port, target health, Nginx config | 실패 시 upstream backup 또는 이전 active port로 rollback한다. 성공 후 이전 slot은 수동 정리한다. |
 | `scripts/rollback-bluegreen.sh` | prod 서버 | DEPLOY | 현재 active 반대편 slot을 health 확인 후 Nginx upstream 대상으로 되돌린다. | rollback target container가 존재하는지, target health | target이 없으면 새로 build하지 않는다. rollback 후 문제 slot은 수동 중지한다. |
 | `scripts/stop-standby.sh` | prod 서버 | MAINTENANCE | active가 아닌 standby slot을 중지한다. | 외부 health OK, active upstream 감지 | 중지 후 health 실패 시 standby를 다시 start하는 자동 복구가 있다. |
 | `scripts/backup-mysql.sh` | prod 서버 local-data/rollback copy | MAINTENANCE | compose `mysql` DB를 gzip dump로 백업하고 7일 초과 백업을 삭제한다. | `/opt/clueroom/app/.env`, compose `mysql`, DB_NAME/DB_PASSWORD | external-data 운영에서 source of truth 백업이 아니다. data server 백업 절차와 구분한다. |
@@ -76,7 +76,7 @@ scripts/compose-down.sh
 
 ```bash
 /opt/clueroom/bg-status.sh
-/opt/clueroom/deploy-bluegreen.sh
+/opt/clueroom/deploy.sh
 /opt/clueroom/bg-status.sh
 /opt/clueroom/stop-standby.sh
 ```

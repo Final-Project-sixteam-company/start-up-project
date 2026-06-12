@@ -56,3 +56,19 @@ terraform output -json app_public_ips > app_public_ips.json
 이 JSON 파일은 prod 서버의 `/opt/clueroom/scaleout/terraform-output/`로 옮긴다. 커밋하지 않는다.
 
 destroy는 별도 정리 단계다. destroy plan을 적용하기 전에 대상이 임시 app node, scaleout key pair, 관련 Lightsail public port resource뿐인지 확인한다.
+`ssh_allowed_cidrs`는 required variable이므로 destroy plan에도 동일하게 전달한다.
+
+```bash
+PROD_CONTROL_PUBLIC_KEY="$(cat /tmp/clueroom-app-node-control.pub)"
+EMERGENCY_PUBLIC_KEY="$(cat ~/.ssh/clueroom-scaleout-emergency.pub)"
+SSH_ALLOWED_CIDRS='["203.0.113.10/32"]'
+
+terraform plan -destroy \
+  -var-file=scaleout-2nodes.tfvars \
+  -var "prod_control_public_key=${PROD_CONTROL_PUBLIC_KEY}" \
+  -var "emergency_public_key=${EMERGENCY_PUBLIC_KEY}" \
+  -var "ssh_allowed_cidrs=${SSH_ALLOWED_CIDRS}" \
+  -out=destroy-scaleout-2nodes.tfplan
+
+terraform apply destroy-scaleout-2nodes.tfplan
+```

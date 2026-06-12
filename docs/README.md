@@ -73,6 +73,7 @@
 | [infra/runbook/INFRA_SCRIPT_CATALOG.md](infra/runbook/INFRA_SCRIPT_CATALOG.md) | 인프라/운영용 쉘 스크립트의 실행 위치, 위험도, 용도, rollback 기준 | 절차서가 아니라 스크립트 카탈로그다. 상세 실행은 각 runbook을 따른다. |
 | [infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md](infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md) | Blue-Green, external data, S3 backup, Loki/n8n, rate limit, LLMOps, OAuth/JWT, scale-out PoC 트러블슈팅 이력 | 운영 회고와 재발 방지 체크리스트다. secret 값은 기록하지 않는다. |
 | [infra/SECURITY_TRAFFIC_ALERT_POLICY.md](infra/SECURITY_TRAFFIC_ALERT_POLICY.md) | rate limit, GeoIP/bot traffic, Grafana alert, n8n notification workflow 정책 | 보안/트래픽/알림 정책 정본이다. |
+| [infra/nginx/*.conf](infra/nginx/) | 운영 Nginx upstream, API server, rate/connection limit zone 복구 템플릿 | 실제 적용 전 운영 서버의 snippet, Certbot, active upstream 상태와 대조한다. |
 | [infra/INFRA_PORTFOLIO_SUMMARY.md](infra/INFRA_PORTFOLIO_SUMMARY.md) | 발표/면접/포트폴리오용 인프라 요약 | 운영 명령이 아니라 설명용 문서다. |
 | [infra/diagrams/*.mmd](infra/diagrams/) | 현재 요청 흐름, 백업/복구, 관측/알림, scale-out PoC Mermaid 다이어그램 | 전략 문서와 발표 문서에서 참조한다. |
 | [infra/images/*architecture_logo_style.*](infra/images/) | 현재 운영 구조와 scale-out PoC 발표용 로고 스타일 이미지 | PNG는 문서 렌더링용, SVG는 편집/확대용이다. |
