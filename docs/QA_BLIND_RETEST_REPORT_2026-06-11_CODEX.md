@@ -43,7 +43,7 @@ guidance가 추리 보조인지 정답 경로 고정인지: 정답 경로 고정
 | P1 | Cross-scenario | API-only diagnostic 기준 50턴 안에 최종 후보를 안전하게 확정하지 못함 | fresh/API-only 기준 두 시나리오 모두 50턴 진행 후 최종 제출 보류. 단, runner-side spoiler metadata masking 기록이 없어 blind validity는 invalid | guidance와 심문만으로 1~2명까지 후보 축소 | 일부 축소는 됐지만, 수단/기회/은폐를 한 명에게 묶는 근거가 부족 | 신규 유저가 찍기 제출을 하거나 중도 이탈할 가능성. 다만 이 행은 blind-valid 판정이 아니라 diagnostic UX signal임 | 핵심 증거별 reading/compare/question 확장 후 Android 또는 masked API runner로 blind 재측정 |
 | P1 | Cross-scenario | 10일에 지적된 AI 회피 답변 문제가 11일에도 재현됨 | `단정할 수 없다`, `추가 증거 필요`, `기록을 함께 봐야 한다` 반복 | 증거 제시 시 인정 가능한 사실과 다음 비교 대상을 제공 | 답변이 안전하지만 후보 귀속을 충분히 돕지 못함 | 사용자가 잘못된 후보로 확신할 수 있음 | prompt responseShape와 policy allowedFacts에 `인정 사실/부인 범위/다음 비교 대상` 강제 |
 | P1 | Cross-scenario | Android suggested-question chip이 prefill-only가 아니라 즉시 AI 호출을 수행함 | Frontend E2E follow-up에서 guidance chip tap 시 자동 심문 호출 확인 | chip tap은 심문 화면 이동과 입력창 prefill까지만 수행 | 사용자가 전송 전 질문 수정/취소할 기회 없이 AI 호출됨 | 원치 않는 심문 로그가 생성되고 QA prompt의 P1 기준을 위반함 | Android chip handler를 navigate/prefill 전용으로 바꾸고 send는 전송 버튼 클릭에만 연결 |
-| P1 | Cross-scenario | 증거 해금 이유가 여전히 플레이어에게 설명되지 않음 | 서월채 7->13->20->25, 스튜디오9 8->14->29->35로 급증 | 시간/질문/증거제시 중 무엇으로 열렸는지 표시 | API-only 기준 count만 바뀌고 이유 UX는 확인 불가 | “내가 잘해서 열린 건지 기다려서 열린 건지” 진행감이 약함 | unlock reason 이벤트, 최근 해금 내역, toast/snackbar 계약 추가 |
+| P2 | Cross-scenario | 증거 해금 이유 UX는 API-only retest에서 미확인 | 서월채 7->13->20->25, 스튜디오9 8->14->29->35로 count 급증만 확인. Android의 신규 해금 표시/이유 UX는 미검증 | 시간/질문/증거제시 중 무엇으로 열렸는지 앱에서 확인 가능 | API-only 기준 count 변화만 관찰했고 Android reason/recent-unlock feedback은 확인하지 못함 | 실제 앱에도 이유 표시가 없으면 “내가 잘해서 열린 건지 기다려서 열린 건지” 진행감이 약할 수 있음 | Android E2E에서 newly unlocked evidence feedback을 먼저 확인. 미노출이 재현되면 unlock reason 이벤트, 최근 해금 내역, toast/snackbar 계약 추가 |
 | P1 | Cross-scenario | 핵심 이미지/기록형 증거의 판독값 텍스트화가 여전히 부족함 | 여러 증거가 “함께 봐야 한다”만 말하고 작은 이미지/기록 판독을 별도 구조로 제공하지 않음 | 관찰 정보/판독 결과/비교 대상/물어볼 대상 분리 | description에 섞여 있거나 일부 증거에는 없음 | 모바일에서 핵심 단서 판독 실패 가능성 지속 | evidence detail에 `readingPoints`를 전 증거로 확대하고 판독값을 텍스트 필드로 분리 |
 | P2 | Cross-scenario | API-only 후보 축소 평가의 blind 유효성 기록이 누락됨 | 리포트는 API-only retest와 spoiler metadata 노출을 모두 기록하지만, 후보 축소 전 runner-side masking 또는 수동 무시 절차를 기록하지 않음 | API-only 후보 축소 전 `importance`, `culpritEligible`, suspicion/candidate metadata, 역할성 asset path를 숨긴 방식이 남아야 함 | 감사 가능한 masking record가 없음 | 후보 축소 판정을 blind QA 정본으로 사용할 수 없음 | 이 리포트의 API-only candidate narrowing은 blind invalid로 표기하고, Android 또는 masked runner로 재검 |
 | P2 | 서월채 | guidance coverage가 초기와 중후반 증거에서 부족함 | 초기 7개 중 2개만 guidance 존재, 5분/10분 해금 증거 대부분 `guidance: null` | 최소 3개 이상 해금 증거에서 읽을 점, 비교 대상, 질문 방향 제공 | 일부 핵심 증거와 조건 해금 증거에만 guidance 존재 | 질문 설계가 증거 설명문과 QA tester 추론에 의존함 | 시간 해금 증거에도 guidance를 균등 적용 |
@@ -172,7 +172,7 @@ AI behavior: 정답/범인 직접 누설 없음, 대부분 1~2문장 유지, 증
 |---|---|---|
 | Backend | P0 | public play API에서 `importance`, `culpritEligible`, 역할성 asset path 노출 제거 |
 | Scenario seed | P1 | 5분/10분/조건 해금 증거에 guidance coverage 확장 |
-| Backend | P1 | unlock reason/recent unlocks 응답 계약 추가 |
+| Android / Backend | P2 | Android E2E로 newly unlocked evidence feedback 확인. 미노출 재현 시 unlock reason/recent unlocks 응답 계약 추가 |
 | Backend | P2 | guidance null coverage를 smoke metric으로 추가 |
 | QA | P2 | Android 또는 spoiler metadata masked API runner로 30~50턴 후보 축소를 blind-valid하게 재측정 |
 | Android | P1 | guidance suggested question chip 자동 전송 제거, prefill-only 동작으로 수정 |
@@ -255,7 +255,7 @@ docs/QA_HANDOFF.md
 | AI 답변 회피 반복 | 11일에도 50턴 내 확정 불가. post-submit result는 private artifact로 분리 | P1 유지. 단순 UX 불편이 아니라 후보 귀속 근거 부족으로 이어짐 |
 | 후보 축소 blind validity | API-only run에서 spoiler metadata masking audit가 남지 않음 | API-only 후보 축소 결론은 blind invalid. Android 또는 masked runner 재검 필요 |
 | 시간 답변 guard 부족 | 10일의 22시대 hallucination만큼 심하지는 않지만 11일에도 공개 시간축과 맞지 않는 표현 발생 | P2 유지. prompt/context hard guard가 아직 충분하지 않음 |
-| 증거 해금 이유 불명확 | 11일에도 증거 수가 단계적으로 급증하지만 이유 설명은 API-only 기준 확인 불가 | P1 유지. guidance가 생겨도 unlock reason 없으면 진행감이 약함 |
+| 증거 해금 이유 불명확 | 11일에도 증거 수가 단계적으로 급증하지만 이유 설명은 API-only 기준 확인 불가 | P2 follow-up. Android에서 newly unlocked evidence reason/recent-unlock feedback 부재가 재현되기 전까지 blocker로 단정하지 않음 |
 | 이미지/기록 판독 어려움 | 11일 API-only라 모바일 판독은 미확인. 다만 description/guidance coverage가 낮아 텍스트 판독값 부족은 계속 보임 | P1 유지. `readingPoints`를 모든 핵심 이미지/기록 증거로 확대 필요 |
 | active session 복구 UX | 11일 API-only에서도 active session 충돌 후 abandon이 필요했음. Android UX는 미확인 | P2/P1 경계. 10일 Android 실패가 해결됐다고 볼 근거 없음 |
 
