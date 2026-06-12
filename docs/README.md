@@ -34,6 +34,7 @@
 | scale-out 및 수동 Nginx LB 운영 절차 확인 | [infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md](infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) |
 | 인프라 구축 중 실제 장애/오탐/운영 실수 회고 확인 | [infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md](infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md) |
 | 현재 QA 이슈와 재검증 항목 확인 | [QA_HANDOFF.md](QA_HANDOFF.md) |
+| 정답을 모르는 새 AI에게 블라인드 재검증 지시 | [QA_BLIND_RETEST_PROMPT_2026-06-11.md](QA_BLIND_RETEST_PROMPT_2026-06-11.md) |
 | 공식 데모 시나리오 확인 | [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) |
 | 시나리오 YAML 스키마 확인 | [scenarios/SCENARIO_YAML_SCHEMA.md](scenarios/SCENARIO_YAML_SCHEMA.md) |
 | 증거 안내 UX / 추천 질문 설계 확인 | [scenarios/SCENARIO_GUIDANCE_UX_SPEC.md](scenarios/SCENARIO_GUIDANCE_UX_SPEC.md) |
@@ -92,6 +93,7 @@
 | 문서 | 정본 범위 | 비고 |
 |---|---|---|
 | [QA_HANDOFF.md](QA_HANDOFF.md) | 현재 미해결 QA 이슈, 해결된 이슈, 재검증 항목 | 새 정본이다. 날짜별 QA 문서의 결론을 흡수한다. |
+| [QA_BLIND_RETEST_PROMPT_2026-06-11.md](QA_BLIND_RETEST_PROMPT_2026-06-11.md) | 정답을 모르는 새 AI에게 줄 블라인드 재검증 지시서 | 기존 QA 결과와 private seed를 보지 않는 fresh QA용 prompt다. |
 
 ## 3. 흡수/제거 이력
 
