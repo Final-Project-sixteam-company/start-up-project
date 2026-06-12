@@ -40,7 +40,8 @@ public class ReviewController {
             @RequestParam(required = false, defaultValue = "true") boolean includeSpoiler,
             Pageable pageable
     ) {
-        PageResponse<ReviewResponse> response = reviewService.getReviews(scenarioId, includeSpoiler, pageable);
+        Long userId = mockUserProvider.currentUserIdOrNull();
+        PageResponse<ReviewResponse> response = reviewService.getReviews(userId, scenarioId, includeSpoiler, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

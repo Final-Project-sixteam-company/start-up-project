@@ -12,11 +12,13 @@ import com.startup.domain.community.entity.ScenarioReview;
 import com.startup.domain.community.error.CommunityErrorCode;
 import com.startup.domain.community.error.CommunityException;
 import com.startup.domain.community.repository.ScenarioReviewRepository;
+import com.startup.domain.play.enums.PlaySessionStatus;
 import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
+import com.startup.domain.scenario.service.ScenarioAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -35,7 +37,7 @@ public class ReviewService {
     private final ScenarioReviewRepository reviewRepository;
     private final ScenarioRepository scenarioRepository;
     private final UserRepository userRepository;
-    private final com.startup.domain.scenario.service.ScenarioAccessService scenarioAccessService;
+    private final ScenarioAccessService scenarioAccessService;
     private final PlaySessionRepository playSessionRepository;
 
     // 시나리오 리뷰 작성
@@ -49,7 +51,7 @@ public class ReviewService {
             throw new CommunityException(CommunityErrorCode.CANNOT_REVIEW_OWN);
         }
 
-        if (!playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, com.startup.domain.play.enums.PlaySessionStatus.COMPLETED)) {
+        if (!playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.COMPLETED)) {
             throw new CommunityException(CommunityErrorCode.MUST_PLAY_BEFORE_REVIEW);
         }
 
