@@ -956,13 +956,12 @@ docker logs --tail=200 start-up-app-green
 docker logs -f start-up-app-green
 ```
 
-### Compose 로그 확인
+### Blue-Green / Compose 로그 확인
 
 ```bash
 cd /opt/clueroom/app
-docker compose logs app
-docker compose logs mysql
-docker compose logs redis
+/opt/clueroom/bg-compose logs app-blue
+/opt/clueroom/bg-compose logs app-green
 docker compose logs prometheus
 docker compose logs grafana
 ```
@@ -970,8 +969,11 @@ docker compose logs grafana
 실시간:
 
 ```bash
-docker compose logs -f app
+/opt/clueroom/bg-compose logs -f app-blue
+/opt/clueroom/bg-compose logs -f app-green
 ```
+
+compose `mysql`/`redis` 로그는 local-data 또는 rollback copy 확인이 필요할 때만 본다. 운영 source of truth는 data 서버 MySQL/Redis다.
 
 ### 컨테이너 리소스 확인
 
@@ -1256,6 +1258,7 @@ prod local compose mysql
 수동 확인:
 
 ```bash
+# [로컬 PC] `clueroom-data` alias는 로컬 SSH config 기준이다.
 ssh clueroom-data 'crontab -l | grep -E "backup-mysql|upload-mysql-backup-s3|data-health|s3-backup-health"'
 ```
 
@@ -1279,6 +1282,7 @@ prod app 서버의 `/opt/clueroom/app` 경로와 `/opt/clueroom/backup-mysql.sh`
 권장: data server에서 직접 실행한다.
 
 ```bash
+# [로컬 PC] `clueroom-data` alias는 로컬 SSH config 기준이다.
 ssh clueroom-data 'bash -se' << 'REMOTE'
 set -euo pipefail
 
@@ -1345,6 +1349,7 @@ S3 업로드는 private backup bucket과 전용 IAM principal이 준비된 뒤�
 AWS credential은 git, PR, Slack, AI prompt에 남기지 않는다.
 
 ```bash
+# [로컬 PC] `clueroom-data` alias는 로컬 SSH config 기준이다.
 ssh clueroom-data 'bash -se' << 'REMOTE'
 set -euo pipefail
 
@@ -1359,7 +1364,9 @@ BACKUP_BASE="$(basename "$BACKUP_FILE")"
 
 test -s "$BACKUP_FILE"
 gzip -t "$BACKUP_FILE"
-(cd "$BACKUP_DIR" && sha256sum -c "$BACKUP_BASE.sha256")
+EXPECTED_SHA="$(awk '{print $1}' "$BACKUP_FILE.sha256")"
+ACTUAL_SHA="$(sha256sum "$BACKUP_FILE" | awk '{print $1}')"
+test "$EXPECTED_SHA" = "$ACTUAL_SHA"
 
 aws s3 cp "$BACKUP_FILE" \
   "s3://${S3_BACKUP_BUCKET}/${S3_BACKUP_PREFIX}/daily/${DATE_PATH}/${BACKUP_BASE}" \
@@ -1433,6 +1440,7 @@ external-data 운영 source of truth 백업으로 사용하지 않는다.
 external-data source of truth 백업 파일은 data server에서 확인한다.
 
 ```bash
+# [로컬 PC] `clueroom-data` alias는 로컬 SSH config 기준이다.
 ssh clueroom-data 'ls -lh /opt/clueroom-data/backups/mysql'
 ```
 
@@ -1490,11 +1498,12 @@ external-data 운영에서는 위 target이 data server private IP 또는 내부
 운영 source of truth에 직접 restore하는 명령이다.
 담당자 승인, 쓰기 트래픽 차단 또는 점검창 확보, rehearsal 성공 후에만 실행한다.
 
-아래 primary path는 app/ops host에서 실행한다. 이 절차는 `/opt/clueroom/app/.env`에서 `TARGET_DB_*`와 `DB_PASSWORD`를 읽으므로, data server 로컬 경로를 직접 `BACKUP`으로 쓰지 않는다. data server의 백업 파일은 먼저 app/ops host의 `/tmp/clueroom-restore/`로 복사한다.
+아래 restore 실행은 app/ops host 기준이다. 이 절차는 `/opt/clueroom/app/.env`에서 `TARGET_DB_*`와 `DB_PASSWORD`를 읽으므로, data server 로컬 경로를 직접 `BACKUP`으로 쓰지 않는다. data server의 백업 파일은 먼저 restore를 실행할 host의 `/tmp/clueroom-restore/`로 복사한다. `clueroom-data` alias는 기본적으로 로컬 PC SSH config 기준이므로, app/ops host에서 복사하려면 별도 SSH config 또는 실제 data 서버 IP/key를 사용한다.
 
 ```bash
 mkdir -p /tmp/clueroom-restore
 
+# [alias가 있는 로컬 PC 또는 별도 SSH config가 있는 host]
 scp clueroom-data:/opt/clueroom-data/backups/mysql/백업파일명.sql.gz \
   /tmp/clueroom-restore/
 
@@ -1511,7 +1520,9 @@ set -o pipefail
 test -f "$BACKUP"
 gzip -t "$BACKUP"
 if [ -f "$BACKUP.sha256" ]; then
-  (cd "$BACKUP_DIR" && sha256sum -c "$BACKUP_BASE.sha256")
+  EXPECTED_SHA="$(awk '{print $1}' "$BACKUP.sha256")"
+  ACTUAL_SHA="$(sha256sum "$BACKUP" | awk '{print $1}')"
+  test "$EXPECTED_SHA" = "$ACTUAL_SHA"
 fi
 
 gunzip -c "$BACKUP" | MYSQL_PWD="$DB_PASSWORD" mysql \
@@ -1563,7 +1574,9 @@ set -o pipefail
 test -f "$BACKUP"
 gzip -t "$BACKUP"
 if [ -f "$BACKUP.sha256" ]; then
-  (cd "$BACKUP_DIR" && sha256sum -c "$BACKUP_BASE.sha256")
+  EXPECTED_SHA="$(awk '{print $1}' "$BACKUP.sha256")"
+  ACTUAL_SHA="$(sha256sum "$BACKUP" | awk '{print $1}')"
+  test "$EXPECTED_SHA" = "$ACTUAL_SHA"
 fi
 ```
 
@@ -2421,6 +2434,7 @@ df -h
 ```
 
 ```bash
+# [로컬 PC] `clueroom-data` alias는 로컬 SSH config 기준이다.
 ssh clueroom-data 'bash -se' << 'REMOTE'
 set -euo pipefail
 docker compose ps
@@ -2460,7 +2474,7 @@ AI 에이전트가 인프라 명령어를 제안하거나 실행하게 할 때�
 1. read-only 명령부터 실행한다.
 2. sudo, rm, docker compose down, git reset, git clean, terraform apply/destroy는 반드시 사용자 승인 후 실행한다.
 3. .env, secret, private key, firebase-service-account.json 내용을 출력하지 않는다.
-4. secret 값은 set/empty 여부만 확인한다.
+4. secret 값은 presence yes/no 여부만 확인한다.
 5. 변경 전 백업 명령을 먼저 제안한다.
 6. 변경 후 health check와 rollback 방법을 함께 확인한다.
 7. 운영 서버에서 commit/push하지 않는다.
@@ -2539,6 +2553,7 @@ cat /etc/nginx/conf.d/clueroom-upstream.conf
 ### Backup
 
 ```bash
+# [로컬 PC] `clueroom-data` alias는 로컬 SSH config 기준이다.
 ssh clueroom-data 'bash -se' << 'REMOTE'
 set -euo pipefail
 /opt/clueroom-data/backup-mysql.sh

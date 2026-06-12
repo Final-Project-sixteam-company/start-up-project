@@ -1,24 +1,25 @@
 flowchart LR
-    user["Client / Frontend"] --> dns["api.clueroom.xyz"]
-    dns --> nginx["prod Nginx<br/>manual upstream LB"]
+    user["Client / Android"] --> dns["api.clueroom.xyz"]
+    dns --> nginx["prod Nginx<br/>수동 upstream LB<br/>equal mode 검증"]
 
-    nginx --> prod_active["prod app active slot<br/>app-blue/app-green"]
-    nginx --> app01["Terraform Lightsail app-01<br/>Spring app-only"]
-    nginx -. future .-> app02["Terraform Lightsail app-02<br/>Spring app-only"]
+    nginx --> prod_active["prod local active slot<br/>127.0.0.1:8081"]
+    nginx --> app01["clueroom-app-01<br/>172.26.6.201:8080<br/>Spring app-only"]
+    nginx --> app02["clueroom-app-02<br/>172.26.2.166:8080<br/>Spring app-only"]
 
-    prod_active --> data_mysql["data MySQL"]
-    prod_active --> data_redis["data Redis"]
+    prod_active --> data_mysql["data MySQL<br/>single source of truth"]
+    prod_active --> data_redis["data Redis<br/>shared cache/session"]
     app01 --> data_mysql
     app01 --> data_redis
     app02 --> data_mysql
     app02 --> data_redis
 
-    app01_logs["app-01 logs"] --> alloy_or_shipper["Alloy/log shipper"]
-    app02_logs["app-02 logs"] --> alloy_or_shipper
+    app01_logs["app01 docker-app logs"] --> alloy_or_shipper["app node Alloy"]
+    app02_logs["app02 docker-app logs"] --> alloy_or_shipper
     prod_active --> prod_logs["prod app logs"]
     prod_logs --> ops_loki["ops Loki"]
     alloy_or_shipper --> ops_loki
 
+    nginx --> dist["60회 요청 분산<br/>21 / 19 / 20"]
     ops_loki --> grafana["Grafana / Alert"]
     grafana --> n8n["n8n"]
     n8n --> slack["Slack"]

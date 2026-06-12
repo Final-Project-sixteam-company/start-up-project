@@ -167,12 +167,12 @@ getfacl /opt/clueroom/secrets/env.d/oauth.env
 sudo setfacl -m u:ai-secret:rw /opt/clueroom/secrets/env.d/ai.env
 ```
 
-## 12. secret 값 확인은 set/empty 방식만 사용
+## 12. secret 값 확인은 presence 방식만 사용
 
 값 전체를 출력하지 않는다. 설정 여부만 확인한다.
 
 ```bash
-awk -F= '{ if ($2 == "") print $1"=empty"; else print $1"=set" }' /opt/clueroom/secrets/env.d/ai.env
+awk -F= '{ if ($2 == "") print $1"_PRESENT=no"; else print $1"_PRESENT=yes" }' /opt/clueroom/secrets/env.d/ai.env
 ```
 
 금지:

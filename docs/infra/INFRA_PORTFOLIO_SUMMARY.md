@@ -56,9 +56,9 @@ data server: MySQL / Redis
 | 현재 요청 흐름 Mermaid 원본 | [diagrams/current-production-request-flow.mmd](diagrams/current-production-request-flow.mmd) |
 | 관측/알림 흐름 Mermaid 원본 | [diagrams/observability-alert-flow.mmd](diagrams/observability-alert-flow.mmd) |
 | 백업/복구 흐름 Mermaid 원본 | [diagrams/backup-restore-flow.mmd](diagrams/backup-restore-flow.mmd) |
-| scale-out PoC Mermaid 원본 | [diagrams/planned-scaleout-manual-lb.mmd](diagrams/planned-scaleout-manual-lb.mmd) |
+| scale-out PoC Mermaid 원본 | [diagrams/scaleout-manual-lb-poc.mmd](diagrams/scaleout-manual-lb-poc.mmd) |
 | 현재 운영 구조 발표용 이미지 | [images/clueroom_current_production_architecture_logo_style.png](images/clueroom_current_production_architecture_logo_style.png), [SVG](images/clueroom_current_production_architecture_logo_style.svg) |
-| scale-out PoC 발표용 이미지 | [images/clueroom_scaleout_manual_lb_architecture_logo_style.png](images/clueroom_scaleout_manual_lb_architecture_logo_style.png), [SVG](images/clueroom_scaleout_manual_lb_architecture_logo_style.svg) |
+| scale-out PoC 초기 계획 이미지 | [images/clueroom_scaleout_manual_lb_architecture_logo_style.png](images/clueroom_scaleout_manual_lb_architecture_logo_style.png), [SVG](images/clueroom_scaleout_manual_lb_architecture_logo_style.svg) |
 
 ### 발표용 이미지
 
@@ -67,7 +67,9 @@ data server: MySQL / Redis
 
 ![ClueRoom 평상시 운영 인프라 아키텍처](images/clueroom_current_production_architecture_logo_style.png)
 
-![ClueRoom 스케일아웃 + 수동 로드밸런싱 계획 아키텍처](images/clueroom_scaleout_manual_lb_architecture_logo_style.png)
+아래 scale-out 이미지는 PoC 전 계획 이미지다. 2026-06-12 실제 검증 결과는 [POC-006-scaleout-manual-lb.md](poc/POC-006-scaleout-manual-lb.md)와 [scaleout-manual-lb-poc.mmd](diagrams/scaleout-manual-lb-poc.mmd)를 우선한다.
+
+![ClueRoom 스케일아웃 + 수동 로드밸런싱 초기 계획 아키텍처](images/clueroom_scaleout_manual_lb_architecture_logo_style.png)
 
 ---
 
@@ -199,20 +201,20 @@ AI_CALL_CONTEXT에는 raw prompt, raw answer, user question text, sessionId, sce
 
 ---
 
-## 5. 현재 운영 baseline이 아닌 것
+## 5. 현재 운영 기준 구조가 아닌 것
 
-아래 항목은 의도적으로 현재 운영 baseline으로 설명하지 않는다.
+아래 항목은 의도적으로 현재 운영 기준 구조로 설명하지 않는다.
 
 ```text
 1. Server-side Infra Codex automatic production operation
 2. Codex as real-time fallback when Gemini alert analysis fails
-3. Terraform-created app server scale-out with manual Nginx load balancing
+3. Terraform 기반 app node scale-out 상시 운영
 ```
 
-Scale-out 작업은 단기 PoC다.
-검증 후 팀이 명시적으로 유지하기로 결정하지 않는 한, 추가 app server resource와 static IP는 제거해야 한다.
+Scale-out은 2026-06-12 PoC로 검증 완료했다.
+팀이 명시적으로 상시 운영하기로 결정하지 않는 한, 추가 app node 리소스와 scaleout key/port 리소스는 정리 대상이다.
 
-운영 baseline은 그대로 아래 구조다.
+운영 기준 구조는 그대로 아래 구조다.
 
 ```text
 prod server 1
@@ -258,8 +260,8 @@ Repo 작업, 문서/runbook 개선, manual handoff/deep analysis 용도다.
 ### Scale-out이 운영 중인가?
 
 아니다.
-Baseline은 여전히 prod app server 1대, data server 1대, ops server 1대다.
-Terraform scale-out과 manual Nginx load balancing은 PoC이며 검증 후 정리해야 한다.
+2026-06-12에 Terraform 기반 app node scale-out과 수동 Nginx load balancing PoC는 성공했다.
+다만 운영 기준 구조는 여전히 prod server 1대, data server 1대, ops server 1대다.
 
 ---
 
@@ -267,7 +269,7 @@ Terraform scale-out과 manual Nginx load balancing은 PoC이며 검증 후 정�
 
 ### 30초
 
-ClueRoom은 저비용 Lightsail MVP로 시작했지만, 운영에 필요한 안전장치를 단계적으로 추가했습니다. Prod server는 Nginx와 Blue-Green Spring Boot slot을 운영하고, 데이터는 전용 MySQL/Redis data server로 분리했습니다. 로그와 알림은 Loki, Grafana, n8n, Slack이 있는 ops server로 보냅니다. 또한 S3 DB 백업과 restore rehearsal, Nginx rate limiting과 CN IP block, AI call 비용/지연 관측을 위한 LLMOps telemetry를 적용했습니다. 남은 scale-out은 Terraform/manual Nginx PoC이며, 기본 운영 baseline은 아닙니다.
+ClueRoom은 저비용 Lightsail MVP로 시작했지만, 운영에 필요한 안전장치를 단계적으로 추가했습니다. Prod server는 Nginx와 Blue-Green Spring Boot slot을 운영하고, 데이터는 전용 MySQL/Redis data server로 분리했습니다. 로그와 알림은 Loki, Grafana, n8n, Slack이 있는 ops server로 보냅니다. 또한 S3 DB 백업과 restore rehearsal, Nginx rate limiting과 CN IP block, AI call 비용/지연 관측을 위한 LLMOps telemetry를 적용했습니다. Scale-out은 Terraform app node와 수동 Nginx LB로 PoC 검증을 마쳤지만, 기본 운영 기준 구조는 아닙니다.
 
 ### 1분
 
@@ -289,7 +291,7 @@ Ops server는 로그와 alert routing을 중앙화합니다. Prod 로그는 Allo
 
 백업은 dump 파일 생성만으로 완료로 보지 않습니다. Data server가 gzip dump를 만들고, sha256 sidecar와 함께 S3에 업로드하고, S3 backup health를 push하며, 팀은 백업을 다운로드해 temporary MySQL container에 import하는 방식으로 restore rehearsal을 수행합니다.
 
-마지막으로 트래픽 방어는 Nginx rate limit enforcement, CN IPv4 block, manual blocklist, sensitive path blocking으로 처리합니다. 남은 scale-out 작업은 Terraform으로 추가 app server를 만들고 Nginx upstream에 수동 연결하는 짧은 PoC입니다. 기본 baseline은 prod 1대, data 1대, ops 1대입니다.
+마지막으로 트래픽 방어는 Nginx rate limit enforcement, CN IPv4 block, manual blocklist, sensitive path blocking으로 처리합니다. Scale-out은 Terraform으로 app01/app02를 만들고 Nginx upstream에 수동 연결하는 PoC를 완료했습니다. 기본 운영 기준 구조는 prod 1대, data 1대, ops 1대입니다.
 
 ---
 
@@ -299,7 +301,7 @@ Ops server는 로그와 alert routing을 중앙화합니다. Prod 로그는 Allo
 - Kubernetes, ECS, ALB, ASG를 운영 중이라고 말하지 않는다.
 - MySQL HA나 replication을 운영 중이라고 말하지 않는다.
 - Codex automatic production fallback을 운영 중이라고 말하지 않는다.
-- scale-out이 일반 운영 baseline이라고 말하지 않는다.
+- scale-out이 일반 운영 기준 구조라고 말하지 않는다.
 - WAF 수준의 완전한 보안을 갖췄다고 말하지 않는다.
 ```
 

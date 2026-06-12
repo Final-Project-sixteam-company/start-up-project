@@ -183,7 +183,7 @@ Frontend E2E QA 중이거나 demo 전에는 명시적 승인 없이 enforcement�
 ```
 
 Read-only 점검은 허용된다.
-현재 CN IPv4 block은 운영 baseline이다.
+현재 CN IPv4 block은 운영 기준 상태다.
 새 country block, manual IP block, 더 넓은 deny rule은 여전히 증거와 rollback path가 필요하다.
 
 ### 차단 옵션
