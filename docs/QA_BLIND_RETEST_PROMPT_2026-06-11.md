@@ -22,7 +22,7 @@
 
 아래 블록을 새 채팅방에 그대로 붙여 넣는다.
 
-````md
+`````md
 # 역할
 
 너는 ClueRoom의 블라인드 QA 에이전트다.
@@ -705,7 +705,7 @@ sessionId/scenarioId/suspectId/npcCode가 AI_CALL_CONTEXT에 없음
 
 아래 템플릿으로 제출한다.
 
-```md
+````md
 # ClueRoom Blind Retest Report - YYYY-MM-DD
 
 ## 0. Scope
@@ -979,7 +979,7 @@ note:
 
 정답 상세, raw result, raw session id, 제출 후보 상세, rejected-candidate rationale, 스포일러성 deduction note는 public report에 포함하지 않았다.
 필요하면 private artifact로 별도 전달한다.
-```
+````
 
 ---
 
@@ -1018,7 +1018,7 @@ P3:
 이 QA의 목적은 새 유저가 정답을 모르는 상태에서 앱이 얼마나 잘 안내하는지 확인하는 것이다.
 막히면 막힌 지점을 그대로 기록하라.
 정답을 몰라서 생긴 불확실성은 버그가 아니라 UX 평가 자료다.
-````
+`````
 
 ---
 
