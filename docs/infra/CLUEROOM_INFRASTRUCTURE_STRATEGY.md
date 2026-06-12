@@ -36,7 +36,7 @@ docs/infra/agent/LLMOPS_OPERATING_GUIDE.md
 ```
 
 Rate Limit, GeoIP/Bot traffic, Grafana/Prometheus alert, Slack 알림 설계는 `docs/infra/SECURITY_TRAFFIC_ALERT_POLICY.md`를 따른다.
-Scale-out PoC의 단계별 구조와 cleanup 기준은 이 문서의 `Scale-Out PoC 정본` 절을 따른다.
+Scale-out PoC의 결과는 `docs/infra/poc/POC-006-scaleout-manual-lb.md`, 실행 절차와 cleanup 기준은 `docs/infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md`와 이 문서의 `Scale-Out PoC 정본` 절을 따른다.
 
 ### 1.1 실제 운영 MVP
 
@@ -558,8 +558,8 @@ AWS_SECRET_ACCESS_KEY
 OPENAI_API_KEY
 DB_PASSWORD
 Firebase service account JSON
-pem private key
-Let's Encrypt private key
+PEM-format SSH credential
+Let's Encrypt privkey file
 ```
 
 운영 runtime secret은 서버의 `.env`와 `/opt/clueroom/secrets/env.d`에 둔다.
@@ -886,9 +886,11 @@ App 서버 CPU/메모리 병목
 현재 상태:
 
 ```text
-미적용 / PoC 예정
-Terraform으로 app server를 만들고 prod Nginx upstream에 수동으로 붙이는 방식만 검증한다.
-PoC 종료 후 추가 app server와 Static IP는 정리한다.
+완료된 PoC / 운영 baseline 아님
+2026-06-12 Terraform 기반 app node scale-out + scripted manual Nginx load balancing 검증 성공.
+local active 127.0.0.1:8081, app01 172.26.6.201:8080, app02 172.26.2.166:8080 equal mode upstream 확인.
+60회 요청 분산 결과 21 / 19 / 20 확인.
+PoC 종료 후 temporary app node 리소스와 scaleout key/port 리소스는 정리한다.
 기본 운영 구조는 prod 1대 + data 1대 + ops 1대다.
 ```
 
@@ -952,10 +954,10 @@ S3
 학습/검증/인증샷 ⭕
 ```
 
-### 9.2 권장 PoC 구조
+### 9.2 초기 권장 PoC 구조
 
 ```text
-poc-api.clueroom.xyz
+optional isolated PoC API domain
   ↓
 clueroom-poc-lb-01
   ↓
@@ -971,6 +973,10 @@ clueroom-poc-app-01   clueroom-poc-app-02
 
 S3는 동일하게 사용
 ```
+
+위 구조는 PoC 초기에 검토한 격리형 구성이다.
+2026-06-12 실제 POC-006은 별도 `poc-api` 도메인/LB 서버를 만들지 않고, prod 제어형 방식으로 temporary app node를 생성한 뒤 기존 prod Nginx upstream에 canary/equal 모드로 붙여 검증했다.
+실제 검증 결과와 재실행 절차는 `docs/infra/poc/POC-006-scaleout-manual-lb.md`, `docs/infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md`를 따른다.
 
 서버 역할:
 
@@ -1032,14 +1038,15 @@ server-04: Redis
 ### 9.5 PoC 인증샷
 
 ```text
-- Lightsail 인스턴스 5대 목록
-- 각 서버 역할 태그
+- Terraform app01/app02 생성 결과
+- prod inventory app01.env/app02.env
+- app01/app02 docker ps와 actuator health
+- app01/app02 secret/scenario set 여부
+- ops Loki docker-app 로그 조회
 - Nginx upstream 설정
-- app-server-01 / app-server-02 docker ps
-- db-server MySQL docker ps
-- redis-server Redis docker ps
-- poc-api.clueroom.xyz health check
-- app-01 중지 후 app-02로 계속 응답 확인
+- api.clueroom.xyz health check의 X-ClueRoom-Upstream
+- equal mode 60회 분산 결과 21 / 19 / 20
+- rollback 후 local active upstream 복구 확인
 ```
 
 ### 9.6 PoC 종료
@@ -1049,8 +1056,9 @@ PoC는 계속 운영하지 않는다.
 ```text
 1. 인증샷 촬영
 2. 설정 문서화
-3. 서버 삭제
-4. Static IP 미사용 상태 방치 금지
+3. Nginx upstream을 local active only로 원복
+4. app node runtime reset
+5. Terraform destroy로 temporary app node, scaleout key pair, port resource 정리
 ```
 
 ---
@@ -1091,7 +1099,7 @@ PoC는 계속 운영하지 않는다.
 - AWS_SECRET_ACCESS_KEY
 - OPENAI_API_KEY
 - Firebase service account JSON
-- pem private key
+- PEM-format SSH credential
 - DB_PASSWORD
 - Let's Encrypt privkey.pem
 ```
@@ -1280,13 +1288,13 @@ docs/infra/agent/LLMOPS_OPERATING_GUIDE.md
 목표:
 
 ```text
-- 현재 운영에 바로 적용하지 않고 PoC로 검증한다.
+- 2026-06-12 PoC로 검증 완료. 현재 운영 baseline으로 전환하지 않는다.
 - app은 stateless여야 한다.
 - DB/Redis는 shared external data source여야 한다.
 - S3를 파일 저장소로 사용한다.
 - app server 2대 이상일 때 lock/session/cache는 local memory에 두지 않는다.
-- Terraform으로 추가 app server를 만들고 prod Nginx upstream에 수동으로 붙이는 수준에서 검증한다.
-- PoC 종료 후 추가 서버와 Static IP를 정리한다.
+- 검증된 방식은 Terraform app node 생성 + prod 제어형 sync/start/check + scripted manual Nginx upstream apply/rollback이다.
+- PoC 종료 후 temporary app node 리소스와 scaleout key/port 리소스를 정리한다.
 ```
 
 ### Phase 7. Registry / Commit SHA / DB Migration
@@ -1320,7 +1328,7 @@ docs/infra/agent/LLMOPS_OPERATING_GUIDE.md
 | POC-003 observability / alert pipeline | 완료 | prod Alloy, ops Loki, Grafana dashboard/alert, n8n Slack routing, DATA_HEALTH/SERVER_HEALTH/OPS_HEALTH |
 | POC-004 Nginx rate-limit / IP block | 완료 | API per-IP rate limit enforced, dry-run off, CN IPv4 block, manual blocklist, 403/429 warning alert |
 | POC-005 LLMOps observability | 완료 | AI_CALL, token/latency/fallback visibility, AI_CALL_CONTEXT prompt block estimate/templateHash, raw prompt/answer/user question 미저장 |
-| POC-006 Terraform scale-out + manual Nginx LB | 미적용 / 단기 PoC 예정 | Terraform app server 생성, prod Nginx upstream 수동 연결, PoC 후 리소스 정리 |
+| POC-006 Terraform app node scale-out + manual Nginx LB | 완료 / 운영 baseline 아님 | app01/app02 생성, prod sync/start/check, app node Alloy 로그 수집, Nginx equal mode 21/19/20 분산 확인. 정본: [poc/POC-006-scaleout-manual-lb.md](poc/POC-006-scaleout-manual-lb.md), [runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md](runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) |
 
 ---
 
@@ -1328,15 +1336,34 @@ docs/infra/agent/LLMOPS_OPERATING_GUIDE.md
 
 이 절은 기존 `SCALE_OUT_POC_PLAN.md`의 핵심 내용을 흡수한 것이다.
 PoC는 운영 적용이 아니라 학습/검증/인증샷 목적이다.
+2026-06-12 기준 POC-006은 성공으로 판정했다.
+상세 결과는 `docs/infra/poc/POC-006-scaleout-manual-lb.md`, 재실행/rollback 절차는 `docs/infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md`를 따른다.
+
+### 2026-06-12 POC-006 Result
+
+```text
+Terraform으로 app01/app02 생성
+prod inventory로 app node 관리
+prod에서 jar/env/secrets/scenarios 동기화
+app01/app02 Spring Boot 기동
+data 서버 MySQL/Redis 연결
+app node Alloy -> ops Loki 수집
+Nginx upstream에 local active + app01 + app02 추가
+equal mode 60회 요청에서 21 / 19 / 20 분산 확인
+```
+
+이 결과는 app layer scale-out 검증이다.
+DB/Redis HA, managed load balancer, managed autoscaling 완료를 의미하지 않는다.
 
 ### PoC Rules
 
 ```text
-- production traffic과 분리한다.
-- poc-api.clueroom.xyz 같은 별도 도메인을 사용한다.
-- PoC 종료 후 서버와 Static IP를 정리한다.
-- secret은 production 값을 그대로 복사하지 않는다.
-- 데이터는 익명/샘플 데이터를 사용한다.
+- 운영 baseline 전환과 PoC 검증을 구분한다.
+- prod Nginx upstream에 붙일 때는 health, config backup, rollback 절차를 먼저 확보한다.
+- local active upstream은 반드시 127.0.0.1:8081 또는 127.0.0.1:8082여야 한다.
+- 127.0.0.1:80 또는 bare 127.0.0.1 upstream이 보이면 즉시 rollback한다.
+- PoC 종료 후 temporary app node 리소스와 scaleout key/port 리소스를 정리한다.
+- secret 값, Firebase JSON, DB password, JWT value, API key는 public 문서와 git에 넣지 않는다.
 ```
 
 ### Immediate LLMOps Path
@@ -1396,62 +1423,41 @@ Nginx upstream으로 app-01/app-02를 수동 분산하고 한쪽 중지 시 다�
 구조:
 
 ```text
-lb server
-  -> app-01
-  -> app-02
-  -> shared DB/Redis
+prod Nginx / prod control server
+  -> local active Blue-Green slot
+  -> app01
+  -> app02
+  -> shared data server MySQL/Redis
 ```
 
-Nginx upstream example:
+2026-06-12 actual equal-mode upstream:
 
 ```nginx
-upstream clueroom_poc_backend {
-    least_conn;
-    server 10.0.0.21:8080 max_fails=3 fail_timeout=10s;
-    server 10.0.0.22:8080 max_fails=3 fail_timeout=10s;
-}
-
-server {
-    server_name poc-api.clueroom.xyz;
-
-    location / {
-        proxy_pass http://clueroom_poc_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        add_header X-ClueRoom-Upstream $upstream_addr always;
-    }
+upstream clueroom_backend {
+    server 127.0.0.1:8081 max_fails=3 fail_timeout=10s weight=1;
+    server 172.26.6.201:8080 max_fails=3 fail_timeout=10s weight=1;
+    server 172.26.2.166:8080 max_fails=3 fail_timeout=10s weight=1;
 }
 ```
 
 Validation:
 
 ```bash
-curl -I https://poc-api.clueroom.xyz/actuator/health
-curl -s https://poc-api.clueroom.xyz/api/scenarios
-
-for i in $(seq 1 20); do
-  curl -s -D - https://poc-api.clueroom.xyz/actuator/health -o /dev/null | grep -i X-ClueRoom-Upstream
-done
+curl -sI https://api.clueroom.xyz/actuator/health | grep -i 'X-ClueRoom-Upstream'
+/opt/clueroom/scaleout/scripts/verify-lb-distribution.sh 60 scaleout
 ```
 
-Failover smoke:
-
-```bash
-ssh app-01
-docker compose stop app
-```
-
-```bash
-curl -I https://poc-api.clueroom.xyz/actuator/health
-curl -s https://poc-api.clueroom.xyz/api/scenarios
-```
-
-Expected:
+2026-06-12 result:
 
 ```text
-requests continue through app-02
+21 / 19 / 20
+```
+
+Rollback check:
+
+```bash
+/opt/clueroom/scaleout/scripts/rollback-nginx-scaleout-upstream.sh local-only
+curl -sI https://api.clueroom.xyz/actuator/health | grep -i 'X-ClueRoom-Upstream'
 ```
 
 ### PoC 3. Server-Level Blue-Green
@@ -1627,12 +1633,12 @@ access key secret은 Terraform state에 남을 수 있으므로 AWS Console에�
 
 Expected env keys:
 
-```env
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_DEFAULT_REGION=ap-northeast-2
-S3_BACKUP_BUCKET=clueroom-prod-db-backups-apne2-<random_suffix>
-S3_BACKUP_PREFIX=mysql/prod
+```text
+AWS_ACCESS_KEY_ID: set in server secret file
+AWS_SECRET_ACCESS_KEY: set in server secret file
+AWS_DEFAULT_REGION: ap-northeast-2
+S3_BACKUP_BUCKET: clueroom-prod-db-backups-apne2-<random_suffix>
+S3_BACKUP_PREFIX: mysql/prod
 ```
 
 Required file mode:

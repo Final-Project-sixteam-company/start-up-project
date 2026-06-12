@@ -30,6 +30,9 @@
 | 로컬 실행, Android 연결, 배포 요약 확인 | [RUN_AND_DEPLOY.md](RUN_AND_DEPLOY.md) |
 | 운영 명령어와 장애 대응 확인 | [infra/OPS_RUNBOOK.md](infra/OPS_RUNBOOK.md) |
 | 인프라 구조와 고도화 방향 확인 | [infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) |
+| Terraform app node scale-out PoC 결과 확인 | [infra/poc/POC-006-scaleout-manual-lb.md](infra/poc/POC-006-scaleout-manual-lb.md) |
+| scale-out/manual Nginx LB 운영 절차 확인 | [infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md](infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) |
+| 인프라 구축 중 실제 장애/오탐/운영 실수 회고 확인 | [infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md](infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md) |
 | 현재 QA 이슈와 재검증 항목 확인 | [QA_HANDOFF.md](QA_HANDOFF.md) |
 | 공식 데모 시나리오 확인 | [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) |
 | 시나리오 YAML 스키마 확인 | [scenarios/SCENARIO_YAML_SCHEMA.md](scenarios/SCENARIO_YAML_SCHEMA.md) |
@@ -65,6 +68,9 @@
 | [RUN_AND_DEPLOY.md](RUN_AND_DEPLOY.md) | 로컬 실행, Docker, Android 연결, 배포 요약 | 상세 운영 명령은 runbook으로 링크한다. |
 | [infra/OPS_RUNBOOK.md](infra/OPS_RUNBOOK.md) | 운영 명령어, Blue-Green, 장애 대응, 백업/복구, rate limit/IP block 운영 절차 | 운영 절차 정본이다. |
 | [infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유, 현재 구조, 확장 방향, roadmap, scale-out PoC, backup strategy | 인프라 전략 정본이다. |
+| [infra/poc/POC-006-scaleout-manual-lb.md](infra/poc/POC-006-scaleout-manual-lb.md) | Terraform 기반 app node scale-out PoC 결과, 검증 범위, 한계 | 완료된 PoC 기록이다. 운영 baseline 전환 문서가 아니다. |
+| [infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md](infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) | prod 제어형 app node sync/start/check와 scripted manual Nginx load balancing 절차 | 서버에서 실행할 때 secret 출력 금지와 rollback을 우선한다. |
+| [infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md](infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md) | Blue-Green, external data, S3 backup, Loki/n8n, rate limit, LLMOps, OAuth/JWT, scale-out PoC 트러블슈팅 이력 | 운영 회고와 재발 방지 체크리스트다. secret 값은 기록하지 않는다. |
 | [infra/SECURITY_TRAFFIC_ALERT_POLICY.md](infra/SECURITY_TRAFFIC_ALERT_POLICY.md) | rate limit, GeoIP/bot traffic, Grafana alert, n8n notification workflow 정책 | 보안/트래픽/알림 정책 정본이다. |
 | [infra/INFRA_PORTFOLIO_SUMMARY.md](infra/INFRA_PORTFOLIO_SUMMARY.md) | 발표/면접/포트폴리오용 인프라 요약 | 운영 명령이 아니라 설명용 문서다. |
 | [infra/diagrams/*.mmd](infra/diagrams/) | 현재 요청 흐름, 백업/복구, 관측/알림, scale-out PoC Mermaid 다이어그램 | 전략 문서와 발표 문서에서 참조한다. |
