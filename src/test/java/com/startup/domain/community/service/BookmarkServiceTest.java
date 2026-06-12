@@ -10,6 +10,10 @@ import com.startup.domain.scenario.enums.ScenarioType;
 import com.startup.domain.scenario.enums.ScenarioVisibility;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
+import com.startup.domain.auth.entity.User;
+import com.startup.domain.auth.enums.UserRole;
+import com.startup.domain.auth.enums.UserStatus;
+import com.startup.domain.auth.repository.UserRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,13 +31,22 @@ public class BookmarkServiceTest {
     @Autowired private BookmarkService bookmarkService;
     @Autowired private ScenarioBookmarkRepository bookmarkRepository;
     @Autowired private ScenarioRepository scenarioRepository;
+    @Autowired private UserRepository userRepository;
 
-    private static final Long USER_ID = 1L;
+    private Long USER_ID;
     private Scenario publishedScenario;
     private Scenario draftScenario;
 
     @BeforeEach
     void setUp() {
+        User user = userRepository.save(User.builder()
+                .email("test@test.com")
+                .nickname("테스터")
+                .role(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .build());
+        USER_ID = user.getId();
+
         publishedScenario = scenarioRepository.save(Scenario.builder()
                 .title("배포된 시나리오")
                 .description("설명")
@@ -61,6 +74,7 @@ public class BookmarkServiceTest {
     void tearDown() {
         bookmarkRepository.deleteAllInBatch();
         scenarioRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
     }
 
     @Test
@@ -74,7 +88,7 @@ public class BookmarkServiceTest {
     @Test
     @DisplayName("북마크 등록 실패: 권한 없는 시나리오는 북마크 불가 (Negative)")
     void addBookmark_fail_accessDenied() {
-        Long otherUserId = 2L;
+        Long otherUserId = USER_ID + 999L;
         assertThatThrownBy(() -> bookmarkService.addBookmark(otherUserId, draftScenario.getId()))
                 .isInstanceOf(ScenarioException.class)
                 .hasMessageContaining(ScenarioErrorCode.SCENARIO_ACCESS_DENIED.getMessage());

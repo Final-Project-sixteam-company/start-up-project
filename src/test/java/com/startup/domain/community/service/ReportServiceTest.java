@@ -9,6 +9,10 @@ import com.startup.domain.scenario.enums.Difficulty;
 import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.enums.ScenarioType;
 import com.startup.domain.scenario.enums.ScenarioVisibility;
+import com.startup.domain.auth.entity.User;
+import com.startup.domain.auth.enums.UserRole;
+import com.startup.domain.auth.enums.UserStatus;
+import com.startup.domain.auth.repository.UserRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,12 +30,21 @@ public class ReportServiceTest {
     @Autowired private ReportService reportService;
     @Autowired private ScenarioReportRepository reportRepository;
     @Autowired private ScenarioRepository scenarioRepository;
+    @Autowired private UserRepository userRepository;
 
-    private static final Long REPORTER_ID = 1L;
+    private Long REPORTER_ID;
     private Scenario publishedScenario;
 
     @BeforeEach
     void setUp() {
+        User user = userRepository.save(User.builder()
+                .email("reporter@test.com")
+                .nickname("리포터")
+                .role(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .build());
+        REPORTER_ID = user.getId();
+
         publishedScenario = scenarioRepository.save(Scenario.builder()
                 .title("신고 대상 시나리오")
                 .description("설명")
@@ -48,6 +61,7 @@ public class ReportServiceTest {
     void tearDown() {
         reportRepository.deleteAllInBatch();
         scenarioRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
     }
 
     @Test
