@@ -64,7 +64,7 @@ public class ReviewService {
             
             // 리뷰 추가 후 즉시 평균 평점 및 리뷰 개수 동기화
             reviewRepository.flush(); // 실제 반영
-            scenarioRepository.addRating(scenario.getId(), request.rating());
+            scenarioRepository.recalculateRating(scenario.getId());
 
             return savedReview.getId();
         } catch (DataIntegrityViolationException e) {
