@@ -1,6 +1,8 @@
 package com.startup.domain.scenario.service;
 
 import com.startup.common.dto.PageResponse;
+import com.startup.domain.auth.repository.UserRepository;
+import com.startup.domain.community.repository.ScenarioBookmarkRepository;
 import com.startup.domain.scenario.dto.*;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.Difficulty;
@@ -22,8 +24,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,6 +42,8 @@ public class ScenarioService {
     private final HintRepository hintRepository;
     private final ScenarioAssetUrlResolver scenarioAssetUrlResolver;
     private final ScenarioPublishValidator scenarioPublishValidator;
+    private final ScenarioBookmarkRepository bookmarkRepository;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public PageResponse<ScenarioSummaryResponse> getScenarios(Long userId, ScenarioSearchCondition condition, Pageable pageable) {
@@ -61,12 +67,21 @@ public class ScenarioService {
         Map<Long, Integer> evidenceCountMap = evidenceRepository.countByScenarioIdIn(scenarioIds).stream()
                 .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
 
+        // 북마크 상태 일괄 조회 (N+1 방지)
+        Set<Long> bookmarkedScenarioIds;
+        if (userId != null) {
+            bookmarkedScenarioIds = bookmarkRepository.findScenarioIdsByUserIdAndScenarioIdIn(userId, scenarioIds);
+        } else {
+            bookmarkedScenarioIds = Collections.emptySet();
+        }
+
         Page<ScenarioSummaryResponse> responsePage = scenarios.map(scenario -> {
             int suspectCount = suspectCountMap.getOrDefault(scenario.getId(), 0);
             int evidenceCount = evidenceCountMap.getOrDefault(scenario.getId(), 0);
+            boolean isBookmarked = bookmarkedScenarioIds.contains(scenario.getId());
             String thumbnailUrl = scenarioAssetUrlResolver.resolve(scenario.getCoverAssetKey());
             Boolean canPlay = scenarioAccessService.canPlay(userId, scenario.getId());
-            return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, false, thumbnailUrl, canPlay);
+            return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, isBookmarked, thumbnailUrl, canPlay);
         });
 
         return PageResponse.from(responsePage);
@@ -93,9 +108,14 @@ public class ScenarioService {
 
         scenarioAccessService.validateViewable(userId, scenarioId);
 
-        // TODO: 실제 작성자 닉네임 조회 및 북마크 여부 확인 로직 구현하기
-        String mockCreatorNickname = "운영자";
-        Boolean isBookmarked = false;
+        String creatorNickname = "운영자";
+        if (scenario.getCreatorId() != null) {
+            creatorNickname = userRepository.findById(scenario.getCreatorId())
+                    .map(com.startup.domain.auth.entity.User::getNickname)
+                    .orElse("운영자");
+        }
+
+        Boolean isBookmarked = userId != null && bookmarkRepository.existsByUserIdAndScenarioId(userId, scenarioId);
         Boolean canPlay = scenarioAccessService.canPlay(userId, scenarioId);
 
         int suspectCount = suspectRepository.countByScenarioId(scenarioId);
@@ -105,7 +125,7 @@ public class ScenarioService {
         String coverImageUrl = scenarioAssetUrlResolver.resolve(scenario.getCoverAssetKey());
         String mapImageUrl = scenarioAssetUrlResolver.resolve(scenario.getMapAssetKey());
 
-        return ScenarioDetailResponse.from(scenario, mockCreatorNickname, suspectCount, evidenceCount, hintCount,
+        return ScenarioDetailResponse.from(scenario, creatorNickname, suspectCount, evidenceCount, hintCount,
                 isBookmarked, canPlay, coverImageUrl, mapImageUrl);
 
     }

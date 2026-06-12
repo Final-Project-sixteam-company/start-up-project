@@ -64,7 +64,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/dev", "/api/auth/oauth", "/api/auth/refresh", "/api/auth/logout").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/scenarios", "/api/scenarios/{scenarioId}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/scenarios", "/api/scenarios/{scenarioId}", "/api/scenarios/{scenarioId}/reviews").permitAll()
                 .requestMatchers("/api/play-sessions/**").authenticated()
                 .requestMatchers("/api/device-tokens/**").authenticated()
                 .requestMatchers("/api/notifications/**").authenticated()
