@@ -13,7 +13,6 @@ import com.startup.domain.community.error.CommunityErrorCode;
 import com.startup.domain.community.error.CommunityException;
 import com.startup.domain.community.repository.ScenarioReviewRepository;
 import com.startup.domain.scenario.entity.Scenario;
-import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
@@ -68,7 +67,7 @@ public class ReviewService {
 
             return savedReview.getId();
         } catch (DataIntegrityViolationException e) {
-            log.warn("리뷰 중복 작성 감지 (따닥 방어): userId={}, scenarioId={}", userId, scenarioId);
+            log.warn("리뷰 중복 작성 감지: userId={}, scenarioId={}", userId, scenarioId);
             throw new CommunityException(CommunityErrorCode.ALREADY_REVIEWED);
         }
     }

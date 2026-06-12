@@ -5,7 +5,6 @@ import com.startup.domain.community.error.CommunityErrorCode;
 import com.startup.domain.community.error.CommunityException;
 import com.startup.domain.community.repository.ScenarioBookmarkRepository;
 import com.startup.domain.scenario.entity.Scenario;
-import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
@@ -43,7 +42,7 @@ public class BookmarkService {
                     .build();
             bookmarkRepository.save(bookmark);
         } catch (DataIntegrityViolationException e) {
-            log.warn("북마크 중복 삽입 감지 (따닥 방어): userId={}, scenarioId={}", userId, scenarioId);
+            log.warn("북마크 중복 삽입 감지: userId={}, scenarioId={}", userId, scenarioId);
             throw new CommunityException(CommunityErrorCode.ALREADY_BOOKMARKED);
         }
     }

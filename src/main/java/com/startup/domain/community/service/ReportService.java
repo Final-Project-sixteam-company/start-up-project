@@ -7,7 +7,6 @@ import com.startup.domain.community.error.CommunityErrorCode;
 import com.startup.domain.community.error.CommunityException;
 import com.startup.domain.community.repository.ScenarioReportRepository;
 import com.startup.domain.scenario.entity.Scenario;
-import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
@@ -32,7 +31,7 @@ public class ReportService {
     public ReportStatusResponse addReport(Long reporterId, Long scenarioId, ReportCreateRequest request) {
         Scenario scenario = getAccessibleScenario(reporterId, scenarioId);
 
-        // 1차 방어: 애플리케이션 레벨 중복 신고 체크
+        // 애플리케이션 레벨 중복 신고 체크
         if (reportRepository.existsByReporterIdAndScenarioId(reporterId, scenarioId)) {
             throw new CommunityException(CommunityErrorCode.ALREADY_REPORTED);
         }
