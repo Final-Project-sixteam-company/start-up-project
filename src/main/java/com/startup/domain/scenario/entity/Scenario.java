@@ -152,4 +152,12 @@ public class Scenario extends BaseEntity {
         if (estimatedPlayTimeMinutes != null) this.estimatedPlayTimeMinutes = estimatedPlayTimeMinutes;
     }
 
+    public void hide() {
+        this.status = ScenarioStatus.HIDDEN;
+    }
+
+    public void delete() {
+        this.status = ScenarioStatus.DELETED;
+    }
+
 }

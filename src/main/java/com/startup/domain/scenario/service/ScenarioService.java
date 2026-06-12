@@ -92,21 +92,13 @@ public class ScenarioService {
         Scenario scenario = scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        // 작성자 본인이 아니면서, 대중에게 공개되지 않은 시나리오에 접근하는 것을 차단
-        boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
-        boolean isPubliclyVisible = scenario.getStatus() == ScenarioStatus.PUBLISHED &&
-                (scenario.getVisibility() == ScenarioVisibility.PUBLIC ||
-                 scenario.getVisibility() == ScenarioVisibility.OFFICIAL ||
-                 scenario.getVisibility() == ScenarioVisibility.UNLISTED);  // UNLISTED는 링크 기반 접근 허용
-
-        if (!isCreator && !isPubliclyVisible) {
-            // 작성자가 아니면 에러 반환
-            log.warn("인증되지 않은 시나리오 접근 시도: userId={}, scenarioId={}, status={}, visibility={}",
+        // ScenarioAccessService에 모든 접근 권한(작성자, 공개 여부, 기존 플레이 세션 등)을 위임
+        if (!scenarioAccessService.canView(userId, scenarioId)) {
+            // 권한이 없는 경우, 리소스 존재 여부를 숨기기 위해 일괄적으로 404 NOT_FOUND 반환
+            log.warn("인증되지 않은 시나리오 접근 시도 (존재 숨김 처리): userId={}, scenarioId={}, status={}, visibility={}",
                     userId, scenarioId, scenario.getStatus(), scenario.getVisibility());
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND);
         }
-
-        scenarioAccessService.validateViewable(userId, scenarioId);
 
         String creatorNickname = "운영자";
         if (scenario.getCreatorId() != null) {

@@ -6,6 +6,8 @@ import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.enums.ScenarioVisibility;
+import com.startup.domain.scenario.error.ScenarioErrorCode;
+import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.EvidenceRepository;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import com.startup.domain.scenario.repository.SuspectRepository;
@@ -105,5 +107,41 @@ public class ScenarioManageService {
         });
 
         return PageResponse.from(responsePage);
+    }
+
+    @Transactional
+    public void deleteScenario(Long userId, Long scenarioId) {
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        if (scenario.getStatus() == ScenarioStatus.DELETED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ALREADY_DELETED);
+        }
+
+        if (!userId.equals(scenario.getCreatorId())) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
+        }
+
+        if (!scenario.getStatus().canDelete()) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_DELETE);
+        }
+
+        scenario.delete();
+    }
+
+    @Transactional
+    public void hideScenario(Long userId, Long scenarioId) {
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
+                .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+
+        if (!userId.equals(scenario.getCreatorId())) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
+        }
+
+        if (!scenario.getStatus().canHide()) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_HIDE);
+        }
+
+        scenario.hide();
     }
 }

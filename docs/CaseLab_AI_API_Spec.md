@@ -819,6 +819,57 @@ POST /api/scenarios/{scenarioId}/publish
 
 ---
 
+## 6.6 시나리오 숨김 (비공개 전환)
+
+```http
+POST /api/scenarios/{scenarioId}/hide
+Authorization: Bearer {accessToken}
+```
+
+공개(`PUBLISHED`) 상태의 시나리오를 숨김(`HIDDEN`) 상태로 변경한다. (본인만 가능)
+
+### Request
+
+(Empty Body)
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": null,
+  "error": null
+}
+```
+
+---
+
+## 6.7 시나리오 삭제 (Soft Delete)
+
+```http
+DELETE /api/scenarios/{scenarioId}
+Authorization: Bearer {accessToken}
+```
+
+작성자가 본인의 시나리오를 삭제한다. (DB에서 Hard Delete되지 않으며, 상태가 `DELETED`로 변경됨)
+삭제 시 목록 조회, 상세 조회 및 커뮤니티(리뷰, 북마크) 도메인에서의 신규 조작이 원천 차단된다. (진행 중이던 플레이 세션은 끝까지 플레이 가능)
+
+### Request
+
+(Empty Body)
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": null,
+  "error": null
+}
+```
+
+---
+
 # 7. 시나리오 제작 API
 
 ## 7.1 장소 등록

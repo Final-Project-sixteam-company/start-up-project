@@ -9,9 +9,7 @@ import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
 import com.startup.domain.scenario.service.ScenarioManageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -42,5 +40,27 @@ public class ScenarioManageController {
 
         PageResponse<ScenarioSummaryResponse> response = scenarioManageService.getBookmarkedScenarios(userId, pageable);
         return ApiResponse.success(response);
+    }
+
+    @DeleteMapping("/{scenarioId}")
+    public ApiResponse<Void> deleteScenario(@PathVariable Long scenarioId) {
+        Long userId = mockUserProvider.currentUserIdOrNull();
+        if (userId == null) {
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED, "인증이 필요합니다.");
+        }
+
+        scenarioManageService.deleteScenario(userId, scenarioId);
+        return ApiResponse.success(null);
+    }
+
+    @PostMapping("/{scenarioId}/hide")
+    public ApiResponse<Void> hideScenario(@PathVariable Long scenarioId) {
+        Long userId = mockUserProvider.currentUserIdOrNull();
+        if (userId == null) {
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED, "인증이 필요합니다.");
+        }
+
+        scenarioManageService.hideScenario(userId, scenarioId);
+        return ApiResponse.success(null);
     }
 }
