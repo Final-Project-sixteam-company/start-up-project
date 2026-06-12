@@ -786,8 +786,9 @@ turns used:
 candidate narrowing:
 blind validity:
 blocked moments:
-red herring handling:
-why non-final candidates became less likely:
+red herring handling: public-safe broad summary only
+public narrowing summary:
+rejected-candidate rationale: private note only
 remaining doubt:
 ```
 
@@ -873,8 +874,9 @@ turns used:
 candidate narrowing:
 blind validity:
 blocked moments:
-red herring handling:
-why non-final candidates became less likely:
+red herring handling: public-safe broad summary only
+public narrowing summary:
+rejected-candidate rationale: private note only
 remaining doubt:
 ```
 
@@ -975,7 +977,7 @@ note:
 
 ## 11. Private Artifact Notice
 
-정답 상세, raw result, raw session id, 제출 후보 상세, 스포일러성 deduction note는 public report에 포함하지 않았다.
+정답 상세, raw result, raw session id, 제출 후보 상세, rejected-candidate rationale, 스포일러성 deduction note는 public report에 포함하지 않았다.
 필요하면 private artifact로 별도 전달한다.
 ```
 
