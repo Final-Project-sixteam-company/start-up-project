@@ -2,6 +2,7 @@ package com.startup.domain.scenario.dto;
 
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.Difficulty;
+import com.startup.domain.scenario.enums.ScenarioStatus;
 import com.startup.domain.scenario.enums.ScenarioType;
 
 public record ScenarioSummaryResponse(
@@ -10,6 +11,7 @@ public record ScenarioSummaryResponse(
         String description,
         String thumbnailUrl,
         ScenarioType scenarioType,
+        ScenarioStatus status,
         Difficulty difficulty,
         Integer estimatedPlayTimeMinutes,
         Integer playerCountMin,
@@ -39,6 +41,7 @@ public record ScenarioSummaryResponse(
                 scenario.getDescription(),
                 thumbnailUrl,
                 scenario.getScenarioType(),
+                scenario.getStatus(),
                 scenario.getDifficulty(),
                 scenario.getEstimatedPlayTimeMinutes(),
                 scenario.getPlayerCountMin(),

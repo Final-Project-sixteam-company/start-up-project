@@ -1,0 +1,74 @@
+package com.startup.domain.scenario.service;
+
+import com.startup.common.dto.PageResponse;
+import com.startup.domain.community.repository.ScenarioBookmarkRepository;
+import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
+import com.startup.domain.scenario.entity.Scenario;
+import com.startup.domain.scenario.enums.ScenarioStatus;
+import com.startup.domain.scenario.repository.EvidenceRepository;
+import com.startup.domain.scenario.repository.ScenarioRepository;
+import com.startup.domain.scenario.repository.SuspectRepository;
+import com.startup.domain.scenario.support.ScenarioAssetUrlResolver;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ScenarioManageService {
+
+    private final ScenarioRepository scenarioRepository;
+    private final SuspectRepository suspectRepository;
+    private final EvidenceRepository evidenceRepository;
+    private final ScenarioBookmarkRepository bookmarkRepository;
+    private final ScenarioAssetUrlResolver scenarioAssetUrlResolver;
+
+    @Transactional(readOnly = true)
+    public PageResponse<ScenarioSummaryResponse> getMyScenarios(Long userId, Pageable pageable) {
+        // 내가 작성한 시나리오 목록 조회 (삭제된 것은 제외)
+        Page<Scenario> scenarios = scenarioRepository.findAllByCreatorIdAndStatusNot(
+                userId,
+                ScenarioStatus.DELETED,
+                pageable
+        );
+
+        List<Long> scenarioIds = scenarios.getContent().stream().map(Scenario::getId).toList();
+
+        Map<Long, Integer> suspectCountMap = suspectRepository.countByScenarioIdIn(scenarioIds).stream()
+                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+        Map<Long, Integer> evidenceCountMap = evidenceRepository.countByScenarioIdIn(scenarioIds).stream()
+                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+
+        // 북마크 상태 일괄 조회
+        Set<Long> bookmarkedScenarioIds;
+        if (userId != null && !scenarioIds.isEmpty()) {
+            bookmarkedScenarioIds = bookmarkRepository.findScenarioIdsByUserIdAndScenarioIdIn(userId, scenarioIds);
+        } else {
+            bookmarkedScenarioIds = Collections.emptySet();
+        }
+
+        Page<ScenarioSummaryResponse> responsePage = scenarios.map(scenario -> {
+            int suspectCount = suspectCountMap.getOrDefault(scenario.getId(), 0);
+            int evidenceCount = evidenceCountMap.getOrDefault(scenario.getId(), 0);
+            boolean isBookmarked = bookmarkedScenarioIds.contains(scenario.getId());
+            String thumbnailUrl = scenarioAssetUrlResolver.resolve(scenario.getCoverAssetKey());
+
+            // 내 시나리오는 항상 플레이 가능하다고 간주하거나 별도의 로직 불필요 시 true 반환
+            // (권한 체크는 이미 creator_id로 쿼리에서 끝났으므로)
+            Boolean canPlay = true;
+            return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, isBookmarked, thumbnailUrl, canPlay);
+        });
+
+        return PageResponse.from(responsePage);
+    }
+}

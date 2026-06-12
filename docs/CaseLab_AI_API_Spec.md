@@ -607,6 +607,7 @@ GET /api/scenarios?type=CUSTOM&difficulty=NORMAL&sort=popular&page=0&size=20
         "description": "AI 스타트업 대표가 데모데이 전날 사망한 사건",
         "thumbnailUrl": "https://example.com/thumb.png",
         "scenarioType": "OFFICIAL",
+        "status": "PUBLISHED",
         "difficulty": "NORMAL",
         "estimatedPlayTimeMinutes": 30,
         "playerCountMin": 1,
@@ -628,6 +629,28 @@ GET /api/scenarios?type=CUSTOM&difficulty=NORMAL&sort=popular&page=0&size=20
   "error": null
 }
 ```
+
+---
+
+## 6.1.1 내가 만든 시나리오 조회
+
+```http
+GET /api/scenarios/me
+Authorization: Bearer {accessToken}
+```
+
+내가 작성한 시나리오 목록을 조회한다. 일반 목록과 달리 `DRAFT`, `VALIDATING`, `HIDDEN`, `PUBLISHED` 상태의 시나리오가 모두 반환된다. (`DELETED` 제외)
+
+### Query Parameters
+
+| 이름 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| page | Integer | N | 페이지 번호 (기본값: 0) |
+| size | Integer | N | 페이지 크기 (기본값: 20) |
+
+### Response
+
+`6.1 시나리오 목록 조회`의 응답 규격과 동일하며, 내 시나리오의 상태 구분을 위해 `status` 필드를 참조한다.
 
 ---
 

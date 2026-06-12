@@ -22,6 +22,9 @@ public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
     // PUBLISHED 시나리오 중, 누구나 볼 수 있는 권한(PUBLIC, OFFICIAL)인 목록만 조회
     Page<Scenario> findAllByStatusAndVisibilityIn(ScenarioStatus status, List<ScenarioVisibility> visibilities, Pageable pageable);
 
+    // 내 시나리오 목록 조회 (삭제된 것 제외)
+    Page<Scenario> findAllByCreatorIdAndStatusNot(Long creatorId, ScenarioStatus status, Pageable pageable);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM Scenario s WHERE s.id = :id")
     Optional<Scenario> findByIdForUpdate(@Param("id") Long id);
