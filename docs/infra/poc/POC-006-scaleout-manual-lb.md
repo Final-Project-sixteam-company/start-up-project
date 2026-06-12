@@ -27,6 +27,68 @@ Verified equal-mode upstreams:
 172.26.2.166:8080
 ```
 
+## PoC Evidence Screenshots
+
+The screenshots below are public-safe copies of the 2026-06-12 PoC verification evidence. Public IPv4/IPv6 values and login/source IPs are redacted. Secret values, Firebase JSON contents, DB passwords, JWT values, and API keys are not included.
+
+Private RFC1918 addresses remain visible where they are part of the already documented PoC routing evidence, such as app-node private upstreams and data/ops internal endpoints.
+
+<details>
+<summary>1. App node inventory generated on prod</summary>
+
+<img src="assets/scaleout-20260612/scaleout-01-node-inventory-redacted.png" alt="Scale-out app node inventory with public IPs redacted" width="820">
+
+</details>
+
+<details>
+<summary>2. Terraform output for app private/public IP maps</summary>
+
+<img src="assets/scaleout-20260612/scaleout-02-terraform-output-redacted.png" alt="Terraform output for app node IP maps with public IPs redacted" width="820">
+
+</details>
+
+<details>
+<summary>3. app01/app02 runtime secret and scenario verification</summary>
+
+<img src="assets/scaleout-20260612/scaleout-03-secret-runtime-verify-redacted.png" alt="App node runtime verification showing Firebase, scenario count, and JWT_SECRET set status" width="720">
+
+</details>
+
+<details>
+<summary>4. app01 health verification from prod control flow</summary>
+
+<img src="assets/scaleout-20260612/scaleout-04-app01-health-redacted.png" alt="app01 health verification with public IP redacted" width="820">
+
+</details>
+
+<details>
+<summary>5. Nginx equal-mode upstream and 60-request distribution</summary>
+
+<img src="assets/scaleout-20260612/scaleout-05-nginx-equal-lb.png" alt="Nginx equal-mode upstream and 60 request distribution across three backends" width="820">
+
+</details>
+
+<details>
+<summary>6. Loki startup log verification for app01/app02</summary>
+
+<img src="assets/scaleout-20260612/scaleout-06-loki-startup-logs.png" alt="Loki startup logs for app01 and app02" width="640">
+
+</details>
+
+<details>
+<summary>7. app02 health verification from prod control flow</summary>
+
+<img src="assets/scaleout-20260612/scaleout-07-app02-health-redacted.png" alt="app02 health verification with public IP redacted" width="820">
+
+</details>
+
+<details>
+<summary>8. Lightsail console instance state during PoC</summary>
+
+<img src="assets/scaleout-20260612/scaleout-08-lightsail-instances-redacted.png" alt="Lightsail instances running during scale-out PoC with public IPs redacted" width="760">
+
+</details>
+
 ## Secret And Runtime Verification
 
 The PoC verified that app01/app02 were not just shallow health responders:
