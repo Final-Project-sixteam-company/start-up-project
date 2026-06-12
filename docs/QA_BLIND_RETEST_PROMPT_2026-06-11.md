@@ -678,8 +678,8 @@ turn range:
 ```text
 최종 제출 완료 여부
 결과 화면 진입 여부
-점수/등급이 있으면 공개 가능한 수준으로만 기록
-정답 상세/해설은 private note로 분리
+점수/등급/정오답/세부 채점 breakdown은 public report에 기록하지 않고 private note로 분리
+정답 상세/해설도 private note로 분리
 제출했다면 왜 그 후보를 선택했는지 public-safe 수준으로 요약
 제출하지 않았다면 어떤 반증/추가 증거가 부족했는지 요약
 ```
