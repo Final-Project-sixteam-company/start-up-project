@@ -12,6 +12,7 @@ import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import com.startup.domain.scenario.service.ScenarioAccessService;
+import com.startup.domain.scenario.enums.ScenarioStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -64,7 +65,13 @@ public class BookmarkService {
     // 인증 및 접근 권한 검증 후 시나리오 조회
     private Scenario getAccessibleScenario(Long userId, Long scenarioId) {
         scenarioAccessService.validateViewable(userId, scenarioId);
-        return scenarioRepository.findById(scenarioId)
+        Scenario scenario = scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+        
+        if (scenario.getStatus() == ScenarioStatus.DELETED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ALREADY_DELETED);
+        }
+        
+        return scenario;
     }
 }

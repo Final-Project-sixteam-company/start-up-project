@@ -19,6 +19,7 @@ import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import com.startup.domain.scenario.service.ScenarioAccessService;
+import com.startup.domain.scenario.enums.ScenarioStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -49,6 +50,10 @@ public class ReviewService {
 
         if (scenario.getCreatorId() != null && scenario.getCreatorId().equals(userId)) {
             throw new CommunityException(CommunityErrorCode.CANNOT_REVIEW_OWN);
+        }
+
+        if (scenario.getStatus() == ScenarioStatus.DELETED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ALREADY_DELETED);
         }
 
         if (!playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.COMPLETED)) {
