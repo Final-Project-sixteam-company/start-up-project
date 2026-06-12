@@ -9,6 +9,8 @@
 - App build: not verified
 - Backend commit/version: not verified
 - Constraint: initial gameplay was API-only; later frontend E2E follow-up confirmed Android chip auto-send behavior
+- API-only spoiler metadata masking audit: not recorded; exposed metadata was observed during spoiler-leak verification
+- Candidate narrowing blind validity: blind invalid for API-only 30~50 turn measurement; use as diagnostic only until Android or masked-runner retest
 
 ## 1. Spoiler Safety Declaration
 
@@ -25,10 +27,11 @@
 ## 2. Final Judgment
 
 ```text
-전체 판단: PARTIAL
+전체 판단: PARTIAL for flow/guidance, but API-only candidate narrowing is blind invalid
 가장 큰 blocker: 10일 P0 API 스포일러 메타데이터가 지속되고, guidance chip 자동 전송과 guidance/prompt 약점 때문에 30~50회 내 최종 후보 확정이 어렵다.
 최종 제출 여부: 50턴 기준 두 시나리오 모두 보류. user 요청 후 extended retest에서 두 시나리오 모두 제출 완료.
-30~50회 심문 내 후보 축소 가능성: 후보군을 줄이는 것은 가능하나 1명 확정은 어려움.
+30~50회 심문 내 후보 축소 가능성: API-only diagnostic으로는 어려움이 보였지만, 마스킹 감사 기록이 없어 blind-valid 근거로 쓰지 않는다.
+후보 축소 blind validity: INVALID. Android 또는 spoiler metadata 마스킹 runner로 재측정 필요.
 guidance가 추리 보조인지 정답 경로 고정인지: 정답 경로 고정은 아니지만, 많은 증거에서 guidance가 없어 보조력이 약함.
 ```
 
@@ -37,11 +40,12 @@ guidance가 추리 보조인지 정답 경로 고정인지: 정답 경로 고정
 | Priority | Scenario | Finding | Evidence | Expected | Actual | Impact | Recommended Action |
 |---|---|---|---|---|---|---|---|
 | P0 | Cross-scenario | 2026-06-10 P0 스포일러성 API 메타데이터가 2026-06-11에도 지속됨 | 현재 운영 응답에서 evidence `importance=CORE/FAKE`, suspect `culpritEligible`, 역할성 asset path가 확인됨 | 플레이어용 API에는 정답성/레드헤링/비후보 판정 메타데이터가 없어야 함 | API-only 사용자나 네트워크 로그 사용자는 핵심/가짜 증거와 배제 후보를 추정 가능 | 추리게임 핵심 경험과 blind QA 신뢰성을 직접 훼손함 | public DTO에서 `importance`, `culpritEligible`, 역할성 asset path 제거. admin/debug DTO와 분리 |
-| P1 | Cross-scenario | 50턴 안에 최종 후보를 안전하게 확정하지 못함 | fresh/API-only 기준 두 시나리오 모두 50턴 진행 후 최종 제출 보류 | guidance와 심문만으로 1~2명까지 후보 축소 | 일부 축소는 됐지만, 수단/기회/은폐를 한 명에게 묶는 근거가 부족 | 신규 유저가 찍기 제출을 하거나 중도 이탈할 가능성 | 핵심 증거별 reading/compare/question을 5분, 10분 해금 증거까지 확장 |
+| P1 | Cross-scenario | API-only diagnostic 기준 50턴 안에 최종 후보를 안전하게 확정하지 못함 | fresh/API-only 기준 두 시나리오 모두 50턴 진행 후 최종 제출 보류. 단, runner-side spoiler metadata masking 기록이 없어 blind validity는 invalid | guidance와 심문만으로 1~2명까지 후보 축소 | 일부 축소는 됐지만, 수단/기회/은폐를 한 명에게 묶는 근거가 부족 | 신규 유저가 찍기 제출을 하거나 중도 이탈할 가능성. 다만 이 행은 blind-valid 판정이 아니라 diagnostic UX signal임 | 핵심 증거별 reading/compare/question 확장 후 Android 또는 masked API runner로 blind 재측정 |
 | P1 | Cross-scenario | 10일에 지적된 AI 회피 답변 문제가 11일에도 재현됨 | `단정할 수 없다`, `추가 증거 필요`, `기록을 함께 봐야 한다` 반복 | 증거 제시 시 인정 가능한 사실과 다음 비교 대상을 제공 | 답변이 안전하지만 후보 귀속을 충분히 돕지 못함 | 사용자가 잘못된 후보로 확신할 수 있음 | prompt responseShape와 policy allowedFacts에 `인정 사실/부인 범위/다음 비교 대상` 강제 |
 | P1 | Cross-scenario | Android suggested-question chip이 prefill-only가 아니라 즉시 AI 호출을 수행함 | Frontend E2E follow-up에서 guidance chip tap 시 자동 심문 호출 확인 | chip tap은 심문 화면 이동과 입력창 prefill까지만 수행 | 사용자가 전송 전 질문 수정/취소할 기회 없이 AI 호출됨 | 원치 않는 심문 로그가 생성되고 QA prompt의 P1 기준을 위반함 | Android chip handler를 navigate/prefill 전용으로 바꾸고 send는 전송 버튼 클릭에만 연결 |
 | P1 | Cross-scenario | 증거 해금 이유가 여전히 플레이어에게 설명되지 않음 | 서월채 7->13->20->25, 스튜디오9 8->14->29->35로 급증 | 시간/질문/증거제시 중 무엇으로 열렸는지 표시 | API-only 기준 count만 바뀌고 이유 UX는 확인 불가 | “내가 잘해서 열린 건지 기다려서 열린 건지” 진행감이 약함 | unlock reason 이벤트, 최근 해금 내역, toast/snackbar 계약 추가 |
 | P1 | Cross-scenario | 핵심 이미지/기록형 증거의 판독값 텍스트화가 여전히 부족함 | 여러 증거가 “함께 봐야 한다”만 말하고 작은 이미지/기록 판독을 별도 구조로 제공하지 않음 | 관찰 정보/판독 결과/비교 대상/물어볼 대상 분리 | description에 섞여 있거나 일부 증거에는 없음 | 모바일에서 핵심 단서 판독 실패 가능성 지속 | evidence detail에 `readingPoints`를 전 증거로 확대하고 판독값을 텍스트 필드로 분리 |
+| P2 | Cross-scenario | API-only 후보 축소 평가의 blind 유효성 기록이 누락됨 | 리포트는 API-only retest와 spoiler metadata 노출을 모두 기록하지만, 후보 축소 전 runner-side masking 또는 수동 무시 절차를 기록하지 않음 | API-only 후보 축소 전 `importance`, `culpritEligible`, suspicion/candidate metadata, 역할성 asset path를 숨긴 방식이 남아야 함 | 감사 가능한 masking record가 없음 | 후보 축소 판정을 blind QA 정본으로 사용할 수 없음 | 이 리포트의 API-only candidate narrowing은 blind invalid로 표기하고, Android 또는 masked runner로 재검 |
 | P2 | 서월채 | guidance coverage가 초기와 중후반 증거에서 부족함 | 초기 7개 중 2개만 guidance 존재, 5분/10분 해금 증거 대부분 `guidance: null` | 최소 3개 이상 해금 증거에서 읽을 점, 비교 대상, 질문 방향 제공 | 일부 핵심 증거와 조건 해금 증거에만 guidance 존재 | 질문 설계가 증거 설명문과 QA tester 추론에 의존함 | 시간 해금 증거에도 guidance를 균등 적용 |
 | P2 | 스튜디오9 | 초기/5분 구간 guidance가 전무하고 10분 후에도 낮음 | 초기 8개 0개, 5분 14개 0개, 10분 29개 중 2개만 guidance 존재 | 초반부터 읽을 점과 비교 방향을 제공 | 10분 전까지 추천 질문 chip을 확인할 수 없음 | 초반 플레이어가 무엇을 물어야 할지 알기 어렵다 | 초기 CORE 증거와 5분 해금 증거에 guidance 우선 추가 |
 | P2 | 서월채 | 일부 AI 답변이 공개 타임라인과 충돌하는 시간 표현을 생성함 | 한 보안 계층 답변에서 공개 시간대와 다른 “밤 10시부터 11시 사이” 표현 후 재질문에서 다른 시간대로 변경 | 설정에 없는 시간/장소를 만들지 않음 | 정확한 기준 시각이 흔들림 | 플레이어가 잘못된 시간축으로 추리할 수 있음 | ResponsePolicy 또는 prompt context에 공개 타임라인 기준 준수 문구 강화 |
@@ -52,8 +56,8 @@ guidance가 추리 보조인지 정답 경로 고정인지: 정답 경로 고정
 
 | Scenario | Basic Flow | Guidance UX | Interrogation Quality | Candidate Narrowing | Final Submit | Overall |
 |---|---|---|---|---|---|---|
-| 서월채 | PASS | PARTIAL | PARTIAL/PASS | PARTIAL | 50턴 미완료 / extended 완료 | PARTIAL |
-| 스튜디오9 | PASS | FAIL/PARTIAL | PARTIAL/PASS | PARTIAL | 50턴 미완료 / extended 완료 | PARTIAL |
+| 서월채 | PASS | PARTIAL | PARTIAL/PASS | diagnostic PARTIAL / blind invalid | 50턴 미완료 / extended 완료 | PARTIAL |
+| 스튜디오9 | PASS | FAIL/PARTIAL | PARTIAL/PASS | diagnostic PARTIAL / blind invalid | 50턴 미완료 / extended 완료 | PARTIAL |
 
 ## 5. Scenario A: 서월채
 
@@ -81,11 +85,13 @@ draft override policy: chip 자동 전송 때문에 전송 전 수정/override �
 
 ```text
 turns used: 50
-candidate narrowing: 넓음 -> 여러 증거 축 비교 -> 2~3명 수준
+candidate narrowing: API-only diagnostic 기준 넓음 -> 여러 증거 축 비교 -> 2~3명 수준
+blind validity: INVALID. runner-side spoiler metadata masking 또는 수동 무시 절차 기록 없음
 blocked moments: 15분 비교 증거 전에는 수단/기회/은폐를 한 명에게 묶기 어려움
 red herring handling: 일부 동기 증거는 직접 방법 증거가 아님을 분리 가능
 why non-final candidates became less likely: private note 분리
 remaining doubt: 최종 후보 확정에 필요한 비교 증거와 재질문 턴 부족
+10-turn summaries: not captured in public 10-turn format; this is a report-format gap and the aggregate narrowing above is diagnostic only
 ```
 
 ### 5.4 Scenario Notes
@@ -94,7 +100,7 @@ remaining doubt: 최종 후보 확정에 필요한 비교 증거와 재질문 �
 What worked: AI는 대체로 1~2문장, 정답 직접 누설 없음, 증거를 제시하면 비교할 기록을 안내함.
 What did not work: 많은 시간 해금 증거에서 guidance가 null이라 질문 설계가 어렵다.
 AI answer quality: 전반적으로 도움됨. 일부 시간대 표현은 재질문 필요.
-UX friction: 50턴 내 최종 제출 기준을 충족하지 못함.
+UX friction: API-only diagnostic 기준 50턴 내 최종 제출 기준을 충족하지 못함.
 ```
 
 ## 6. Scenario B: 스튜디오9
@@ -124,11 +130,13 @@ draft override policy: chip 자동 전송 때문에 전송 전 수정/override �
 
 ```text
 turns used: 50
-candidate narrowing: 넓음 -> 여러 현장/기록 증거 축 비교 -> 3명 이상 상위 후보
+candidate narrowing: API-only diagnostic 기준 넓음 -> 여러 공개 단서 축 비교 -> 3명 이상 상위 후보
+blind validity: INVALID. runner-side spoiler metadata masking 또는 수동 무시 절차 기록 없음
 blocked moments: 10분 전까지 guidance가 없어 초반 질문 방향이 약함
-red herring handling: 일부 장비/겔/예산 계층은 반박 가능
+red herring handling: 일부 비최종 후보군 반박은 private note 분리
 why non-final candidates became less likely: private note 분리
-remaining doubt: 물리 조작과 지시 조작 중 어느 계층이 주도인지 확정 부족
+remaining doubt: 핵심 귀속 계층 확정 부족. 상세 근거는 private note 분리
+10-turn summaries: not captured in public 10-turn format; this is a report-format gap and the aggregate narrowing above is diagnostic only
 ```
 
 ### 6.4 Scenario Notes
@@ -144,9 +152,9 @@ UX friction: fresh session은 active session abandon 후에야 생성 가능했�
 
 ```text
 What improved: locked evidence detail masking은 대체로 안전함. AI 답변은 직접 정답 누설 없이 짧게 유지됨.
-What still blocks users: 10일 P0 API 스포일러 메타데이터 지속, guidance coverage 부족, Android chip 자동 전송, 50턴 내 최종 확정 어려움.
+What still blocks users: 10일 P0 API 스포일러 메타데이터 지속, guidance coverage 부족, Android chip 자동 전송, API-only diagnostic 기준 50턴 내 최종 확정 어려움.
 Whether guidance feels like a clue-reading aid or answer railroading: railroading은 아님. 오히려 부족한 쪽.
-Whether 30~50 interrogation target is realistic: 후보 축소는 가능하지만 최종 제출 기준 충족은 어려움.
+Whether 30~50 interrogation target is realistic: API-only diagnostic 기준으로는 최종 제출 기준 충족이 어려웠다. blind-valid 평가는 Android 또는 masked runner 재검이 필요하다.
 ```
 
 ## 8. Good Points
@@ -166,11 +174,23 @@ AI behavior: 정답/범인 직접 누설 없음, 대부분 1~2문장 유지, 증
 | Scenario seed | P1 | 5분/10분/조건 해금 증거에 guidance coverage 확장 |
 | Backend | P1 | unlock reason/recent unlocks 응답 계약 추가 |
 | Backend | P2 | guidance null coverage를 smoke metric으로 추가 |
+| QA | P2 | Android 또는 spoiler metadata masked API runner로 30~50턴 후보 축소를 blind-valid하게 재측정 |
 | Android | P1 | guidance suggested question chip 자동 전송 제거, prefill-only 동작으로 수정 |
 | Android | P2 | active session P002 복구 UX와 timeline/image 판독 UX를 10일 체크리스트 기준으로 재검증 |
 | Android | P2 | chip auto-send 수정 후 draft override policy를 실제 기기에서 재검증 |
 | AI policy | P2 | 공개 타임라인 밖 시간 생성 방지 문구 강화 |
 | Backend/Android | P3 | suggestedQuestions 내부 character code 필드 미노출 또는 UI 미렌더링 contract 명시 |
+
+## 9.1 Privacy Spot Check
+
+```text
+status: 미확인
+reason: 운영자 redacted log snippet 또는 Loki/Grafana 접근 권한 없음
+AI_CALL exists: 미확인
+AI_CALL_CONTEXT exists: 미확인
+raw prompt/answer/user question absence: 미확인
+sessionId/scenarioId/suspectId/npcCode absence in AI_CALL_CONTEXT: 미확인
+```
 
 ## 10. Private Artifact Notice
 
@@ -233,10 +253,10 @@ docs/QA_HANDOFF.md
 | API 스포일러 메타데이터 | 여전히 재현. `importance=CORE/FAKE`, `culpritEligible`, 역할성 asset path 확인 | P0 유지. 앱에서 숨겨도 네트워크/API 사용자에게 정답성 메타가 보이므로 데모 전 차단 필요 |
 | locked evidence masking | 11일 fresh session 초반에도 locked title/unlockHint가 반환됨 | P0 회수. 현재 API/FE contract상 title/unlockHint는 Evidence 탭 정상 표시이며, 검증 초점은 description/oneLine/imageAssetKey/imageUrl/locationName/relatedSuspects/code 같은 민감 필드 masking 유지 |
 | AI 답변 회피 반복 | 11일에도 50턴 내 확정 불가. post-submit result는 private artifact로 분리 | P1 유지. 단순 UX 불편이 아니라 후보 귀속 근거 부족으로 이어짐 |
+| 후보 축소 blind validity | API-only run에서 spoiler metadata masking audit가 남지 않음 | API-only 후보 축소 결론은 blind invalid. Android 또는 masked runner 재검 필요 |
 | 시간 답변 guard 부족 | 10일의 22시대 hallucination만큼 심하지는 않지만 11일에도 공개 시간축과 맞지 않는 표현 발생 | P2 유지. prompt/context hard guard가 아직 충분하지 않음 |
 | 증거 해금 이유 불명확 | 11일에도 증거 수가 단계적으로 급증하지만 이유 설명은 API-only 기준 확인 불가 | P1 유지. guidance가 생겨도 unlock reason 없으면 진행감이 약함 |
 | 이미지/기록 판독 어려움 | 11일 API-only라 모바일 판독은 미확인. 다만 description/guidance coverage가 낮아 텍스트 판독값 부족은 계속 보임 | P1 유지. `readingPoints`를 모든 핵심 이미지/기록 증거로 확대 필요 |
-| guidance chip 자동 전송 | Frontend E2E follow-up에서 suggested question chip 즉시 AI 호출 확인 | P1. QA prompt와 FE contract의 prefill-only 요구를 위반하므로 Android 수정 필요 |
 | active session 복구 UX | 11일 API-only에서도 active session 충돌 후 abandon이 필요했음. Android UX는 미확인 | P2/P1 경계. 10일 Android 실패가 해결됐다고 볼 근거 없음 |
 
 ### 13.2 Improved Since June 10
@@ -249,7 +269,7 @@ docs/QA_HANDOFF.md
 
 스튜디오9:
   10일과 11일 모두 post-submit 결과 상세는 private artifact로 분리한다.
-  공개 보고서 기준으로는 50턴 내 확정 보류와 후보 귀속 근거 부족만 남긴다.
+  공개 보고서 기준으로는 50턴 내 확정 보류와 후보 귀속 근거 부족을 diagnostic UX signal로만 남긴다.
   따라서 스튜디오9는 "플레이 가능"과 별개로, guidance/prompt가 후보 귀속 혼란을 충분히 줄이지 못한다.
 
 공통:
@@ -275,6 +295,9 @@ docs/QA_HANDOFF.md
 
 4. prompt-level root cause:
    - 정답 누설 방지는 강하지만, 증거 제시 답변의 response shape가 없어 다음 추리 단계 안내가 약하다.
+
+5. frontend E2E blocker:
+   - suggested question chip 자동 전송은 June 11 Frontend E2E follow-up에서 새로 확인된 P1이다.
 ```
 
 ### 13.4 Stronger Wording For Carry-Over Issues

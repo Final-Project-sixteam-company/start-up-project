@@ -388,6 +388,7 @@ API-only fallback을 사용할 때도 아래 순서를 지킨다.
 
 active session 복구는 별도 UX 점검 항목이다.
 이미 진행된 active session에는 해금 증거, 이전 심문, 시간 기반 해금 상태가 섞일 수 있으므로 30~50회 후보 축소 측정에 사용하지 않는다.
+운영 API에서 공유 mock 계정/token을 쓰는 경우에는 `abandon` 전에 운영자가 QA 전용 계정 또는 시간대 조율을 확인해야 한다.
 fresh session 생성을 막는 active session이 있으면 해당 sessionId를 기록하지 않고 `POST /api/play-sessions/{sessionId}/abandon`을 호출한 뒤 새 세션 생성을 재시도한다.
 fresh session을 만들 수 없는 환경이면 "fresh-session unavailable"로 표시하고 candidate narrowing 평가는 보류한다.
 API-only 마스킹 없이 spoiler metadata가 보이는 상태로 진행했다면 candidate narrowing 결과를 blind retest 근거로 쓰지 않는다.
@@ -715,6 +716,9 @@ sessionId/scenarioId/suspectId/npcCode가 AI_CALL_CONTEXT에 없음
 - Device:
 - App build:
 - Backend commit/version if known:
+- API-only spoiler metadata masking audit:
+- Candidate narrowing blind validity:
+- QA account/session isolation:
 
 ## 1. Spoiler Safety Declaration
 
@@ -733,6 +737,7 @@ sessionId/scenarioId/suspectId/npcCode가 AI_CALL_CONTEXT에 없음
 가장 큰 blocker:
 최종 제출 여부:
 30~50회 심문 내 후보 축소 가능성:
+후보 축소 blind validity:
 guidance가 추리 보조인지 정답 경로 고정인지:
 ```
 
@@ -779,13 +784,58 @@ draft override policy:
 ```text
 turns used:
 candidate narrowing:
+blind validity:
 blocked moments:
 red herring handling:
 why non-final candidates became less likely:
 remaining doubt:
 ```
 
-### 5.4 Scenario Notes
+### 5.4 10-Turn Summaries
+
+```text
+Turn 1~10:
+  main targets:
+  evidence used:
+  what became more plausible:
+  what became less plausible:
+  AI answer quality:
+  next interrogation plan:
+
+Turn 11~20:
+  main targets:
+  evidence used:
+  what became more plausible:
+  what became less plausible:
+  AI answer quality:
+  next interrogation plan:
+
+Turn 21~30:
+  main targets:
+  evidence used:
+  what became more plausible:
+  what became less plausible:
+  AI answer quality:
+  next interrogation plan:
+
+Turn 31~40:
+  main targets:
+  evidence used:
+  what became more plausible:
+  what became less plausible:
+  AI answer quality:
+  next interrogation plan:
+
+Turn 41~50:
+  main targets:
+  evidence used:
+  what became more plausible:
+  what became less plausible:
+  AI answer quality:
+  next interrogation plan:
+```
+
+### 5.5 Scenario Notes
 
 ```text
 What worked:
@@ -821,13 +871,58 @@ draft override policy:
 ```text
 turns used:
 candidate narrowing:
+blind validity:
 blocked moments:
 red herring handling:
 why non-final candidates became less likely:
 remaining doubt:
 ```
 
-### 6.4 Scenario Notes
+### 6.4 10-Turn Summaries
+
+```text
+Turn 1~10:
+  main targets:
+  evidence used:
+  what became more plausible:
+  what became less plausible:
+  AI answer quality:
+  next interrogation plan:
+
+Turn 11~20:
+  main targets:
+  evidence used:
+  what became more plausible:
+  what became less plausible:
+  AI answer quality:
+  next interrogation plan:
+
+Turn 21~30:
+  main targets:
+  evidence used:
+  what became more plausible:
+  what became less plausible:
+  AI answer quality:
+  next interrogation plan:
+
+Turn 31~40:
+  main targets:
+  evidence used:
+  what became more plausible:
+  what became less plausible:
+  AI answer quality:
+  next interrogation plan:
+
+Turn 41~50:
+  main targets:
+  evidence used:
+  what became more plausible:
+  what became less plausible:
+  AI answer quality:
+  next interrogation plan:
+```
+
+### 6.5 Scenario Notes
 
 ```text
 What worked:
@@ -865,7 +960,20 @@ AI behavior:
 | Scenario seed |  |  |
 | AI policy |  |  |
 
-## 10. Private Artifact Notice
+## 10. Privacy Spot Check
+
+```text
+status: checked / 미확인
+AI_CALL exists:
+AI_CALL_CONTEXT exists:
+raw prompt 없음:
+raw answer 없음:
+raw user question 없음:
+sessionId/scenarioId/suspectId/npcCode가 AI_CALL_CONTEXT에 없음:
+note:
+```
+
+## 11. Private Artifact Notice
 
 정답 상세, raw result, raw session id, 제출 후보 상세, 스포일러성 deduction note는 public report에 포함하지 않았다.
 필요하면 private artifact로 별도 전달한다.
@@ -921,6 +1029,7 @@ P3:
 [ ] private seed, solution, culprit 정보가 담긴 문서를 첨부하지 않는다.
 [ ] raw sessionId를 공개 채팅에 붙이지 않는다.
 [ ] 테스트 계정/token이 필요하면 private channel로만 전달한다.
+[ ] 운영 API에서 shared mock 계정을 쓰면 QA 전용 계정 또는 시간대 조율을 먼저 확보한다.
 [ ] API base URL과 앱 build 정보만 제공한다.
 [ ] 결과 보고서는 public-safe와 private artifact를 분리하게 한다.
 ```
