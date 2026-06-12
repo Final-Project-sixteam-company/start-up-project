@@ -24,12 +24,17 @@ public class ScenarioAccessService {
 
         if (scenario == null) return false;
 
+        if (scenario.getStatus() == ScenarioStatus.DELETED) {
+            // 삭제된 시나리오라도, 이미 플레이 중인 세션이 있다면 계속 진행 가능하도록 보장
+            return userId != null && playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING);
+        }
+
         boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
         if (isCreator || isPubliclyAccessible(scenario)) {
             return true;
         }
 
-        // HIDDEN, DELETED 상태라도 기존 플레이 세션이 있다면(PLAYING) 계속 플레이(접근) 가능하도록 보장
+        // HIDDEN 상태라도 기존 플레이 세션이 있다면(PLAYING) 계속 플레이(접근) 가능하도록 보장
         return userId != null && playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING);
     }
 
@@ -43,13 +48,18 @@ public class ScenarioAccessService {
     public boolean canView(Long userId, Long scenarioId) {
         Scenario scenario = scenarioRepository.findById(scenarioId).orElse(null);
         if (scenario == null) return false;
+
+        if (scenario.getStatus() == ScenarioStatus.DELETED) {
+            // 삭제된 시나리오라도, 이미 플레이 중인 세션이 있다면 계속 볼 수 있도록 보장
+            return userId != null && playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING);
+        }
         
         boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
         if (isCreator || isPubliclyAccessible(scenario)) {
             return true;
         }
 
-        // HIDDEN, DELETED 상태라도 기존 플레이 세션이 있다면(PLAYING) 계속 볼 수 있도록 보장
+        // HIDDEN 상태라도 기존 플레이 세션이 있다면(PLAYING) 계속 볼 수 있도록 보장
         return userId != null && playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING);
     }
 
