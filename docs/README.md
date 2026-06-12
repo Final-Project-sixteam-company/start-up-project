@@ -30,6 +30,9 @@
 | 로컬 실행, Android 연결, 배포 요약 확인 | [RUN_AND_DEPLOY.md](RUN_AND_DEPLOY.md) |
 | 운영 명령어와 장애 대응 확인 | [infra/OPS_RUNBOOK.md](infra/OPS_RUNBOOK.md) |
 | 인프라 구조와 고도화 방향 확인 | [infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) |
+| Terraform 기반 app node scale-out PoC 결과 확인 | [infra/poc/POC-006-scaleout-manual-lb.md](infra/poc/POC-006-scaleout-manual-lb.md) |
+| scale-out 및 수동 Nginx LB 운영 절차 확인 | [infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md](infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) |
+| 인프라 구축 중 실제 장애/오탐/운영 실수 회고 확인 | [infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md](infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md) |
 | 현재 QA 이슈와 재검증 항목 확인 | [QA_HANDOFF.md](QA_HANDOFF.md) |
 | 정답을 모르는 새 AI에게 블라인드 재검증 지시 | [QA_BLIND_RETEST_PROMPT_2026-06-11.md](QA_BLIND_RETEST_PROMPT_2026-06-11.md) |
 | 공식 데모 시나리오 확인 | [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) |
@@ -66,7 +69,12 @@
 | [RUN_AND_DEPLOY.md](RUN_AND_DEPLOY.md) | 로컬 실행, Docker, Android 연결, 배포 요약 | 상세 운영 명령은 runbook으로 링크한다. |
 | [infra/OPS_RUNBOOK.md](infra/OPS_RUNBOOK.md) | 운영 명령어, Blue-Green, 장애 대응, 백업/복구, rate limit/IP block 운영 절차 | 운영 절차 정본이다. |
 | [infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) | 인프라 선택 이유, 현재 구조, 확장 방향, roadmap, scale-out PoC, backup strategy | 인프라 전략 정본이다. |
+| [infra/poc/POC-006-scaleout-manual-lb.md](infra/poc/POC-006-scaleout-manual-lb.md) | Terraform 기반 app node scale-out PoC 결과, 검증 범위, 한계 | 완료된 PoC 기록이다. 운영 기준 구조 전환 문서가 아니다. |
+| [infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md](infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) | prod 제어형 app node sync/start/check와 수동 Nginx load balancing 절차 | 서버에서 실행할 때 secret 출력 금지와 rollback을 우선한다. |
+| [infra/runbook/INFRA_SCRIPT_CATALOG.md](infra/runbook/INFRA_SCRIPT_CATALOG.md) | 인프라/운영용 쉘 스크립트의 실행 위치, 위험도, 용도, rollback 기준 | 절차서가 아니라 스크립트 카탈로그다. 상세 실행은 각 runbook을 따른다. |
+| [infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md](infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md) | Blue-Green, external data, S3 backup, Loki/n8n, rate limit, LLMOps, OAuth/JWT, scale-out PoC 트러블슈팅 이력 | 운영 회고와 재발 방지 체크리스트다. secret 값은 기록하지 않는다. |
 | [infra/SECURITY_TRAFFIC_ALERT_POLICY.md](infra/SECURITY_TRAFFIC_ALERT_POLICY.md) | rate limit, GeoIP/bot traffic, Grafana alert, n8n notification workflow 정책 | 보안/트래픽/알림 정책 정본이다. |
+| [infra/nginx/*.conf](infra/nginx/) | 운영 Nginx upstream, API server, rate/connection limit zone 복구 템플릿 | 실제 적용 전 운영 서버의 snippet, Certbot, active upstream 상태와 대조한다. |
 | [infra/INFRA_PORTFOLIO_SUMMARY.md](infra/INFRA_PORTFOLIO_SUMMARY.md) | 발표/면접/포트폴리오용 인프라 요약 | 운영 명령이 아니라 설명용 문서다. |
 | [infra/diagrams/*.mmd](infra/diagrams/) | 현재 요청 흐름, 백업/복구, 관측/알림, scale-out PoC Mermaid 다이어그램 | 전략 문서와 발표 문서에서 참조한다. |
 | [infra/images/*architecture_logo_style.*](infra/images/) | 현재 운영 구조와 scale-out PoC 발표용 로고 스타일 이미지 | PNG는 문서 렌더링용, SVG는 편집/확대용이다. |
@@ -78,6 +86,7 @@
 |---|---|---|
 | [infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 인프라 agent 권한, 금지 작업, 승인 기준, Codex playbook, Ops Snapshot, Monitoring Agent, n8n infra/ops workflow 운영 모델 | infra agent 문서군 정본이다. |
 | [infra/agent/LLMOPS_OPERATING_GUIDE.md](infra/agent/LLMOPS_OPERATING_GUIDE.md) | LLMOps 계획, telemetry safety, smoke 절차, PromQL 후보, agent 역할, n8n LLMOps workflow 운영 모델 | LLMOps 문서군 정본이다. |
+| [infra/agent/LLMOPS_DAILY_SUMMARY_2026-06-09_TO_2026-06-12.md](infra/agent/LLMOPS_DAILY_SUMMARY_2026-06-09_TO_2026-06-12.md) | 2026-06-09~2026-06-12 LLMOps 일자별 통합 보고서 | Slack/작업 로그 기반 집계 보고서다. raw prompt, AI 답변, 사용자 질문 원문은 포함하지 않는다. |
 
 ### QA / Handoff
 

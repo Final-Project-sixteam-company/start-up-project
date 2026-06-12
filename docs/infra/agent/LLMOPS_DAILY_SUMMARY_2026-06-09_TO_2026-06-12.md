@@ -1,0 +1,181 @@
+# ClueRoom LLMOps 일자별 통합 보고서
+
+작성일: 2026-06-12
+
+이 문서는 2026-06-09부터 2026-06-12까지 Slack/작업 로그로 공유된 LLMOps 보고서와 Codex 분석 결과를 중복 제거해 합친 일자별 정리본이다. 운영 로그 원문, 프롬프트 원문, 사용자 질문/AI 답변 원문은 포함하지 않고, 집계 지표와 조치 판단만 남긴다.
+
+## 0. 통합 결론
+
+| 구분 | 판단 |
+|---|---|
+| 안정성 | 관측된 LLM 호출은 전 기간 failure/fallback 0건이다. 장애성 LLM 실패는 확인되지 않았다. |
+| 비용/토큰 | 2026-06-10 이후 호출량과 prompt token이 빠르게 증가했다. 최신 v3 기준 prompt token 비중이 약 98%라 비용 최적화가 필요하다. |
+| 주요 원인 | `npc_interrogation_v1`의 증거 컨텍스트와 대화 이력이 prompt 대부분을 차지한다. |
+| 지연시간 | 평균 지연은 운영 장애 수준은 아니지만, `FINAL_DEDUCTION`은 표본이 적어 p95/p99 판단을 미룬다. |
+| 인프라 연계 | 2026-06-12 기준 prod/data/ops 상태는 INFO/OK로 정리된다. 다만 `AI_LLMOPS_DB_LOGGING_ENABLED=false` 상태에서도 LLMOps 지표가 남는 경로가 필요하다. |
+
+최우선 개선 방향은 `npc_interrogation_v2_compact` 성격의 압축 프롬프트 경로를 만들고, 증거 top-k/토큰 예산/대화 이력 요약을 적용하는 것이다.
+
+## 1. 일자별 요약
+
+| 일자 | 기준 보고서 | 상태 | AI_CALL | 성공/실패/fallback | 평균/최대 지연 | 총 토큰 | 핵심 판단 |
+|---|---|---:|---:|---:|---:|---:|---|
+| 2026-06-09 | LLMOps v2 | INFO | 4 | 4/0/0 | 2950ms / 3923ms | 5,221 | 저용량 기준선. 실패는 없고 `INTERROGATION` 3건, `FINAL_DEDUCTION` 1건만 관측됨. |
+| 2026-06-10 | Infra + LLMOps v2 | WARNING | 48 | 48/0/0 | 1917ms / 2772ms | 136,194 | LLM 실패는 없지만 호출량과 토큰 사용량이 전일 대비 크게 증가. Infra는 App ERROR 샘플 때문에 CRITICAL로 표시됐으나 Nginx 5xx와 health 실패는 없음. |
+| 2026-06-11 | LLMOps v2 | WARNING | 144 | 144/0/0 | 1934ms / 4749ms | 400,097 | `INTERROGATION` 141건이 대부분을 차지. `FINAL_DEDUCTION` 3건은 평균 지연이 더 높아 추적 필요. |
+| 2026-06-12 | Infra + LLMOps v3 | WARNING | 152 | 152/0/0 | 1789ms / 3656ms | 482,041 | v3에서 `AI_CALL_CONTEXT` 150건 확인. prompt token 비중 약 98%, 증거/이력 컨텍스트가 비용의 주 원인. |
+
+2026-06-11 v2와 2026-06-12 v3는 일부 기간이 겹친다. 단순 호출량 추세는 둘 다 참고하고, 컨텍스트 원인 분석은 `AI_CALL_CONTEXT`가 포함된 2026-06-12 v3를 최신 기준으로 본다.
+
+## 2. 일자별 상세
+
+### 2026-06-09
+
+LLMOps 상태는 INFO다.
+
+- `AI_CALL`: 4건
+- 성공/실패/fallback: 4/0/0
+- 평균/최대 지연: 2950ms / 3923ms
+- 토큰: prompt 4,866, completion 355, total 5,221
+- 기능별 호출: `INTERROGATION` 3건, `FINAL_DEDUCTION` 1건
+- promptVersion: `npc_interrogation_v1` 3건, `final_deduction_scoring_v1` 1건
+
+저용량 기준선으로 볼 수 있다. 호출 수가 적어 성능 판단에는 제한이 있지만, 실패와 fallback이 없다는 점은 정상이다.
+
+### 2026-06-10
+
+LLMOps 상태는 WARNING이다.
+
+- `AI_CALL`: 48건
+- 성공/실패/fallback: 48/0/0
+- 평균/최대 지연: 1917ms / 2772ms
+- 토큰: prompt 134,124, completion 2,070, total 136,194
+- 기능별 호출: `INTERROGATION` 48건
+- promptVersion: `npc_interrogation_v1` 48건
+
+LLM 자체 실패는 없다. 다만 전일 대비 호출량과 총 토큰이 급증했으므로, 이 시점부터 비용 관점의 WARNING으로 보는 것이 맞다.
+
+같은 날 Infra 보고서는 App ERROR/Exception 샘플 7건 때문에 CRITICAL로 표시됐다. Nginx 5xx는 0건이고 data/server/ops health는 OK였으므로, LLM 장애와 직접 연결된 신호로 보지는 않는다. 해당 App ERROR는 별도 애플리케이션 로그 원인 분석 대상이다.
+
+### 2026-06-11
+
+LLMOps 상태는 WARNING이다.
+
+- `AI_CALL`: 144건
+- 성공/실패/fallback: 144/0/0
+- 평균/최대 지연: 1934ms / 4749ms
+- 토큰: prompt 390,938, completion 9,159, total 400,097
+- 기능별 호출:
+  - `INTERROGATION`: 141건, totalTokens 396,959
+  - `FINAL_DEDUCTION`: 3건, totalTokens 3,138
+- promptVersion:
+  - `npc_interrogation_v1`: 141건
+  - `final_deduction_scoring_v1`: 3건
+
+호출 성공률은 좋지만, 비용은 `INTERROGATION` 쪽에 집중된다. `FINAL_DEDUCTION`은 표본이 3건뿐이라 결론을 내리기는 이르지만 평균/최대 지연이 상대적으로 높아 이후 표본 30건 이상에서 p95/p99를 다시 봐야 한다.
+
+### 2026-06-12
+
+Infra 상태는 INFO다.
+
+- data health: MySQL, Redis, disk, backup OK
+- prod Blue-Green: active upstream `127.0.0.1:8081`, active `app-blue`, standby `app-green`
+- external data target: MySQL/Redis TCP OK
+- Nginx 5xx 샘플: 0건
+- App ERROR/Exception 샘플: 0건
+- ops health: n8n, Loki, disk, memory OK
+- `AI_LLMOPS_DB_LOGGING_ENABLED=false`
+
+Infra 보고서의 `AI_CALL samples=0`은 "LLM 호출이 0건"이라고 단정하면 안 된다. DB logging 비활성화와 트래픽 부재를 구분할 별도 metric/log 경로가 필요하다.
+
+LLMOps v3 상태는 WARNING이다.
+
+- `AI_CALL`: 152건
+- `AI_CALL_CONTEXT`: 150건
+- 성공/실패/fallback: 152/0/0
+- 평균/최대 지연: 1789ms / 3656ms
+- 토큰: prompt 472,499, completion 9,542, total 482,041
+- 호출당 평균 토큰: prompt 3,109, completion 63, total 3,171
+- prompt token 비중: 약 98%
+
+`npc_interrogation_v1` 컨텍스트 집계:
+
+| 항목 | 평균 |
+|---|---:|
+| system token | 271 |
+| policy token | 58 |
+| NPC token | 51 |
+| evidence token | 1,924 |
+| history token | 598 |
+| question token | 46 |
+| prompt chars | 4,660 |
+| history turns | 6 |
+| evidence count | 19 |
+
+증거 컨텍스트와 이력이 prompt의 대부분을 차지한다. 특히 일부 샘플은 evidence token이 3,700대, evidence count가 35개까지 올라가므로, 모든 해금 증거를 넓게 싣는 방식은 장기적으로 비용과 지연을 키운다.
+
+## 3. 통합 LLMOps 분석
+
+### 정상으로 볼 수 있는 부분
+
+- 관측 구간 전체에서 LLM failure/fallback은 0건이다.
+- `INTERROGATION` 대량 호출에서도 평균 지연은 2초 안팎으로 유지됐다.
+- raw prompt/answer/user question을 보고서에 싣지 않는 방향은 적절하다.
+
+### 위험으로 볼 부분
+
+- 비용 원인은 completion이 아니라 prompt다. 최신 v3 기준 prompt token 비중이 약 98%다.
+- `npc_interrogation_v1`이 전체 토큰 대부분을 사용한다.
+- evidence context가 평균 1,924 tokens로 가장 크고, history context가 평균 598 tokens로 뒤를 잇는다.
+- evidence + history가 prompt 대부분을 차지하므로, 단순 모델 교체보다 컨텍스트 구성 개선의 효과가 더 클 가능성이 높다.
+- `AI_LLMOPS_DB_LOGGING_ENABLED=false` 상태에서 `AI_CALL samples=0`만 보면 실제 호출 부재와 로깅 경로 부재를 구분하기 어렵다.
+
+### 아직 결론을 내리면 안 되는 부분
+
+- `FINAL_DEDUCTION` 지연시간은 표본이 2~3건 수준이라 p95/p99 판단이 불가능하다.
+- 최대 지연 샘플이 항상 최대 토큰 샘플과 일치하지 않으므로, provider/network/cold path 영향도 같이 봐야 한다.
+- 2026-06-10 App ERROR 샘플은 LLM 호출 실패와 직접 연결된 증거가 아니므로 별도 애플리케이션 로그 분석이 필요하다.
+
+## 4. 조치 계획
+
+### 바로 할 일
+
+1. `npc_interrogation_v2_compact` 프롬프트 버전을 만든다.
+2. 증거 컨텍스트에 relevance top-k와 최대 evidence count/token budget을 적용한다.
+3. 대화 이력은 최근 N턴 + 요약 방식으로 바꾼다.
+4. `AI_CALL_CONTEXT`는 raw prompt 없이 block token, evidenceCount, historyTurns, promptVersion, templateHash만 남긴다.
+5. DB logging이 꺼진 상태에서도 호출량/실패율/지연시간/토큰 집계를 볼 수 있는 metric 또는 로그 경로를 만든다.
+
+### 다음 단계
+
+1. `FINAL_DEDUCTION` 표본을 30건 이상 확보한 뒤 p95/p99 지연시간을 다시 산출한다.
+2. `templateHashCount=2`가 정상 배포 차이인지, 프롬프트 템플릿 분기인지 확인한다.
+3. evidence top-k 기준을 시나리오별 핵심 증거/최근 해금/사용자 질문 키워드 중심으로 설계한다.
+4. suspect static context와 session dynamic context를 분리해 매 호출마다 반복되는 고정 텍스트를 줄인다.
+5. LLMOps 대시보드에 호출량, 실패율, fallback율, 평균/p95 지연, 총 토큰, prompt ratio, promptVersion별 비용을 올린다.
+
+### 하지 말아야 할 일
+
+- raw prompt, AI 답변 원문, 사용자 질문 원문을 운영 집계 로그에 저장하지 않는다.
+- Prometheus label에 sessionId, scenarioId, suspectId, npcCode 같은 고카디널리티 값을 넣지 않는다.
+- failure가 0건이라는 이유로 token warning을 무시하지 않는다.
+- 비용 문제를 모델 교체로만 해결하려 하지 않는다. 현재 병목은 컨텍스트 크기다.
+
+## 5. 코드/운영 확인 지점
+
+| 영역 | 확인할 것 |
+|---|---|
+| Prompt Builder | `npc_interrogation_v1`에서 증거/이력 컨텍스트가 어디서 조립되는지 확인 |
+| Evidence Query | 해금 증거 전체를 싣는지, 관련도 정렬/필터가 있는지 확인 |
+| History Context | 최근 대화 전체를 싣는지, 요약/턴 제한이 있는지 확인 |
+| Prompt Versioning | `npc_interrogation_v2_compact` 추가와 templateHash 기록 확인 |
+| Telemetry | `AI_CALL_CONTEXT`가 raw-free 집계 필드만 저장하는지 확인 |
+| Metrics | DB logging off 상태에서도 AI_CALL 지표가 남는지 확인 |
+| Alerts | high prompt ratio, high evidenceCount, high historyTurns, AI_CALL zero-rate, Loki/Alloy ingest freshness 알림 검토 |
+
+## 6. 중복 제거 기준
+
+- 같은 기간의 v2/v3 LLMOps 보고서는 모두 보관 가치가 있지만, 원인 분석은 context breakdown이 있는 v3를 우선한다.
+- Infra health 반복 내용은 2026-06-12 최신 INFO 상태만 통합 결론에 반영했다.
+- 긴 샘플 로그, stack trace, 프롬프트 원문, 사용자 질문/AI 답변 원문은 이 문서에서 제외했다.
+- scale-out PoC와 직접 관련된 서버 증설/원복 절차는 별도 PoC 문서에 두고, 이 문서에는 LLMOps 판단에 필요한 운영 상태만 남겼다.

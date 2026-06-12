@@ -369,7 +369,7 @@ Android 앱은 백엔드 API만 호출한다.
 
 ```properties
 SPRING_AI_MODEL_CHAT=none
-OPENAI_API_KEY=
+# OPENAI_API_KEY는 설정하지 않는다.
 ```
 
 이 상태에서는 API Key 없이도 앱이 부팅되어야 한다.
@@ -379,12 +379,13 @@ OPENAI_API_KEY=
 ```properties
 SPRING_AI_MODEL_CHAT=openai
 OPENAI_BASE_URL=https://api.deepseek.com
-OPENAI_API_KEY=sk-...
+# OPENAI_API_KEY는 로컬 .env 또는 운영 서버 secret env에서 주입한다.
 OPENAI_CHAT_MODEL=deepseek-v4-flash
 OPENAI_CHAT_TEMPERATURE=0.4
 ```
 
-API Key는 `.env`, 서버 secret, GitHub Actions secret에만 둔다.
+API Key는 로컬 개발용 `.env` 또는 운영 서버 secret env에만 둔다.
+GitHub Actions Secrets에는 AI/PortOne/OAuth/Firebase/DB 같은 runtime secret을 넣지 않는다. CD workflow는 운영 서버 SSH 접속 secret만 사용한다.
 
 ---
 
@@ -435,12 +436,14 @@ Prometheus / Grafana는 2GB 운영 서버에서는 상시 운영하지 않을 �
 ### 7.1 상태 확인
 
 ```bash
-docker compose ps
+/opt/clueroom/bg-status.sh
+/opt/clueroom/bg-compose ps
 docker ps
-docker compose logs app
-docker compose logs mysql
-docker compose logs redis
+/opt/clueroom/bg-compose logs --tail=120 app-blue
+/opt/clueroom/bg-compose logs --tail=120 app-green
 ```
+
+운영 source of truth MySQL/Redis는 data 서버에 있다. prod 서버의 compose `mysql`/`redis`는 local-data 또는 rollback copy 확인이 필요할 때만 본다.
 
 ### 7.2 컨테이너 리소스 확인
 
@@ -540,23 +543,21 @@ curl -I http://api.clueroom.xyz/actuator/health
 
 ```bash
 cd /opt/clueroom/app
-docker compose ps
-docker compose logs -f app
-docker compose logs mysql
-docker compose logs redis
+/opt/clueroom/bg-compose ps
+/opt/clueroom/bg-compose logs -f app-blue
+/opt/clueroom/bg-compose logs -f app-green
 ```
 
-MySQL 접속:
+운영 MySQL 접속은 data 서버에서 수행한다. `clueroom-data` SSH alias는 로컬 PC SSH config 기준이다.
 
 ```bash
-docker exec -it start-up-mysql mysql -uroot -p
+ssh -t clueroom-data 'DATA_MYSQL_CONTAINER="$(docker ps --format '\''{{.Names}} {{.Image}}'\'' | awk '\''/mysql/ {print $1; exit}'\'')" && docker exec -it "$DATA_MYSQL_CONTAINER" mysql -uroot -p'
 ```
 
-Redis 접속:
+운영 Redis 접속도 data 서버 기준으로 확인한다.
 
 ```bash
-docker exec -it start-up-redis redis-cli
-ping
+ssh -t clueroom-data 'DATA_REDIS_CONTAINER="$(docker ps --format '\''{{.Names}} {{.Image}}'\'' | awk '\''/redis/ {print $1; exit}'\'')" && docker exec -it "$DATA_REDIS_CONTAINER" redis-cli ping'
 ```
 
 ---
@@ -1013,6 +1014,7 @@ curl -I https://api.clueroom.xyz/actuator/health
 따라서 운영 백업 완료 기준은 data 서버의 `/opt/clueroom-data` 경로에서 수행되는 백업과 S3 업로드다.
 
 ```bash
+# [로컬 PC] `clueroom-data` alias는 로컬 SSH config 기준이다.
 ssh clueroom-data 'bash -se' << 'REMOTE'
 set -euo pipefail
 /opt/clueroom-data/backup-mysql.sh
@@ -1029,6 +1031,7 @@ REMOTE
 확인:
 
 ```bash
+# [로컬 PC] `clueroom-data` alias는 로컬 SSH config 기준이다.
 ssh clueroom-data 'bash -se' << 'REMOTE'
 set -euo pipefail
 ls -lh /opt/clueroom-data/backups/mysql
@@ -1177,6 +1180,7 @@ netstat -ano | findstr :16379
 ### 15.3 MySQL이 healthy가 되지 않음
 
 ```bash
+# [로컬 개발 PC] local Docker Compose MySQL 확인용이다.
 docker compose logs mysql
 docker compose ps
 ```
@@ -1201,6 +1205,7 @@ DB_PORT=3306
 ### 15.5 Redis 연결 실패
 
 ```bash
+# [로컬 개발 PC] local Docker Compose Redis/app 확인용이다.
 docker compose logs redis
 docker compose logs app
 ```
@@ -1219,14 +1224,14 @@ AI 없이 실행:
 
 ```properties
 SPRING_AI_MODEL_CHAT=none
-OPENAI_API_KEY=
+# OPENAI_API_KEY는 설정하지 않는다.
 ```
 
 AI 활성화:
 
 ```properties
 SPRING_AI_MODEL_CHAT=openai
-OPENAI_API_KEY=실제_키
+# OPENAI_API_KEY는 운영 서버 secret env에서 주입한다.
 ```
 
 ---
@@ -1297,6 +1302,7 @@ nc -vz 172.26.1.185 6379
 data 서버 직접 확인:
 
 ```bash
+# [로컬 PC] `clueroom-data` alias는 로컬 SSH config 기준이다.
 ssh clueroom-data 'bash -se' << 'REMOTE'
 set -euo pipefail
 docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
@@ -1311,6 +1317,7 @@ local-data/rollback copy 확인이 필요할 때만 compose `mysql` 서비스를
 
 ```bash
 cd /opt/clueroom/app
+# [prod] local-data/rollback copy 확인용이다. 운영 source of truth는 data 서버 MySQL이다.
 docker compose logs mysql
 docker compose exec mysql mysql -uroot -p
 ```
@@ -1329,6 +1336,7 @@ sudo systemctl reload nginx
 df -h
 docker system df
 du -sh /opt/clueroom/backups/mysql 2>/dev/null || true
+# [로컬 PC] `clueroom-data` alias는 로컬 SSH config 기준이다.
 ssh clueroom-data 'du -sh /opt/clueroom-data/backups/mysql 2>/dev/null || true'
 docker image prune
 ```
