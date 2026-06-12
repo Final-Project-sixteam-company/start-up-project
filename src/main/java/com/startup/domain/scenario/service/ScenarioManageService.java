@@ -87,8 +87,12 @@ public class ScenarioManageService {
 
     @Transactional(readOnly = true)
     public PageResponse<ScenarioSummaryResponse> getBookmarkedScenarios(Long userId, Pageable pageable) {
-        // 내가 북마크한 시나리오 목록 조회 (삭제/숨김 방어)
-        List<ScenarioVisibility> allowedVisibilities = List.of(ScenarioVisibility.PUBLIC, ScenarioVisibility.OFFICIAL);
+        // 내가 북마크한 시나리오 목록 조회 (삭제/숨김 방어 + 링크 공유 시나리오 포함)
+        List<ScenarioVisibility> allowedVisibilities = List.of(
+                ScenarioVisibility.PUBLIC, 
+                ScenarioVisibility.OFFICIAL, 
+                ScenarioVisibility.UNLISTED
+        );
 
         Page<Scenario> scenarios = scenarioRepository.findBookmarkedScenarios(
                 userId,
