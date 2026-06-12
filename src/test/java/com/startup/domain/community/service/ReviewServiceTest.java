@@ -90,11 +90,11 @@ public class ReviewServiceTest {
     @DisplayName("리뷰 등록 성공 및 시나리오 평점 갱신 확인")
     void addReview_success() {
         ReviewCreateRequest request = new ReviewCreateRequest(5, "정말 재밌어요", false);
-        
+
         reviewService.addReview(reviewer.getId(), publishedScenario.getId(), request);
 
         assertThat(reviewRepository.existsByUserIdAndScenarioId(reviewer.getId(), publishedScenario.getId())).isTrue();
-        
+
         Scenario updatedScenario = scenarioRepository.findById(publishedScenario.getId()).orElseThrow();
         assertThat(updatedScenario.getRatingCount()).isEqualTo(1);
         assertThat(updatedScenario.getAverageRating()).isEqualTo(5.0);
@@ -104,7 +104,7 @@ public class ReviewServiceTest {
     @DisplayName("리뷰 등록 실패: 자신의 시나리오")
     void addReview_fail_ownScenario() {
         ReviewCreateRequest request = new ReviewCreateRequest(5, "자화자찬", false);
-        
+
         assertThatThrownBy(() -> reviewService.addReview(creator.getId(), publishedScenario.getId(), request))
                 .isInstanceOf(CommunityException.class)
                 .hasMessageContaining(CommunityErrorCode.CANNOT_REVIEW_OWN.getMessage());

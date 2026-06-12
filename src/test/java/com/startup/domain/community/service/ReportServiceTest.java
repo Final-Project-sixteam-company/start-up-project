@@ -68,7 +68,7 @@ public class ReportServiceTest {
     @DisplayName("신고 등록 성공")
     void addReport_success() {
         ReportCreateRequest request = new ReportCreateRequest("스포일러", "스포일러가 있어요");
-        
+
         reportService.addReport(REPORTER_ID, publishedScenario.getId(), request);
 
         assertThat(reportRepository.existsByReporterIdAndScenarioId(REPORTER_ID, publishedScenario.getId())).isTrue();

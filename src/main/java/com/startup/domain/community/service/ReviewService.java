@@ -70,9 +70,9 @@ public class ReviewService {
                     .content(request.content())
                     .isSpoiler(request.isSpoiler())
                     .build();
-            
+
             ScenarioReview savedReview = reviewRepository.save(review);
-            
+
             // 리뷰 추가 후 즉시 평균 평점 및 리뷰 개수 동기화
             reviewRepository.flush(); // 실제 반영
             scenarioRepository.recalculateRating(scenario.getId());
@@ -97,7 +97,7 @@ public class ReviewService {
         } else {
             reviewPage = reviewRepository.findAllByScenarioIdAndIsSpoilerFalse(scenarioId, safePageable);
         }
-        
+
         return PageResponse.from(
             reviewPage.map(ReviewResponse::from)
         );
@@ -117,11 +117,11 @@ public class ReviewService {
         scenarioRepository.findByIdForUpdate(review.getScenarioId());
 
         review.updateReview(request.rating(), request.content(), request.isSpoiler());
-        
+
         // flush 후 평점 재계산 (수정 시 별점이 변경되었을 수 있으므로)
         reviewRepository.flush();
         scenarioRepository.recalculateRating(review.getScenarioId());
-        
+
         return ReviewResponse.from(review);
     }
 
@@ -136,12 +136,12 @@ public class ReviewService {
         }
 
         Long scenarioId = review.getScenarioId();
-        
+
         // 동시성 제어를 위해 시나리오 락 획득
         scenarioRepository.findByIdForUpdate(scenarioId);
 
         reviewRepository.delete(review);
-        
+
         // flush 후 평점 재계산
         reviewRepository.flush();
         scenarioRepository.recalculateRating(scenarioId);

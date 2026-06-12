@@ -113,7 +113,7 @@ public class BookmarkServiceTest {
 
         // when (최초 삭제)
         bookmarkService.removeBookmark(USER_ID, publishedScenario.getId());
-        
+
         // then
         assertThat(bookmarkRepository.existsByUserIdAndScenarioId(USER_ID, publishedScenario.getId())).isFalse();
 
