@@ -2,6 +2,8 @@ package com.startup.domain.scenario.service;
 
 import com.startup.common.dto.PageResponse;
 import com.startup.domain.community.repository.ScenarioBookmarkRepository;
+import com.startup.domain.scenario.dto.ScenarioDeleteResponse;
+import com.startup.domain.scenario.dto.ScenarioHideResponse;
 import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.ScenarioStatus;
@@ -110,7 +112,7 @@ public class ScenarioManageService {
     }
 
     @Transactional
-    public void deleteScenario(Long userId, Long scenarioId) {
+    public ScenarioDeleteResponse deleteScenario(Long userId, Long scenarioId) {
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
@@ -127,10 +129,11 @@ public class ScenarioManageService {
         }
 
         scenario.delete();
+        return new ScenarioDeleteResponse(scenarioId, scenario.getStatus());
     }
 
     @Transactional
-    public void hideScenario(Long userId, Long scenarioId) {
+    public ScenarioHideResponse hideScenario(Long userId, Long scenarioId) {
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
@@ -143,5 +146,6 @@ public class ScenarioManageService {
         }
 
         scenario.hide();
+        return new ScenarioHideResponse(scenarioId, scenario.getStatus());
     }
 }
