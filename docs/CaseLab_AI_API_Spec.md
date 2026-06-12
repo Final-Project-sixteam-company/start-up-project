@@ -654,6 +654,29 @@ Authorization: Bearer {accessToken}
 
 ---
 
+## 6.1.2 내가 북마크한 시나리오 조회
+
+```http
+GET /api/scenarios/bookmarked
+Authorization: Bearer {accessToken}
+```
+
+내가 북마크한 시나리오 목록을 조회한다. 
+단, 원작자가 삭제(`DELETED`)하거나 비공개(`HIDDEN`) 처리한 시나리오는 북마크 목록에서도 제외되어 보이지 않는다.
+
+### Query Parameters
+
+| 이름 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| page | Integer | N | 페이지 번호 (기본값: 0) |
+| size | Integer | N | 페이지 크기 (기본값: 20) |
+
+### Response
+
+`6.1 시나리오 목록 조회`의 응답 규격과 동일하다. 북마크한 항목이므로 응답 내 `isBookmarked`는 항상 `true`로 고정된다.
+
+---
+
 ## 6.2 시나리오 상세 조회
 
 ```http

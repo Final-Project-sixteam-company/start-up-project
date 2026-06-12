@@ -25,6 +25,16 @@ public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
     // 내 시나리오 목록 조회 (삭제된 것 제외)
     Page<Scenario> findAllByCreatorIdAndStatusNot(Long creatorId, ScenarioStatus status, Pageable pageable);
 
+    // 내가 북마크한 시나리오 목록 조회 (삭제/숨김 처리된 것 방어)
+    @Query(value = "SELECT s FROM Scenario s JOIN ScenarioBookmark b ON s.id = b.scenarioId " +
+                   "WHERE b.userId = :userId AND s.status = :status AND s.visibility IN :visibilities",
+           countQuery = "SELECT COUNT(s) FROM Scenario s JOIN ScenarioBookmark b ON s.id = b.scenarioId " +
+                        "WHERE b.userId = :userId AND s.status = :status AND s.visibility IN :visibilities")
+    Page<Scenario> findBookmarkedScenarios(@Param("userId") Long userId,
+                                           @Param("status") ScenarioStatus status,
+                                           @Param("visibilities") List<ScenarioVisibility> visibilities,
+                                           Pageable pageable);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM Scenario s WHERE s.id = :id")
     Optional<Scenario> findByIdForUpdate(@Param("id") Long id);
