@@ -1,5 +1,8 @@
 package com.startup.domain.community.service;
 
+import com.startup.common.error.BusinessException;
+import com.startup.common.error.CommonErrorCode;
+import com.startup.domain.auth.repository.UserRepository;
 import com.startup.domain.community.dto.ReportCreateRequest;
 import com.startup.domain.community.dto.ReportStatusResponse;
 import com.startup.domain.community.entity.ScenarioReport;
@@ -25,6 +28,7 @@ public class ReportService {
     private final ScenarioReportRepository reportRepository;
     private final ScenarioRepository scenarioRepository;
     private final ScenarioAccessService scenarioAccessService;
+    private final UserRepository userRepository;
 
     // 시나리오 신고 접수
     @Transactional
@@ -35,6 +39,9 @@ public class ReportService {
         if (reportRepository.existsByReporterIdAndScenarioId(reporterId, scenarioId)) {
             throw new CommunityException(CommunityErrorCode.ALREADY_REPORTED);
         }
+
+        userRepository.findById(reporterId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "유저를 찾을 수 없습니다."));
 
         try {
             ScenarioReport report = ScenarioReport.builder()
