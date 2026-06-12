@@ -5,12 +5,29 @@ source /opt/clueroom/scaleout/scaleout.env
 
 SSH_OPTS=(-o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -i "$APP_NODE_SSH_KEY")
 SSH_TARGET="${APP_NODE_SSH_USER}@${APP_NODE_PRIVATE_IP}"
-TMP_CONFIG="/tmp/clueroom-app-node-alloy-config.alloy"
+TMP_CONFIG=""
+REMOTE_CONFIG="/opt/clueroom/alloy/.config.alloy.$$"
+REMOTE_CONFIG_NEEDS_CLEANUP=0
+
+cleanup() {
+  if [ -n "${TMP_CONFIG:-}" ]; then
+    rm -f "$TMP_CONFIG"
+  fi
+
+  if [ "${REMOTE_CONFIG_NEEDS_CLEANUP:-0}" = "1" ]; then
+    ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "rm -f '$REMOTE_CONFIG'" >/dev/null 2>&1 || true
+  fi
+}
+
+trap cleanup EXIT
 
 echo "========================================"
 echo " ClueRoom App Node Alloy Install"
 echo "========================================"
 
+TMP_CONFIG="$(mktemp /tmp/clueroom-app-node-alloy-config.XXXXXX)"
+ORIGINAL_UMASK="$(umask)"
+umask 077
 cat > "$TMP_CONFIG" << CONFIG
 loki.write "ops" {
   endpoint {
@@ -59,16 +76,22 @@ loki.source.docker "app" {
   forward_to = [loki.write.ops.receiver]
 }
 CONFIG
+umask "$ORIGINAL_UMASK"
+chmod 600 "$TMP_CONFIG"
 
 echo "[1/5] Copy Alloy config"
-ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "mkdir -p /opt/clueroom/alloy/data"
-scp "${SSH_OPTS[@]}" "$TMP_CONFIG" "$SSH_TARGET:/tmp/config.alloy"
+ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "mkdir -p /opt/clueroom/alloy/data && chmod 700 /opt/clueroom/alloy /opt/clueroom/alloy/data"
+REMOTE_CONFIG_NEEDS_CLEANUP=1
+scp "${SSH_OPTS[@]}" "$TMP_CONFIG" "$SSH_TARGET:$REMOTE_CONFIG"
 
 echo "[2/5] Install/restart Alloy"
-ssh "${SSH_OPTS[@]}" "$SSH_TARGET" '
+ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "
   set -Eeuo pipefail
-  mv /tmp/config.alloy /opt/clueroom/alloy/config.alloy
-  chmod 644 /opt/clueroom/alloy/config.alloy
+  trap 'rm -f \"$REMOTE_CONFIG\"' EXIT
+  chmod 600 '$REMOTE_CONFIG'
+  mv '$REMOTE_CONFIG' /opt/clueroom/alloy/config.alloy
+  chmod 600 /opt/clueroom/alloy/config.alloy
+  chmod 700 /opt/clueroom/alloy /opt/clueroom/alloy/data
 
   docker rm -f clueroom-app-node-alloy 2>/dev/null || true
 
@@ -82,17 +105,19 @@ ssh "${SSH_OPTS[@]}" "$SSH_TARGET" '
     grafana/alloy:latest \
     run /etc/alloy/config.alloy \
     --storage.path=/var/lib/alloy/data
-'
+"
+REMOTE_CONFIG_NEEDS_CLEANUP=0
 
 echo "[3/5] Check Alloy container"
 ssh "${SSH_OPTS[@]}" "$SSH_TARGET" '
   sleep 3
   docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep alloy
-  docker logs --tail=80 clueroom-app-node-alloy
+  docker logs --tail=80 clueroom-app-node-alloy 2>&1 | sed -E "s#https?://[^[:space:]\"]+#<redacted-url>#g"
 '
 
 echo "[4/5] Cleanup local temp file"
 rm -f "$TMP_CONFIG"
+TMP_CONFIG=""
 
 echo "[5/5] Done"
 echo "========================================"

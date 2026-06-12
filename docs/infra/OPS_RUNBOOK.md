@@ -2474,7 +2474,7 @@ AI 에이전트가 인프라 명령어를 제안하거나 실행하게 할 때�
 1. read-only 명령부터 실행한다.
 2. sudo, rm, docker compose down, git reset, git clean, terraform apply/destroy는 반드시 사용자 승인 후 실행한다.
 3. .env, secret, private key, firebase-service-account.json 내용을 출력하지 않는다.
-4. secret 값은 set/empty 여부만 확인한다.
+4. secret 값은 presence yes/no 여부만 확인한다.
 5. 변경 전 백업 명령을 먼저 제안한다.
 6. 변경 후 health check와 rollback 방법을 함께 확인한다.
 7. 운영 서버에서 commit/push하지 않는다.

@@ -115,7 +115,7 @@ scenario_container_count: 0보다 큼
 Loki: app node docker-app 로그 확인 가능
 ```
 
-검증 스크립트는 secret에 대해 set/empty 또는 file-visible 상태만 출력해야 한다. secret 내용 자체를 출력하면 안 된다.
+검증 스크립트는 secret에 대해 presence yes/no 또는 file-visible/missing 상태만 출력해야 한다. secret 내용 자체를 출력하면 안 된다.
 
 ## Nginx Upstream 적용
 
