@@ -50,7 +50,7 @@ app node private upstream, data/ops 내부 endpoint처럼 이미 이 문서에 �
 <details>
 <summary>3. app01/app02 runtime secret 및 scenario 검증</summary>
 
-<img src="assets/scaleout-20260612/scaleout-03-secret-runtime-verify-redacted.png" alt="Firebase, scenario count, JWT_SECRET set 상태를 확인한 app node runtime 검증" width="720">
+<img src="assets/scaleout-20260612/scaleout-03-secret-runtime-verify-redacted.png" alt="Firebase, scenario count, JWT secret presence를 확인한 app node runtime 검증" width="720">
 
 </details>
 
@@ -94,7 +94,7 @@ app node private upstream, data/ops 내부 endpoint처럼 이미 이 문서에 �
 이 PoC에서는 app01/app02가 단순히 health만 200으로 응답하는 서버가 아니라, 실제 운영에 필요한 runtime 구성을 갖고 있는지 확인했다.
 
 ```text
-JWT_SECRET=set
+JWT_SECRET_PRESENT=yes
 Firebase service account file: host/container에서 확인
 scenario file count: 18
 DB/Redis env: data 서버를 가리킴

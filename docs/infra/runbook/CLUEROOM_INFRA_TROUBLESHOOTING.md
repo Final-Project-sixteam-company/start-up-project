@@ -101,7 +101,7 @@ scale-out PoC app nodes
 | 23 | app node start | `Dockerfile missing` | script가 root Dockerfile 존재를 가정 | Dockerfile hard requirement 제거, compose 기준으로 처리 |
 | 24 | app node start | Firebase bean 생성 실패 | `firebase-service-account.json` 누락 | extra secret sync에 Firebase JSON 추가 |
 | 25 | app node start | ScenarioYamlImportException | `/opt/clueroom/secrets/scenarios` 누락 또는 권한 문제 | sudo tar로 scenarios 복사, container mount 확인 |
-| 26 | app node env | `JWT_SECRET=empty` | runtime env가 컨테이너 env로 안 들어감 | app-node runtime compose override에서 env_file 명시 |
+| 26 | app node env | JWT secret presence check 실패 | runtime env가 컨테이너 env로 안 들어감 | app-node runtime compose override에서 env_file 명시 |
 | 27 | app02 start | runtime override 파일 없음 | app01에만 수동 생성된 파일을 app02가 요구 | start script가 매번 override 파일 자동 생성 |
 | 28 | Nginx LB | `127.0.0.1:80` upstream | active upstream 파싱 시 `:8081` 포트 누락 | header/grep/bg-status 기반 robust parser로 수정 |
 | 29 | local/prod confusion | 로컬에서 `/etc/nginx/...` 없음 | prod 서버 경로를 로컬에서 실행 | 명령 실행 위치를 문서에 명시 |
@@ -610,7 +610,7 @@ GOOGLE_CLIENT_IDS: empty
 KAKAO_APP_ID: empty
 ```
 
-JWT_SECRET은 이미 set 상태였으므로 직접 원인이 아니었다.
+JWT secret presence는 정상으로 확인되어 직접 원인이 아니었다.
 
 ### 해결
 
@@ -630,7 +630,7 @@ KAKAO_APP_ID: non-empty placeholder
 OAuth/JWT 배포 전 체크리스트:
 
 ```text
-JWT_SECRET=set
+JWT_SECRET_PRESENT=yes
 GOOGLE_CLIENT_IDS non-empty
 KAKAO_APP_ID non-empty
 auth schema migration applied
@@ -997,14 +997,14 @@ scenario_container_count=18
 
 ---
 
-## 4.24 JWT_SECRET empty
+## 4.24 JWT secret presence check 실패
 
 ### 증상
 
 app node health는 200이지만 secret 검증에서 다음이 나왔다.
 
 ```text
-JWT_SECRET=empty
+JWT_SECRET_PRESENT=no
 ```
 
 ### 원인
@@ -1029,7 +1029,7 @@ services:
 ### 검증
 
 ```text
-JWT_SECRET=set
+JWT_SECRET_PRESENT=yes
 ```
 
 ---
@@ -1339,7 +1339,7 @@ scale-out sync는 env만 복사하면 부족하다.
 health 200이어도 다음이 누락될 수 있다.
 
 ```text
-JWT_SECRET
+JWT secret presence
 Firebase file
 scenario files
 Loki logs

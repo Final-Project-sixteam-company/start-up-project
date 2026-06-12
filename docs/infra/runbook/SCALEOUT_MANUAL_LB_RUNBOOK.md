@@ -109,7 +109,7 @@ Terraform output을 `/opt/clueroom/scaleout/terraform-output`로 복사했다면
 app node local health: 200
 prod-to-app-node private health: 200
 DB_HOST / REDIS_HOST: data 서버를 가리킴
-JWT_SECRET=set
+JWT_SECRET_PRESENT=yes
 firebase_container=OK
 scenario_container_count: 0보다 큼
 Loki: app node docker-app 로그 확인 가능

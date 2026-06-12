@@ -8,6 +8,21 @@ SSH_TARGET="${APP_NODE_SSH_USER}@${APP_NODE_PRIVATE_IP}"
 
 SRC_FIREBASE="/opt/clueroom/secrets/firebase-service-account.json"
 SRC_SCENARIOS="/opt/clueroom/secrets/scenarios"
+TMP_FIREBASE=""
+REMOTE_FIREBASE="/tmp/firebase-service-account.json.scaleout.$$"
+REMOTE_FIREBASE_NEEDS_CLEANUP=0
+
+cleanup() {
+  if [ -n "${TMP_FIREBASE:-}" ]; then
+    rm -f "$TMP_FIREBASE"
+  fi
+
+  if [ "${REMOTE_FIREBASE_NEEDS_CLEANUP:-0}" = "1" ]; then
+    ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "rm -f '$REMOTE_FIREBASE'" >/dev/null 2>&1 || true
+  fi
+}
+
+trap cleanup EXIT
 
 echo "========================================"
 echo " ClueRoom App Node Extra Secret Sync"
@@ -33,19 +48,22 @@ ssh "${SSH_OPTS[@]}" "$SSH_TARGET" '
 '
 
 echo "[4/7] Copy Firebase service account JSON without printing content"
-TMP_FIREBASE="/tmp/firebase-service-account.json.scaleout.$$"
+TMP_FIREBASE="$(mktemp /tmp/firebase-service-account.json.scaleout.XXXXXX)"
 sudo cp "$SRC_FIREBASE" "$TMP_FIREBASE"
-sudo chown ubuntu:ubuntu "$TMP_FIREBASE"
+sudo chown "$(id -u):$(id -g)" "$TMP_FIREBASE"
 chmod 600 "$TMP_FIREBASE"
-scp "${SSH_OPTS[@]}" "$TMP_FIREBASE" "$SSH_TARGET:/tmp/firebase-service-account.json.scaleout"
-rm -f "$TMP_FIREBASE"
+REMOTE_FIREBASE_NEEDS_CLEANUP=1
+scp "${SSH_OPTS[@]}" "$TMP_FIREBASE" "$SSH_TARGET:$REMOTE_FIREBASE"
 
-ssh "${SSH_OPTS[@]}" "$SSH_TARGET" '
-  mv /tmp/firebase-service-account.json.scaleout /opt/clueroom/secrets/firebase-service-account.json
+ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "
+  set -Eeuo pipefail
+  trap 'rm -f \"$REMOTE_FIREBASE\"' EXIT
+  mv '$REMOTE_FIREBASE' /opt/clueroom/secrets/firebase-service-account.json
   chmod 600 /opt/clueroom/secrets/firebase-service-account.json
   test -s /opt/clueroom/secrets/firebase-service-account.json
   ls -lh /opt/clueroom/secrets/firebase-service-account.json
-'
+"
+REMOTE_FIREBASE_NEEDS_CLEANUP=0
 
 echo "[5/7] Sync scenarios directory using sudo tar on prod"
 sudo tar -C /opt/clueroom -czf - secrets/scenarios \

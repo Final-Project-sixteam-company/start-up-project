@@ -20,7 +20,7 @@ ssh "${SSH_OPTS[@]}" "$SSH_TARGET" '
   if docker ps --format "{{.Names}}" | grep -q "^start-up-app$"; then
     docker exec start-up-app sh -lc "test -s /opt/clueroom/secrets/firebase-service-account.json && echo firebase_container=OK || echo firebase_container=missing"
     docker exec start-up-app sh -lc "test -d /opt/clueroom/secrets/scenarios && echo scenario_container_count=$(find /opt/clueroom/secrets/scenarios -type f | wc -l) || echo scenario_container=missing"
-    docker exec start-up-app sh -lc "test -n \"\$JWT_SECRET\" && echo JWT_SECRET=set || echo JWT_SECRET=empty"
+    docker exec start-up-app sh -lc "test -n \"\$JWT_SECRET\" && echo JWT_SECRET_PRESENT=yes || echo JWT_SECRET_PRESENT=no"
   else
     echo "start-up-app is not running"
   fi

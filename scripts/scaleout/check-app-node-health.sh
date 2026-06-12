@@ -27,7 +27,7 @@ ssh "${SSH_OPTS[@]}" "$SSH_TARGET" '
   CONTAINER="$(docker ps --format "{{.Names}}" | grep "^start-up-app" | head -n 1)"
   echo "CONTAINER=$CONTAINER"
   docker exec "$CONTAINER" printenv | grep -E "DB_HOST|DB_PORT|REDIS_HOST|REDIS_PORT|OPENAI_BASE_URL|OPENAI_CHAT_MODEL|AI_LLMOPS_DB_LOGGING_ENABLED|AUTH_REQUIRE_AUTHENTICATION|AUTH_MOCK_FALLBACK_ENABLED|JWT_ISSUER"
-  docker exec "$CONTAINER" sh -lc '\''test -n "$JWT_SECRET" && echo "JWT_SECRET=set" || echo "JWT_SECRET=empty"'\''
+  docker exec "$CONTAINER" sh -lc '\''test -n "$JWT_SECRET" && echo "JWT_SECRET_PRESENT=yes" || echo "JWT_SECRET_PRESENT=no"'\''
   docker exec "$CONTAINER" sh -lc '\''test -s /opt/clueroom/secrets/firebase-service-account.json && echo "FIREBASE_SECRET=file-visible" || echo "FIREBASE_SECRET=missing"'\''
 '
 
