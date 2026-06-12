@@ -22,6 +22,10 @@ MAX_ATTEMPTS="${MAX_ATTEMPTS:-40}"
 SLEEP_SECONDS="${SLEEP_SECONDS:-3}"
 DATA_SERVER_PRIVATE_IP="${DATA_SERVER_PRIVATE_IP:?DATA_SERVER_PRIVATE_IP is required}"
 
+cleanup_runtime_env() {
+  rm -f "$RUNTIME_ENV_FILE"
+}
+
 print_diagnostics() {
   echo
   echo "========================================"
@@ -58,6 +62,8 @@ fail_and_cleanup() {
 }
 
 trap 'fail_and_cleanup "remote start failed at line $LINENO"' ERR
+trap cleanup_runtime_env EXIT
+trap 'cleanup_runtime_env; exit 130' HUP INT TERM
 
 cd "$APP_DIR"
 
