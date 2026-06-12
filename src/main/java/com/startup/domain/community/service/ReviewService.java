@@ -21,7 +21,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,14 +84,16 @@ public class ReviewService {
 
     // 시나리오 리뷰 목록 조회
     @Transactional(readOnly = true)
-    public PageResponse<ReviewResponse> getReviews(Long scenarioId, boolean includeSpoiler, Pageable pageable) {
-        scenarioAccessService.validateViewable(null, scenarioId);
+    public PageResponse<ReviewResponse> getReviews(Long userId, Long scenarioId, boolean includeSpoiler, Pageable pageable) {
+        scenarioAccessService.validateViewable(userId, scenarioId);
+
+        Pageable safePageable = sanitizePageable(pageable);
 
         Page<ScenarioReview> reviewPage;
         if (includeSpoiler) {
-            reviewPage = reviewRepository.findAllByScenarioId(scenarioId, pageable);
+            reviewPage = reviewRepository.findAllByScenarioId(scenarioId, safePageable);
         } else {
-            reviewPage = reviewRepository.findAllByScenarioIdAndIsSpoilerFalse(scenarioId, pageable);
+            reviewPage = reviewRepository.findAllByScenarioIdAndIsSpoilerFalse(scenarioId, safePageable);
         }
         
         return PageResponse.from(
@@ -139,5 +143,25 @@ public class ReviewService {
         // flush 후 평점 재계산
         reviewRepository.flush();
         scenarioRepository.recalculateRating(scenarioId);
+    }
+
+    private Pageable sanitizePageable(Pageable pageable) {
+        Sort mappedSort = Sort.unsorted();
+        for (Sort.Order order : pageable.getSort()) {
+            String property = switch (order.getProperty().toLowerCase()) {
+                case "rating" -> "rating";
+                case "latest", "createdat", "created_at" -> "createdAt";
+                default -> "createdAt"; // 미지원 키는 기본값으로 대체 → 500 방지
+            };
+            mappedSort = mappedSort.and(Sort.by(order.getDirection(), property));
+        }
+
+        // 정렬 조건이 없으면 최신순 + id 타이브레이커 (페이지 경계 중복/누락 방지)
+        if (mappedSort.isUnsorted()) {
+            mappedSort = Sort.by(Sort.Direction.DESC, "createdAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        }
+
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), mappedSort);
     }
 }
