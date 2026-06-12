@@ -62,16 +62,24 @@ public class ScenarioService {
         // ── N+1 방어: IN 절 벌크 쿼리로 한 번에 카운트 ──
         List<Long> scenarioIds = scenarios.getContent().stream().map(Scenario::getId).toList();
 
-        Map<Long, Integer> suspectCountMap = suspectRepository.countByScenarioIdIn(scenarioIds).stream()
-                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
-        Map<Long, Integer> evidenceCountMap = evidenceRepository.countByScenarioIdIn(scenarioIds).stream()
-                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+        final Map<Long, Integer> suspectCountMap;
+        final Map<Long, Integer> evidenceCountMap;
+        final Set<Long> bookmarkedScenarioIds;
 
-        // 북마크 상태 일괄 조회 (N+1 방지)
-        Set<Long> bookmarkedScenarioIds;
-        if (userId != null) {
-            bookmarkedScenarioIds = bookmarkRepository.findScenarioIdsByUserIdAndScenarioIdIn(userId, scenarioIds);
+        if (!scenarioIds.isEmpty()) {
+            suspectCountMap = suspectRepository.countByScenarioIdIn(scenarioIds).stream()
+                    .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+            evidenceCountMap = evidenceRepository.countByScenarioIdIn(scenarioIds).stream()
+                    .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+
+            if (userId != null) {
+                bookmarkedScenarioIds = bookmarkRepository.findScenarioIdsByUserIdAndScenarioIdIn(userId, scenarioIds);
+            } else {
+                bookmarkedScenarioIds = Collections.emptySet();
+            }
         } else {
+            suspectCountMap = Collections.emptyMap();
+            evidenceCountMap = Collections.emptyMap();
             bookmarkedScenarioIds = Collections.emptySet();
         }
 

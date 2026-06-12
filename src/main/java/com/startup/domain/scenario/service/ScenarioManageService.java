@@ -49,16 +49,24 @@ public class ScenarioManageService {
 
         List<Long> scenarioIds = scenarios.getContent().stream().map(Scenario::getId).toList();
 
-        Map<Long, Integer> suspectCountMap = suspectRepository.countByScenarioIdIn(scenarioIds).stream()
-                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
-        Map<Long, Integer> evidenceCountMap = evidenceRepository.countByScenarioIdIn(scenarioIds).stream()
-                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+        final Map<Long, Integer> suspectCountMap;
+        final Map<Long, Integer> evidenceCountMap;
+        final Set<Long> bookmarkedScenarioIds;
 
-        // 북마크 상태 일괄 조회
-        Set<Long> bookmarkedScenarioIds;
-        if (userId != null && !scenarioIds.isEmpty()) {
-            bookmarkedScenarioIds = bookmarkRepository.findScenarioIdsByUserIdAndScenarioIdIn(userId, scenarioIds);
+        if (!scenarioIds.isEmpty()) {
+            suspectCountMap = suspectRepository.countByScenarioIdIn(scenarioIds).stream()
+                    .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+            evidenceCountMap = evidenceRepository.countByScenarioIdIn(scenarioIds).stream()
+                    .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+
+            if (userId != null) {
+                bookmarkedScenarioIds = bookmarkRepository.findScenarioIdsByUserIdAndScenarioIdIn(userId, scenarioIds);
+            } else {
+                bookmarkedScenarioIds = Collections.emptySet();
+            }
         } else {
+            suspectCountMap = Collections.emptyMap();
+            evidenceCountMap = Collections.emptyMap();
             bookmarkedScenarioIds = Collections.emptySet();
         }
 
@@ -91,10 +99,18 @@ public class ScenarioManageService {
 
         List<Long> scenarioIds = scenarios.getContent().stream().map(Scenario::getId).toList();
 
-        Map<Long, Integer> suspectCountMap = suspectRepository.countByScenarioIdIn(scenarioIds).stream()
-                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
-        Map<Long, Integer> evidenceCountMap = evidenceRepository.countByScenarioIdIn(scenarioIds).stream()
-                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+        final Map<Long, Integer> suspectCountMap;
+        final Map<Long, Integer> evidenceCountMap;
+
+        if (!scenarioIds.isEmpty()) {
+            suspectCountMap = suspectRepository.countByScenarioIdIn(scenarioIds).stream()
+                    .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+            evidenceCountMap = evidenceRepository.countByScenarioIdIn(scenarioIds).stream()
+                    .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> ((Number) obj[1]).intValue()));
+        } else {
+            suspectCountMap = Collections.emptyMap();
+            evidenceCountMap = Collections.emptyMap();
+        }
 
         Page<ScenarioSummaryResponse> responsePage = scenarios.map(scenario -> {
             int suspectCount = suspectCountMap.getOrDefault(scenario.getId(), 0);
