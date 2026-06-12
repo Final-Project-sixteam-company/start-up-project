@@ -145,7 +145,7 @@ public class ReviewServiceTest {
         ReviewCreateRequest request = new ReviewCreateRequest(5, "정말 재밌어요", false);
         reviewService.addReview(reviewer.getId(), publishedScenario.getId(), request);
 
-        PageResponse<ReviewResponse> response = reviewService.getReviews(publishedScenario.getId(), true, PageRequest.of(0, 10));
+        PageResponse<ReviewResponse> response = reviewService.getReviews(reviewer.getId(), publishedScenario.getId(), true, PageRequest.of(0, 10));
 
         assertThat(response.content()).hasSize(1);
         assertThat(response.content().get(0).user().nickname()).isEqualTo("리뷰어"); // User FETCH JOIN 검증
@@ -191,6 +191,20 @@ public class ReviewServiceTest {
 
         // 작성자(creator)가 리뷰어(reviewer)의 리뷰를 삭제 시도
         assertThatThrownBy(() -> reviewService.deleteReview(creator.getId(), reviewId))
+                .isInstanceOf(CommunityException.class)
+                .hasMessageContaining(CommunityErrorCode.NOT_REVIEW_OWNER.getMessage());
+    }
+
+    @Test
+    @DisplayName("리뷰 수정 실패: 소유권 불일치")
+    void updateReview_fail_notOwner() {
+        reviewService.addReview(reviewer.getId(), publishedScenario.getId(), new ReviewCreateRequest(5, "좋아요", false));
+        Long reviewId = reviewRepository.findAll().get(0).getId();
+
+        ReviewUpdateRequest updateRequest = new ReviewUpdateRequest(1, "생각해보니 별로네요", null);
+
+        // 작성자(creator)가 리뷰어(reviewer)의 리뷰를 수정 시도
+        assertThatThrownBy(() -> reviewService.updateReview(creator.getId(), reviewId, updateRequest))
                 .isInstanceOf(CommunityException.class)
                 .hasMessageContaining(CommunityErrorCode.NOT_REVIEW_OWNER.getMessage());
     }
