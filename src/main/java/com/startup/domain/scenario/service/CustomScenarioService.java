@@ -49,7 +49,7 @@ public class CustomScenarioService {
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 이미 발행된(PUBLISHED) 시나리오에는 더 이상 장소 추가 불가
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED || scenario.getStatus() == ScenarioStatus.HIDDEN) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -112,7 +112,7 @@ public class CustomScenarioService {
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 상태 방어 (발행된 시나리오는 수정 불가)
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED || scenario.getStatus() == ScenarioStatus.HIDDEN) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -184,7 +184,7 @@ public class CustomScenarioService {
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 발행된 시나리오는 수정 불가
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED || scenario.getStatus() == ScenarioStatus.HIDDEN) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -243,7 +243,7 @@ public class CustomScenarioService {
         Scenario scenario = scenarioRepository.findByIdForUpdate(suspect.getScenarioId())
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED || scenario.getStatus() == ScenarioStatus.HIDDEN) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -302,7 +302,7 @@ public class CustomScenarioService {
         Scenario scenario = scenarioRepository.findByIdForUpdate(suspect.getScenarioId())
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED || scenario.getStatus() == ScenarioStatus.HIDDEN) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -385,7 +385,7 @@ public class CustomScenarioService {
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 발행된 시나리오 수정 금지
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED || scenario.getStatus() == ScenarioStatus.HIDDEN) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -479,7 +479,7 @@ public class CustomScenarioService {
         Scenario scenario = scenarioRepository.findByIdForUpdate(evidence.getScenarioId())
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED || scenario.getStatus() == ScenarioStatus.HIDDEN) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -595,7 +595,7 @@ public class CustomScenarioService {
         Scenario scenario = scenarioRepository.findByIdForUpdate(evidence.getScenarioId())
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED || scenario.getStatus() == ScenarioStatus.HIDDEN) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -811,7 +811,7 @@ public class CustomScenarioService {
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED || scenario.getStatus() == ScenarioStatus.HIDDEN) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -840,7 +840,7 @@ public class CustomScenarioService {
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED || scenario.getStatus() == ScenarioStatus.HIDDEN) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
