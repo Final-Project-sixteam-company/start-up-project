@@ -44,7 +44,7 @@ public class ScenarioManageService {
         Page<Scenario> scenarios = scenarioRepository.findAllByCreatorIdAndStatusNot(
                 userId,
                 ScenarioStatus.DELETED,
-                pageable
+                ensureStableSort(pageable)
         );
 
         List<Long> scenarioIds = scenarios.getContent().stream().map(Scenario::getId).toList();
@@ -98,7 +98,7 @@ public class ScenarioManageService {
                 userId,
                 ScenarioStatus.PUBLISHED,
                 allowedVisibilities,
-                pageable
+                ensureStableSort(pageable)
         );
 
         List<Long> scenarioIds = scenarios.getContent().stream().map(Scenario::getId).toList();
@@ -167,5 +167,23 @@ public class ScenarioManageService {
 
         scenario.hide();
         return new ScenarioHideResponse(scenarioId, scenario.getStatus());
+    }
+
+    private Pageable ensureStableSort(Pageable pageable) {
+        if (pageable.getSort().isUnsorted()) {
+            return org.springframework.data.domain.PageRequest.of(
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
+                            .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"))
+            );
+        }
+
+        // 이미 정렬 조건이 있더라도, id 기준 정렬을 후순위로 추가하여 완벽히 Stable하게 만듦
+        return org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                pageable.getSort().and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"))
+        );
     }
 }
