@@ -235,6 +235,7 @@ public class ScenarioServiceCrudTest {
                 .problemSummary("문제 없음")
                 .suggestion("훌륭한 시나리오입니다.")
                 .checkItemsJson("{}")
+                .checkedAt(java.time.LocalDateTime.now().plusSeconds(1))
                 .build());
 
         // when
