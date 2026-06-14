@@ -62,14 +62,14 @@ public class BookmarkService {
                 .ifPresent(bookmarkRepository::delete);
     }
 
-    // 인증 및 접근 권한 검증 후 시나리오 조회
+    // 인증 및 접근 권한 검증 후 시나리오 조회 (북마크는 PUBLISHED 상태에서만 허용)
     private Scenario getAccessibleScenario(Long userId, Long scenarioId) {
         scenarioAccessService.validateViewable(userId, scenarioId);
         Scenario scenario = scenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
         
-        if (scenario.getStatus() == ScenarioStatus.DELETED) {
-            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ALREADY_DELETED);
+        if (scenario.getStatus() != ScenarioStatus.PUBLISHED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
         
         return scenario;
