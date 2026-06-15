@@ -130,6 +130,70 @@ POST /api/play-sessions/{sessionId}/abandon
 
 운영 public API에서 abandon을 호출할 때는 QA 전용 계정 또는 팀 합의된 시간대를 사용한다. mock/shared 계정이면 다른 사람의 진행 중 세션을 종료할 수 있다.
 
+### API fallback spoiler-safe route/payload block
+
+Android E2E가 막혀 API-only fallback을 사용할 때는 아래 route/payload만 우선 사용한다.
+이 블록은 endpoint shape 확인용이며, candidate narrowing 판단에는 4장의 masking/무시 절차가 선행돼야 한다.
+응답의 `importance`, `culpritEligible`, suspicion/candidate metadata, 역할성 asset path, result correctness/breakdown/fullExplanation은 public 보고서에 옮기지 않는다.
+
+```http
+GET  /api/scenarios
+GET  /api/scenarios/{scenarioId}
+GET  /api/play-sessions/active?scenarioId={scenarioId}
+POST /api/play-sessions
+POST /api/play-sessions/{sessionId}/abandon
+
+GET  /api/play-sessions/{sessionId}/dashboard
+GET  /api/play-sessions/{sessionId}/locations
+GET  /api/play-sessions/{sessionId}/evidences?includeLocked=true
+GET  /api/play-sessions/{sessionId}/evidences/{evidenceId}
+GET  /api/play-sessions/{sessionId}/suspects
+GET  /api/play-sessions/{sessionId}/suspects/{suspectId}
+GET  /api/play-sessions/{sessionId}/timeline
+
+POST /api/play-sessions/{sessionId}/interrogations
+GET  /api/play-sessions/{sessionId}/interrogations?suspectId={suspectId}
+POST /api/play-sessions/{sessionId}/final-deduction
+GET  /api/play-sessions/{sessionId}/result
+```
+
+Request shape:
+
+```text
+POST /api/play-sessions
+{
+  "scenarioId": <scenarioId>
+}
+
+POST /api/play-sessions/{sessionId}/interrogations
+{
+  "suspectId": <suspectId>,
+  "questionType": "FREE",
+  "question": "<public-safe question>",
+  "presentedEvidenceId": null
+}
+
+POST /api/play-sessions/{sessionId}/interrogations
+{
+  "suspectId": <suspectId>,
+  "questionType": "EVIDENCE_PRESENTED",
+  "question": "<public-safe evidence question>",
+  "presentedEvidenceId": <evidenceId>
+}
+
+POST /api/play-sessions/{sessionId}/final-deduction
+{
+  "selectedCulpritId": <suspectId>,
+  "motiveText": "<private artifact only>",
+  "methodText": "<private artifact only>",
+  "coverUpText": "<private artifact only or empty when intentionally omitted>",
+  "selectedEvidenceIds": [<evidenceId>]
+}
+```
+
+`GET /api/play-sessions/{sessionId}/result`는 final-deduction 제출 후에만 호출한다.
+public 보고서에는 result screen/API 도달 여부만 남기고, 선택 후보, 정오, 점수, 등급, matched/missed breakdown, feedback/detail explanation은 private artifact로 분리한다.
+
 ## 6. QA 실행 순서
 
 1. 환경 확인
@@ -274,9 +338,9 @@ Findings First를 먼저 쓴다.
 
 ## 5. 10-Turn Broad Summary
 
-| Scenario | Turns | Main targets | Evidence used | More plausible | Less plausible |
-|---|---|---|---|---|---|
-|  | 1-10 | broad only | public-safe categories 또는 redacted labels only | broad only | private artifact에 상세 기록 |
+| Scenario | Turns | Public coverage | Evidence categories | Candidate breadth | Narrowing signal | Private detail |
+|---|---|---|---|---|---|---|
+|  | 1-10 | all/most/some public suspects | public-safe categories 또는 redacted labels only | wide/medium/narrow/unsettled | broad only, suspect labels/rationale 금지 | private artifact |
 
 ## 6. Public-Safe Follow-up
 
