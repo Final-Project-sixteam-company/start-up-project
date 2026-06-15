@@ -29,7 +29,7 @@ public class AiScenarioValidationController {
             @PathVariable Long scenarioId
     ) {
         Long userId = mockUserProvider.currentUserId();
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         ScenarioValidationResponse response = validationService.validate(scenarioId);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -41,7 +41,7 @@ public class AiScenarioValidationController {
             @PathVariable Long scenarioId
     ) {
         Long userId = mockUserProvider.currentUserId();
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         ScenarioValidationResponse response = validationService.getLatestResult(scenarioId);
         return ResponseEntity.ok(ApiResponse.success(response));
