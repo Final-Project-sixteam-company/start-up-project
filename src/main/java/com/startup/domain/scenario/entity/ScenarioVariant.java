@@ -10,15 +10,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(
-        name = "scenario_variants",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_scenario_variant_active",
-                        columnNames = {"active_key"}
-                )
-        }
-)
+@Table(name = "scenario_variants")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 // Scenario 1 : N ScenarioVariant.
 // 하나의 시나리오에서 범인이 달라지는 변주(Variant)를 관리한다.
@@ -57,8 +49,6 @@ public class ScenarioVariant extends BaseEntity {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 0;
 
-    @Column(name = "active_key", unique = true)
-    private String activeKey;
 
     @Builder
     private ScenarioVariant(Long scenarioId, String code, VariantType variantType,
@@ -72,17 +62,14 @@ public class ScenarioVariant extends BaseEntity {
         this.culpritCode = culpritCode;
         this.weight = weight != null ? weight : 1;
         this.isActive = isActive != null ? isActive : false;
-        this.activeKey = this.isActive ? String.valueOf(scenarioId) : null;
         this.sortOrder = sortOrder != null ? sortOrder : 0;
     }
 
     //활성화 상태 변경
     public void activate() {
         this.isActive = true;
-        this.activeKey = String.valueOf(this.scenarioId);
     }
     public void deactivate() {
         this.isActive = false;
-        this.activeKey = null;
     }
 }

@@ -20,6 +20,6 @@ public interface ScenarioVariantRepository extends JpaRepository<ScenarioVariant
 
     // 특정 시나리오의 모든 Variant를 비활성화하는 벌크 업데이트
     @Modifying
-    @Query("UPDATE ScenarioVariant v SET v.isActive = false, v.activeKey = null WHERE v.scenarioId = :scenarioId AND v.id != :activeVariantId")
+    @Query("UPDATE ScenarioVariant v SET v.isActive = false WHERE v.scenarioId = :scenarioId AND v.id != :activeVariantId")
     void deactivateAllByScenarioId(@Param("scenarioId") Long scenarioId, @Param("activeVariantId") Long activeVariantId);
 }
