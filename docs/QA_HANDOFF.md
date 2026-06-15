@@ -124,12 +124,9 @@ AI policy v2:
 | Priority | 이슈 | 현재 판단 | 다음 액션 |
 |---|---|---|---|
 | P1 | INTERROGATION 기반 증거 해금 E2E | `EVIDENCE_PRESENTED` 기반 unlock smoke는 PASS지만, 일반 심문 조건 해금은 별도 E2E가 필요하다. | INTERROGATION unlock rule seed/import 후 `InterrogationResponse.unlockedEvidences`와 evidence board count 재검증. |
-| P1 | `coverUpText` 누락 허용 | 2026-06-05 local re-check 기준 여전히 200 허용. | 필수 필드면 `@NotBlank`, 선택 필드면 API Spec/Android 문서에 선택값으로 명시. |
-| P1 | official scenario validation `NEEDS_FIX` | scenario validation이 hints=0 때문에 `NEEDS_FIX`, score 40으로 확인됨. | MVP에서 hint를 쓸지 결정. 미사용이면 validation rule 조정. |
+| P1 | official scenario validation `NEEDS_FIX` | scenario validation이 hints=0 때문에 `NEEDS_FIX`, score 40으로 확인됨. YAML `hints` import 지원과 private 1.1.1 hint seed 준비는 완료. | 운영 seed import 후 `GET /hints`, `/use`, validation status 재검증. |
 | P1 | PHASE 해금이 시간 경과만으로 과도하게 열림 | Studio9 QA에서 15분 후 전체 증거 공개 흐름 확인. | MVP를 시간 공개 게임으로 갈지, 핵심 증거 일부를 INTERROGATION/EVIDENCE_PRESENTED/MANUAL로 전환할지 결정. |
 | P1 | AI policy 반응 약함 | FREE와 EVIDENCE_PRESENTED 답변 차이가 약하고, topic/userIntent/stagePolicies 활용이 제한적이다. | questionType + presentedEvidenceId 기반 정책 강화 후 답변 차이 smoke. |
-| P1 | concurrent create race의 `activeSessionId` 누락 가능 | 일반 duplicate create는 P002 details가 정상이나, race fallback에서는 누락 가능성이 기록됨. | `DataIntegrityViolationException` fallback에서 active session 재조회 후 details 포함. FE는 `/active` fallback 유지. |
-| P1 | final-deduction 중 abandon 허용 | final-deduction 중 hint/evidence unlock은 차단되지만 abandon은 200으로 성공할 수 있고, 제출 결과가 사라진 것처럼 보일 수 있다. | final-deduction in-flight 중 abandon 차단 또는 Android에서 제출 중 이탈/포기 UX 차단. |
 | P2 | final-deduction 입력 품질 제한 | 긴 텍스트 제한, selectedEvidenceIds 중복 처리 등 UX/계약 정리가 필요하다. | API Spec과 validation 정책 확정. |
 | P2 | suspect detail 데이터 품질 | `relationToVictim=null`, publicProfile/publicStatement 중복 기록. | seed/import 또는 response mapping 정리. |
 
@@ -168,6 +165,10 @@ AI policy v2:
 | 2026-06-05 | Android 핵심 플레이 E2E | 앱 실행, 시나리오 목록, 세션 생성, 증거/용의자/심문, 최종 추리/결과 기본 flow PASS. |
 | 2026-06-05 | Android 증거/잠금 표시 | 잠긴 증거 상세/이미지 미노출, 확보 증거 상세/이미지, 증거 제시 심문 flow PASS. |
 | 2026-06-05 | 운영 AI fallback/balance grep | 해당 QA 구간에서 fallback, MockSolutionReader, AI 호출 실패, 잔액 오류 미검출. |
+| 2026-06-15 | `coverUpText` 누락 허용 | `FinalDeductionRequest.coverUpText`를 필수로 전환하고 API/FE 문서 계약을 정정했다. |
+| 2026-06-15 | concurrent create race `activeSessionId` 누락 가능 | duplicate fallback에서 별도 read-only 재조회로 `activeSessionId` 포함을 우선하도록 보강했다. 장애성 조회 실패 대비 `/active` fallback 계약은 유지한다. |
+| 2026-06-15 | final-deduction 중 abandon 허용 | final-deduction in-flight lock 상태의 abandon을 `P003`으로 차단하도록 보강했다. |
+| 2026-06-15 | YAML hint import 미지원 | official seed가 `hints`를 source로 관리하고 importer가 `hints` table에 저장하도록 보강했다. private official seed는 1.1.1로 version bump 후 public-safe hint 3개씩 준비했다. |
 
 ## 5. Re-smoke Checklist
 
@@ -192,7 +193,8 @@ AI policy v2:
    - abandon 후 final-deduction/result 메시지 정합성
 
 4. validation API
-   - hints=0 rule 결정 후 재검증
+   - 1.1.1 official seed import 후 hints=0 해소 여부 재검증
+   - GET /hints 목록과 /hints/{hintId}/use 본문 노출 정책 확인
    - timelineEvents 포함 여부
    - active variants 전체 검증 여부
    - AI 호출 완료 로그 확인

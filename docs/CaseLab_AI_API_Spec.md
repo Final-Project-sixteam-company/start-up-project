@@ -1295,7 +1295,7 @@ POST /api/play-sessions
 
 ### Error Response - P002
 
-이미 같은 사용자/시나리오에 `PLAYING` 세션이 있으면 409를 반환한다. `error.details`에는 `activeSessionId`만 포함할 수 있다. unique race 경로에서는 best-effort 재조회 성공 시 `activeSessionId`가 포함될 수 있고, 실패 또는 미발견 시 `details`가 없을 수 있으므로 클라이언트는 `GET /api/play-sessions/active?scenarioId=`로 fallback한다.
+이미 같은 사용자/시나리오에 `PLAYING` 세션이 있으면 409를 반환한다. `error.details`에는 `activeSessionId`만 포함할 수 있다. 일반 중복 생성과 unique race 경로 모두 별도 read-only 재조회로 `activeSessionId` 포함을 우선한다. 단, 장애성 조회 실패나 미발견 시에는 `details`가 없을 수 있으므로 클라이언트는 `GET /api/play-sessions/active?scenarioId=`로 fallback한다.
 
 ```json
 {
@@ -1912,6 +1912,10 @@ POST /api/play-sessions/{sessionId}/final-deduction
 ```
 
 ### Request
+
+`selectedCulpritId`, `motiveText`, `methodText`, `coverUpText`, `selectedEvidenceIds`는 모두 필수다.
+텍스트 필드는 공백만 보낼 수 없고, `motiveText`/`methodText`/`coverUpText`는 각각 1000자 이하로 제한한다.
+`selectedEvidenceIds`는 1~15개이며, 모두 현재 세션에서 해금된 증거여야 한다.
 
 ```json
 {

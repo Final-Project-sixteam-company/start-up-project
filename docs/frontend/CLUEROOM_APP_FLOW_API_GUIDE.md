@@ -357,7 +357,7 @@ selectedCulpritId 필수
 motiveText 필수
 methodText 필수
 selectedEvidenceIds 1개 이상 15개 이하
-coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위해 입력 UI를 유지
+coverUpText 필수
 ```
 
 현재 API에는 별도의 `reasoningText` 또는 `comprehensiveReasoning` 필드가 없다.
@@ -385,6 +385,9 @@ coverUpText는 API상 optional이지만 공식 시나리오 채점 품질을 위
 | 사용 화면 | 게임 종료/나가기 확인 모달 |
 | 호출 시점 | 사용자가 진행 중 사건 포기를 확정할 때 |
 | 응답 | `success=true`, `data` 없음 |
+
+최종 추리 제출 요청이 진행 중일 때는 포기 API를 호출하지 않는다.
+백엔드는 final-deduction in-flight lock이 걸린 세션의 abandon을 `P003 SESSION_NOT_PLAYING`으로 차단한다.
 
 ### 3.14 FCM 디바이스 토큰 등록
 
@@ -1229,7 +1232,7 @@ GET /api/play-sessions/{sessionId}/evidences?status=unlocked
 | 범인 선택 | `selectedCulpritId` | 필수 |
 | 동기 입력 | `motiveText` | 필수 |
 | 수법 입력 | `methodText` | 필수 |
-| 은폐 입력 | `coverUpText` | API상 선택, UI상 입력 권장 |
+| 은폐 입력 | `coverUpText` | 필수 |
 | 증거 선택 | `selectedEvidenceIds` | 필수, 1~15개 |
 
 현재 API에는 별도의 종합 추론 필드가 없다.
@@ -1277,12 +1280,10 @@ GET /api/play-sessions/{sessionId}/evidences?status=unlocked
 selectedCulpritId가 있다.
 motiveText가 비어 있지 않다.
 methodText가 비어 있지 않다.
+coverUpText가 비어 있지 않다.
 selectedEvidenceIds가 1개 이상 15개 이하이다.
 채점 요청이 진행 중이 아니다.
 ```
-
-`coverUpText`는 API상 optional이지만, 공식 시나리오의 채점 품질을 위해 화면에는 유지한다.
-가능하면 프론트에서는 `coverUpText`도 입력을 유도한다.
 
 제출 버튼을 누르면 확인 모달을 띄운다.
 
@@ -1433,8 +1434,8 @@ missedParts
 2. 범인은 suspects 목록에서 선택한다.
 3. 증거는 evidences?status=unlocked 목록에서만 선택한다.
 4. selectedEvidenceIds는 1~15개로 제한한다.
-5. selectedCulpritId, motiveText, methodText는 필수다.
-6. coverUpText는 API상 optional이지만 UI에서는 입력을 유도한다.
+5. selectedCulpritId, motiveText, methodText, coverUpText는 필수다.
+6. coverUpText는 공백만 보낼 수 없다.
 7. 제출 중에는 버튼을 disabled 처리한다.
 8. 제출 성공 시 세션은 COMPLETED가 되며 결과 화면으로 이동한다.
 9. 결과 화면에서만 correctCulprit/fullExplanation/keyEvidences를 표시한다.
@@ -1536,6 +1537,7 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 | `AI015` | 채점 진행 중 | 제출 버튼 disabled, 잠시 후 재시도 |
 | `AI021` | 최종 추리 증거 미해금 | evidences 재조회, 선택 초기화 |
 | `P002` | 같은 시나리오의 진행 중 세션 존재 | `details.activeSessionId`가 있으면 이어가기, 없으면 `GET /api/play-sessions/active?scenarioId=` fallback |
+| `P003` | 진행 중 세션이 아님 / final-deduction 중 포기 차단 | 세션 상태 재조회, 제출 중이면 abandon 재시도 금지 |
 
 서버 오류 코드를 세부적으로 알 수 없으면 기본 오류 모달을 사용한다.
 

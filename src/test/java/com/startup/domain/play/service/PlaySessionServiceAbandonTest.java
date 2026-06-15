@@ -8,6 +8,7 @@ import com.startup.domain.play.enums.PlaySessionStatus;
 import com.startup.domain.play.error.PlayErrorCode;
 import com.startup.domain.play.error.PlayException;
 import com.startup.domain.play.repository.PlaySessionRepository;
+import com.startup.domain.play.support.FinalDeductionLockManager;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.Difficulty;
 import com.startup.domain.scenario.enums.ScenarioStatus;
@@ -43,6 +44,9 @@ class PlaySessionServiceAbandonTest {
 
     @Autowired
     private ScenarioRepository scenarioRepository;
+
+    @Autowired
+    private FinalDeductionLockManager finalDeductionLockManager;
 
     @Autowired
     private EntityManager entityManager;
@@ -174,6 +178,27 @@ class PlaySessionServiceAbandonTest {
         PlaySession found = playSessionRepository.findById(session.getId()).orElseThrow();
         assertThat(found.getStatus()).isEqualTo(PlaySessionStatus.COMPLETED);
         assertThat(found.getActiveKey()).isNull();
+    }
+
+    @Test
+    void abandonSession_whileFinalDeductionInFlight_throwsNotPlayingAndKeepsPlayingStatus() {
+        Scenario scenario = saveScenario();
+        PlaySession session = savePlayingSession(USER_ID, scenario.getId());
+        assertThat(finalDeductionLockManager.tryLock(session.getId())).isTrue();
+
+        try {
+            assertPlayError(
+                    () -> playSessionService.abandonSession(USER_ID, session.getId()),
+                    PlayErrorCode.SESSION_NOT_PLAYING
+            );
+        } finally {
+            finalDeductionLockManager.release(session.getId());
+        }
+
+        flushAndClear();
+        PlaySession found = playSessionRepository.findById(session.getId()).orElseThrow();
+        assertThat(found.getStatus()).isEqualTo(PlaySessionStatus.PLAYING);
+        assertThat(found.getActiveKey()).isEqualTo(USER_ID + "_" + scenario.getId());
     }
 
     @Test

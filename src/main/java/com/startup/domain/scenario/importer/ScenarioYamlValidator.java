@@ -66,6 +66,7 @@ public class ScenarioYamlValidator {
         validateVariantReferences(yaml, charactersByCode, evidenceCodes, violations);
         validatePublishedVariants(yaml, violations);
         validateEvidenceVariantStates(yaml, evidenceCodes, variantCodes, violations);
+        validateHints(yaml, violations);
         validateUnlockRules(yaml, evidenceCodes, characterCodes, violations);
         validateNpcPolicies(yaml, evidenceCodes, characterCodes, violations);
         validateAssets(yaml, scenarioCode, victimCode, locationCodes, characterCodes,
@@ -149,6 +150,7 @@ public class ScenarioYamlValidator {
         requireNonEmpty(yaml.characters(), "characters", violations);
         requireNonEmpty(yaml.evidences(), "evidences", violations);
         requireNonEmpty(yaml.variants(), "variants", violations);
+        requireNonEmpty(yaml.hints(), "hints", violations);
         requireNonEmpty(yaml.unlockRules(), "unlockRules", violations);
         requireNonEmpty(yaml.npcPolicies(), "npcPolicies", violations);
         if (yaml.scoring() == null || yaml.scoring().isEmpty()) {
@@ -391,6 +393,32 @@ public class ScenarioYamlValidator {
             String stateKey = state.variantCode() + "::" + state.evidenceCode();
             if (!stateKeys.add(stateKey)) {
                 violations.add("duplicate evidenceVariantState: " + stateKey);
+            }
+        }
+    }
+
+    private void validateHints(ScenarioYaml yaml, List<String> violations) {
+        Set<Integer> hintLevels = new HashSet<>();
+        for (ScenarioYaml.HintYaml hint : listOf(yaml.hints())) {
+            if (hint == null) {
+                violations.add("hints[] item is required.");
+                continue;
+            }
+
+            requireNumber(hint.hintLevel(), "hints[].hintLevel", violations);
+            if (hint.hintLevel() != null && hint.hintLevel() < 1) {
+                violations.add("hints[].hintLevel must be greater than 0: " + hint.hintLevel());
+            }
+            if (hint.hintLevel() != null && !hintLevels.add(hint.hintLevel())) {
+                violations.add("duplicate hintLevel: " + hint.hintLevel());
+            }
+
+            requireText(hint.content(), "hints[" + hint.hintLevel() + "].content", violations);
+            if (hint.unlockAfterMinutes() != null && hint.unlockAfterMinutes() < 0) {
+                violations.add("hints[" + hint.hintLevel() + "].unlockAfterMinutes must be 0 or greater.");
+            }
+            if (hint.penaltyScore() != null && hint.penaltyScore() < 0) {
+                violations.add("hints[" + hint.hintLevel() + "].penaltyScore must be 0 or greater.");
             }
         }
     }

@@ -6,6 +6,7 @@ import com.startup.domain.scenario.repository.EvidenceRepository;
 import com.startup.domain.scenario.repository.EvidenceSuspectRepository;
 import com.startup.domain.scenario.repository.EvidenceUnlockRuleRepository;
 import com.startup.domain.scenario.repository.EvidenceVariantStateRepository;
+import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.repository.NpcKnowledgeProfileRepository;
 import com.startup.domain.scenario.repository.ScenarioAssetRepository;
 import com.startup.domain.scenario.repository.ScenarioLocationRepository;
@@ -73,6 +74,9 @@ class ScenarioYamlImportServiceTest {
     @Autowired
     private TimelineEventRepository timelineEventRepository;
 
+    @Autowired
+    private HintRepository hintRepository;
+
     @Test
     void importYaml_savesScenarioGraphAndSkipsSameHash() {
         ScenarioYaml yaml = sampleYaml();
@@ -94,7 +98,9 @@ class ScenarioYamlImportServiceTest {
         assertThat(policyRepository.count()).isEqualTo(1);
         assertThat(assetRepository.count()).isEqualTo(1);
         assertThat(timelineEventRepository.count()).isEqualTo(1);
+        assertThat(hintRepository.count()).isEqualTo(2);
         assertThat(imported.timelineEventCount()).isEqualTo(1);
+        assertThat(imported.hintCount()).isEqualTo(2);
 
         var variant = variantRepository
                 .findFirstByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(imported.scenarioId())
@@ -129,6 +135,7 @@ class ScenarioYamlImportServiceTest {
         ScenarioYaml yaml = new ScenarioYaml(
                 base.metadata(), base.scenario(), base.victim(), base.locations(), base.characters(),
                 base.evidences(), base.timelineEvents(), base.evidenceVariantStates(), base.variants(),
+                base.hints(),
                 List.of(
                         new ScenarioYaml.UnlockRuleYaml("EVIDENCE_OPENING", "PHASE",
                                 new ScenarioYaml.UnlockConditionYaml("PHASE_0_OPENING", List.of(), null, null, null, false), 10),
@@ -328,6 +335,10 @@ class ScenarioYamlImportServiceTest {
                         ),
                         List.of("EVIDENCE_OPENING")
                 )),
+                List.of(
+                        new ScenarioYaml.HintYaml(1, "초기 증거의 시간과 장소를 먼저 맞춰 보세요.", 0, 5),
+                        new ScenarioYaml.HintYaml(2, "핵심 증거와 초기 증거의 차이를 비교해 보세요.", 5, 10)
+                ),
                 List.of(
                         new ScenarioYaml.UnlockRuleYaml(
                                 "EVIDENCE_OPENING",

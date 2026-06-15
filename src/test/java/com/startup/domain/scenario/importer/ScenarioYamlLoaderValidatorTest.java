@@ -33,6 +33,8 @@ class ScenarioYamlLoaderValidatorTest {
                 .containsExactly("EVIDENCE_SUPPORT");
         assertThat(yaml.evidences().getFirst().guidance().suggestedQuestions().getFirst().targetCharacterCode())
                 .isEqualTo("SUSPECT_TEST");
+        assertThat(yaml.hints()).hasSize(2);
+        assertThat(yaml.hints().getFirst().content()).isEqualTo("초기 증거의 시간과 장소를 먼저 맞춰 보세요.");
         assertThat(yaml.locations().getFirst().mapX()).isEqualTo(120);
         assertThat(yaml.locations().getFirst().mapY()).isEqualTo(80);
         assertThat(violations).isEmpty();
@@ -200,6 +202,18 @@ class ScenarioYamlLoaderValidatorTest {
         List<String> violations = validator.validate(load(invalidYaml));
 
         assertThat(violations).anyMatch(message -> message.contains("PUBLISHED requires non-empty assets"));
+    }
+
+    @Test
+    void duplicateHintLevel_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "  - hintLevel: 2",
+                "  - hintLevel: 1"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains("duplicate hintLevel: 1"));
     }
 
     @Test
@@ -429,6 +443,16 @@ class ScenarioYamlLoaderValidatorTest {
                         - EVIDENCE_KEY
                 misleadingEvidenceCodes:
                   - EVIDENCE_SUPPORT
+
+            hints:
+              - hintLevel: 1
+                content: "초기 증거의 시간과 장소를 먼저 맞춰 보세요."
+                unlockAfterMinutes: 0
+                penaltyScore: 5
+              - hintLevel: 2
+                content: "핵심 증거와 초기 증거의 차이를 비교해 보세요."
+                unlockAfterMinutes: 5
+                penaltyScore: 10
 
             unlockRules:
               - evidenceCode: EVIDENCE_KEY
