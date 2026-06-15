@@ -192,10 +192,41 @@ class ScenarioYamlLoaderValidatorTest {
     }
 
     @Test
+    void publishedEvidenceAssetKeyWithSpoilerMarker_failsValidation() throws IOException {
+        String invalidYaml = published(SAMPLE_YAML).replace(
+                "imageAssetKey: official/sample/v1/evidence/EVIDENCE_KEY.png",
+                "imageAssetKey: official/sample/v1/evidence/FAKE_EVIDENCE_KEY.png"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "evidences[EVIDENCE_KEY].imageAssetKey contains blocked public asset marker: fake"));
+    }
+
+    @Test
+    void publishedAssetManifestKeyWithSpoilerMarker_failsValidation() throws IOException {
+        String invalidYaml = published(SAMPLE_YAML)
+                .replace(
+                        "assetKey: official/sample/v1/evidence/EVIDENCE_KEY.png",
+                        "assetKey: official/sample/v1/evidence/CORE_EVIDENCE_KEY.png"
+                )
+                .replace(
+                        "s3ObjectKey: official/sample/v1/evidence/EVIDENCE_KEY.png",
+                        "s3ObjectKey: official/sample/v1/evidence/RED_HERRING_EVIDENCE_KEY.png"
+                );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "assets[].assetKey contains blocked public asset marker: core"));
+        assertThat(violations).anyMatch(message -> message.contains(
+                "s3ObjectKey contains blocked public asset marker: red_herring"));
+    }
+
+    @Test
     void publishedYamlRequiresNonEmptyRootSections() throws IOException {
-        String invalidYaml = SAMPLE_YAML
-                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
-                .replace("status: DRAFT", "status: PUBLISHED");
+        String invalidYaml = published(SAMPLE_YAML);
         invalidYaml = invalidYaml.substring(0, invalidYaml.indexOf("assets:"))
                 + "assets: []\n";
 
@@ -233,9 +264,7 @@ class ScenarioYamlLoaderValidatorTest {
 
     @Test
     void publishedYamlRequiresEnabledVariant() throws IOException {
-        String invalidYaml = SAMPLE_YAML
-                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
-                .replace("status: DRAFT", "status: PUBLISHED")
+        String invalidYaml = published(SAMPLE_YAML)
                 .replace("enabled: true", "enabled: false");
 
         List<String> violations = validator.validate(load(invalidYaml));
@@ -245,9 +274,7 @@ class ScenarioYamlLoaderValidatorTest {
 
     @Test
     void publishedEnabledVariantRequiresSolutionMethodSummary() throws IOException {
-        String invalidYaml = SAMPLE_YAML
-                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
-                .replace("status: DRAFT", "status: PUBLISHED")
+        String invalidYaml = published(SAMPLE_YAML)
                 .replace("      methodSummary: \"방법\"\n", "");
 
         List<String> violations = validator.validate(load(invalidYaml));
@@ -257,9 +284,7 @@ class ScenarioYamlLoaderValidatorTest {
 
     @Test
     void publishedYamlRequiresLocationCoordinates() throws IOException {
-        String invalidYaml = SAMPLE_YAML
-                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
-                .replace("status: DRAFT", "status: PUBLISHED")
+        String invalidYaml = published(SAMPLE_YAML)
                 .replace("    mapX: 120\n    mapY: 80\n", "");
 
         List<String> violations = validator.validate(load(invalidYaml));
@@ -324,6 +349,12 @@ class ScenarioYamlLoaderValidatorTest {
         } finally {
             Files.deleteIfExists(tempFile);
         }
+    }
+
+    private static String published(String yaml) {
+        return yaml
+                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
+                .replace("status: DRAFT", "status: PUBLISHED");
     }
 
     private static final String SAMPLE_YAML = """
