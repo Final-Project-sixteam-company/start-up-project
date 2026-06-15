@@ -372,7 +372,7 @@ Findings First를 먼저 쓴다.
 |---|---|---|---|---|---|
 | Backend | P0/P1 | Open | 2026-06-10~2026-06-15 reports | public gameplay DTO/API에서 정답성/핵심성/비후보 추론 metadata가 플레이어 surface에 노출되는 문제 | public DTO/admin DTO 분리 후 API-only spoiler scan |
 | Frontend | P0/P1 | Open | 2026-06-12 follow-up, 2026-06-15 report | FE가 정답성 metadata에 후보/핵심 증거 UI를 의존할 수 있음 | metadata 제거 후 앱 후보/증거 UI regression |
-| Frontend | P0 | Changed, needs retest | 2026-06-15 report, OAuth 연결 후 미재검 | 운영 앱 로그인 경로가 막혔던 이슈. OAuth 연결 후 Android E2E 재검 필요 | fresh install에서 OAuth login, token refresh, `/api/auth/me`, scenario 진입 |
+| Frontend | P0 | Open | 2026-06-15 report, OAuth Android E2E 검증 artifact 없음 | 운영 앱 로그인 경로가 막혔던 이슈. OAuth 연결만으로 해결 처리하지 않고 fresh install Android E2E 통과 전까지 blocker로 유지 | fresh install에서 OAuth login, token refresh, `/api/auth/me`, scenario 진입 |
 | Backend/Product | P0/P1 | Open | 2026-06-15 report | 앱 login gate와 public play API 인증 정책 불일치 | `AUTH_REQUIRE_AUTHENTICATION` 운영 정책, QA 계정 정책, mock/public gameplay 정책 확정 |
 | Frontend | P1 | Open | 2026-06-11~2026-06-15 reports | 기본 suggested-question chip 자동 전송 가능성 | 모든 chip route가 prefill-only인지 Android E2E |
 | Scenario seed | P1 | Changed, needs blind retest | 2026-06 guidance seed 반영 후 미재검 | 30~50턴 안에 후보를 안정적으로 좁히기 어려웠고, guidance coverage가 부족했음 | Android 또는 masked API blind retest |

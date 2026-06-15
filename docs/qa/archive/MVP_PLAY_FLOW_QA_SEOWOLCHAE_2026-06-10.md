@@ -343,7 +343,7 @@ GET /api/play-sessions/{sessionId}/recommended-questions
 - 증거 상세에서 "이 증거로 물어볼 질문" CTA 제공
 ```
 
-### 4. 최종 추리 실패 원인이 게임 내에서 충분히 학습되지 않음
+### 4. 최종 추리 피드백과 게임 내 학습 신호가 충분히 연결되지 않음
 
 QA 플레이어는 해금된 13개 증거 기준으로 한 용의자를 지목했다. 결과 정오와 점수/등급은 private artifact로 분리한다.
 
