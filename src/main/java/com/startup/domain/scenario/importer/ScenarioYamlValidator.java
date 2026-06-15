@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -20,7 +21,7 @@ public class ScenarioYamlValidator {
     private static final Pattern ASSET_KEY_PATTERN = Pattern.compile("^[A-Za-z0-9._/-]+$");
     private static final Pattern LOCAL_PATH_PATTERN = Pattern.compile("^[A-Za-z]:\\\\|.*\\\\.*");
     private static final Set<String> TIMELINE_EVENT_VISIBILITIES = Set.of("PUBLIC");
-    private static final List<String> GUIDANCE_BLOCKED_MARKERS = List.of(
+    private static final List<String> PLAYER_FACING_BLOCKED_MARKERS = List.of(
             "culpritcode",
             "culprit",
             "activevariant",
@@ -197,7 +198,7 @@ public class ScenarioYamlValidator {
             if (!hasText(readingPoint)) {
                 violations.add("evidences[" + evidence.code() + "].guidance.readingPoints contains blank item.");
             } else {
-                validateGuidanceText(readingPoint,
+                validatePlayerFacingText(readingPoint,
                         "evidences[" + evidence.code() + "].guidance.readingPoints", violations);
             }
         }
@@ -240,15 +241,15 @@ public class ScenarioYamlValidator {
                 violations.add("evidences[" + evidence.code()
                         + "].guidance.suggestedQuestions.question is required.");
             } else {
-                validateGuidanceText(question.question(),
+                validatePlayerFacingText(question.question(),
                         "evidences[" + evidence.code() + "].guidance.suggestedQuestions.question", violations);
             }
         }
     }
 
-    private void validateGuidanceText(String value, String field, List<String> violations) {
-        String normalized = value.toLowerCase();
-        for (String marker : GUIDANCE_BLOCKED_MARKERS) {
+    private void validatePlayerFacingText(String value, String field, List<String> violations) {
+        String normalized = value.toLowerCase(Locale.ROOT);
+        for (String marker : PLAYER_FACING_BLOCKED_MARKERS) {
             if (normalized.contains(marker)) {
                 violations.add(field + " contains blocked private/solution marker: " + marker);
             }
@@ -413,7 +414,12 @@ public class ScenarioYamlValidator {
                 violations.add("duplicate hintLevel: " + hint.hintLevel());
             }
 
-            requireText(hint.content(), "hints[" + hint.hintLevel() + "].content", violations);
+            if (!hasText(hint.content())) {
+                violations.add("hints[" + hint.hintLevel() + "].content is required.");
+            } else {
+                validatePlayerFacingText(hint.content(),
+                        "hints[" + hint.hintLevel() + "].content", violations);
+            }
             if (hint.unlockAfterMinutes() != null && hint.unlockAfterMinutes() < 0) {
                 violations.add("hints[" + hint.hintLevel() + "].unlockAfterMinutes must be 0 or greater.");
             }

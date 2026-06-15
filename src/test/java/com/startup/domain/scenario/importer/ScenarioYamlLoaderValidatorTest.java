@@ -217,6 +217,21 @@ class ScenarioYamlLoaderValidatorTest {
     }
 
     @Test
+    void hintContentWithPrivateOrSolutionMarker_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "초기 증거의 시간과 장소를 먼저 맞춰 보세요.",
+                "범인과 정답 경로를 먼저 확인하세요."
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "hints[1].content contains blocked private/solution marker: 범인"));
+        assertThat(violations).anyMatch(message -> message.contains(
+                "hints[1].content contains blocked private/solution marker: 정답"));
+    }
+
+    @Test
     void publishedYamlRequiresEnabledVariant() throws IOException {
         String invalidYaml = SAMPLE_YAML
                 .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
