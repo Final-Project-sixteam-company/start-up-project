@@ -234,8 +234,7 @@ public class ScenarioService {
             // 스프링은 정렬 방향 생략 시 기본값으로 ASC(오름차순)를 주지만,
             // 인기순, 평점순, 최신순은 내림차순(DESC)이 논리적으로 맞으므로 DESC로 엎어칩니다.
             Sort.Direction direction = order.getDirection();
-            if (direction == Sort.Direction.ASC &&
-               (property.equals("playCount") || property.equals("averageRating") || property.equals("createdAt"))) {
+            if (direction == Sort.Direction.ASC) {
                 direction = Sort.Direction.DESC;
             }
 
