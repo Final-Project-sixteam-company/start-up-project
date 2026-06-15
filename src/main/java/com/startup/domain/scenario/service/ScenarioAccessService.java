@@ -69,6 +69,13 @@ public class ScenarioAccessService {
         }
     }
 
+    /**
+     * DRAFT 성격(수정 가능)의 시나리오를 편집할 수 있는 '기본 소유권'이 있는지 검증합니다.
+     * 주의: 이 메서드는 PUBLISHED 상태나 다른 동시성 상태를 검증하지 않고,
+     * 오직 '삭제(DELETED)되지 않았고 작성자 본인인가?'만 확인합니다.
+     * 따라서 실제 수정 API에서는 이 메서드를 통과한 뒤라도 반드시 
+     * 비관적 락(findByIdForUpdate) 획득 후 DRAFT/VALIDATING 상태인지 재검증해야 합니다.
+     */
     public void validateDraftEditable(Long userId, Long scenarioId) {
         if (!canEditDraftLike(userId, scenarioId)) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
