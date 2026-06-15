@@ -98,8 +98,8 @@ Test date: 2026-06-12 KST
 
 ```text
 확인한 것:
-  - 서월채 latest final deduction culprit_match = MATCH
-  - 스튜디오9 latest final deduction culprit_match = MATCH
+  - 두 공식 시나리오 latest final deduction row 조회 가능
+  - post-submit result/DB 확인 경로 도달
   - raw session id, 정답 인물명, 정답 해설 원문은 기록하지 않음
 
 추가 관찰:
@@ -168,7 +168,7 @@ prod API 대상 APK는 다시 빌드만 했고 실행하지 않았다.
 | Frontend static analysis noise | VERIFIED for current worktree | `flutter analyze` PASS |
 | Frontend model/controller tests | VERIFIED | `flutter test` PASS, 11 tests |
 | Backend final submission reachability after extended interrogation | VERIFIED | 두 시나리오 final submit + post-submit result/db check |
-| Culprit selection in extended retest | VERIFIED privately | public 문서에는 `MATCH`만 기록 |
+| Culprit selection in extended retest | VERIFIED privately | public 문서에는 result/DB 확인 경로 도달만 기록 |
 
 ### 6.2 Still Open
 
