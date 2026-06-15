@@ -64,10 +64,13 @@ public class ReportService {
 
     // 인증 및 접근 권한 검증 후 시나리오 조회
     private Scenario getAccessibleScenario(Long userId, Long scenarioId) {
-        scenarioAccessService.validateViewable(userId, scenarioId);
-        Scenario scenario = scenarioRepository.findById(scenarioId)
+        // 비관적 락을 먼저 획득하여 상태 변경과의 Race Condition 방어
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
                 
+        // 락이 걸린 상태에서 권한 검증
+        scenarioAccessService.validateViewable(userId, scenarioId);
+        
         if (scenario.getStatus() == ScenarioStatus.DELETED) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ALREADY_DELETED);
         }
