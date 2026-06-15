@@ -38,6 +38,8 @@ public class ConditionJsonParser {
         if (conditionJson == null || conditionJson.isBlank()) return false;
         try {
             JsonNode root = jsonMapper.readTree(conditionJson);
+            if (!root.isObject()) return true; // fail-closed
+
             if (root.has("requiredPresentedEvidenceCode") && !root.get("requiredPresentedEvidenceCode").isNull()) {
                 if (evidenceCode.equals(root.get("requiredPresentedEvidenceCode").asText())) {
                     return true;

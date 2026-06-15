@@ -539,4 +539,96 @@ public class CustomScenarioServiceEvidenceTest {
                 .isInstanceOf(ScenarioException.class)
                 .hasMessageContaining(ScenarioErrorCode.SCENARIO_NOT_MODIFY.getMessage());
     }
+    @Test
+    @DisplayName("증거 삭제 방어 - 다른 증거의 해금 조건이 Malformed JSON인 경우 (fail-closed)")
+    void deleteEvidence_fail_when_referenced_by_malformed_json() {
+        // given
+        Evidence targetEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("TARGET_EVD")
+                .title("타겟 증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        // 악의적 케이스 1: Malformed JSON
+        evidenceUnlockRuleRepository.save(EvidenceUnlockRule.builder()
+                .scenarioId(savedScenario.getId())
+                .evidenceId(999L)
+                .evidenceCode("OTHER_EVD")
+                .unlockType(EvidenceUnlockType.MANUAL.name())
+                .conditionJson("{ malformed json")
+                .sortOrder(1)
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, targetEvidence.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE.getMessage());
+    }
+
+    @Test
+    @DisplayName("증거 삭제 방어 - 다른 증거의 해금 조건이 단일 문자열인 경우 (fail-closed)")
+    void deleteEvidence_fail_when_referenced_by_single_string_json() {
+        // given
+        Evidence targetEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("TARGET_EVD")
+                .title("타겟 증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        // 악의적 케이스 2: 단순 문자열 JSON
+        evidenceUnlockRuleRepository.save(EvidenceUnlockRule.builder()
+                .scenarioId(savedScenario.getId())
+                .evidenceId(999L)
+                .evidenceCode("OTHER_EVD")
+                .unlockType(EvidenceUnlockType.MANUAL.name())
+                .conditionJson("\"TARGET_EVD\"")
+                .sortOrder(1)
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, targetEvidence.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE.getMessage());
+    }
+
+    @Test
+    @DisplayName("증거 삭제 방어 - 용의자 답변 정책에서 참조 중인 경우")
+    void deleteEvidence_fail_when_used_in_response_policy() {
+        // given
+        Evidence targetEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("TARGET_EVD")
+                .title("타겟 증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        // 신규 정책 참조 (presentedEvidenceId로 직접 참조)
+        suspectResponsePolicyRepository.save(com.startup.domain.ai.entity.SuspectResponsePolicy.builder()
+                .suspectId(savedSuspect.getId())
+                .conditionKey("TEST_KEY")
+                .policyText("정책")
+                .allowedFacts("[]")
+                .forbiddenFacts("[]")
+                .tone("단호함")
+                .presentedEvidenceId(targetEvidence.getId())
+                .priority(1)
+                .build());
+        suspectResponsePolicyRepository.flush();
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, targetEvidence.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.EVIDENCE_USED_IN_POLICY.getMessage());
+    }
 }
