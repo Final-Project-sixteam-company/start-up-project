@@ -159,7 +159,13 @@ POST /api/play-sessions/{sessionId}/abandon
    - 30~50턴 안에 동기/수단/기회/은폐를 한 후보에게 연결할 수 있는지 broad summary로 기록한다.
 
 7. Final Deduction
-   - 충분한 근거가 없으면 제출하지 않고 "후보 미확정"으로 기록한다.
+   - 아래 submit gate를 모두 만족하지 못하면 제출하지 않고 "후보 미확정"으로 기록한다.
+   - submit gate:
+     - 모든 공개 용의자를 최소 1회 이상 검토했다.
+     - 최종 후보에게 연결되는 공개 증거를 제시했고, 주요 비최종 후보와 반응 차이를 비교했다.
+     - 동기, 수단, 기회, 은폐/사후 행동을 한 후보에게 public-safe 근거로 연결할 수 있다.
+     - 회피형 답변은 관련 증거 제시 또는 비교 질문으로 1회 이상 재질문했다.
+     - 남은 후보가 2명 이상이면 왜 제출하지 않는지 broad summary로 기록했다.
    - 제출했다면 결과 화면 진입 여부만 public에 남긴다. 점수/등급/정오/해설 상세는 private에 둔다.
 
 8. Privacy Spot Check
@@ -185,6 +191,8 @@ Android가 불가능하면 public API를 보조 surface로 사용하되, spoiler
 - API 문서의 solution/final-result 예시와 correctness/fullExplanation 예시를 보지 않는다.
 - public 보고서에 범인명, 정답 수법, 점수/등급, rejected-candidate rationale, raw sessionId/token을 쓰지 않는다.
 - 최종 후보가 충분히 확정되지 않았으면 추측 제출하지 않는다.
+- 최종 제출 전에는 모든 공개 용의자 검토, 관련 증거 제시, 주요 반응 비교, 동기/수단/기회/은폐 연결, 회피 답변 재질문을 완료해야 한다.
+- 이 submit gate 중 하나라도 빠지면 제출하지 않고 "후보 미확정"으로 기록한다.
 
 # 목표
 
@@ -240,7 +248,7 @@ Findings First를 먼저 쓴다.
 
 - Private seed/solution opened: yes/no
 - API-only masking recorded: yes/no/not applicable
-- Result score/grade kept private: yes/no/not submitted
+- Result score/grade/correctness/breakdown kept private: yes/no/not submitted
 - Rejected-candidate rationale kept private: yes/no
 - Privacy spot check: pass/fail/not checked
 
@@ -305,6 +313,13 @@ Findings First를 먼저 쓴다.
 | Frontend | P1 | Open | 2026-06-11~2026-06-15 reports | 기본 suggested-question chip 자동 전송 가능성 | 모든 chip route가 prefill-only인지 Android E2E |
 | Scenario seed | P1 | Changed, needs blind retest | 2026-06 guidance seed 반영 후 미재검 | 30~50턴 안에 후보를 안정적으로 좁히기 어려웠고, guidance coverage가 부족했음 | Android 또는 masked API blind retest |
 | AI policy | P1 | Open | 2026-06-10~2026-06-15 reports | 증거 제시 답변이 회피형으로 끝나고 다음 비교 대상을 충분히 주지 못함 | response shape smoke: 인정 사실/모르는 범위/다음 비교 대상 |
+| Backend/AI | P1 | Open | 이전 QA_HANDOFF에서 유지 | INTERROGATION 조건 기반 증거 해금 E2E가 정본 board에서 별도 재검 필요 | INTERROGATION unlock rule seed/import 후 `unlockedEvidences`, evidence board count, dashboard count 대조 |
+| Backend | P1 | Open | 이전 QA_HANDOFF에서 유지 | `coverUpText` 누락 허용 정책이 API spec/validation과 정합한지 미확정 | 필수면 `@NotBlank`, 선택이면 API spec/Android 문서에 optional로 명시 후 request validation smoke |
+| Backend/AI | P1 | Open | 이전 QA_HANDOFF에서 유지 | official scenario validation이 `NEEDS_FIX`로 남을 수 있음 | hints=0 rule, timelineEvents 포함, active variants 전체 검증 정책 재확인 |
+| Backend/Scenario | P1 | Open | 이전 QA_HANDOFF와 2026-06-10 report에서 유지 | PHASE 해금이 시간 경과만으로 과도하게 열려 핵심 증거가 플레이 행동과 분리될 수 있음 | 시간 해금/심문 해금/증거 제시 해금 비율 재설계 후 evidence unlock E2E |
+| Backend | P1 | Open | 이전 QA_HANDOFF에서 유지 | concurrent create race fallback에서 `activeSessionId` details 누락 가능성 | `DataIntegrityViolationException` fallback active session 재조회와 P002 details 포함 여부 재검 |
+| Backend/Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | final-deduction in-flight 중 abandon 허용 시 제출 결과가 사라진 것처럼 보일 수 있음 | in-flight abandon 차단 또는 Android 제출 중 이탈/포기 UX 차단 smoke |
+| Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | P002 active session 복구 계약이 앱에서 `details.activeSessionId`와 `GET /active` fallback을 안정적으로 쓰는지 재검 필요 | active PLAYING 세션 상태에서 재시작, 409/P002, 이어가기/포기 UX E2E |
 | Backend | P1 | Open | 2026-06-12 report | final deduction/result의 interrogation count 집계 불일치 가능성 | 제출 전후 DB/log count, result response count 대조 |
 | Frontend | P1/P2 | Open | 2026-06-12~2026-06-15 reports | guidance rendering, timeline, final submit/result full E2E coverage 부족 | Android full E2E |
 | Product/Backend | P2 | Open | 2026-06-15 report | final-deduction 세부 rubric과 in-game guidance 용어가 어긋날 수 있음 | result feedback public-safe review |

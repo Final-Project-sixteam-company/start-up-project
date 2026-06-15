@@ -43,7 +43,7 @@ Test date: 2026-06-12 KST
 
 ```text
 전체 판단: backend gameplay는 extended retest 기준 제출까지 도달 가능. 그러나 30~50턴 목표는 아직 안정적으로 충족되지 않는다.
-최종 제출 검증: 두 공식 시나리오 모두 post-submit DB 확인에서 culprit match가 확인됐다. 세부 점수/등급은 public 문서에서 생략한다.
+최종 제출 검증: 두 공식 시나리오 모두 post-submit result/DB 확인 경로까지 도달했다. 정오, 점수/등급, breakdown은 private artifact로 분리한다.
 가장 큰 UX blocker: guidance coverage 부족과 AI 답변의 다음 비교 방향 부족.
 가장 큰 API safety blocker: public gameplay 응답의 spoiler-like metadata exposure.
 추가 확인: spoiler-like metadata는 DTO/API spec/test에도 남아 있어 단순 UI 표시 문제가 아니라 public contract 문제로 봐야 한다.
@@ -60,7 +60,7 @@ Test date: 2026-06-12 KST
 | P1 | Guidance UX | 30~50턴 내 후보 축소를 안정적으로 돕기에는 guidance coverage가 부족함 | 서월채/스튜디오9 모두 50턴 기준 확정 제출 보류, extended turns 후 제출 가능 | 주요 해금 증거마다 readingPoints/compareEvidences/suggestedQuestions 제공 | 일부 증거에만 guidance가 있고 시간 해금 후에도 질문 방향을 사용자가 직접 구성해야 함 | 신규 유저가 찍기 제출하거나 이탈할 가능성 | 시간 해금/분기 증거까지 guidance 확장. 증거별 next compare target 제공 |
 | P1 | AI interrogation | 안전하지만 회피적인 답변이 반복됨 | “단정 불가”, “다른 증거와 함께 봐야 함” 유형 반복 | 증거 제시 답변은 인정 사실, 부인 범위, 다음 비교 대상을 짧게 제공 | 정답 누설은 막지만 다음 행동 정보가 약함 | 심문이 후보 축소 도구로 충분히 작동하지 않음 | responseShape를 정책화하고 allowedFacts에 public-safe comparison hint 추가 |
 | P1 | Frontend active session | 6/10에 앱 시작 전 active session 충돌 blocker가 있었으나 현재 Flutter 코드에서는 복구됨 | 2026-06-12 emulator fake API E2E: `GET /active` 1회, `POST /play-sessions` 0회, case screen 진입 | local storage가 비어도 server active session으로 이어가기 | 현재 코드 기준 PASS | APK 재설치/다른 기기에서 “세션 이미 있음”으로 막히던 위험 감소 | 현재 구현 유지. prod QA 계정으로 운영 API spot check는 별도 승인 후 수행 |
-| P1 | Telemetry/data integrity | final deduction DB 조회에서 `interrogation_count=0`으로 표시됨 | post-submit DB 확인 결과 두 시나리오 모두 culprit match였지만 interrogation_count가 0 | 많은 심문 후 제출된 세션은 심문 수/집계가 보존되어야 함 | 제출 행 또는 join 대상의 count가 실제 QA 행동과 맞지 않음 | LLMOps/QA metric, 점수 분석, 사용자 기록 신뢰도 저하 | `play_sessions.interrogation_count`, final deduction 저장 시점, result query join을 재검증 |
+| P1 | Telemetry/data integrity | final deduction DB 조회에서 `interrogation_count=0`으로 표시됨 | post-submit DB/result path 확인 중 interrogation_count가 0으로 관찰됨. 정오 판단은 private artifact | 많은 심문 후 제출된 세션은 심문 수/집계가 보존되어야 함 | 제출 행 또는 join 대상의 count가 실제 QA 행동과 맞지 않음 | LLMOps/QA metric, 점수 분석, 사용자 기록 신뢰도 저하 | `play_sessions.interrogation_count`, final deduction 저장 시점, result query join을 재검증 |
 | P2 | Frontend QA coverage | active recovery는 확인했지만 guidance/chip/timeline/final submit UI는 이번 6/12 E2E 범위 밖 | 6/12 E2E는 active-session bug 집중. prod write 방지를 위해 fake API 사용 | QA prompt A~F 전체를 앱에서 반복 측정 | active recovery만 current-pass, 나머지는 6/11 문서 기준 open/pending | 프론트 전체 PASS로 오해할 위험 | 별도 프론트 full E2E에서 guidance/chip/timeline/final submit 재검 |
 | P2 | Ops/privacy | AI_CALL/AI_CALL_CONTEXT privacy spot check 미확인 | redacted Loki/Grafana snippet 미제공 | raw prompt/answer/user question/session id가 로그에 없어야 함 | 이번 세션에서는 확인 불가 | 운영 로그 privacy 상태 미확정 | 운영자가 redacted snippet 제공 후 QA_HANDOFF checklist로 재검 |
 
@@ -74,14 +74,14 @@ Test date: 2026-06-12 KST
   30~50턴 후보 축소: PARTIAL/FAIL
   extended interrogation: submit-ready까지 도달
   final submit: 완료
-  post-submit result/db check: culprit match 확인, 세부 결과는 private artifact
+  post-submit result/db check: result path 확인, 세부 정오는 private artifact
 
 스튜디오9:
   basic flow: PASS
   30~50턴 후보 축소: PARTIAL/FAIL
   extended interrogation: submit-ready까지 도달
   final submit: 완료
-  post-submit result/db check: culprit match 확인, 세부 결과는 private artifact
+  post-submit result/db check: result path 확인, 세부 정오는 private artifact
 ```
 
 해석:

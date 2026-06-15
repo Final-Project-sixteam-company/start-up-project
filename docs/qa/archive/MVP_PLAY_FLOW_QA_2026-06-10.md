@@ -69,12 +69,12 @@ API 스포일러 메타데이터: 수정 필요
 
 ```text
 제출: 성공
-채점: B 등급
-범인 지목: 정답
-부족: 핵심 수법 세부와 은폐 세부
+채점/등급: private artifact
+범인 지목 정오: private artifact
+세부 breakdown: private artifact
 ```
 
-정답 세부는 공개 문서에 남기지 않는다.
+정답 세부와 결과 정오는 공개 문서에 남기지 않는다.
 
 ## Good
 
