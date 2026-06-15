@@ -222,7 +222,9 @@ public 보고서에는 result screen/API 도달 여부만 남기고, 선택 후�
    - 기존 draft가 있으면 override 전 확인/보존 정책을 확인한다.
 
 6. Interrogation / Deduction
+   - AI/NPC 답변이 정답 범인, solution, private secret, 정답 수법/은폐를 직접 말하지 않는지 본다.
    - AI 답변이 설정에 없는 시간/장소/사실을 만들지 않는지 본다.
+   - 답변이 1~2문장, 최대 2문장 제한을 지키는지 확인한다.
    - 증거 제시 시 "인정 사실 / 모르는 범위 / 다음 비교 대상"을 제공하는지 본다.
    - 30~50턴 안에 동기/수단/기회/은폐를 한 후보에게 연결할 수 있는지 broad summary로 기록한다.
 
@@ -268,9 +270,10 @@ Android가 불가능하면 public API를 보조 surface로 사용하되, spoiler
 2. evidence guidance, 함께 볼 증거, 추천 질문 UX가 실제 추리에 도움이 되는지 확인한다.
 3. suggested-question target이 현재 플레이에서 유효한지 확인하고, invalid target chip은 숨김 또는 비활성화되어야 한다.
 4. suggested-question chip이 prefill-only인지 확인한다.
-5. AI 답변이 설정에 없는 사실을 만들지 않고, 증거 제시 시 다음 비교 방향을 주는지 확인한다.
-6. 30~50턴 안에 후보 축소가 가능한지 판단한다.
-7. 운영/privacy spot check 결과를 기록한다.
+5. AI/NPC 답변이 정답 범인/solution/private secret을 직접 말하지 않고 최대 2문장 제한을 지키는지 확인한다.
+6. AI 답변이 설정에 없는 사실을 만들지 않고, 증거 제시 시 다음 비교 방향을 주는지 확인한다.
+7. 30~50턴 안에 후보 축소가 가능한지 판단한다.
+8. 운영/privacy spot check 결과를 기록한다.
 
 # fresh session
 
@@ -397,6 +400,7 @@ Findings First를 먼저 쓴다.
 | Backend | P1 | Open | 2026-06-12 report | final deduction/result의 interrogation count 집계 불일치 가능성 | 제출 전후 DB/log count, result response count 대조 |
 | Frontend | P1/P2 | Open | 2026-06-12~2026-06-15 reports | guidance rendering, timeline, final submit/result full E2E coverage 부족 | Android full E2E |
 | Product/Backend | P2 | Open | 2026-06-15 report | final-deduction 세부 rubric과 in-game guidance 용어가 어긋날 수 있음 | result feedback public-safe review |
+| Ops | P0 | Open | 이전 QA_HANDOFF에서 유지 | 운영 Hibernate bind parameter TRACE가 사용자 질문/최종 추리 입력 원문을 노출할 수 있음 | prod `HIBERNATE_SQL_PARAM_LOG` off/warn, `org.hibernate.orm.jdbc.bind` TRACE 비활성, redacted marker 재검증 |
 | Ops | P1 | Open | 반복 QA reports | AI_CALL/AI_CALL_CONTEXT privacy spot check를 보고서마다 확인해야 함 | redacted Loki/Grafana snippet으로 raw prompt/answer/user question 부재 확인 |
 | Docs | P2 | Open | 2026-06-15 report | QA/FE 문서가 현재 구현 상태와 어긋나는 drift | 코드 SoT 기준 docs update |
 
