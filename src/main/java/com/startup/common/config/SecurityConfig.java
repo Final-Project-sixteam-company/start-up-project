@@ -55,6 +55,11 @@ public class SecurityConfig {
             AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth
     ) {
         if (!authProperties.isRequireAuthentication()) {
+            /**
+             * Legacy compatibility mode:
+             * 인증(Token) 없이 들어온 요청도 Security를 통과시켜, 이후 MockUserProvider를 통해
+             * Mock User(임시 사용자) 자격을 부여받도록 허용하는 의도된 Trade-off입니다.
+             */
             auth.anyRequest().permitAll();
             return;
         }
