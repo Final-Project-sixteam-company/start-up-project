@@ -72,8 +72,8 @@ public class PlaySessionService {
     public PlaySessionCreateResponse createSession(Long userId, PlaySessionCreateRequest request) {
         Long scenarioId = request.scenarioId();
 
-        // 시나리오 존재 확인
-        Scenario scenario = scenarioRepository.findById(scenarioId)
+        // 시나리오 존재 확인 및 동시성 방어를 위한 비관적 락 적용
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 접근 권한 확인

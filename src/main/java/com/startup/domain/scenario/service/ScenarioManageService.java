@@ -7,6 +7,7 @@ import com.startup.domain.scenario.dto.ScenarioHideResponse;
 import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.ScenarioStatus;
+import com.startup.domain.scenario.enums.ScenarioType;
 import com.startup.domain.scenario.enums.ScenarioVisibility;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
@@ -146,6 +147,10 @@ public class ScenarioManageService {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
 
+        if (scenario.getScenarioType() != ScenarioType.CUSTOM) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
+        }
+
         if (!scenario.getStatus().canDelete()) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_CANNOT_DELETE);
         }
@@ -160,6 +165,10 @@ public class ScenarioManageService {
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         if (!userId.equals(scenario.getCreatorId())) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
+        }
+
+        if (scenario.getScenarioType() != ScenarioType.CUSTOM) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
 
