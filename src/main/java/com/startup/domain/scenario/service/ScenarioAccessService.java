@@ -38,7 +38,7 @@ public class ScenarioAccessService {
         return userId != null && playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING);
     }
 
-    public boolean canEdit(Long userId, Long scenarioId) {
+    public boolean canEditDraftLike(Long userId, Long scenarioId) {
         Scenario scenario = scenarioRepository.findById(scenarioId).orElse(null);
         if (scenario == null || scenario.getStatus() == ScenarioStatus.DELETED) return false;
         
@@ -69,8 +69,8 @@ public class ScenarioAccessService {
         }
     }
 
-    public void validateEditable(Long userId, Long scenarioId) {
-        if (!canEdit(userId, scenarioId)) {
+    public void validateDraftEditable(Long userId, Long scenarioId) {
+        if (!canEditDraftLike(userId, scenarioId)) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
     }
