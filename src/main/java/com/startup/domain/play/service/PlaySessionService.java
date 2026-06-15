@@ -1,7 +1,5 @@
 package com.startup.domain.play.service;
 
-import com.startup.common.error.BusinessException;
-import com.startup.common.error.CommonErrorCode;
 import com.startup.domain.ai.repository.InterrogationLogRepository;
 import com.startup.domain.play.dto.*;
 import com.startup.domain.play.entity.PlaySession;
@@ -310,7 +308,7 @@ public class PlaySessionService {
 
         // 현재 유저가 지금까지 게임하면서 '해금한(찾은) 증거 ID' 목록을 Set으로 변환 (O(1) 조회를 위해 Set 사용)
         java.util.Set<Long> unlockedEvidenceIds = unlockedEvidenceRepository.findAllByPlaySessionId(sessionId).stream()
-                .map(unlocked -> unlocked.getEvidenceId())
+                .map(UnlockedEvidence::getEvidenceId)
                 .collect(java.util.stream.Collectors.toSet());
 
         // 필터링 로직 (스포일러 방지)
@@ -375,7 +373,7 @@ public class PlaySessionService {
 
         // 연관 용의자 정보
         java.util.List<Long> suspectIds = evidenceSuspectRepository.findAllByEvidenceIdIn(java.util.List.of(evidenceId)).stream()
-                .map(es -> es.getSuspectId())
+                .map(EvidenceSuspect::getSuspectId)
                 .toList();
         java.util.List<Suspect> relatedSuspects = suspectIds.isEmpty() ? java.util.List.of() : suspectRepository.findAllById(suspectIds);
 
