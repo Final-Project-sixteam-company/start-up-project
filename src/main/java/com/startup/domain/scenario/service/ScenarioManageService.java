@@ -17,7 +17,9 @@ import com.startup.domain.scenario.support.ScenarioAssetUrlResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -170,20 +172,37 @@ public class ScenarioManageService {
     }
 
     private Pageable ensureStableSort(Pageable pageable) {
-        if (pageable.getSort().isUnsorted()) {
-            return org.springframework.data.domain.PageRequest.of(
-                    pageable.getPageNumber(),
-                    pageable.getPageSize(),
-                    org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
-                            .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"))
-            );
+        Sort mappedSort = Sort.unsorted();
+        
+        for (Sort.Order order : pageable.getSort()) {
+            String property = switch (order.getProperty().toLowerCase()) {
+                case "popular" -> "playCount";
+                case "rating" -> "averageRating";
+                case "latest", "createdat", "created_at" -> "createdAt";
+                case "title" -> "title";
+                case "status" -> "status";
+                default -> "createdAt";
+            };
+
+            Sort.Direction direction = order.getDirection();
+            if (direction == Sort.Direction.ASC &&
+               (property.equals("playCount") || property.equals("averageRating") || property.equals("createdAt"))) {
+                direction = Sort.Direction.DESC;
+            }
+
+            mappedSort = mappedSort.and(Sort.by(direction, property));
         }
 
-        // 이미 정렬 조건이 있더라도, id 기준 정렬을 후순위로 추가하여 완벽히 Stable하게 만듦
-        return org.springframework.data.domain.PageRequest.of(
+        if (mappedSort.isUnsorted()) {
+            mappedSort = Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+
+        mappedSort = mappedSort.and(Sort.by(Sort.Direction.DESC, "id"));
+
+        return PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
-                pageable.getSort().and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"))
+                mappedSort
         );
     }
 }
