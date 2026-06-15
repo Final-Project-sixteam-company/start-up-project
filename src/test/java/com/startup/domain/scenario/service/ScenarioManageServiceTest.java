@@ -101,6 +101,25 @@ public class ScenarioManageServiceTest {
                 .hasMessageContaining(ScenarioErrorCode.SCENARIO_ALREADY_DELETED.getMessage());
     }
 
+    @Test
+    @DisplayName("DELETE: 공식 시나리오(OFFICIAL) 삭제 거부")
+    void deleteScenario_official_denied() {
+        Scenario officialScenario = scenarioRepository.save(Scenario.builder()
+                .title("공식 시나리오")
+                .description("설명")
+                .scenarioType(ScenarioType.OFFICIAL)
+                .visibility(ScenarioVisibility.OFFICIAL)
+                .difficulty(Difficulty.NORMAL)
+                .estimatedPlayTimeMinutes(30)
+                .creatorId(OWNER_ID)
+                .status(ScenarioStatus.PUBLISHED)
+                .build());
+
+        assertThatThrownBy(() -> scenarioManageService.deleteScenario(OWNER_ID, officialScenario.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SCENARIO_ACCESS_DENIED.getMessage());
+    }
+
     // ──────────────────────────────────────────────
     // 2. HIDE API 테스트
     // ──────────────────────────────────────────────
@@ -122,6 +141,25 @@ public class ScenarioManageServiceTest {
         assertThatThrownBy(() -> scenarioManageService.hideScenario(OWNER_ID, draftScenario.getId()))
                 .isInstanceOf(ScenarioException.class)
                 .hasMessageContaining(ScenarioErrorCode.SCENARIO_CANNOT_HIDE.getMessage());
+    }
+
+    @Test
+    @DisplayName("HIDE: 공식 시나리오(OFFICIAL) 숨김 거부")
+    void hideScenario_official_denied() {
+        Scenario officialScenario = scenarioRepository.save(Scenario.builder()
+                .title("공식 시나리오")
+                .description("설명")
+                .scenarioType(ScenarioType.OFFICIAL)
+                .visibility(ScenarioVisibility.OFFICIAL)
+                .difficulty(Difficulty.NORMAL)
+                .estimatedPlayTimeMinutes(30)
+                .creatorId(OWNER_ID)
+                .status(ScenarioStatus.PUBLISHED)
+                .build());
+
+        assertThatThrownBy(() -> scenarioManageService.hideScenario(OWNER_ID, officialScenario.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.SCENARIO_ACCESS_DENIED.getMessage());
     }
 
     // ──────────────────────────────────────────────
