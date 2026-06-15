@@ -25,7 +25,7 @@ public class ConditionJsonParser {
         try {
             JsonNode root = jsonMapper.readTree(conditionJson);
             if (root.has("requiredCharacterCode") && !root.get("requiredCharacterCode").isNull()) {
-                return characterCode.equals(root.get("requiredCharacterCode").asText());
+                return characterCode.equals(root.get("requiredCharacterCode").asText(""));
             }
         } catch (Exception e) {
             // 파싱 실패 시 혹시 모를 의존성을 위해 안전하게 true 반환 (fail-closed)
@@ -41,7 +41,7 @@ public class ConditionJsonParser {
             if (!root.isObject()) return true; // fail-closed
 
             if (root.has("requiredPresentedEvidenceCode") && !root.get("requiredPresentedEvidenceCode").isNull()) {
-                if (evidenceCode.equals(root.get("requiredPresentedEvidenceCode").asText())) {
+                if (evidenceCode.equals(root.get("requiredPresentedEvidenceCode").asText(""))) {
                     return true;
                 }
             }
@@ -49,12 +49,12 @@ public class ConditionJsonParser {
                 JsonNode reqCodes = root.get("requiredEvidenceCodes");
                 if (reqCodes.isArray()) {
                     for (JsonNode node : reqCodes) {
-                        if (evidenceCode.equals(node.asText())) {
+                        if (evidenceCode.equals(node.asText(""))) {
                             return true;
                         }
                     }
                 } else if (reqCodes.isTextual()) {
-                    if (evidenceCode.equals(reqCodes.asText())) {
+                    if (evidenceCode.equals(reqCodes.asText(""))) {
                         return true;
                     }
                 }
@@ -75,7 +75,7 @@ public class ConditionJsonParser {
                 }
             } else if (node.isNumber() && evidenceId.equals(node.asLong())) {
                 return true;
-            } else if (node.isTextual() && evidenceId.toString().equals(node.asText())) {
+            } else if (node.isTextual() && evidenceId.toString().equals(node.asText(""))) {
                 return true;
             }
         } catch (Exception e) {

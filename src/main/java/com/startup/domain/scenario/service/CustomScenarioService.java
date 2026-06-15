@@ -9,7 +9,6 @@ import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
 import com.startup.domain.scenario.enums.EvidenceUnlockType;
 import com.startup.domain.scenario.enums.RelationType;
 import com.startup.domain.scenario.support.ConditionJsonParser;
-import com.startup.domain.scenario.support.ScenarioAssetUrlResolver;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import tools.jackson.databind.JsonNode;
@@ -852,7 +851,7 @@ public class CustomScenarioService {
     }
 
     private void saveSuspectResponsePolicy(Long suspectId, JsonNode node) {
-        String basePolicy = node.has("policyText") && !node.get("policyText").isNull() ? node.get("policyText").asText() : "";
+        String basePolicy = node.has("policyText") && !node.get("policyText").isNull() ? node.get("policyText").asText("") : "";
         StringBuilder policyBuilder = new StringBuilder(basePolicy);
 
         Integer maxSentences = node.has("maxSentences") && !node.get("maxSentences").isNull() ? node.get("maxSentences").asInt() : null;
@@ -867,19 +866,19 @@ public class CustomScenarioService {
             policyBuilder.append("설정에 없는 외부 사실을 임의로 지어내지 않는다.");
         }
 
-        String defaultStance = node.has("defaultStance") && !node.get("defaultStance").isNull() ? node.get("defaultStance").asText() : null;
+        String defaultStance = node.has("defaultStance") && !node.get("defaultStance").isNull() ? node.get("defaultStance").asText("") : null;
         if (defaultStance != null && basePolicy.isEmpty()) {
             if (!policyBuilder.isEmpty()) policyBuilder.append(" ");
             policyBuilder.append("기본 태도: ").append(defaultStance).append(".");
         }
 
         String finalPolicyText = !policyBuilder.isEmpty() ? policyBuilder.toString().trim() : "기본 응답";
-        String tone = node.has("tone") && !node.get("tone").isNull() ? node.get("tone").asText() : defaultStance;
+        String tone = node.has("tone") && !node.get("tone").isNull() ? node.get("tone").asText("") : defaultStance;
 
         SuspectResponsePolicy policy = SuspectResponsePolicy.builder()
                 .suspectId(suspectId)
-                .conditionKey(node.has("conditionKey") ? node.get("conditionKey").asText() : "DEFAULT")
-                .userIntent(node.has("userIntent") && !node.get("userIntent").isNull() ? node.get("userIntent").asText() : null)
+                .conditionKey(node.has("conditionKey") ? node.get("conditionKey").asText("") : "DEFAULT")
+                .userIntent(node.has("userIntent") && !node.get("userIntent").isNull() ? node.get("userIntent").asText("") : null)
                 .requiredEvidenceIds(node.has("requiredEvidenceIds") && !node.get("requiredEvidenceIds").isNull() ? node.get("requiredEvidenceIds").toString() : null)
                 .excludedEvidenceIds(node.has("excludedEvidenceIds") && !node.get("excludedEvidenceIds").isNull() ? node.get("excludedEvidenceIds").toString() : null)
                 .presentedEvidenceId(node.has("presentedEvidenceId") && !node.get("presentedEvidenceId").isNull() ? Long.valueOf(node.get("presentedEvidenceId").asLong()) : null)
@@ -896,7 +895,7 @@ public class CustomScenarioService {
         validateEvidenceArray(scenarioId, node.get("requiredEvidenceIds"));
         validateEvidenceArray(scenarioId, node.get("excludedEvidenceIds"));
 
-        String conditionKey = node.has("conditionKey") && !node.get("conditionKey").isNull() ? node.get("conditionKey").asText() : "DEFAULT";
+        String conditionKey = node.has("conditionKey") && !node.get("conditionKey").isNull() ? node.get("conditionKey").asText("") : "DEFAULT";
 
         boolean hasGates = false;
 
