@@ -56,6 +56,10 @@ public class ReviewService {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ALREADY_DELETED);
         }
 
+        if (scenario.getStatus() == ScenarioStatus.HIDDEN) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
+        }
+
         if (!playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.COMPLETED)) {
             throw new CommunityException(CommunityErrorCode.MUST_PLAY_BEFORE_REVIEW);
         }
