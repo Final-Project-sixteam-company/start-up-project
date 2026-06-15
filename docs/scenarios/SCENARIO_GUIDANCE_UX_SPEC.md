@@ -470,7 +470,6 @@ List는 가볍게 유지한다.
     ],
     "suggestedQuestions": [
       {
-        "targetCharacterCode": "SUSPECT_SAMPLE",
         "targetSuspectId": 10,
         "targetName": "Suspect",
         "question": "Can you explain why this evidence differs from the earlier record?",
@@ -518,7 +517,6 @@ public record ComparableEvidenceResponse(
 ) {}
 
 public record SuggestedEvidenceQuestionResponse(
-        String targetCharacterCode,
         Long targetSuspectId,
         String targetName,
         String question,

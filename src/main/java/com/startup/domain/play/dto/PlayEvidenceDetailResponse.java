@@ -5,7 +5,6 @@ import com.startup.domain.scenario.entity.Evidence;
 import com.startup.domain.scenario.entity.ScenarioLocation;
 import com.startup.domain.scenario.entity.Suspect;
 import com.startup.domain.scenario.entity.TimelineEvent;
-import com.startup.domain.scenario.enums.EvidenceImportance;
 import lombok.Builder;
 
 import java.util.List;
@@ -17,7 +16,6 @@ public record PlayEvidenceDetailResponse(
         String description,
         String imageUrl,
         LocationInfo location,
-        EvidenceImportance importance,
         List<SuspectInfo> relatedSuspects,
         List<TimelineInfo> relatedTimelineEvents,
         EvidenceGuidanceInfo guidance
@@ -40,7 +38,6 @@ public record PlayEvidenceDetailResponse(
             String unlockHint
     ) {}
     public record SuggestedQuestionInfo(
-            String targetCharacterCode,
             Long targetSuspectId,
             String targetName,
             String question,
@@ -74,7 +71,6 @@ public record PlayEvidenceDetailResponse(
                 .description(resolvedDescription)
                 .imageUrl(resolvedImageUrl)
                 .location(locationInfo)
-                .importance(evidence.getImportance())
                 .relatedSuspects(suspectInfos)
                 .relatedTimelineEvents(timelineInfos)
                 .guidance(guidance)

@@ -228,7 +228,7 @@ MVP에서는 mock 또는 비활성 상태로 둘 수 있다.
 | 사용 화면 | 증거 보드, 증거 상세, 심문 중 증거 제시 모달 |
 | 호출 시점 | 게임 탭 진입, 심문 후 새 증거 해금 시, 필터 변경 |
 | Query | `includeLocked`, `status` |
-| 응답 핵심 | `evidenceId`, `title`, `oneLine`, `description`, `imageAssetKey`, `imageUrl`, `locationName`, `importance`, `isUnlocked`, `unlockHint`, `relatedSuspects` |
+| 응답 핵심 | `evidenceId`, `title`, `oneLine`, `description`, `imageUrl`, `locationName`, `isUnlocked`, `unlockHint`, `relatedSuspects` |
 
 증거 단건 상세는 아래 API를 사용한다.
 
@@ -253,8 +253,11 @@ guidance.suggestedQuestions
 
 | 필드 | 현재 처리 |
 |---|---|
-| `imageAssetKey` | YAML/S3 기준 asset key. 현재 응답 가능 |
 | `imageUrl` | 해금 증거의 표시 이미지 URL. `AWS_S3_PUBLIC_BASE_URL` 미설정 또는 asset key 없음이면 `null` |
+
+플레이어용 응답에는 `importance`, `imageAssetKey`가 내려오지 않는다.
+프론트는 핵심/가짜 증거 여부를 importance로 표시하거나 필터링하지 않는다.
+이미지 파일명/경로에는 `CULPRIT`, `FAKE`, `RED_HERRING` 같은 정답성 단어를 넣지 않는 것을 seed/asset 정책으로 둔다.
 
 ### 3.6 용의자 목록
 
@@ -264,7 +267,10 @@ guidance.suggestedQuestions
 | Path | `/api/play-sessions/{sessionId}/suspects` |
 | 사용 화면 | 용의자 목록, 용의자 상세, 심문 진입 |
 | 호출 시점 | 용의자 탭 진입, 심문 후 interrogation count 갱신 |
-| 응답 핵심 | `suspectId`, `name`, `role`, `relationToVictim`, `publicStatement`, `alibi`, `portraitImageUrl`, `suspicionLevel`, `interrogationCount` |
+| 응답 핵심 | `suspectId`, `name`, `role`, `relationToVictim`, `publicStatement`, `alibi`, `portraitImageUrl`, `interrogationCount` |
+
+플레이어용 용의자 응답에는 `culpritEligible`, `suspicionLevel`, `portraitAssetKey`가 내려오지 않는다.
+프론트는 의심도 점수 UI나 서버 후보성 필터를 사용하지 않고, 공개 용의자 전체를 사용자가 검토/선택할 수 있게 둔다.
 
 용의자 단건 상세는 아래 API를 사용한다.
 
@@ -729,7 +735,7 @@ POST /api/play-sessions
 | 화면 목적 | 해금/잠금 증거 목록 확인 |
 | 호출 API | `GET /api/play-sessions/{sessionId}/evidences?includeLocked=true` |
 | 보조 필터 | `status=unlocked`, `status=locked` |
-| 사용 필드 | `evidenceId`, `title`, `oneLine`, `description`, `imageAssetKey`, `imageUrl`, `locationName`, `importance`, `isUnlocked`, `unlockHint`, `relatedSuspects` |
+| 사용 필드 | `evidenceId`, `title`, `oneLine`, `description`, `imageUrl`, `locationName`, `isUnlocked`, `unlockHint`, `relatedSuspects` |
 
 증거 보드의 기본 호출은 `includeLocked=true`를 권장한다.
 그래야 잠긴 증거 슬롯과 해금 힌트를 함께 보여줄 수 있다.
@@ -755,7 +761,6 @@ GET /api/play-sessions/{sessionId}/evidences?includeLocked=true
 | `unlockHint` | 표시 가능 |
 | `description` | `null` |
 | `oneLine` | `null` |
-| `imageAssetKey` | `null` |
 | `imageUrl` | `null` |
 | `locationName` | `null` |
 | `relatedSuspects` | `null` |
@@ -776,7 +781,7 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 | 관련 용의자 클릭 | 해당 `suspectId`로 용의자 상세 화면 이동 |
 | guidance 추천 질문 클릭 | 심문 화면으로 이동하고 suspect/question/presentedEvidence를 prefill |
 
-해금 증거는 서버가 `imageAssetKey`를 `imageUrl`로 변환해서 내려준다.
+해금 증거는 서버가 내부 asset key를 `imageUrl`로 변환해서 내려준다.
 그래도 `AWS_S3_PUBLIC_BASE_URL` 미설정, asset 누락, 잠긴 증거 마스킹 때문에 `imageUrl`이 `null`일 수 있다.
 이 경우 프론트는 S3 URL을 임의 조립하지 않고 placeholder를 표시한다.
 
@@ -790,10 +795,11 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 |---|---|
 | 화면 목적 | 심문 가능한 인물 목록 확인 |
 | 호출 API | `GET /api/play-sessions/{sessionId}/suspects` |
-| 사용 필드 | `suspectId`, `name`, `role`, `relationToVictim`, `publicStatement`, `alibi`, `portraitImageUrl`, `suspicionLevel`, `interrogationCount` |
+| 사용 필드 | `suspectId`, `name`, `role`, `relationToVictim`, `publicStatement`, `alibi`, `portraitImageUrl`, `interrogationCount` |
 
 용의자 목록은 공개 정보만 보여준다.
 범인 여부나 정답 정보는 절대 표시하지 않는다.
+의심도 점수, 지목 가능 여부, 내부 초상 asset key는 내려오지 않는다.
 
 | 사용자 액션 | 처리 |
 |---|---|
@@ -819,7 +825,6 @@ GET /api/play-sessions/{sessionId}/suspects/{suspectId}
 | 공개 진술 | `publicStatement` |
 | 공개 알리바이 | `alibi` |
 | 초상 이미지 | `portraitImageUrl` |
-| 의심도 UI | `suspicionLevel` |
 | 심문 횟수 | `interrogationCount` |
 
 | 사용자 액션 | 처리 |
@@ -1040,7 +1045,6 @@ GET /api/play-sessions/{sessionId}/evidences?status=unlocked
 | 증거 제목 | `title` |
 | 짧은 설명 | `oneLine` |
 | 위치 | `locationName` |
-| 중요도 | `importance` |
 | 이미지 | `imageUrl` 또는 placeholder |
 | 관련 용의자 | `relatedSuspects` |
 
@@ -1241,7 +1245,6 @@ GET /api/play-sessions/{sessionId}/evidences?status=unlocked
 | 역할 | `role` |
 | 관계 | `relationToVictim` |
 | 공개 진술 요약 | `publicStatement` |
-| 의심도 UI | `suspicionLevel` |
 
 용의자 상세의 `범인 지목` 버튼에서 들어온 경우, 해당 `suspectId`를 `selectedCulpritId`로 사전 선택한다.
 사전 선택은 사용자가 수정할 수 있어야 한다.

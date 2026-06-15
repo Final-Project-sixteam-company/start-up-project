@@ -88,6 +88,7 @@ Published official scenario에서 필요한 root section:
 - 모든 cross-reference는 display name이 아니라 canonical code를 사용한다.
 - Local Windows path는 YAML에 저장하면 안 된다.
 - Image는 `assetKey` 또는 `s3ObjectKey`로 참조한다.
+- Public URL로 노출될 수 있는 asset key/file name에는 `CULPRIT`, `FAKE`, `RED_HERRING`, `CORE`, solution role 같은 정답성 marker를 넣지 않는다.
 - Public/player-facing text와 backend-only truth는 별도 field로 분리한다.
 - 같은 `scenario.code + scenario.version`인데 content hash가 다르면 import가 실패해야 한다.
 - Prompt builder는 `variants`, `solution`, `scoring`, full variant evidence state를 직접 읽으면 안 된다.
@@ -487,6 +488,9 @@ assets:
 
 YAML은 stable asset key를 참조해야 한다.
 별도의 private asset map으로 local source filename을 final S3 key에 매핑할 수 있다.
+S3 object key는 public image URL에 그대로 보일 수 있으므로 player-facing 중립 이름을 사용한다.
+예: `characters/character-001.png`, `evidence/evidence-014.png`.
+금지 예: `characters/CULPRIT_*.png`, `evidence/FAKE_*.png`, `evidence/CORE_*.png`.
 
 ## Validator Rules 검증 규칙
 

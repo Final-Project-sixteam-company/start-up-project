@@ -1403,7 +1403,7 @@ GET /api/play-sessions/{sessionId}/locations
     "sessionId": 1,
     "scenarioId": 1,
     "scenarioTitle": "서월채",
-    "mapImageUrl": "https://assets.example.com/official/seowolchae/v1/scenario/SCENARIO_SEOWOLCHAE_LAST_PRESCRIPTION.map.png",
+    "mapImageUrl": "https://assets.example.com/official/seowolchae/v1/scenario/map.png",
     "locations": [
       {
         "locationId": 1,
@@ -1411,8 +1411,7 @@ GET /api/play-sessions/{sessionId}/locations
         "name": "다이닝룸",
         "floor": "1F",
         "description": "만찬이 진행된 장소",
-        "imageAssetKey": "official/seowolchae/v1/locations/LOC_DINING_ROOM.png",
-        "imageUrl": "https://assets.example.com/official/seowolchae/v1/locations/LOC_DINING_ROOM.png",
+        "imageUrl": "https://assets.example.com/official/seowolchae/v1/locations/location-001.png",
         "mapX": 120,
         "mapY": 80,
         "totalEvidenceCount": 3,
@@ -1441,6 +1440,9 @@ GET /api/play-sessions/{sessionId}/evidences
 
 ### Response
 
+플레이어용 증거 목록 응답은 정답성/중요도 추론 metadata를 포함하지 않는다.
+`importance`, `imageAssetKey` 같은 내부 seed/admin 필드는 public play 응답에 노출하지 않는다.
+
 ```json
 {
   "success": true,
@@ -1448,10 +1450,11 @@ GET /api/play-sessions/{sessionId}/evidences
     {
       "evidenceId": 1,
       "title": "찢긴 컵 라벨",
+      "oneLine": "컵 라벨 일부가 찢긴 채 발견됨",
       "description": "라벨 조각에는 '...MOND LAT...'라는 글자가 남아 있다.",
       "locationName": "데모룸",
-      "importance": "CORE",
       "isUnlocked": true,
+      "imageUrl": "https://assets.example.com/official/demo/evidence/evidence-001.png",
       "relatedSuspects": [
         {
           "suspectId": 1,
@@ -1462,11 +1465,12 @@ GET /api/play-sessions/{sessionId}/evidences
     {
       "evidenceId": 2,
       "title": "휴대폰 위치 기록",
+      "oneLine": null,
       "description": null,
       "locationName": null,
-      "importance": "HIGH",
       "isUnlocked": false,
-      "unlockHint": "15분 후 공개"
+      "unlockHint": "15분 후 공개",
+      "imageUrl": null
     }
   ],
   "error": null
@@ -1483,6 +1487,8 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 
 ### Response
 
+플레이어용 증거 상세 응답도 `importance`, `imageAssetKey`를 포함하지 않는다.
+
 ```json
 {
   "success": true,
@@ -1494,7 +1500,6 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
       "locationId": 1,
       "name": "데모룸"
     },
-    "importance": "CORE",
     "relatedSuspects": [
       {
         "suspectId": 1,
@@ -1527,7 +1532,6 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
       ],
       "suggestedQuestions": [
         {
-          "targetCharacterCode": "SUSPECT_SAMPLE",
           "targetSuspectId": 1,
           "targetName": "박재민",
           "question": "이 증거와 다른 기록의 차이를 설명할 수 있습니까?",
@@ -1572,6 +1576,9 @@ POST /api/play-sessions/{sessionId}/evidences/{evidenceId}/unlock
 
 ### Response
 
+플레이어용 용의자 목록 응답은 후보 가능 여부나 의심도 점수 같은 정답성 metadata를 포함하지 않는다.
+`culpritEligible`, `suspicionLevel`, `portraitAssetKey`는 public play 응답에 노출하지 않는다.
+
 ```json
 {
   "success": true,
@@ -1605,8 +1612,7 @@ GET /api/play-sessions/{sessionId}/suspects
       "relationToVictim": "공동창업자",
       "publicStatement": "재무팀 자리에서 투자 자료를 정리하고 있었다.",
       "alibi": "22시 이후 데모룸 근처에 가지 않았다고 주장한다.",
-      "portraitImageUrl": "https://assets.example.com/official/demo/characters/SUSPECT_CFO.png",
-      "suspicionLevel": 60,
+      "portraitImageUrl": "https://assets.example.com/official/demo/characters/character-001.png",
       "interrogationCount": 2
     }
   ],
@@ -1624,6 +1630,8 @@ GET /api/play-sessions/{sessionId}/suspects/{suspectId}
 
 ### Response
 
+플레이어용 용의자 상세 응답도 `suspicionLevel`, `culpritEligible`, `portraitAssetKey`를 포함하지 않는다.
+
 ```json
 {
   "success": true,
@@ -1635,8 +1643,7 @@ GET /api/play-sessions/{sessionId}/suspects/{suspectId}
     "publicProfile": "회사 재무를 담당하는 인물",
     "publicStatement": "사건 당시 재무팀 자리에서 투자자료를 정리하고 있었다.",
     "alibi": "데모룸 근처에는 가지 않았다고 주장한다.",
-    "portraitImageUrl": "https://assets.example.com/official/demo/characters/SUSPECT_CFO.png",
-    "suspicionLevel": 60,
+    "portraitImageUrl": "https://assets.example.com/official/demo/characters/character-001.png",
     "relatedEvidences": [
       {
         "evidenceId": 1,

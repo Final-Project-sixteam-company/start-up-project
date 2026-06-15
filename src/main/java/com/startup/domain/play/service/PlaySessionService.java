@@ -265,7 +265,6 @@ public class PlaySessionService {
                     ? evidenceVariantDescriptionResolver.resolve(evidence, session.getScenarioVariantId())
                     : null;
             String oneLine = isUnlocked ? evidence.getOneLine() : null;
-            String imageAssetKey = isUnlocked ? evidence.getImageAssetKey() : null;
             String locationName = isUnlocked && evidence.getLocationId() != null
                     ? locationNameMap.get(evidence.getLocationId())
                     : null;
@@ -279,9 +278,7 @@ public class PlaySessionService {
                     evidence.getTitle(),
                     oneLine,
                     description,
-                    imageAssetKey,
                     locationName,
-                    evidence.getImportance(),
                     isUnlocked,
                     unlockHint,
                     imageUrl,
@@ -489,7 +486,6 @@ public class PlaySessionService {
             return null;
         }
         return new PlayEvidenceDetailResponse.SuggestedQuestionInfo(
-                suspect.getCode(),
                 suspect.getId(),
                 suspect.getName(),
                 question.question(),
@@ -700,9 +696,7 @@ public class PlaySessionService {
                         suspect.getPublicStatement(),
                         suspect.getAlibi(),
                         scenarioAssetUrlResolver.resolve(suspect.getPortraitAssetKey()),
-                        suspect.getSuspicionLevel(),
-                        interrogationCountMap.getOrDefault(suspect.getId(), 0), //map에서 가져오고 없으면 0
-                        suspect.getCulpritEligible()
+                        interrogationCountMap.getOrDefault(suspect.getId(), 0) //map에서 가져오고 없으면 0
                 ))
                 .toList();
     }
@@ -787,7 +781,6 @@ public class PlaySessionService {
                         location.getName(),
                         location.getFloor(),
                         location.getDescription(),
-                        location.getImageAssetKey(),
                         scenarioAssetUrlResolver.resolve(location.getImageAssetKey()),
                         location.getMapX(),
                         location.getMapY(),
