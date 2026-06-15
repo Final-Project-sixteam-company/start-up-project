@@ -2,6 +2,7 @@
 
 > 상태: QA 실행 지시, public-safe 보고서 형식, 현재 QA 이슈 추적의 정본 문서다.
 > `QA_HANDOFF.md`, `QA_BLIND_RETEST_PROMPT_2026-06-11.md`, 2026-06-10~2026-06-15 QA 보고서의 반복되는 실행 규칙과 후속 액션을 이 문서에 흡수했다.
+> Blind QA 격리: 이 파일 전체는 QA operator용이다. blind tester/agent에게는 7장의 fenced block만 복사해 전달하고, Current QA Board와 역사 보고서 섹션은 전달하거나 열람시키지 않는다.
 
 ## 0. 목적
 
@@ -244,7 +245,8 @@ public 보고서에는 result screen/API 도달 여부만 남기고, 선택 후�
 
 ## 7. 복붙용 QA 프롬프트
 
-아래 블록을 새 채팅방의 QA 에이전트에게 전달한다.
+아래 fenced block만 새 채팅방의 blind QA 에이전트에게 전달한다.
+이 파일 전체 링크나 8장 이후의 Current QA Board, 역사 보고서, 기존 QA 결과 요약은 blind tester에게 전달하지 않는다.
 
 ````md
 # 역할

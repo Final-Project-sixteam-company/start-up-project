@@ -33,10 +33,10 @@ Test date: 2026-06-12 KST
 |---|---|
 | `docs/QA_HANDOFF.md` | 당시 기준 handoff. 현재 정본은 `docs/QA_OPERATING_GUIDE.md` |
 | `docs/QA_BLIND_RETEST_PROMPT_2026-06-11.md` | blind QA 안전 기준, report format, 30~50턴 기준 |
-| `docs/QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md` | 6/11 API-only retest와 frontend follow-up 결과 |
-| `docs/QA_BLIND_RETEST_REPORT_2026-06-12.md` | 6/12 blind/extended retest 결과 |
-| `docs/MVP_PLAY_FLOW_QA_2026-06-10.md` | 스튜디오9 Android E2E 이슈와 개선안 |
-| `docs/MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md` | 서월채 Android/API E2E 이슈와 active session blocker |
+| `docs/qa/archive/QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md` | 6/11 API-only retest와 frontend follow-up 결과 |
+| `docs/qa/archive/QA_BLIND_RETEST_REPORT_2026-06-12.md` | 6/12 blind/extended retest 결과 |
+| `docs/qa/archive/MVP_PLAY_FLOW_QA_2026-06-10.md` | 스튜디오9 Android E2E 이슈와 개선안 |
+| `docs/qa/archive/MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md` | 서월채 Android/API E2E 이슈와 active session blocker |
 | `start-up-fe/docs/FRONTEND_E2E_QA_2026-06-11_CODEX.md` | 6/11 프론트 E2E 기준과 당시 drift |
 
 ## 2. Final Judgment

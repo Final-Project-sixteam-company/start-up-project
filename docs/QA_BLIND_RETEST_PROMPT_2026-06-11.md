@@ -5,7 +5,8 @@
 
 ## 정본 위치
 
-새 blind QA를 시작할 때는 [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md)를 사용한다.
+새 blind QA를 시작할 때 QA operator는 [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md)를 사용한다.
+blind tester/agent에게는 `QA_OPERATING_GUIDE.md` 전체를 전달하지 않고, 7장의 fenced block만 복사해 전달한다.
 
 이전 긴 프롬프트에서 반복되던 아래 규칙은 정본 문서로 이동했다.
 
@@ -24,4 +25,5 @@
 ## 사용 금지
 
 이 파일의 이전 revision을 새 QA prompt로 복사하지 않는다.
-긴 프롬프트가 필요하면 Git history가 아니라 [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md)의 최신 프롬프트를 복사한다.
+긴 프롬프트가 필요하면 Git history가 아니라 [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md)의 최신 프롬프트 fenced block만 복사한다.
+Current QA Board, 역사 보고서, 기존 QA 결과 요약은 blind tester에게 전달하지 않는다.
