@@ -1,5 +1,7 @@
 # ClueRoom QA E2E Follow-up Report - 2026-06-12
 
+> 상태: 역사 QA 보고서다. 현재 QA 실행 지시, 보고서 템플릿, 오픈 이슈 board는 [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md)를 따른다.
+
 ## 0. Scope
 
 이 문서는 2026-06-10 Android E2E QA, 2026-06-11 blind retest, 2026-06-12 API-only extended retest, 2026-06-12 Flutter emulator E2E follow-up을 public-safe로 연결한 추가 QA 보고서다.
@@ -29,7 +31,7 @@ Test date: 2026-06-12 KST
 
 | Source | 반영 내용 |
 |---|---|
-| `docs/QA_HANDOFF.md` | 현재 정본 handoff, open/resolved/re-smoke 기준 |
+| `docs/QA_HANDOFF.md` | 당시 기준 handoff. 현재 정본은 `docs/QA_OPERATING_GUIDE.md` |
 | `docs/QA_BLIND_RETEST_PROMPT_2026-06-11.md` | blind QA 안전 기준, report format, 30~50턴 기준 |
 | `docs/QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md` | 6/11 API-only retest와 frontend follow-up 결과 |
 | `docs/QA_BLIND_RETEST_REPORT_2026-06-12.md` | 6/12 blind/extended retest 결과 |

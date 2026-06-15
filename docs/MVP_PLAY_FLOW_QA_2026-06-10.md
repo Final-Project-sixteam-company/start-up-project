@@ -1,5 +1,7 @@
 # MVP Play Flow QA - 2026-06-10
 
+> 상태: 역사 QA 보고서다. 현재 QA 실행 지시, 보고서 템플릿, 오픈 이슈 board는 [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md)를 따른다.
+
 Android E2E 기준으로 실제 신규 유저처럼 `스튜디오9`를 플레이하며 진행한 QA 보고서다.
 
 주의:

@@ -33,8 +33,7 @@
 | Terraform 기반 app node scale-out PoC 결과 확인 | [infra/poc/POC-006-scaleout-manual-lb.md](infra/poc/POC-006-scaleout-manual-lb.md) |
 | scale-out 및 수동 Nginx LB 운영 절차 확인 | [infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md](infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) |
 | 인프라 구축 중 실제 장애/오탐/운영 실수 회고 확인 | [infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md](infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md) |
-| 현재 QA 이슈와 재검증 항목 확인 | [QA_HANDOFF.md](QA_HANDOFF.md) |
-| 정답을 모르는 새 AI에게 블라인드 재검증 지시 | [QA_BLIND_RETEST_PROMPT_2026-06-11.md](QA_BLIND_RETEST_PROMPT_2026-06-11.md) |
+| QA 실행 지시, blind retest prompt, 보고서 템플릿, 현재 QA board 확인 | [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md) |
 | 공식 데모 시나리오 확인 | [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) |
 | 시나리오 YAML 스키마 확인 | [scenarios/SCENARIO_YAML_SCHEMA.md](scenarios/SCENARIO_YAML_SCHEMA.md) |
 | 증거 안내 UX / 추천 질문 설계 확인 | [scenarios/SCENARIO_GUIDANCE_UX_SPEC.md](scenarios/SCENARIO_GUIDANCE_UX_SPEC.md) |
@@ -92,10 +91,15 @@
 
 | 문서 | 정본 범위 | 비고 |
 |---|---|---|
-| [QA_HANDOFF.md](QA_HANDOFF.md) | 현재 미해결 QA 이슈, 해결된 이슈, 재검증 항목 | 새 정본이다. 날짜별 QA 문서의 결론을 흡수한다. |
-| [QA_BLIND_RETEST_PROMPT_2026-06-11.md](QA_BLIND_RETEST_PROMPT_2026-06-11.md) | 정답을 모르는 새 AI에게 줄 블라인드 재검증 지시서 | 기존 QA 결과와 private seed를 보지 않는 fresh QA용 prompt다. |
-| [QA_BLIND_RETEST_REPORT_2026-06-12.md](QA_BLIND_RETEST_REPORT_2026-06-12.md) | 2026-06-12 backend/API blind and extended retest 결과 | public-safe QA 보고서다. raw session id, 정답 상세, 점수 breakdown은 포함하지 않는다. |
-| [QA_E2E_FOLLOWUP_REPORT_2026-06-12.md](QA_E2E_FOLLOWUP_REPORT_2026-06-12.md) | 2026-06-10~12 backend/API/front E2E follow-up 요약 | public-safe 추가 QA 보고서다. raw session id, 정답 상세, 점수/등급 breakdown은 포함하지 않는다. |
+| [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md) | QA 실행 지시, blind retest prompt, public-safe 보고서 템플릿, 현재 QA board | QA 문서군 정본이다. 날짜별 QA 보고서와 이전 handoff/prompt의 반복 내용을 흡수한다. |
+| [QA_HANDOFF.md](QA_HANDOFF.md) | 이전 handoff 경로 호환 | 현재 내용은 `QA_OPERATING_GUIDE.md`로 흡수됐다. |
+| [QA_BLIND_RETEST_PROMPT_2026-06-11.md](QA_BLIND_RETEST_PROMPT_2026-06-11.md) | 이전 blind prompt 경로 호환 | 현재 prompt는 `QA_OPERATING_GUIDE.md`의 복붙용 프롬프트를 사용한다. |
+| [MVP_PLAY_FLOW_QA_2026-06-10.md](MVP_PLAY_FLOW_QA_2026-06-10.md) | 2026-06-10 스튜디오9 Android/API QA 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md](MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md) | 2026-06-10 서월채 Android/API QA 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md](QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md) | 2026-06-11 API-only blind retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [QA_BLIND_RETEST_REPORT_2026-06-12.md](QA_BLIND_RETEST_REPORT_2026-06-12.md) | 2026-06-12 backend/API blind and extended retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [QA_E2E_FOLLOWUP_REPORT_2026-06-12.md](QA_E2E_FOLLOWUP_REPORT_2026-06-12.md) | 2026-06-10~12 backend/API/front E2E follow-up 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md](QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md) | 2026-06-15 Android E2E/API fallback 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
 
 ## 3. 흡수/제거 이력
 
@@ -105,7 +109,7 @@
 | 제거 문서 | 흡수처 |
 |---|---|
 | `ANDROID_SCREEN_API_MAPPING.md` | [frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) |
-| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | [QA_HANDOFF.md](QA_HANDOFF.md) |
+| `MVP_QA_ISSUE_HANDOFF_2026-06-04.md` | [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md), [QA_HANDOFF.md](QA_HANDOFF.md) |
 | `scenarios/README.md` | [scenarios/SCENARIO_YAML_SCHEMA.md](scenarios/SCENARIO_YAML_SCHEMA.md), [README.md](README.md) |
 | `infra/CLUEROOM_INFRA_ENHANCEMENT_ROADMAP.md` | [infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) |
 | `infra/SCALE_OUT_POC_PLAN.md` | [infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) |
