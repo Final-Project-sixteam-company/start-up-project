@@ -450,6 +450,74 @@ public class CustomScenarioServiceEvidenceTest {
     }
 
     @Test
+    @DisplayName("증거 생성 실패 - conditionJson이 잘못된 JSON 문자열일 때")
+    void createEvidence_fail_malformed_json() {
+        // given
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거");
+        ReflectionTestUtils.setField(request, "description", "설명");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.MANUAL);
+        ReflectionTestUtils.setField(request, "unlockConditionJson", "{malformed json");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("unlockConditionJson 파싱 실패");
+    }
+
+    @Test
+    @DisplayName("증거 생성 실패 - conditionJson이 객체가 아닐 때 (예: 단순 문자열)")
+    void createEvidence_fail_json_not_object() {
+        // given
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거");
+        ReflectionTestUtils.setField(request, "description", "설명");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.MANUAL);
+        ReflectionTestUtils.setField(request, "unlockConditionJson", "\"just_a_string\"");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("unlockConditionJson 파싱 실패");
+    }
+
+    @Test
+    @DisplayName("증거 생성 실패 - requiredEvidenceIds가 배열이 아닐 때")
+    void createEvidence_fail_requiredEvidenceIds_not_array() {
+        // given
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거");
+        ReflectionTestUtils.setField(request, "description", "설명");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.MANUAL);
+        ReflectionTestUtils.setField(request, "unlockConditionJson", "{\"requiredEvidenceIds\": \"not_array\"}");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("requiredEvidenceIds는 배열 형태여야 합니다.");
+    }
+
+    @Test
+    @DisplayName("증거 생성 실패 - requiredEvidenceIds의 원소가 숫자가 아닐 때")
+    void createEvidence_fail_requiredEvidenceIds_element_not_number() {
+        // given
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거");
+        ReflectionTestUtils.setField(request, "description", "설명");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.MANUAL);
+        ReflectionTestUtils.setField(request, "unlockConditionJson", "{\"requiredEvidenceIds\": [\"not_number\"]}");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("requiredEvidenceIds의 원소는 숫자여야 합니다.");
+    }
+
+    @Test
     @DisplayName("PUBLISHED 상태 시나리오의 증거 삭제 시 예외 발생")
     void deleteEvidence_fail_when_published() {
         // given
