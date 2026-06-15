@@ -211,7 +211,7 @@ public class PlaySessionService {
             if (status.trim().isEmpty()) {
                 status = null; // 빈 문자열은 null로 취급하여 기본 로직을 타게 함
             } else if (!"unlocked".equalsIgnoreCase(status) && !"locked".equalsIgnoreCase(status)) {
-                throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE); // 이상한 문자열은 400 에러
+                throw new PlayException(PlayErrorCode.INVALID_FILTER_STATUS); // 이상한 문자열 400 에러
             }
         }
 
