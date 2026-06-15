@@ -29,6 +29,9 @@ public class ScenarioAccessService {
             return userId != null && playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING);
         }
 
+        // 제작자 미리보기(Creator Preview) 지원:
+        // 작성자 본인은 시나리오가 DRAFT, VALIDATING, HIDDEN 등 어떤 상태이더라도 
+        // 밸런스 테스트 및 AI 검증을 위해 항상 플레이(진입)가 가능하도록 허용합니다.
         boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
         if (isCreator || isPubliclyAccessible(scenario)) {
             return true;
