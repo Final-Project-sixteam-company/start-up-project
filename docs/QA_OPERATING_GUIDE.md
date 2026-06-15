@@ -294,6 +294,69 @@ API-only로 진행할 때는 deduction 전 아래 필드를 숨긴 방식 또는
 
 기록이 없으면 candidate narrowing 결론은 blind invalid로 표기한다.
 
+# API-only fallback allowed routes
+
+Android E2E가 막힌 경우 아래 route/payload만 우선 사용한다.
+응답의 importance, culpritEligible, suspicion/candidate metadata, 역할성 asset path, result correctness/breakdown/fullExplanation은 public 보고서에 옮기지 않는다.
+
+```http
+GET  /api/scenarios
+GET  /api/scenarios/{scenarioId}
+GET  /api/play-sessions/active?scenarioId={scenarioId}
+POST /api/play-sessions
+POST /api/play-sessions/{sessionId}/abandon
+
+GET  /api/play-sessions/{sessionId}/dashboard
+GET  /api/play-sessions/{sessionId}/locations
+GET  /api/play-sessions/{sessionId}/evidences?includeLocked=true
+GET  /api/play-sessions/{sessionId}/evidences/{evidenceId}
+GET  /api/play-sessions/{sessionId}/suspects
+GET  /api/play-sessions/{sessionId}/suspects/{suspectId}
+GET  /api/play-sessions/{sessionId}/timeline
+
+POST /api/play-sessions/{sessionId}/interrogations
+GET  /api/play-sessions/{sessionId}/interrogations?suspectId={suspectId}
+POST /api/play-sessions/{sessionId}/final-deduction
+GET  /api/play-sessions/{sessionId}/result
+```
+
+Request shape:
+
+```text
+POST /api/play-sessions
+{
+  "scenarioId": <scenarioId>
+}
+
+POST /api/play-sessions/{sessionId}/interrogations
+{
+  "suspectId": <suspectId>,
+  "questionType": "FREE",
+  "question": "<public-safe question>",
+  "presentedEvidenceId": null
+}
+
+POST /api/play-sessions/{sessionId}/interrogations
+{
+  "suspectId": <suspectId>,
+  "questionType": "EVIDENCE_PRESENTED",
+  "question": "<public-safe evidence question>",
+  "presentedEvidenceId": <evidenceId>
+}
+
+POST /api/play-sessions/{sessionId}/final-deduction
+{
+  "selectedCulpritId": <suspectId>,
+  "motiveText": "<private artifact only>",
+  "methodText": "<private artifact only>",
+  "coverUpText": "<private artifact only or empty when intentionally omitted>",
+  "selectedEvidenceIds": [<evidenceId>]
+}
+```
+
+`GET /api/play-sessions/{sessionId}/result`는 final-deduction 제출 후에만 호출한다.
+public 보고서에는 result screen/API 도달 여부만 남기고, 선택 후보, 정오, 점수, 등급, matched/missed breakdown, feedback/detail explanation은 private artifact로 분리한다.
+
 # 보고
 
 Findings First를 먼저 쓴다.
