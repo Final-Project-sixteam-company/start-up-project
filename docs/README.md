@@ -94,12 +94,12 @@
 | [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md) | QA 실행 지시, blind retest prompt, public-safe 보고서 템플릿, 현재 QA board | QA 문서군 정본이다. 날짜별 QA 보고서와 이전 handoff/prompt의 반복 내용을 흡수한다. |
 | [QA_HANDOFF.md](QA_HANDOFF.md) | 이전 handoff 경로 호환 | 현재 내용은 `QA_OPERATING_GUIDE.md`로 흡수됐다. |
 | [QA_BLIND_RETEST_PROMPT_2026-06-11.md](QA_BLIND_RETEST_PROMPT_2026-06-11.md) | 이전 blind prompt 경로 호환 | 현재 prompt는 `QA_OPERATING_GUIDE.md`의 복붙용 프롬프트를 사용한다. |
-| [MVP_PLAY_FLOW_QA_2026-06-10.md](MVP_PLAY_FLOW_QA_2026-06-10.md) | 2026-06-10 스튜디오9 Android/API QA 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
-| [MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md](MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md) | 2026-06-10 서월채 Android/API QA 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
-| [QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md](QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md) | 2026-06-11 API-only blind retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
-| [QA_BLIND_RETEST_REPORT_2026-06-12.md](QA_BLIND_RETEST_REPORT_2026-06-12.md) | 2026-06-12 backend/API blind and extended retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
-| [QA_E2E_FOLLOWUP_REPORT_2026-06-12.md](QA_E2E_FOLLOWUP_REPORT_2026-06-12.md) | 2026-06-10~12 backend/API/front E2E follow-up 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
-| [QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md](QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md) | 2026-06-15 Android E2E/API fallback 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/MVP_PLAY_FLOW_QA_2026-06-10.md](qa/archive/MVP_PLAY_FLOW_QA_2026-06-10.md) | 2026-06-10 스튜디오9 Android/API QA 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md](qa/archive/MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md) | 2026-06-10 서월채 Android/API QA 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md](qa/archive/QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md) | 2026-06-11 API-only blind retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/QA_BLIND_RETEST_REPORT_2026-06-12.md](qa/archive/QA_BLIND_RETEST_REPORT_2026-06-12.md) | 2026-06-12 backend/API blind and extended retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/QA_E2E_FOLLOWUP_REPORT_2026-06-12.md](qa/archive/QA_E2E_FOLLOWUP_REPORT_2026-06-12.md) | 2026-06-10~12 backend/API/front E2E follow-up 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md](qa/archive/QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md) | 2026-06-15 Android E2E/API fallback 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
 
 ## 3. 흡수/제거 이력
 

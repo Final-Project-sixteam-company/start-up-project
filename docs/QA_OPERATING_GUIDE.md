@@ -22,12 +22,12 @@
 |---|---|
 | `QA_HANDOFF.md` | 이 문서로 흡수. 기존 경로 호환용 안내 문서로 유지 |
 | `QA_BLIND_RETEST_PROMPT_2026-06-11.md` | 이 문서의 "복붙용 QA 프롬프트"로 흡수. 기존 경로 호환용 안내 문서로 유지 |
-| `MVP_PLAY_FLOW_QA_2026-06-10.md` | 2026-06-10 스튜디오9 역사 보고서 |
-| `MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md` | 2026-06-10 서월채 역사 보고서 |
-| `QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md` | 2026-06-11 API-only blind retest 역사 보고서 |
-| `QA_BLIND_RETEST_REPORT_2026-06-12.md` | 2026-06-12 backend/API retest 역사 보고서 |
-| `QA_E2E_FOLLOWUP_REPORT_2026-06-12.md` | 2026-06-12 Android/API follow-up 역사 보고서 |
-| `QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md` | 2026-06-15 Android login blocker/API fallback 역사 보고서 |
+| `qa/archive/MVP_PLAY_FLOW_QA_2026-06-10.md` | 2026-06-10 스튜디오9 역사 보고서 |
+| `qa/archive/MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md` | 2026-06-10 서월채 역사 보고서 |
+| `qa/archive/QA_BLIND_RETEST_REPORT_2026-06-11_CODEX.md` | 2026-06-11 API-only blind retest 역사 보고서 |
+| `qa/archive/QA_BLIND_RETEST_REPORT_2026-06-12.md` | 2026-06-12 backend/API retest 역사 보고서 |
+| `qa/archive/QA_E2E_FOLLOWUP_REPORT_2026-06-12.md` | 2026-06-12 Android/API follow-up 역사 보고서 |
+| `qa/archive/QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md` | 2026-06-15 Android login blocker/API fallback 역사 보고서 |
 
 ## 2. QA 종류
 

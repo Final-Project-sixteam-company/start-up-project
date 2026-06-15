@@ -1,6 +1,6 @@
 # ClueRoom E2E Culprit Confirmation QA Report - 2026-06-15
 
-> 상태: 역사 QA 보고서다. 현재 QA 실행 지시, 보고서 템플릿, 오픈 이슈 board는 [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md)를 따른다.
+> 상태: 역사 QA 보고서다. 현재 QA 실행 지시, 보고서 템플릿, 오픈 이슈 board는 [QA_OPERATING_GUIDE.md](../../QA_OPERATING_GUIDE.md)를 따른다.
 
 ## 0. Scope
 
