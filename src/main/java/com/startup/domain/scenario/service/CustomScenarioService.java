@@ -684,8 +684,12 @@ public class CustomScenarioService {
             ObjectNode root = (ObjectNode) jsonMapper.readTree(conditionJson);
             
             if (unlockType == EvidenceUnlockType.EVIDENCE_PRESENTED) {
-                Long presentedEvidenceId = root.has("requiredPresentedEvidenceId") ? root.get("requiredPresentedEvidenceId").asLong() : 
-                                           (root.has("evidenceId") ? root.get("evidenceId").asLong() : null);
+                Long presentedEvidenceId = null;
+                if (root.has("requiredPresentedEvidenceId") && !root.get("requiredPresentedEvidenceId").isNull()) {
+                    presentedEvidenceId = root.get("requiredPresentedEvidenceId").asLong();
+                } else if (root.has("evidenceId") && !root.get("evidenceId").isNull()) {
+                    presentedEvidenceId = root.get("evidenceId").asLong();
+                }
                 if (presentedEvidenceId == null) {
                     throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거 ID(requiredPresentedEvidenceId)가 누락되었습니다.");
                 }
@@ -878,7 +882,7 @@ public class CustomScenarioService {
                 .userIntent(node.has("userIntent") && !node.get("userIntent").isNull() ? node.get("userIntent").asText() : null)
                 .requiredEvidenceIds(node.has("requiredEvidenceIds") && !node.get("requiredEvidenceIds").isNull() ? node.get("requiredEvidenceIds").toString() : null)
                 .excludedEvidenceIds(node.has("excludedEvidenceIds") && !node.get("excludedEvidenceIds").isNull() ? node.get("excludedEvidenceIds").toString() : null)
-                .presentedEvidenceId(node.has("presentedEvidenceId") && !node.get("presentedEvidenceId").isNull() ? node.get("presentedEvidenceId").asLong() : null)
+                .presentedEvidenceId(node.has("presentedEvidenceId") && !node.get("presentedEvidenceId").isNull() ? Long.valueOf(node.get("presentedEvidenceId").asLong()) : null)
                 .policyText(finalPolicyText)
                 .allowedFacts(node.has("allowedFacts") && !node.get("allowedFacts").isNull() ? node.get("allowedFacts").toString() : null)
                 .forbiddenFacts(node.has("forbiddenFacts") && !node.get("forbiddenFacts").isNull() ? node.get("forbiddenFacts").toString() : null)
