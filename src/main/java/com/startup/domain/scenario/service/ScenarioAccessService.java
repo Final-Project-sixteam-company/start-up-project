@@ -1,5 +1,7 @@
 package com.startup.domain.scenario.service;
 
+import com.startup.domain.play.enums.PlaySessionStatus;
+import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.entity.Scenario;
@@ -15,19 +17,30 @@ import org.springframework.stereotype.Service;
 public class ScenarioAccessService {
 
     private final ScenarioRepository scenarioRepository;
+    private final PlaySessionRepository playSessionRepository;
 
     public boolean canPlay(Long userId, Long scenarioId) {
         Scenario scenario = scenarioRepository.findById(scenarioId).orElse(null);
 
         if (scenario == null) return false;
 
+        if (scenario.getStatus() == ScenarioStatus.DELETED) {
+            // 삭제된 시나리오라도, 이미 플레이 중인 세션이 있다면 계속 진행 가능하도록 보장
+            return userId != null && playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING);
+        }
+
         boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
-        return isCreator || isPubliclyAccessible(scenario);
+        if (isCreator || isPubliclyAccessible(scenario)) {
+            return true;
+        }
+
+        // HIDDEN 상태라도 기존 플레이 세션이 있다면(PLAYING) 계속 플레이(접근) 가능하도록 보장
+        return userId != null && playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING);
     }
 
-    public boolean canEdit(Long userId, Long scenarioId) {
+    public boolean canEditDraftLike(Long userId, Long scenarioId) {
         Scenario scenario = scenarioRepository.findById(scenarioId).orElse(null);
-        if (scenario == null) return false;
+        if (scenario == null || scenario.getStatus() == ScenarioStatus.DELETED) return false;
         
         return userId != null && userId.equals(scenario.getCreatorId());
     }
@@ -35,9 +48,19 @@ public class ScenarioAccessService {
     public boolean canView(Long userId, Long scenarioId) {
         Scenario scenario = scenarioRepository.findById(scenarioId).orElse(null);
         if (scenario == null) return false;
+
+        if (scenario.getStatus() == ScenarioStatus.DELETED) {
+            // 삭제된 시나리오라도, 이미 플레이 중인 세션이 있다면 계속 볼 수 있도록 보장
+            return userId != null && playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING);
+        }
         
         boolean isCreator = userId != null && userId.equals(scenario.getCreatorId());
-        return isCreator || isPubliclyAccessible(scenario);
+        if (isCreator || isPubliclyAccessible(scenario)) {
+            return true;
+        }
+
+        // HIDDEN 상태라도 기존 플레이 세션이 있다면(PLAYING) 계속 볼 수 있도록 보장
+        return userId != null && playSessionRepository.existsByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING);
     }
 
     public void validatePlayable(Long userId, Long scenarioId) {
@@ -46,8 +69,8 @@ public class ScenarioAccessService {
         }
     }
 
-    public void validateEditable(Long userId, Long scenarioId) {
-        if (!canEdit(userId, scenarioId)) {
+    public void validateDraftEditable(Long userId, Long scenarioId) {
+        if (!canEditDraftLike(userId, scenarioId)) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
         }
     }

@@ -102,7 +102,7 @@ class PlaySessionCreateSessionRaceTest {
     @Test
     void createSession_whenDuplicateSaveFindsActiveSession_throwsP002WithActiveSessionIdOnly() {
         PlaySession existing = playingSession(100L);
-        when(scenarioRepository.findById(SCENARIO_ID)).thenReturn(Optional.of(scenario()));
+        when(scenarioRepository.findByIdForUpdate(SCENARIO_ID)).thenReturn(Optional.of(scenario()));
         when(playSessionRepository.findByUserIdAndScenarioIdAndStatus(USER_ID, SCENARIO_ID, PlaySessionStatus.PLAYING))
                 .thenReturn(Optional.empty(), Optional.of(existing));
         when(scenarioVariantRepository.findAllByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(SCENARIO_ID))
@@ -123,7 +123,7 @@ class PlaySessionCreateSessionRaceTest {
 
     @Test
     void createSession_whenDuplicateLookupFails_fallsBackToP002WithoutDetails() {
-        when(scenarioRepository.findById(SCENARIO_ID)).thenReturn(Optional.of(scenario()));
+        when(scenarioRepository.findByIdForUpdate(SCENARIO_ID)).thenReturn(Optional.of(scenario()));
         when(playSessionRepository.findByUserIdAndScenarioIdAndStatus(USER_ID, SCENARIO_ID, PlaySessionStatus.PLAYING))
                 .thenReturn(Optional.empty())
                 .thenThrow(new IllegalStateException("rollback-only"));

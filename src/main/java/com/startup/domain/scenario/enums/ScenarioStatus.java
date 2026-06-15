@@ -20,4 +20,14 @@ public enum ScenarioStatus {
     public boolean canPublish() {
         return this == DRAFT || this == VALIDATING || this == HIDDEN;
     }
+
+    //해당 상태에서 숨김 상태로 전환 가능한지 확인 (오직 PUBLISHED 상태에서만 가능)
+    public boolean canHide() {
+        return this == PUBLISHED;
+    }
+
+    //해당 상태에서 삭제 가능한지 확인 (이미 DELETED가 아니면 모두 가능)
+    public boolean canDelete() {
+        return this != DELETED;
+    }
 }

@@ -12,6 +12,7 @@ import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.ScenarioRepository;
 import com.startup.domain.scenario.service.ScenarioAccessService;
+import com.startup.domain.scenario.enums.ScenarioStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -61,10 +62,19 @@ public class BookmarkService {
                 .ifPresent(bookmarkRepository::delete);
     }
 
-    // 인증 및 접근 권한 검증 후 시나리오 조회
+    // 인증 및 접근 권한 검증 후 시나리오 조회 (북마크는 PUBLISHED 상태에서만 허용)
     private Scenario getAccessibleScenario(Long userId, Long scenarioId) {
-        scenarioAccessService.validateViewable(userId, scenarioId);
-        return scenarioRepository.findById(scenarioId)
+        // 비관적 락을 먼저 획득하여 상태 변경과의 Race Condition 방어
+        Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
+        
+        // 락이 걸린 상태에서 권한 검증
+        scenarioAccessService.validateViewable(userId, scenarioId);
+        
+        if (scenario.getStatus() != ScenarioStatus.PUBLISHED) {
+            throw new ScenarioException(ScenarioErrorCode.SCENARIO_ACCESS_DENIED);
+        }
+        
+        return scenario;
     }
 }

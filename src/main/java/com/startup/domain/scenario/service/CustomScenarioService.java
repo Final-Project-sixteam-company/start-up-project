@@ -42,14 +42,14 @@ public class CustomScenarioService {
     @Transactional
     public CustomLocationCreateResponse createLocation(Long userId, Long scenarioId, CustomLocationCreateRequest request) {
         // 작성자 본인인지 확인
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         // 동시에 장소를 추가하더라도 Race Condition 차단
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 이미 발행된(PUBLISHED) 시나리오에는 더 이상 장소 추가 불가
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -81,7 +81,7 @@ public class CustomScenarioService {
 
     @Transactional(readOnly = true)
     public List<CustomLocationResponse> getLocations(Long userId, Long scenarioId) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         List<ScenarioLocation> locations = locationRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
         
@@ -106,13 +106,13 @@ public class CustomScenarioService {
 
     @Transactional
     public CustomVictimCreateResponse createOrUpdateVictim(Long userId, Long scenarioId, CustomVictimCreateRequest request) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 상태 방어 (발행된 시나리오는 수정 불가)
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -159,7 +159,7 @@ public class CustomScenarioService {
 
     @Transactional(readOnly = true)
     public CustomVictimResponse getVictim(Long userId, Long scenarioId) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
         
         Victim victim = victimRepository.findByScenarioId(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.VICTIM_NOT_FOUND));
@@ -169,7 +169,7 @@ public class CustomScenarioService {
 
     @Transactional(readOnly = true)
     public List<CustomSuspectResponse> getSuspects(Long userId, Long scenarioId) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         return suspectRepository.findAllByScenarioIdOrderBySortOrder(scenarioId).stream()
                 .map(suspect -> CustomSuspectResponse.from(suspect, jsonMapper))
@@ -178,13 +178,13 @@ public class CustomScenarioService {
 
     @Transactional
     public CustomSuspectCreateResponse createSuspect(Long userId, Long scenarioId, CustomSuspectCreateRequest request) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 발행된 시나리오는 수정 불가
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -238,12 +238,12 @@ public class CustomScenarioService {
         Suspect suspect = suspectRepository.findById(suspectId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SUSPECT_NOT_FOUND));
 
-        scenarioAccessService.validateEditable(userId, suspect.getScenarioId());
+        scenarioAccessService.validateDraftEditable(userId, suspect.getScenarioId());
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(suspect.getScenarioId())
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -297,12 +297,12 @@ public class CustomScenarioService {
         Suspect suspect = suspectRepository.findById(suspectId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SUSPECT_NOT_FOUND));
 
-        scenarioAccessService.validateEditable(userId, suspect.getScenarioId());
+        scenarioAccessService.validateDraftEditable(userId, suspect.getScenarioId());
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(suspect.getScenarioId())
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -328,7 +328,7 @@ public class CustomScenarioService {
 
     @Transactional(readOnly = true)
     public List<CustomEvidenceResponse> getEvidences(Long userId, Long scenarioId) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         List<Evidence> evidences = evidenceRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
         if (evidences.isEmpty()) {
@@ -379,13 +379,13 @@ public class CustomScenarioService {
 
     @Transactional
     public CustomEvidenceCreateResponse createEvidence(Long userId, Long scenarioId, CustomEvidenceCreateRequest request) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
         // 발행된 시나리오 수정 금지
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -474,12 +474,12 @@ public class CustomScenarioService {
         Evidence evidence = evidenceRepository.findById(evidenceId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.EVIDENCE_NOT_FOUND));
 
-        scenarioAccessService.validateEditable(userId, evidence.getScenarioId());
+        scenarioAccessService.validateDraftEditable(userId, evidence.getScenarioId());
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(evidence.getScenarioId())
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -590,12 +590,12 @@ public class CustomScenarioService {
         Evidence evidence = evidenceRepository.findById(evidenceId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.EVIDENCE_NOT_FOUND));
 
-        scenarioAccessService.validateEditable(userId, evidence.getScenarioId());
+        scenarioAccessService.validateDraftEditable(userId, evidence.getScenarioId());
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(evidence.getScenarioId())
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -797,7 +797,7 @@ public class CustomScenarioService {
 
     @Transactional(readOnly = true)
     public List<CustomHintResponse> getHints(Long userId, Long scenarioId) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         return hintRepository.findAllByScenarioIdOrderByHintLevel(scenarioId).stream()
                 .map(CustomHintResponse::from)
@@ -806,12 +806,12 @@ public class CustomScenarioService {
 
     @Transactional
     public CustomHintCreateResponse createHint(Long userId, Long scenarioId, CustomHintCreateRequest request) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -835,12 +835,12 @@ public class CustomScenarioService {
 
     @Transactional
     public CustomSolutionCreateResponse createOrUpdateSolution(Long userId, Long scenarioId, CustomSolutionCreateRequest request) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         Scenario scenario = scenarioRepository.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_FOUND));
 
-        if (scenario.getStatus() == ScenarioStatus.PUBLISHED) {
+        if (scenario.getStatus() != ScenarioStatus.DRAFT && scenario.getStatus() != ScenarioStatus.VALIDATING) {
             throw new ScenarioException(ScenarioErrorCode.SCENARIO_NOT_MODIFY);
         }
 
@@ -999,7 +999,7 @@ public class CustomScenarioService {
 
     @Transactional(readOnly = true)
     public CustomSolutionResponse getSolution(Long userId, Long scenarioId) {
-        scenarioAccessService.validateEditable(userId, scenarioId);
+        scenarioAccessService.validateDraftEditable(userId, scenarioId);
 
         Solution solution = solutionRepository.findByScenarioId(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SOLUTION_NOT_FOUND));

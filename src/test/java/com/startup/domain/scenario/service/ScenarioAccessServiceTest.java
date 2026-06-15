@@ -1,5 +1,6 @@
 package com.startup.domain.scenario.service;
 
+import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.enums.Difficulty;
 import com.startup.domain.scenario.enums.ScenarioStatus;
@@ -21,7 +22,8 @@ class ScenarioAccessServiceTest {
     private static final long OTHER_USER_ID = 2L;
 
     private final ScenarioRepository scenarioRepository = mock(ScenarioRepository.class);
-    private final ScenarioAccessService scenarioAccessService = new ScenarioAccessService(scenarioRepository);
+    private final PlaySessionRepository playSessionRepository = mock(PlaySessionRepository.class);
+    private final ScenarioAccessService scenarioAccessService = new ScenarioAccessService(scenarioRepository, playSessionRepository);
 
     @Test
     void canPlayDeniesPublishedPrivateScenarioForNonCreator() {

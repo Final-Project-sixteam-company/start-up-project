@@ -607,6 +607,7 @@ GET /api/scenarios?type=CUSTOM&difficulty=NORMAL&sort=popular&page=0&size=20
         "description": "AI 스타트업 대표가 데모데이 전날 사망한 사건",
         "thumbnailUrl": "https://example.com/thumb.png",
         "scenarioType": "OFFICIAL",
+        "status": "PUBLISHED",
         "difficulty": "NORMAL",
         "estimatedPlayTimeMinutes": 30,
         "playerCountMin": 1,
@@ -628,6 +629,51 @@ GET /api/scenarios?type=CUSTOM&difficulty=NORMAL&sort=popular&page=0&size=20
   "error": null
 }
 ```
+
+---
+
+## 6.1.1 내가 만든 시나리오 조회
+
+```http
+GET /api/scenarios/me
+Authorization: Bearer {accessToken}
+```
+
+내가 작성한 시나리오 목록을 조회한다. 일반 목록과 달리 `DRAFT`, `VALIDATING`, `HIDDEN`, `PUBLISHED` 상태의 시나리오가 모두 반환된다. (`DELETED` 제외)
+
+### Query Parameters
+
+| 이름 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| page | Integer | N | 페이지 번호 (기본값: 0) |
+| size | Integer | N | 페이지 크기 (기본값: 20) |
+
+### Response
+
+`6.1 시나리오 목록 조회`의 응답 규격과 동일하며, 내 시나리오의 상태 구분을 위해 `status` 필드를 참조한다.
+
+---
+
+## 6.1.2 내가 북마크한 시나리오 조회
+
+```http
+GET /api/scenarios/bookmarked
+Authorization: Bearer {accessToken}
+```
+
+내가 북마크한 시나리오 목록을 조회한다. 
+단, 원작자가 삭제(`DELETED`)하거나 비공개(`HIDDEN`) 처리한 시나리오는 북마크 목록에서도 제외되어 보이지 않는다.
+
+### Query Parameters
+
+| 이름 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| page | Integer | N | 페이지 번호 (기본값: 0) |
+| size | Integer | N | 페이지 크기 (기본값: 20) |
+
+### Response
+
+`6.1 시나리오 목록 조회`의 응답 규격과 동일하다. 북마크한 항목이므로 응답 내 `isBookmarked`는 항상 `true`로 고정된다.
 
 ---
 
@@ -767,6 +813,57 @@ POST /api/scenarios/{scenarioId}/publish
     "status": "PUBLISHED",
     "publishedAt": "2026-05-15T19:30:00"
   },
+  "error": null
+}
+```
+
+---
+
+## 6.6 시나리오 숨김 (비공개 전환)
+
+```http
+POST /api/scenarios/{scenarioId}/hide
+Authorization: Bearer {accessToken}
+```
+
+공개(`PUBLISHED`) 상태의 시나리오를 숨김(`HIDDEN`) 상태로 변경한다. (본인만 가능)
+
+### Request
+
+(Empty Body)
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": null,
+  "error": null
+}
+```
+
+---
+
+## 6.7 시나리오 삭제 (Soft Delete)
+
+```http
+DELETE /api/scenarios/{scenarioId}
+Authorization: Bearer {accessToken}
+```
+
+작성자가 본인의 시나리오를 삭제한다. (DB에서 Hard Delete되지 않으며, 상태가 `DELETED`로 변경됨)
+삭제 시 목록 조회, 상세 조회 및 커뮤니티(리뷰, 북마크) 도메인에서의 신규 조작이 원천 차단된다. (진행 중이던 플레이 세션은 끝까지 플레이 가능)
+
+### Request
+
+(Empty Body)
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": null,
   "error": null
 }
 ```
