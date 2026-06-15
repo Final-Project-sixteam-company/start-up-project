@@ -11,5 +11,8 @@ public class CustomLocationResponse {
     private String description;
     private Integer mapX;
     private Integer mapY;
+    private String floor;
+    private String imageAssetKey;
+    private Integer sortOrder;
     private Integer evidenceCount;
 }

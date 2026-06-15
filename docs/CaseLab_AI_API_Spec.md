@@ -884,8 +884,10 @@ POST /api/scenarios/{scenarioId}/locations
 {
   "name": "데모룸",
   "description": "피해자가 발견된 장소",
+  "floor": "1F",
   "mapX": 120,
   "mapY": 80,
+  "imageAssetKey": "bg_demoroom_01",
   "sortOrder": 1
 }
 ```
@@ -922,6 +924,9 @@ GET /api/scenarios/{scenarioId}/locations
       "description": "피해자가 발견된 장소",
       "mapX": 120,
       "mapY": 80,
+      "floor": "1F",
+      "imageAssetKey": "bg_demoroom_01",
+      "sortOrder": 1,
       "evidenceCount": 3
     }
   ],
