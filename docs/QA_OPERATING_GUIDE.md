@@ -210,10 +210,14 @@ public 보고서에는 result screen/API 도달 여부만 남기고, 선택 후�
 
 4. Guidance UX
    - evidence detail에서 읽을 점, 함께 볼 증거, 추천 질문이 보이는지 확인한다.
+   - suggestedQuestions의 target suspect/evidence가 현재 플레이에서 유효한지 확인한다.
+   - 유효하지 않은 target은 숨김 또는 비활성화되어야 하며, unavailable suspect로 이동 가능한 chip은 P2 이상으로 기록한다.
    - guidance가 없는 증거는 "없는 상태"와 "불필요한 상태"를 구분한다.
 
 5. Suggested Question Chip
    - chip tap은 심문 화면 이동과 입력창 prefill까지만 수행해야 한다.
+   - chip target은 현재 플레이의 available suspect/evidence만 허용한다.
+   - target invalid chip이 활성화되어 있으면 P2이다.
    - tap 즉시 AI 호출이 발생하면 P1이다.
    - 기존 draft가 있으면 override 전 확인/보존 정책을 확인한다.
 
@@ -262,10 +266,11 @@ Android가 불가능하면 public API를 보조 surface로 사용하되, spoiler
 
 1. 신규 세션으로 두 공식 시나리오의 기본 플레이 흐름을 확인한다.
 2. evidence guidance, 함께 볼 증거, 추천 질문 UX가 실제 추리에 도움이 되는지 확인한다.
-3. suggested-question chip이 prefill-only인지 확인한다.
-4. AI 답변이 설정에 없는 사실을 만들지 않고, 증거 제시 시 다음 비교 방향을 주는지 확인한다.
-5. 30~50턴 안에 후보 축소가 가능한지 판단한다.
-6. 운영/privacy spot check 결과를 기록한다.
+3. suggested-question target이 현재 플레이에서 유효한지 확인하고, invalid target chip은 숨김 또는 비활성화되어야 한다.
+4. suggested-question chip이 prefill-only인지 확인한다.
+5. AI 답변이 설정에 없는 사실을 만들지 않고, 증거 제시 시 다음 비교 방향을 주는지 확인한다.
+6. 30~50턴 안에 후보 축소가 가능한지 판단한다.
+7. 운영/privacy spot check 결과를 기록한다.
 
 # fresh session
 
@@ -384,6 +389,11 @@ Findings First를 먼저 쓴다.
 | Backend | P1 | Open | 이전 QA_HANDOFF에서 유지 | concurrent create race fallback에서 `activeSessionId` details 누락 가능성 | `DataIntegrityViolationException` fallback active session 재조회와 P002 details 포함 여부 재검 |
 | Backend/Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | final-deduction in-flight 중 abandon 허용 시 제출 결과가 사라진 것처럼 보일 수 있음 | in-flight abandon 차단 또는 Android 제출 중 이탈/포기 UX 차단 smoke |
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | P002 active session 복구 계약이 앱에서 `details.activeSessionId`와 `GET /active` fallback을 안정적으로 쓰는지 재검 필요 | active PLAYING 세션 상태에서 재시작, 409/P002, 이어가기/포기 UX E2E |
+| Frontend | P0/P1 | Open | 이전 QA_HANDOFF에서 유지 | Studio9 상세/시작 ready gate가 앱에서 준비 중 상태로 막힐 수 있음 | Studio9 상세 진입 후 시작 버튼이 조사 시작 상태이며 현장 진입 가능한지 Android E2E |
+| Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 시나리오 목록/상세/현장 이미지가 API image URL 대신 placeholder로 보일 수 있음 | `thumbnailUrl`, `coverImageUrl`, `mapImageUrl` 렌더링 smoke |
+| Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 라이브러리 검색/필터 UI가 실제 결과에 반영되지 않거나 미지원 상태가 불명확할 수 있음 | 검색어/필터 적용 결과 변화, 결과 수, empty state 확인 |
+| Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 브리핑/결과 화면 copy가 하드코딩되어 실제 시나리오 정보, 서버 result 문구 계약, 내부 용어와 어긋날 수 있음 | 서버 scenario/result 계약 기반 copy와 내부 용어 미노출 확인 |
+| Frontend | P2 | Open | 이전 QA_HANDOFF에서 유지 | `hints=[]` 상태에서 명확한 빈 상태/닫기 동선이 부족할 수 있음 | 힌트 empty state와 닫기 동선 확인 |
 | Backend | P1 | Open | 2026-06-12 report | final deduction/result의 interrogation count 집계 불일치 가능성 | 제출 전후 DB/log count, result response count 대조 |
 | Frontend | P1/P2 | Open | 2026-06-12~2026-06-15 reports | guidance rendering, timeline, final submit/result full E2E coverage 부족 | Android full E2E |
 | Product/Backend | P2 | Open | 2026-06-15 report | final-deduction 세부 rubric과 in-game guidance 용어가 어긋날 수 있음 | result feedback public-safe review |
@@ -438,6 +448,8 @@ Auth / active recovery:
 
 Guidance / chip:
 - evidence detail guidance 표시
+- suggestedQuestions target이 현재 플레이의 available suspect/evidence인지 확인
+- invalid target chip은 숨김/비활성화되고 unavailable suspect로 이동/prefill하지 않는지 확인
 - suggested question chip prefill-only
 - 기존 draft override/보존 정책이 UI에서 명확한지 확인
 - hardcoded 기본 chip도 자동 전송하지 않는지 확인
