@@ -8,6 +8,8 @@ import com.startup.domain.ai.entity.SuspectResponsePolicy;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
 import com.startup.domain.scenario.enums.EvidenceUnlockType;
 import com.startup.domain.scenario.enums.RelationType;
+import com.startup.domain.scenario.support.ConditionJsonParser;
+import com.startup.domain.scenario.support.ScenarioAssetUrlResolver;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import tools.jackson.databind.JsonNode;
@@ -37,6 +39,7 @@ public class CustomScenarioService {
     private final SolutionRepository solutionRepository;
     private final SuspectResponsePolicyRepository suspectResponsePolicyRepository;
     private final EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
+    private final ConditionJsonParser conditionJsonParser;
     private final JsonMapper jsonMapper;
 
     @Transactional
@@ -618,7 +621,7 @@ public class CustomScenarioService {
         }
 
         if (isEvidenceUsedInResponsePolicy(scenario.getId(), evidenceId)) {
-            throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE);
+            throw new ScenarioException(ScenarioErrorCode.EVIDENCE_USED_IN_POLICY);
         }
 
         evidenceSuspectRepository.deleteByEvidenceId(evidenceId);
@@ -632,16 +635,7 @@ public class CustomScenarioService {
     private boolean isSuspectUsedAsPrerequisite(Long scenarioId, String suspectCode) {
         List<EvidenceUnlockRule> rules = evidenceUnlockRuleRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
         for (EvidenceUnlockRule rule : rules) {
-            if (rule.getConditionJson() == null || rule.getConditionJson().isBlank()) continue;
-            try {
-                JsonNode root = jsonMapper.readTree(rule.getConditionJson());
-                if (root.has("requiredCharacterCode") && !root.get("requiredCharacterCode").isNull()) {
-                    if (suspectCode.equals(root.get("requiredCharacterCode").asText())) {
-                        return true;
-                    }
-                }
-            } catch (Exception e) {
-                // 파싱 실패 시, 혹시 모를 의존성이 있을 수 있으므로 안전하게 삭제 차단(fail-closed)
+            if (conditionJsonParser.hasRequiredCharacterCode(rule.getConditionJson(), suspectCode)) {
                 return true;
             }
         }
@@ -651,30 +645,7 @@ public class CustomScenarioService {
     private boolean isEvidenceUsedAsPrerequisite(Long scenarioId, String evidenceCode) {
         List<EvidenceUnlockRule> rules = evidenceUnlockRuleRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
         for (EvidenceUnlockRule rule : rules) {
-            if (rule.getConditionJson() == null || rule.getConditionJson().isBlank()) continue;
-            try {
-                JsonNode root = jsonMapper.readTree(rule.getConditionJson());
-                if (root.has("requiredPresentedEvidenceCode") && !root.get("requiredPresentedEvidenceCode").isNull()) {
-                    if (evidenceCode.equals(root.get("requiredPresentedEvidenceCode").asText())) {
-                        return true;
-                    }
-                }
-                if (root.has("requiredEvidenceCodes") && !root.get("requiredEvidenceCodes").isNull()) {
-                    JsonNode reqCodes = root.get("requiredEvidenceCodes");
-                    if (reqCodes.isArray()) {
-                        for (JsonNode node : reqCodes) {
-                            if (evidenceCode.equals(node.asText())) {
-                                return true;
-                            }
-                        }
-                    } else if (reqCodes.isTextual()) {
-                        if (evidenceCode.equals(reqCodes.asText())) {
-                            return true;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                // 파싱 실패 시, 혹시 모를 의존성이 있을 수 있으므로 안전하게 삭제 차단(fail-closed)
+            if (conditionJsonParser.hasRequiredPresentedEvidenceCodeOrEvidenceCodes(rule.getConditionJson(), evidenceCode)) {
                 return true;
             }
         }
@@ -692,37 +663,11 @@ public class CustomScenarioService {
             if (evidenceId.equals(policy.getPresentedEvidenceId())) {
                 return true;
             }
-            if (policy.getRequiredEvidenceIds() != null && !policy.getRequiredEvidenceIds().isBlank()) {
-                try {
-                    JsonNode node = jsonMapper.readTree(policy.getRequiredEvidenceIds());
-                    if (node.isArray()) {
-                        for (JsonNode idNode : node) {
-                            if (evidenceId.equals(idNode.asLong())) return true;
-                        }
-                    } else if (node.isNumber() && evidenceId.equals(node.asLong())) {
-                        return true;
-                    } else if (node.isTextual() && evidenceId.toString().equals(node.asText())) {
-                        return true;
-                    }
-                } catch (Exception e) {
-                    return true; // fail-closed
-                }
+            if (conditionJsonParser.hasEvidenceIdInArrayOrString(policy.getRequiredEvidenceIds(), evidenceId)) {
+                return true;
             }
-            if (policy.getExcludedEvidenceIds() != null && !policy.getExcludedEvidenceIds().isBlank()) {
-                try {
-                    JsonNode node = jsonMapper.readTree(policy.getExcludedEvidenceIds());
-                    if (node.isArray()) {
-                        for (JsonNode idNode : node) {
-                            if (evidenceId.equals(idNode.asLong())) return true;
-                        }
-                    } else if (node.isNumber() && evidenceId.equals(node.asLong())) {
-                        return true;
-                    } else if (node.isTextual() && evidenceId.toString().equals(node.asText())) {
-                        return true;
-                    }
-                } catch (Exception e) {
-                    return true; // fail-closed
-                }
+            if (conditionJsonParser.hasEvidenceIdInArrayOrString(policy.getExcludedEvidenceIds(), evidenceId)) {
+                return true;
             }
         }
         return false;
