@@ -63,6 +63,7 @@ public class CustomScenarioServiceLocationTest {
         assertThat(response.getLocationId()).isNotNull();
         ScenarioLocation location = locationRepository.findById(response.getLocationId()).orElseThrow();
         assertThat(location.getName()).isEqualTo("거실");
+        assertThat(location.getCode()).startsWith("LOCATION_");
     }
 
     @Test

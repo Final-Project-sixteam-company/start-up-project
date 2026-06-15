@@ -57,9 +57,12 @@ public class CustomScenarioService {
         Integer maxSortOrder = locationRepository.findMaxSortOrderByScenarioId(scenarioId);
         int nextSortOrder = request.getSortOrder() != null ? request.getSortOrder() : ((maxSortOrder == null ? 0 : maxSortOrder) + 1);
 
+        String autoCode = "LOCATION_" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
         // 엔티티 생성
         ScenarioLocation location = ScenarioLocation.builder()
                 .scenarioId(scenarioId)
+                .code(autoCode)
                 .name(request.getName())
                 .description(request.getDescription())
                 .floor(request.getFloor())
@@ -99,6 +102,9 @@ public class CustomScenarioService {
                         loc.getDescription(),
                         loc.getMapX(),
                         loc.getMapY(),
+                        loc.getFloor(),
+                        loc.getImageAssetKey(),
+                        loc.getSortOrder(),
                         countsMap.getOrDefault(loc.getId(), 0L).intValue()
                 ))
                 .toList();
