@@ -211,8 +211,10 @@ public 보고서에는 result screen/API 도달 여부만 남기고, 선택 후�
 
 4. Guidance UX
    - evidence detail에서 읽을 점, 함께 볼 증거, 추천 질문이 보이는지 확인한다.
+   - guidance/함께 볼 증거/추천 질문이 고정 정답 경로처럼 답을 이끌지 않는지 확인한다.
    - suggestedQuestions의 target suspect/evidence가 현재 플레이에서 유효한지 확인한다.
    - 유효하지 않은 target은 숨김 또는 비활성화되어야 하며, unavailable suspect로 이동 가능한 chip은 P2 이상으로 기록한다.
+   - locked compare evidence는 title/unlockHint 같은 public-safe 표시만 허용하고, 내부 evidenceCode/asset key/secret-like metadata가 노출되지 않는지 확인한다.
    - guidance가 없는 증거는 "없는 상태"와 "불필요한 상태"를 구분한다.
 
 5. Suggested Question Chip
@@ -270,12 +272,13 @@ Android가 불가능하면 public API를 보조 surface로 사용하되, spoiler
 
 1. 신규 세션으로 두 공식 시나리오의 기본 플레이 흐름을 확인한다.
 2. evidence guidance, 함께 볼 증거, 추천 질문 UX가 실제 추리에 도움이 되는지 확인한다.
-3. suggested-question target이 현재 플레이에서 유효한지 확인하고, invalid target chip은 숨김 또는 비활성화되어야 한다.
-4. suggested-question chip이 prefill-only인지 확인한다.
-5. AI/NPC 답변이 정답 범인/solution/private secret을 직접 말하지 않고 최대 2문장 제한을 지키는지 확인한다.
-6. AI 답변이 설정에 없는 사실을 만들지 않고, 증거 제시 시 다음 비교 방향을 주는지 확인한다.
-7. 30~50턴 안에 후보 축소가 가능한지 판단한다.
-8. 운영/privacy spot check 결과를 기록한다.
+3. guidance/함께 볼 증거/추천 질문이 고정 정답 경로처럼 느껴지거나 solution route를 직접 가리키지 않는지 확인한다.
+4. suggested-question target이 현재 플레이에서 유효한지 확인하고, invalid target chip은 숨김 또는 비활성화되어야 한다.
+5. suggested-question chip이 prefill-only인지 확인한다.
+6. AI/NPC 답변이 정답 범인/solution/private secret을 직접 말하지 않고 최대 2문장 제한을 지키는지 확인한다.
+7. AI 답변이 설정에 없는 사실을 만들지 않고, 증거 제시 시 다음 비교 방향을 주는지 확인한다.
+8. 30~50턴 안에 후보 축소가 가능한지 판단한다.
+9. 운영/privacy spot check 결과를 기록한다.
 
 # fresh session
 
@@ -517,6 +520,8 @@ Auth / active recovery:
 
 Guidance / chip:
 - evidence detail guidance 표시
+- guidance/compare/suggested question이 고정 정답 경로처럼 답을 이끌지 않는지 확인
+- locked compare evidence의 내부 evidenceCode/asset key/secret-like metadata가 노출되지 않는지 확인
 - suggestedQuestions target이 현재 플레이의 available suspect/evidence인지 확인
 - invalid target chip은 숨김/비활성화되고 unavailable suspect로 이동/prefill하지 않는지 확인
 - suggested question chip prefill-only
