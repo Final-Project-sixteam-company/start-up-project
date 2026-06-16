@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -20,7 +21,7 @@ public class ScenarioYamlValidator {
     private static final Pattern ASSET_KEY_PATTERN = Pattern.compile("^[A-Za-z0-9._/-]+$");
     private static final Pattern LOCAL_PATH_PATTERN = Pattern.compile("^[A-Za-z]:\\\\|.*\\\\.*");
     private static final Set<String> TIMELINE_EVENT_VISIBILITIES = Set.of("PUBLIC");
-    private static final List<String> GUIDANCE_BLOCKED_MARKERS = List.of(
+    private static final List<String> PLAYER_FACING_BLOCKED_MARKERS = List.of(
             "culpritcode",
             "culprit",
             "activevariant",
@@ -37,6 +38,16 @@ public class ScenarioYamlValidator {
             "정답",
             "범인",
             "해설 전문"
+    );
+    private static final List<BlockedAssetMarker> PUBLIC_ASSET_KEY_BLOCKED_MARKERS = List.of(
+            new BlockedAssetMarker("culprit", tokenMarker("culprit")),
+            new BlockedAssetMarker("fake", tokenMarker("fake")),
+            new BlockedAssetMarker("core", tokenMarker("core")),
+            new BlockedAssetMarker("red_herring",
+                    Pattern.compile("(^|[^a-z0-9])red[^a-z0-9]*herring([^a-z0-9]|$)",
+                            Pattern.CASE_INSENSITIVE)),
+            new BlockedAssetMarker("solution", tokenMarker("solution")),
+            new BlockedAssetMarker("variant", tokenMarker("variant"))
     );
 
     public List<String> validate(ScenarioYaml yaml) {
@@ -61,11 +72,13 @@ public class ScenarioYamlValidator {
 
         validateLocations(yaml, violations);
         validateVictim(yaml, locationCodes, violations);
+        validateCharacters(yaml, violations);
         validateEvidenceReferences(yaml, locationCodes, evidenceCodes, characterCodes, violations);
         validateTimelineEvents(yaml, locationCodes, evidenceCodes, characterCodes, violations);
         validateVariantReferences(yaml, charactersByCode, evidenceCodes, violations);
         validatePublishedVariants(yaml, violations);
         validateEvidenceVariantStates(yaml, evidenceCodes, variantCodes, violations);
+        validateHints(yaml, violations);
         validateUnlockRules(yaml, evidenceCodes, characterCodes, violations);
         validateNpcPolicies(yaml, evidenceCodes, characterCodes, violations);
         validateAssets(yaml, scenarioCode, victimCode, locationCodes, characterCodes,
@@ -92,6 +105,10 @@ public class ScenarioYamlValidator {
         requireText(yaml.scenario().status(), "scenario.status", violations);
         requireText(yaml.scenario().visibility(), "scenario.visibility", violations);
         requireText(yaml.scenario().scenarioType(), "scenario.scenarioType", violations);
+        validatePublicAssetKey(yaml.scenario().coverAssetKey(), "scenario.coverAssetKey",
+                isPublished(yaml), violations);
+        validatePublicAssetKey(yaml.scenario().mapAssetKey(), "scenario.mapAssetKey",
+                isPublished(yaml), violations);
     }
 
     private void validateVictim(ScenarioYaml yaml, Set<String> locationCodes, List<String> violations) {
@@ -102,12 +119,15 @@ public class ScenarioYamlValidator {
         requireText(yaml.victim().code(), "victim.code", violations);
         requireText(yaml.victim().name(), "victim.name", violations);
         requireText(yaml.victim().deathLocationCode(), "victim.deathLocationCode", violations);
+        validatePublicAssetKey(yaml.victim().portraitAssetKey(), "victim.portraitAssetKey",
+                isPublished(yaml), violations);
         if (hasText(yaml.victim().deathLocationCode()) && !locationCodes.contains(yaml.victim().deathLocationCode())) {
             violations.add("victim.deathLocationCode references missing location: " + yaml.victim().deathLocationCode());
         }
     }
 
     private void validateLocations(ScenarioYaml yaml, List<String> violations) {
+        boolean published = isPublished(yaml);
         for (ScenarioYaml.LocationYaml location : listOf(yaml.locations())) {
             if (location == null) {
                 violations.add("locations[] item is required.");
@@ -115,11 +135,24 @@ public class ScenarioYamlValidator {
             }
             requireText(location.code(), "locations[].code", violations);
             requireText(location.name(), "locations[" + location.code() + "].name", violations);
-            validateAssetKey(location.imageAssetKey(), "locations[" + location.code() + "].imageAssetKey", violations);
-            if (isPublished(yaml)) {
+            validatePublicAssetKey(location.imageAssetKey(),
+                    "locations[" + location.code() + "].imageAssetKey", published, violations);
+            if (published) {
                 requireNumber(location.mapX(), "locations[" + location.code() + "].mapX", violations);
                 requireNumber(location.mapY(), "locations[" + location.code() + "].mapY", violations);
             }
+        }
+    }
+
+    private void validateCharacters(ScenarioYaml yaml, List<String> violations) {
+        boolean published = isPublished(yaml);
+        for (ScenarioYaml.CharacterYaml character : listOf(yaml.characters())) {
+            if (character == null) {
+                violations.add("characters[] item is required.");
+                continue;
+            }
+            validatePublicAssetKey(character.portraitAssetKey(),
+                    "characters[" + character.code() + "].portraitAssetKey", published, violations);
         }
     }
 
@@ -149,6 +182,7 @@ public class ScenarioYamlValidator {
         requireNonEmpty(yaml.characters(), "characters", violations);
         requireNonEmpty(yaml.evidences(), "evidences", violations);
         requireNonEmpty(yaml.variants(), "variants", violations);
+        requireNonEmpty(yaml.hints(), "hints", violations);
         requireNonEmpty(yaml.unlockRules(), "unlockRules", violations);
         requireNonEmpty(yaml.npcPolicies(), "npcPolicies", violations);
         if (yaml.scoring() == null || yaml.scoring().isEmpty()) {
@@ -176,8 +210,10 @@ public class ScenarioYamlValidator {
                             + " relatedCharacterCodes references missing character: " + characterCode);
                 }
             }
-            validateAssetKey(evidence.imageAssetKey(), "evidences[" + evidence.code() + "].imageAssetKey", violations);
-            validateAssetKey(evidence.thumbnailAssetKey(), "evidences[" + evidence.code() + "].thumbnailAssetKey", violations);
+            validatePublicAssetKey(evidence.imageAssetKey(),
+                    "evidences[" + evidence.code() + "].imageAssetKey", isPublished(yaml), violations);
+            validatePublicAssetKey(evidence.thumbnailAssetKey(),
+                    "evidences[" + evidence.code() + "].thumbnailAssetKey", isPublished(yaml), violations);
             validateEvidenceGuidance(evidence, evidenceCodes, characterCodes, violations);
         }
     }
@@ -195,7 +231,7 @@ public class ScenarioYamlValidator {
             if (!hasText(readingPoint)) {
                 violations.add("evidences[" + evidence.code() + "].guidance.readingPoints contains blank item.");
             } else {
-                validateGuidanceText(readingPoint,
+                validatePlayerFacingText(readingPoint,
                         "evidences[" + evidence.code() + "].guidance.readingPoints", violations);
             }
         }
@@ -238,15 +274,15 @@ public class ScenarioYamlValidator {
                 violations.add("evidences[" + evidence.code()
                         + "].guidance.suggestedQuestions.question is required.");
             } else {
-                validateGuidanceText(question.question(),
+                validatePlayerFacingText(question.question(),
                         "evidences[" + evidence.code() + "].guidance.suggestedQuestions.question", violations);
             }
         }
     }
 
-    private void validateGuidanceText(String value, String field, List<String> violations) {
-        String normalized = value.toLowerCase();
-        for (String marker : GUIDANCE_BLOCKED_MARKERS) {
+    private void validatePlayerFacingText(String value, String field, List<String> violations) {
+        String normalized = value.toLowerCase(Locale.ROOT);
+        for (String marker : PLAYER_FACING_BLOCKED_MARKERS) {
             if (normalized.contains(marker)) {
                 violations.add(field + " contains blocked private/solution marker: " + marker);
             }
@@ -395,6 +431,37 @@ public class ScenarioYamlValidator {
         }
     }
 
+    private void validateHints(ScenarioYaml yaml, List<String> violations) {
+        Set<Integer> hintLevels = new HashSet<>();
+        for (ScenarioYaml.HintYaml hint : listOf(yaml.hints())) {
+            if (hint == null) {
+                violations.add("hints[] item is required.");
+                continue;
+            }
+
+            requireNumber(hint.hintLevel(), "hints[].hintLevel", violations);
+            if (hint.hintLevel() != null && hint.hintLevel() < 1) {
+                violations.add("hints[].hintLevel must be greater than 0: " + hint.hintLevel());
+            }
+            if (hint.hintLevel() != null && !hintLevels.add(hint.hintLevel())) {
+                violations.add("duplicate hintLevel: " + hint.hintLevel());
+            }
+
+            if (!hasText(hint.content())) {
+                violations.add("hints[" + hint.hintLevel() + "].content is required.");
+            } else {
+                validatePlayerFacingText(hint.content(),
+                        "hints[" + hint.hintLevel() + "].content", violations);
+            }
+            if (hint.unlockAfterMinutes() != null && hint.unlockAfterMinutes() < 0) {
+                violations.add("hints[" + hint.hintLevel() + "].unlockAfterMinutes must be 0 or greater.");
+            }
+            if (hint.penaltyScore() != null && hint.penaltyScore() < 0) {
+                violations.add("hints[" + hint.hintLevel() + "].penaltyScore must be 0 or greater.");
+            }
+        }
+    }
+
     private void validateUnlockRules(ScenarioYaml yaml,
                                      Set<String> evidenceCodes,
                                      Set<String> characterCodes,
@@ -471,6 +538,7 @@ public class ScenarioYamlValidator {
                                 Set<String> variantCodes,
                                 List<String> violations) {
         Set<String> assetKeys = new HashSet<>();
+        boolean published = isPublished(yaml);
         for (ScenarioYaml.AssetYaml asset : listOf(yaml.assets())) {
             requireText(asset.assetKey(), "assets[].assetKey", violations);
             requireText(asset.type(), "assets[" + asset.assetKey() + "].type", violations);
@@ -479,8 +547,9 @@ public class ScenarioYamlValidator {
             if (hasText(asset.assetKey()) && !assetKeys.add(asset.assetKey())) {
                 violations.add("duplicate assetKey: " + asset.assetKey());
             }
-            validateAssetKey(asset.assetKey(), "assets[].assetKey", violations);
-            validateAssetKey(asset.s3ObjectKey(), "assets[" + asset.assetKey() + "].s3ObjectKey", violations);
+            validatePublicAssetKey(asset.assetKey(), "assets[].assetKey", published, violations);
+            validatePublicAssetKey(asset.s3ObjectKey(), "assets[" + asset.assetKey() + "].s3ObjectKey",
+                    published, violations);
             validateAssetTarget(asset, scenarioCode, victimCode, locationCodes, characterCodes,
                     evidenceCodes, variantCodes, violations);
             if (hasText(asset.sourceLocalFile()) && LOCAL_PATH_PATTERN.matcher(asset.sourceLocalFile()).matches()) {
@@ -576,6 +645,28 @@ public class ScenarioYamlValidator {
         if (!ASSET_KEY_PATTERN.matcher(value).matches()) {
             violations.add(field + " has unsupported characters: " + value);
         }
+    }
+
+    private void validatePublicAssetKey(String value, String field, boolean published, List<String> violations) {
+        validateAssetKey(value, field, violations);
+        if (!published || !hasText(value)) {
+            return;
+        }
+
+        String normalized = value.toLowerCase(Locale.ROOT);
+        for (BlockedAssetMarker marker : PUBLIC_ASSET_KEY_BLOCKED_MARKERS) {
+            if (marker.pattern().matcher(normalized).find()) {
+                violations.add(field + " contains blocked public asset marker: " + marker.label());
+            }
+        }
+    }
+
+    private static Pattern tokenMarker(String marker) {
+        return Pattern.compile("(^|[^a-z0-9])" + Pattern.quote(marker) + "([^a-z0-9]|$)",
+                Pattern.CASE_INSENSITIVE);
+    }
+
+    private record BlockedAssetMarker(String label, Pattern pattern) {
     }
 
     private void requireText(String value, String field, List<String> violations) {

@@ -4,6 +4,7 @@ import com.startup.domain.ai.repository.InterrogationLogRepository;
 import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
 import com.startup.domain.play.repository.UsedHintRepository;
+import com.startup.domain.play.support.ActivePlaySessionLookup;
 import com.startup.domain.play.support.EvidenceUnlockPolicy;
 import com.startup.domain.play.support.EvidenceVariantDescriptionResolver;
 import com.startup.domain.play.support.FinalDeductionLockManager;
@@ -71,6 +72,8 @@ class PlaySessionUnlockIdempotencyTest {
     private InterrogationLogRepository interrogationLogRepository;
     @Mock
     private ScenarioVariantRepository scenarioVariantRepository;
+    @Mock
+    private ActivePlaySessionLookup activePlaySessionLookup;
     @Mock
     private FinalDeductionLockManager finalDeductionLockManager;
     @Mock

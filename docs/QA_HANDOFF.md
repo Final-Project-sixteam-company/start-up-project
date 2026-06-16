@@ -14,6 +14,7 @@ QA를 새로 돌리거나 현재 미해결 이슈를 확인할 때는 [QA_OPERAT
 - Backend/AI, Android/Frontend, Infra/Ops/Privacy owner별 follow-up
 - 2026-06-10~2026-06-15 날짜별 QA 보고서의 반복 이슈
 - public-safe/private artifact 기록 원칙
+- #67 이후 public gameplay metadata 제거, coverUpText, activeSessionId, abandon, hints/import 재검증 항목
 ```
 
 ## 문서 역할
@@ -24,10 +25,10 @@ QA를 새로 돌리거나 현재 미해결 이슈를 확인할 때는 [QA_OPERAT
 - 새 QA 실행 지시: QA_OPERATING_GUIDE.md
 - 새 보고서 템플릿: QA_OPERATING_GUIDE.md
 - 현재 QA board: QA_OPERATING_GUIDE.md
-- 날짜별 원문 판단: 각 QA report archive
+- 날짜별 원문 판단: docs/qa/archive/*
 ```
 
 ## 흡수 원칙
 
 날짜별 QA 결과에서 새로 살아남은 이슈는 이 파일이 아니라 [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md)의 `Current QA Board`에 반영한다.
-public 문서에는 범인명, 정답 수법, 점수/등급, rejected-candidate rationale, raw sessionId/token을 남기지 않는다.
+public 문서에는 범인명, 정답 수법, 점수/등급, 정오/성공 여부, rejected-candidate rationale, raw sessionId/token을 남기지 않는다.
