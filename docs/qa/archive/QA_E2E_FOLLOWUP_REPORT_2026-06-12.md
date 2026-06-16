@@ -167,8 +167,7 @@ prod API 대상 APK는 다시 빌드만 했고 실행하지 않았다.
 | Frontend server active session recovery | VERIFIED in current Flutter code | fake API emulator E2E, unit regression tests |
 | Frontend static analysis noise | VERIFIED for current worktree | `flutter analyze` PASS |
 | Frontend model/controller tests | VERIFIED | `flutter test` PASS, 11 tests |
-| Backend final submission reachability after extended interrogation | VERIFIED | 두 시나리오 final submit + post-submit result/db check |
-| Culprit selection in extended retest | VERIFIED privately | public 문서에는 result/DB 확인 경로 도달만 기록 |
+| Backend final submission reachability after extended interrogation | VERIFIED | 두 시나리오 final submit + post-submit result/DB 확인 경로 도달. 정오/성공 여부는 private artifact |
 
 ### 6.2 Still Open
 
