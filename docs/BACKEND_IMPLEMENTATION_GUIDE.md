@@ -196,7 +196,7 @@ Repository는 저장소 접근만 담당한다.
 ```text
 Entity 저장/조회/삭제
 단순 JpaRepository 쿼리
-QueryDSL 기반 복잡 조회
+필요 시 커스텀 JPQL/Repository 기반 복잡 조회
 ```
 
 Repository에서 권한, AI 호출, 도메인 정책을 판단하지 않는다.
