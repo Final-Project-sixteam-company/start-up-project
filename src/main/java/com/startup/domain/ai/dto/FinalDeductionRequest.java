@@ -18,7 +18,7 @@ public record FinalDeductionRequest(
         @NotBlank @Size(max = 1000, message = "범행 방법은 1000자 이하로 입력해 주세요.") @Schema(description = "범행 방법 서술")
         String methodText,
 
-        @Size(max = 1000, message = "은폐 방법은 1000자 이하로 입력해 주세요.") @Schema(description = "은폐 방법 서술")
+        @NotBlank @Size(max = 1000, message = "은폐 방법은 1000자 이하로 입력해 주세요.") @Schema(description = "은폐 방법 서술")
         String coverUpText,
 
         @NotNull

@@ -127,6 +127,10 @@ clueroom:
       enabled: ${AUTH_ADMIN_SEED_ENABLED:false}
       email: ${AUTH_ADMIN_SEED_EMAIL:}
       nickname: ${AUTH_ADMIN_SEED_NICKNAME:ClueRoom Admin}
+    qa-seed:
+      enabled: ${AUTH_QA_SEED_ENABLED:false}
+      email: ${AUTH_QA_SEED_EMAIL:}
+      nickname: ${AUTH_QA_SEED_NICKNAME:ClueRoom QA}
   scenario-import:
     # 민감한 공식 시나리오 YAML은 repo에 올리지 않고 서버 로컬 경로 또는 private storage에서 주입한다.
     enabled: ${CLUEROOM_SCENARIO_IMPORT_ENABLED:false}

@@ -11,6 +11,7 @@ import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
 import com.startup.domain.play.repository.UsedHintRepository;
 import com.startup.domain.play.entity.UsedHint;
+import com.startup.domain.play.support.ActivePlaySessionLookup;
 import com.startup.domain.play.support.EvidenceVariantDescriptionResolver;
 import com.startup.domain.play.support.EvidenceUnlockPolicy;
 import com.startup.domain.play.support.FinalDeductionLockManager;
@@ -58,6 +59,7 @@ public class PlaySessionService {
     private final UsedHintRepository usedHintRepository;
     private final InterrogationLogRepository interrogationLogRepository;
     private final ScenarioVariantRepository scenarioVariantRepository;
+    private final ActivePlaySessionLookup activePlaySessionLookup;
     private final FinalDeductionLockManager finalDeductionLockManager;
     private final EvidenceVariantDescriptionResolver evidenceVariantDescriptionResolver;
     private final EvidenceUnlockPolicy evidenceUnlockPolicy;
@@ -139,7 +141,7 @@ public class PlaySessionService {
 
     private PlayException sessionAlreadyExistsAfterDuplicate(Long userId, Long scenarioId) {
         try {
-            return playSessionRepository.findByUserIdAndScenarioIdAndStatus(userId, scenarioId, PlaySessionStatus.PLAYING)
+            return activePlaySessionLookup.findPlaying(userId, scenarioId)
                     .map(this::sessionAlreadyExists)
                     .orElseGet(() -> new PlayException(PlayErrorCode.SESSION_ALREADY_EXISTS));
         } catch (RuntimeException lookupFailure) {
@@ -263,7 +265,6 @@ public class PlaySessionService {
                     ? evidenceVariantDescriptionResolver.resolve(evidence, session.getScenarioVariantId())
                     : null;
             String oneLine = isUnlocked ? evidence.getOneLine() : null;
-            String imageAssetKey = isUnlocked ? evidence.getImageAssetKey() : null;
             String locationName = isUnlocked && evidence.getLocationId() != null
                     ? locationNameMap.get(evidence.getLocationId())
                     : null;
@@ -277,9 +278,7 @@ public class PlaySessionService {
                     evidence.getTitle(),
                     oneLine,
                     description,
-                    imageAssetKey,
                     locationName,
-                    evidence.getImportance(),
                     isUnlocked,
                     unlockHint,
                     imageUrl,
@@ -487,7 +486,6 @@ public class PlaySessionService {
             return null;
         }
         return new PlayEvidenceDetailResponse.SuggestedQuestionInfo(
-                suspect.getCode(),
                 suspect.getId(),
                 suspect.getName(),
                 question.question(),
@@ -698,9 +696,7 @@ public class PlaySessionService {
                         suspect.getPublicStatement(),
                         suspect.getAlibi(),
                         scenarioAssetUrlResolver.resolve(suspect.getPortraitAssetKey()),
-                        suspect.getSuspicionLevel(),
-                        interrogationCountMap.getOrDefault(suspect.getId(), 0), //map에서 가져오고 없으면 0
-                        suspect.getCulpritEligible()
+                        interrogationCountMap.getOrDefault(suspect.getId(), 0) //map에서 가져오고 없으면 0
                 ))
                 .toList();
     }
@@ -785,7 +781,6 @@ public class PlaySessionService {
                         location.getName(),
                         location.getFloor(),
                         location.getDescription(),
-                        location.getImageAssetKey(),
                         scenarioAssetUrlResolver.resolve(location.getImageAssetKey()),
                         location.getMapX(),
                         location.getMapY(),
@@ -825,6 +820,9 @@ public class PlaySessionService {
         validateSessionOwner(session, userId);
 
         if (!session.isPlaying()) {
+            throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
+        }
+        if (finalDeductionLockManager.isLocked(sessionId)) {
             throw new PlayException(PlayErrorCode.SESSION_NOT_PLAYING);
         }
 

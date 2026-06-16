@@ -1300,7 +1300,7 @@ POST /api/play-sessions
 
 ### Error Response - P002
 
-이미 같은 사용자/시나리오에 `PLAYING` 세션이 있으면 409를 반환한다. `error.details`에는 `activeSessionId`만 포함할 수 있다. unique race 경로에서는 best-effort 재조회 성공 시 `activeSessionId`가 포함될 수 있고, 실패 또는 미발견 시 `details`가 없을 수 있으므로 클라이언트는 `GET /api/play-sessions/active?scenarioId=`로 fallback한다.
+이미 같은 사용자/시나리오에 `PLAYING` 세션이 있으면 409를 반환한다. `error.details`에는 `activeSessionId`만 포함할 수 있다. 일반 중복 생성과 unique race 경로 모두 별도 read-only 재조회로 `activeSessionId` 포함을 우선한다. 단, 장애성 조회 실패나 미발견 시에는 `details`가 없을 수 있으므로 클라이언트는 `GET /api/play-sessions/active?scenarioId=`로 fallback한다.
 
 ```json
 {
@@ -1408,7 +1408,7 @@ GET /api/play-sessions/{sessionId}/locations
     "sessionId": 1,
     "scenarioId": 1,
     "scenarioTitle": "서월채",
-    "mapImageUrl": "https://assets.example.com/official/seowolchae/v1/scenario/SCENARIO_SEOWOLCHAE_LAST_PRESCRIPTION.map.png",
+    "mapImageUrl": "https://assets.example.com/official/seowolchae/v1/scenario/map.png",
     "locations": [
       {
         "locationId": 1,
@@ -1416,8 +1416,7 @@ GET /api/play-sessions/{sessionId}/locations
         "name": "다이닝룸",
         "floor": "1F",
         "description": "만찬이 진행된 장소",
-        "imageAssetKey": "official/seowolchae/v1/locations/LOC_DINING_ROOM.png",
-        "imageUrl": "https://assets.example.com/official/seowolchae/v1/locations/LOC_DINING_ROOM.png",
+        "imageUrl": "https://assets.example.com/official/seowolchae/v1/locations/location-001.png",
         "mapX": 120,
         "mapY": 80,
         "totalEvidenceCount": 3,
@@ -1446,6 +1445,9 @@ GET /api/play-sessions/{sessionId}/evidences
 
 ### Response
 
+플레이어용 증거 목록 응답은 정답성/중요도 추론 metadata를 포함하지 않는다.
+`importance`, `imageAssetKey` 같은 내부 seed/admin 필드는 public play 응답에 노출하지 않는다.
+
 ```json
 {
   "success": true,
@@ -1453,10 +1455,11 @@ GET /api/play-sessions/{sessionId}/evidences
     {
       "evidenceId": 1,
       "title": "찢긴 컵 라벨",
+      "oneLine": "컵 라벨 일부가 찢긴 채 발견됨",
       "description": "라벨 조각에는 '...MOND LAT...'라는 글자가 남아 있다.",
       "locationName": "데모룸",
-      "importance": "CORE",
       "isUnlocked": true,
+      "imageUrl": "https://assets.example.com/official/demo/evidence/evidence-001.png",
       "relatedSuspects": [
         {
           "suspectId": 1,
@@ -1467,11 +1470,12 @@ GET /api/play-sessions/{sessionId}/evidences
     {
       "evidenceId": 2,
       "title": "휴대폰 위치 기록",
+      "oneLine": null,
       "description": null,
       "locationName": null,
-      "importance": "HIGH",
       "isUnlocked": false,
-      "unlockHint": "15분 후 공개"
+      "unlockHint": "15분 후 공개",
+      "imageUrl": null
     }
   ],
   "error": null
@@ -1488,6 +1492,8 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
 
 ### Response
 
+플레이어용 증거 상세 응답도 `importance`, `imageAssetKey`를 포함하지 않는다.
+
 ```json
 {
   "success": true,
@@ -1499,7 +1505,6 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
       "locationId": 1,
       "name": "데모룸"
     },
-    "importance": "CORE",
     "relatedSuspects": [
       {
         "suspectId": 1,
@@ -1532,7 +1537,6 @@ GET /api/play-sessions/{sessionId}/evidences/{evidenceId}
       ],
       "suggestedQuestions": [
         {
-          "targetCharacterCode": "SUSPECT_SAMPLE",
           "targetSuspectId": 1,
           "targetName": "박재민",
           "question": "이 증거와 다른 기록의 차이를 설명할 수 있습니까?",
@@ -1577,6 +1581,9 @@ POST /api/play-sessions/{sessionId}/evidences/{evidenceId}/unlock
 
 ### Response
 
+플레이어용 용의자 목록 응답은 후보 가능 여부나 의심도 점수 같은 정답성 metadata를 포함하지 않는다.
+`culpritEligible`, `suspicionLevel`, `portraitAssetKey`는 public play 응답에 노출하지 않는다.
+
 ```json
 {
   "success": true,
@@ -1610,8 +1617,7 @@ GET /api/play-sessions/{sessionId}/suspects
       "relationToVictim": "공동창업자",
       "publicStatement": "재무팀 자리에서 투자 자료를 정리하고 있었다.",
       "alibi": "22시 이후 데모룸 근처에 가지 않았다고 주장한다.",
-      "portraitImageUrl": "https://assets.example.com/official/demo/characters/SUSPECT_CFO.png",
-      "suspicionLevel": 60,
+      "portraitImageUrl": "https://assets.example.com/official/demo/characters/character-001.png",
       "interrogationCount": 2
     }
   ],
@@ -1629,6 +1635,8 @@ GET /api/play-sessions/{sessionId}/suspects/{suspectId}
 
 ### Response
 
+플레이어용 용의자 상세 응답도 `suspicionLevel`, `culpritEligible`, `portraitAssetKey`를 포함하지 않는다.
+
 ```json
 {
   "success": true,
@@ -1640,8 +1648,7 @@ GET /api/play-sessions/{sessionId}/suspects/{suspectId}
     "publicProfile": "회사 재무를 담당하는 인물",
     "publicStatement": "사건 당시 재무팀 자리에서 투자자료를 정리하고 있었다.",
     "alibi": "데모룸 근처에는 가지 않았다고 주장한다.",
-    "portraitImageUrl": "https://assets.example.com/official/demo/characters/SUSPECT_CFO.png",
-    "suspicionLevel": 60,
+    "portraitImageUrl": "https://assets.example.com/official/demo/characters/character-001.png",
     "relatedEvidences": [
       {
         "evidenceId": 1,
@@ -1910,6 +1917,10 @@ POST /api/play-sessions/{sessionId}/final-deduction
 ```
 
 ### Request
+
+`selectedCulpritId`, `motiveText`, `methodText`, `coverUpText`, `selectedEvidenceIds`는 모두 필수다.
+텍스트 필드는 공백만 보낼 수 없고, `motiveText`/`methodText`/`coverUpText`는 각각 1000자 이하로 제한한다.
+`selectedEvidenceIds`는 1~15개이며, 모두 현재 세션에서 해금된 증거여야 한다.
 
 ```json
 {

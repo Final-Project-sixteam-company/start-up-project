@@ -58,6 +58,7 @@ evidences: []
 timelineEvents: []
 evidenceVariantStates: []
 variants: []
+hints: []
 unlockRules: []
 npcPolicies: []
 scoring: {}
@@ -77,6 +78,7 @@ Published official scenario에서 필요한 root section:
 | `timelineEvents` | no | yes | public event로 제한하면 no |
 | `evidenceVariantStates` | variant scenario에서만 | shape only | yes |
 | `variants` | variant scenario에서만 | shape only | yes |
+| `hints` | yes | yes | hint content는 player-facing으로만 작성 |
 | `unlockRules` | yes | mostly | progression을 드러낼 수 있음 |
 | `npcPolicies` | yes | shape only | yes |
 | `scoring` | yes | shape only | yes |
@@ -88,6 +90,7 @@ Published official scenario에서 필요한 root section:
 - 모든 cross-reference는 display name이 아니라 canonical code를 사용한다.
 - Local Windows path는 YAML에 저장하면 안 된다.
 - Image는 `assetKey` 또는 `s3ObjectKey`로 참조한다.
+- Public URL로 노출될 수 있는 asset key/file name에는 `CULPRIT`, `FAKE`, `RED_HERRING`, `CORE`, solution role 같은 정답성 marker를 넣지 않는다.
 - Public/player-facing text와 backend-only truth는 별도 field로 분리한다.
 - 같은 `scenario.code + scenario.version`인데 content hash가 다르면 import가 실패해야 한다.
 - Prompt builder는 `variants`, `solution`, `scoring`, full variant evidence state를 직접 읽으면 안 된다.
@@ -375,6 +378,30 @@ Official YAML은 이 값을 required variant field로 중복 저장하지 않아
 `solution.methodSummary`는 persisted `VariantSolution.method`의 primary source다.
 Legacy top-level method layer field는 optional fallback일 뿐이다.
 
+## Hints 힌트
+
+```yaml
+hints:
+  - hintLevel: 1
+    content: "First non-spoiler investigation direction."
+    unlockAfterMinutes: 0
+    penaltyScore: 5
+```
+
+`hints`는 `hints` table로 import되고 `GET /api/play-sessions/{sessionId}/hints`에서 목록 메타데이터로 사용된다.
+힌트 본문 `content`는 사용자가 `/hints/{hintId}/use`를 호출한 뒤에만 노출된다.
+
+Guidance와 hint의 역할은 분리한다.
+
+```text
+guidance: 이미 해금된 증거를 어떻게 읽을지 안내한다.
+hint: 플레이어가 막혔을 때 다음 조사 방향을 안내한다.
+```
+
+힌트 문장은 player-facing이어야 하며, private seed note, solution text, variant truth, 정답 후보 단정 문장을 넣지 않는다.
+`hintLevel`은 1부터 시작하고 중복되지 않아야 한다.
+`unlockAfterMinutes`와 `penaltyScore`는 0 이상이어야 한다.
+
 ## Unlock Rules 해금 규칙
 
 ```yaml
@@ -487,6 +514,9 @@ assets:
 
 YAML은 stable asset key를 참조해야 한다.
 별도의 private asset map으로 local source filename을 final S3 key에 매핑할 수 있다.
+S3 object key는 public image URL에 그대로 보일 수 있으므로 player-facing 중립 이름을 사용한다.
+예: `characters/character-001.png`, `evidence/evidence-014.png`.
+금지 예: `characters/CULPRIT_*.png`, `evidence/FAKE_*.png`, `evidence/CORE_*.png`.
 
 ## Validator Rules 검증 규칙
 

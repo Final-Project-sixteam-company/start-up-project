@@ -120,6 +120,9 @@ AUTH_REQUIRE_AUTHENTICATION=false
 AUTH_ADMIN_SEED_ENABLED=false
 AUTH_ADMIN_SEED_EMAIL=
 AUTH_ADMIN_SEED_NICKNAME=ClueRoom Admin
+AUTH_QA_SEED_ENABLED=false
+AUTH_QA_SEED_EMAIL=
+AUTH_QA_SEED_NICKNAME=ClueRoom QA
 KAKAO_CLIENT_ID=...
 KAKAO_CLIENT_SECRET=...
 KAKAO_APP_ID=...
@@ -132,6 +135,7 @@ JWT secret은 32자 이상의 충분히 긴 난수로 생성하고 레포에 기
 `AUTH_DEV_LOGIN_ENABLED`는 개발/스테이징 token-flow 확인용이며 운영에서는 기본적으로 `false`를 유지한다.
 `AUTH_REQUIRE_AUTHENTICATION`은 Android가 Bearer token 첨부를 완료한 뒤 `true`로 전환한다.
 AI rate limit 검증용 admin 계정이 필요하면 `AUTH_ADMIN_SEED_ENABLED=true`와 실제 admin email을 서버 secret env에만 입력한다. 공개 문서/PR/코드에는 실제 admin email을 기록하지 않는다.
+blind QA 격리용 일반 계정이 필요하면 `AUTH_QA_SEED_ENABLED=true`와 실제 QA email을 서버 secret env에만 입력한다. 공개 문서/PR/코드에는 실제 QA email을 기록하지 않는다.
 `GOOGLE_CLIENT_IDS`는 Android/Web 등 여러 client id가 같은 백엔드를 사용할 때 comma-separated로 입력한다.
 `KAKAO_APP_ID`는 Kakao access token info 응답의 `app_id`와 비교하는 값이다.
 

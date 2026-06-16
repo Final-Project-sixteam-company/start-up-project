@@ -186,7 +186,7 @@ class PhaseEvidenceUnlockTest {
     }
 
     @Test
-    void getEvidences_resolvesImageUrlForUnlockedEvidenceAssetKey() {
+    void getEvidences_resolvesImageUrlForUnlockedEvidenceAssetKeyWithoutExposingAssetKey() {
         Scenario scenario = scenarioRepository.save(Scenario.builder()
                 .title("image test")
                 .description("image url test")
@@ -224,8 +224,6 @@ class PhaseEvidenceUnlockTest {
                 playSessionService.getEvidences(userId, session.getId(), false, null);
 
         assertThat(evidences).hasSize(1);
-        assertThat(evidences.getFirst().imageAssetKey())
-                .isEqualTo("official/seowolchae/v1/evidence/EVIDENCE_IMAGE.png");
         assertThat(evidences.getFirst().imageUrl())
                 .isEqualTo("https://assets.example.com/official/seowolchae/v1/evidence/EVIDENCE_IMAGE.png");
     }
@@ -266,7 +264,6 @@ class PhaseEvidenceUnlockTest {
         assertThat(evidences).hasSize(1);
         assertThat(evidences.getFirst().evidenceId()).isEqualTo(evidence.getId());
         assertThat(evidences.getFirst().isUnlocked()).isFalse();
-        assertThat(evidences.getFirst().imageAssetKey()).isNull();
         assertThat(evidences.getFirst().imageUrl()).isNull();
     }
 
@@ -288,7 +285,7 @@ class PhaseEvidenceUnlockTest {
                 .role("role")
                 .publicStatement("statement")
                 .alibi("alibi")
-                .portraitAssetKey("official/seowolchae/v1/characters/SUSPECT_TEST.png")
+                .portraitAssetKey("official/seowolchae/v1/characters/character-001.png")
                 .suspicionLevel(50)
                 .sortOrder(1)
                 .build());
@@ -304,6 +301,6 @@ class PhaseEvidenceUnlockTest {
         assertThat(suspects).hasSize(1);
         assertThat(suspects.getFirst().suspectId()).isEqualTo(suspect.getId());
         assertThat(suspects.getFirst().portraitImageUrl())
-                .isEqualTo("https://assets.example.com/official/seowolchae/v1/characters/SUSPECT_TEST.png");
+                .isEqualTo("https://assets.example.com/official/seowolchae/v1/characters/character-001.png");
     }
 }

@@ -9,9 +9,6 @@ public record PlaySuspectResponse(
         String publicStatement,
         String alibi,
         String portraitImageUrl,
-        Integer suspicionLevel,
-        Integer interrogationCount,
-        // 최종 범인 후보로 지목 가능한지 여부. FE는 이 값이 true인 용의자만 지목 후보로 노출한다.
-        Boolean culpritEligible
+        Integer interrogationCount
 ) {
 }

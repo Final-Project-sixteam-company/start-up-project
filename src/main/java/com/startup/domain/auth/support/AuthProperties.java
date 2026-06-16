@@ -16,6 +16,7 @@ public class AuthProperties {
     private Jwt jwt = new Jwt();
     private OAuth oauth = new OAuth();
     private AdminSeed adminSeed = new AdminSeed();
+    private QaSeed qaSeed = new QaSeed();
 
     public boolean isMockFallbackEnabled() {
         return mockFallbackEnabled;
@@ -63,6 +64,14 @@ public class AuthProperties {
 
     public void setAdminSeed(AdminSeed adminSeed) {
         this.adminSeed = adminSeed == null ? new AdminSeed() : adminSeed;
+    }
+
+    public QaSeed getQaSeed() {
+        return qaSeed;
+    }
+
+    public void setQaSeed(QaSeed qaSeed) {
+        this.qaSeed = qaSeed == null ? new QaSeed() : qaSeed;
     }
 
     public boolean isJwtSecretConfigured() {
@@ -230,6 +239,36 @@ public class AuthProperties {
 
         public void setNickname(String nickname) {
             this.nickname = (nickname == null || nickname.isBlank()) ? "ClueRoom Admin" : nickname.trim();
+        }
+    }
+
+    public static class QaSeed {
+        private boolean enabled = false;
+        private String email = "";
+        private String nickname = "ClueRoom QA";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email == null ? "" : email.trim();
+        }
+
+        public String getNickname() {
+            return nickname;
+        }
+
+        public void setNickname(String nickname) {
+            this.nickname = (nickname == null || nickname.isBlank()) ? "ClueRoom QA" : nickname.trim();
         }
     }
 }
