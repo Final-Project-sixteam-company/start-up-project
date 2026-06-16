@@ -218,10 +218,11 @@ FAILED
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/auth/oauth` | Google/Kakao provider token으로 ClueRoom token 발급 | X | O |
-| 2 | POST | `/api/auth/dev` | local/staging 개발용 로그인. 운영 기본 disabled | X | O |
-| 3 | POST | `/api/auth/refresh` | Refresh token rotation + 새 access token 발급 | X/Refresh | O |
-| 4 | POST | `/api/auth/logout` | 제출한 refresh token revoke | X/Refresh | O |
-| 5 | GET | `/api/auth/me` | 현재 인증 사용자 조회 | O | O |
+| 2 | POST | `/api/auth/toss` | Apps in Toss authorizationCode로 ClueRoom token 발급 | X | O |
+| 3 | POST | `/api/auth/dev` | local/staging 개발용 로그인. 운영 기본 disabled | X | O |
+| 4 | POST | `/api/auth/refresh` | Refresh token rotation + 새 access token 발급 | X/Refresh | O |
+| 5 | POST | `/api/auth/logout` | 제출한 refresh token revoke | X/Refresh | O |
+| 6 | GET | `/api/auth/me` | 현재 인증 사용자 조회 | O | O |
 
 ---
 
@@ -384,7 +385,7 @@ Kakao:
 
 ### Response
 
-`/api/auth/oauth`, `/api/auth/dev`, `/api/auth/refresh`는 같은 token response shape를 반환한다.
+`/api/auth/oauth`, `/api/auth/toss`, `/api/auth/dev`, `/api/auth/refresh`는 같은 token response shape를 반환한다.
 
 ```json
 {
@@ -406,7 +407,34 @@ Kakao:
 }
 ```
 
-## 5.2 개발용 로그인
+## 5.2 Apps in Toss 로그인
+
+```http
+POST /api/auth/toss
+```
+
+Apps in Toss 프론트가 `appLogin()`으로 받은 인가 코드를 백엔드에 전달한다.
+백엔드는 Toss API와 서버 간 통신으로 Toss access token을 발급받고 `login-me`에서 `userKey`를 조회한 뒤, 기존 ClueRoom JWT token pair만 프론트에 반환한다.
+Toss access/refresh token 원문은 프론트에 반환하지 않고 로그에도 남기지 않는다.
+
+### Request
+
+```json
+{
+  "authorizationCode": "apps-in-toss-authorization-code",
+  "referrer": "DEFAULT",
+  "deviceId": "apps-in-toss-installation-id"
+}
+```
+
+`referrer`는 Apps in Toss `appLogin()`의 `DEFAULT` 또는 `SANDBOX` 값을 그대로 전달한다.
+`deviceId`는 Toss 반환값이 아니라 프론트 앱의 per-install 식별자다.
+
+### Response
+
+5.1의 token response shape와 동일하다.
+
+## 5.3 개발용 로그인
 
 ```http
 POST /api/auth/dev
@@ -423,7 +451,7 @@ POST /api/auth/dev
 }
 ```
 
-## 5.3 Token refresh
+## 5.4 Token refresh
 
 ```http
 POST /api/auth/refresh
@@ -439,7 +467,7 @@ refresh 성공 시 기존 refresh token은 revoke되고 새 access/refresh token
 }
 ```
 
-## 5.4 Logout
+## 5.5 Logout
 
 ```http
 POST /api/auth/logout
@@ -454,7 +482,7 @@ POST /api/auth/logout
 }
 ```
 
-## 5.5 내 정보 조회
+## 5.6 내 정보 조회
 
 ```http
 GET /api/auth/me
@@ -2222,6 +2250,7 @@ docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
 
 ```text
 POST /api/auth/oauth
+POST /api/auth/toss
 POST /api/auth/dev
 POST /api/auth/refresh
 POST /api/auth/logout

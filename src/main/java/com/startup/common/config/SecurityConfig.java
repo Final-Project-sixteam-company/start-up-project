@@ -67,7 +67,8 @@ public class SecurityConfig {
         auth
                 .requestMatchers("/actuator/health", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/auth/dev", "/api/auth/oauth", "/api/auth/refresh", "/api/auth/logout").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/dev", "/api/auth/oauth", "/api/auth/toss",
+                        "/api/auth/refresh", "/api/auth/logout").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/scenarios/me", "/api/scenarios/bookmarked").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/scenarios", "/api/scenarios/{scenarioId}", "/api/scenarios/{scenarioId}/reviews").permitAll()

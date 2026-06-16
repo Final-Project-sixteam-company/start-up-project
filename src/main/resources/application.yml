@@ -123,6 +123,8 @@ clueroom:
         client-ids: ${GOOGLE_CLIENT_IDS:${GOOGLE_CLIENT_ID:}}
       kakao:
         app-id: ${KAKAO_APP_ID:}
+      toss:
+        api-base-url: ${TOSS_APPS_IN_TOSS_API_BASE_URL:https://apps-in-toss-api.toss.im}
     admin-seed:
       enabled: ${AUTH_ADMIN_SEED_ENABLED:false}
       email: ${AUTH_ADMIN_SEED_EMAIL:}
@@ -142,7 +144,8 @@ app:
   # 후속 PR에서 보호 API를 강제할 때 mock fallback을 끈다.
   mock-user-id: ${MOCK_USER_ID:1}
   cors:
-    # 브라우저/WebView 로컬 테스트용 CORS 허용 목록이다. Native Android 앱은 CORS 영향을 받지 않는다.
+    # 브라우저/WebView 로컬 테스트용 CORS 허용 목록이다. Apps in Toss 배포 origin은 운영 env에서 추가한다.
+    # Native Android HTTP 클라이언트는 CORS 대상이 아니다.
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:[*],http://127.0.0.1:[*],http://10.0.2.2:[*],http://192.168.*.*:[*]}
     allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
     allowed-headers: ${CORS_ALLOWED_HEADERS:*}

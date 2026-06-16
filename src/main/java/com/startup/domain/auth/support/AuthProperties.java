@@ -122,6 +122,7 @@ public class AuthProperties {
         private int timeoutSeconds = 5;
         private Google google = new Google();
         private Kakao kakao = new Kakao();
+        private Toss toss = new Toss();
 
         public int getTimeoutSeconds() {
             return timeoutSeconds;
@@ -145,6 +146,14 @@ public class AuthProperties {
 
         public void setKakao(Kakao kakao) {
             this.kakao = kakao == null ? new Kakao() : kakao;
+        }
+
+        public Toss getToss() {
+            return toss;
+        }
+
+        public void setToss(Toss toss) {
+            this.toss = toss == null ? new Toss() : toss;
         }
     }
 
@@ -209,6 +218,20 @@ public class AuthProperties {
             this.userInfoUri = (userInfoUri == null || userInfoUri.isBlank())
                     ? "https://kapi.kakao.com/v2/user/me"
                     : userInfoUri.trim();
+        }
+    }
+
+    public static class Toss {
+        private String apiBaseUrl = "https://apps-in-toss-api.toss.im";
+
+        public String getApiBaseUrl() {
+            return apiBaseUrl;
+        }
+
+        public void setApiBaseUrl(String apiBaseUrl) {
+            this.apiBaseUrl = (apiBaseUrl == null || apiBaseUrl.isBlank())
+                    ? "https://apps-in-toss-api.toss.im"
+                    : apiBaseUrl.trim();
         }
     }
 
