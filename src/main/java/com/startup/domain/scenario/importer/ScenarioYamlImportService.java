@@ -6,6 +6,7 @@ import com.startup.domain.scenario.entity.Evidence;
 import com.startup.domain.scenario.entity.EvidenceSuspect;
 import com.startup.domain.scenario.entity.EvidenceUnlockRule;
 import com.startup.domain.scenario.entity.EvidenceVariantState;
+import com.startup.domain.scenario.entity.Hint;
 import com.startup.domain.scenario.entity.NpcKnowledgeProfile;
 import com.startup.domain.scenario.entity.Scenario;
 import com.startup.domain.scenario.entity.ScenarioAsset;
@@ -29,6 +30,7 @@ import com.startup.domain.scenario.repository.EvidenceRepository;
 import com.startup.domain.scenario.repository.EvidenceSuspectRepository;
 import com.startup.domain.scenario.repository.EvidenceUnlockRuleRepository;
 import com.startup.domain.scenario.repository.EvidenceVariantStateRepository;
+import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.repository.NpcKnowledgeProfileRepository;
 import com.startup.domain.scenario.repository.ScenarioAssetRepository;
 import com.startup.domain.scenario.repository.ScenarioLocationRepository;
@@ -72,6 +74,7 @@ public class ScenarioYamlImportService {
     private final ScenarioAssetRepository scenarioAssetRepository;
     private final SuspectResponsePolicyRepository suspectResponsePolicyRepository;
     private final TimelineEventRepository timelineEventRepository;
+    private final HintRepository hintRepository;
     private final JsonMapper jsonMapper;
 
     @Transactional
@@ -104,6 +107,7 @@ public class ScenarioYamlImportService {
         Map<String, ScenarioVariant> variantsByCode = saveVariantsAndSolutions(
                 yaml, scenario.getId(), suspectsByCode, evidencesByCode);
         saveEvidenceVariantStates(yaml, scenario.getId(), variantsByCode, evidencesByCode);
+        saveHints(yaml, scenario.getId());
         saveUnlockRules(yaml, scenario.getId(), evidencesByCode, unlockRulesByEvidenceCode);
         saveNpcPolicies(yaml, scenario.getId(), suspectsByCode, evidencesByCode);
         saveAssets(yaml, scenario.getId());
@@ -118,6 +122,7 @@ public class ScenarioYamlImportService {
                 listOf(yaml.evidences()).size(),
                 listOf(yaml.variants()).size(),
                 listOf(yaml.evidenceVariantStates()).size(),
+                listOf(yaml.hints()).size(),
                 listOf(yaml.unlockRules()).size(),
                 listOf(yaml.npcPolicies()).size(),
                 listOf(yaml.timelineEvents()).size(),
@@ -362,6 +367,18 @@ public class ScenarioYamlImportService {
                     .detailOverride(stateYaml.detailOverride())
                     .detailAppend(stateYaml.detailAppend())
                     .proofDimensionsJson(toJson(stateYaml.proofDimensions()))
+                    .build());
+        }
+    }
+
+    private void saveHints(ScenarioYaml yaml, Long scenarioId) {
+        for (ScenarioYaml.HintYaml hintYaml : listOf(yaml.hints())) {
+            hintRepository.save(Hint.builder()
+                    .scenarioId(scenarioId)
+                    .hintLevel(hintYaml.hintLevel())
+                    .content(hintYaml.content())
+                    .unlockAfterMinutes(hintYaml.unlockAfterMinutes())
+                    .penaltyScore(hintYaml.penaltyScore())
                     .build());
         }
     }

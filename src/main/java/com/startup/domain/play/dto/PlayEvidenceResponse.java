@@ -1,7 +1,5 @@
 package com.startup.domain.play.dto;
 
-import com.startup.domain.scenario.enums.EvidenceImportance;
-
 import java.util.List;
 
 // 플레이 세션 증거 목록 조회 응답 DTO (API 스펙 섹션 9.4)
@@ -10,9 +8,7 @@ public record PlayEvidenceResponse(
         String title,
         String oneLine,
         String description,
-        String imageAssetKey,
         String locationName,
-        EvidenceImportance importance,
         Boolean isUnlocked,
         String unlockHint,
         String imageUrl,

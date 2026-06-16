@@ -133,6 +133,9 @@ cp .env.example .env
 | `AUTH_ADMIN_SEED_ENABLED` | 운영 secret env에 지정한 admin 테스트 계정을 생성/승격할지 여부. 기본 `false` |
 | `AUTH_ADMIN_SEED_EMAIL` | admin seed 대상 이메일. 실제 값은 서버 secret env에만 저장 |
 | `AUTH_ADMIN_SEED_NICKNAME` | admin seed 신규 생성 시 nickname |
+| `AUTH_QA_SEED_ENABLED` | 운영 secret env에 지정한 QA 전용 일반 계정을 생성할지 여부. 기본 `false` |
+| `AUTH_QA_SEED_EMAIL` | QA seed 대상 이메일. 실제 값은 서버 secret env에만 저장 |
+| `AUTH_QA_SEED_NICKNAME` | QA seed 신규 생성 시 nickname |
 | `JWT_ISSUER` | JWT issuer. 운영 기본 `https://api.clueroom.xyz` |
 | `JWT_SECRET` | 서버 전용 JWT HMAC secret. 레포/.env.example에는 실제 값 저장 금지 |
 | `JWT_ACCESS_TOKEN_TTL_SECONDS` | access token 유효 시간 |
@@ -268,6 +271,16 @@ AUTH_ADMIN_SEED_NICKNAME=ClueRoom Admin
 ```
 
 `AUTH_ADMIN_SEED_ENABLED=true`인데 email이 비어 있거나 inactive user를 가리키면 앱 부팅이 실패한다. 정상 부팅 시 해당 email의 `users.role`은 `ADMIN`으로 보장된다. 이후 AI rate limit 정책은 `ADMIN` role을 bypass 대상으로 삼는다.
+
+운영/스테이징에서 blind QA 격리용 일반 계정이 필요하면 secret env에만 아래 값을 둔다. 실제 이메일은 공개 문서, PR 본문, 코드에 기록하지 않는다.
+
+```properties
+AUTH_QA_SEED_ENABLED=true
+AUTH_QA_SEED_EMAIL=<server-secret-qa-email>
+AUTH_QA_SEED_NICKNAME=ClueRoom QA
+```
+
+`AUTH_QA_SEED_ENABLED=true`인데 email이 비어 있거나 inactive user를 가리키면 앱 부팅이 실패한다. 정상 부팅 시 해당 email의 `users.role`은 기존 role을 유지하며, 신규 생성 시에는 `USER`다. admin seed와 QA seed는 같은 email을 사용할 수 없다. 이후 Google/Kakao가 verified email을 제공하면 OAuth provider 계정은 이 QA 계정에 연결된다.
 
 Android OAuth 로그인은 앱이 provider SDK로 받은 token을 백엔드에 전달하고, 백엔드는 provider 검증 후 ClueRoom JWT를 발급한다.
 

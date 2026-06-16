@@ -59,6 +59,18 @@ class FinalDeductionRequestValidationTest {
     }
 
     @Test
+    @DisplayName("coverUpText 빈 값 -> 400, 채점 미호출")
+    void coverUpBlank() throws Exception {
+        mockMvc.perform(post("/api/play-sessions/1/final-deduction")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"selectedCulpritId\":1,\"motiveText\":\"m\",\"methodText\":\"x\","
+                                + "\"coverUpText\":\" \",\"selectedEvidenceIds\":[1]}"))
+                .andExpect(status().isBadRequest());
+
+        verify(scorer, never()).submitAndScore(anyLong(), any());
+    }
+
+    @Test
     @DisplayName("1000자 이하 텍스트는 정상 통과")
     void withinLimitPasses() throws Exception {
         String okText = "a".repeat(1000);

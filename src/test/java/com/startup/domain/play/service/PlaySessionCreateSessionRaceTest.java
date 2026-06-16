@@ -10,6 +10,7 @@ import com.startup.domain.play.error.PlayException;
 import com.startup.domain.play.repository.PlaySessionRepository;
 import com.startup.domain.play.repository.UnlockedEvidenceRepository;
 import com.startup.domain.play.repository.UsedHintRepository;
+import com.startup.domain.play.support.ActivePlaySessionLookup;
 import com.startup.domain.play.support.EvidenceUnlockPolicy;
 import com.startup.domain.play.support.EvidenceVariantDescriptionResolver;
 import com.startup.domain.play.support.FinalDeductionLockManager;
@@ -89,6 +90,8 @@ class PlaySessionCreateSessionRaceTest {
     @Mock
     private ScenarioVariantRepository scenarioVariantRepository;
     @Mock
+    private ActivePlaySessionLookup activePlaySessionLookup;
+    @Mock
     private FinalDeductionLockManager finalDeductionLockManager;
     @Mock
     private EvidenceVariantDescriptionResolver evidenceVariantDescriptionResolver;
@@ -104,7 +107,9 @@ class PlaySessionCreateSessionRaceTest {
         PlaySession existing = playingSession(100L);
         when(scenarioRepository.findByIdForUpdate(SCENARIO_ID)).thenReturn(Optional.of(scenario()));
         when(playSessionRepository.findByUserIdAndScenarioIdAndStatus(USER_ID, SCENARIO_ID, PlaySessionStatus.PLAYING))
-                .thenReturn(Optional.empty(), Optional.of(existing));
+                .thenReturn(Optional.empty());
+        when(activePlaySessionLookup.findPlaying(USER_ID, SCENARIO_ID))
+                .thenReturn(Optional.of(existing));
         when(scenarioVariantRepository.findAllByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(SCENARIO_ID))
                 .thenReturn(List.of());
         doThrow(new DataIntegrityViolationException("duplicate"))
@@ -125,7 +130,8 @@ class PlaySessionCreateSessionRaceTest {
     void createSession_whenDuplicateLookupFails_fallsBackToP002WithoutDetails() {
         when(scenarioRepository.findByIdForUpdate(SCENARIO_ID)).thenReturn(Optional.of(scenario()));
         when(playSessionRepository.findByUserIdAndScenarioIdAndStatus(USER_ID, SCENARIO_ID, PlaySessionStatus.PLAYING))
-                .thenReturn(Optional.empty())
+                .thenReturn(Optional.empty());
+        when(activePlaySessionLookup.findPlaying(USER_ID, SCENARIO_ID))
                 .thenThrow(new IllegalStateException("rollback-only"));
         when(scenarioVariantRepository.findAllByScenarioIdAndIsActiveTrueOrderBySortOrderAsc(SCENARIO_ID))
                 .thenReturn(List.of());

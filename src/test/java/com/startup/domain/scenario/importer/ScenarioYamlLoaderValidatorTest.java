@@ -33,6 +33,8 @@ class ScenarioYamlLoaderValidatorTest {
                 .containsExactly("EVIDENCE_SUPPORT");
         assertThat(yaml.evidences().getFirst().guidance().suggestedQuestions().getFirst().targetCharacterCode())
                 .isEqualTo("SUSPECT_TEST");
+        assertThat(yaml.hints()).hasSize(2);
+        assertThat(yaml.hints().getFirst().content()).isEqualTo("초기 증거의 시간과 장소를 먼저 맞춰 보세요.");
         assertThat(yaml.locations().getFirst().mapX()).isEqualTo(120);
         assertThat(yaml.locations().getFirst().mapY()).isEqualTo(80);
         assertThat(violations).isEmpty();
@@ -190,10 +192,41 @@ class ScenarioYamlLoaderValidatorTest {
     }
 
     @Test
+    void publishedEvidenceAssetKeyWithSpoilerMarker_failsValidation() throws IOException {
+        String invalidYaml = published(SAMPLE_YAML).replace(
+                "imageAssetKey: official/sample/v1/evidence/EVIDENCE_KEY.png",
+                "imageAssetKey: official/sample/v1/evidence/FAKE_EVIDENCE_KEY.png"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "evidences[EVIDENCE_KEY].imageAssetKey contains blocked public asset marker: fake"));
+    }
+
+    @Test
+    void publishedAssetManifestKeyWithSpoilerMarker_failsValidation() throws IOException {
+        String invalidYaml = published(SAMPLE_YAML)
+                .replace(
+                        "assetKey: official/sample/v1/evidence/EVIDENCE_KEY.png",
+                        "assetKey: official/sample/v1/evidence/CORE_EVIDENCE_KEY.png"
+                )
+                .replace(
+                        "s3ObjectKey: official/sample/v1/evidence/EVIDENCE_KEY.png",
+                        "s3ObjectKey: official/sample/v1/evidence/RED_HERRING_EVIDENCE_KEY.png"
+                );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "assets[].assetKey contains blocked public asset marker: core"));
+        assertThat(violations).anyMatch(message -> message.contains(
+                "s3ObjectKey contains blocked public asset marker: red_herring"));
+    }
+
+    @Test
     void publishedYamlRequiresNonEmptyRootSections() throws IOException {
-        String invalidYaml = SAMPLE_YAML
-                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
-                .replace("status: DRAFT", "status: PUBLISHED");
+        String invalidYaml = published(SAMPLE_YAML);
         invalidYaml = invalidYaml.substring(0, invalidYaml.indexOf("assets:"))
                 + "assets: []\n";
 
@@ -203,10 +236,35 @@ class ScenarioYamlLoaderValidatorTest {
     }
 
     @Test
+    void duplicateHintLevel_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "  - hintLevel: 2",
+                "  - hintLevel: 1"
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains("duplicate hintLevel: 1"));
+    }
+
+    @Test
+    void hintContentWithPrivateOrSolutionMarker_failsValidation() throws IOException {
+        String invalidYaml = SAMPLE_YAML.replace(
+                "초기 증거의 시간과 장소를 먼저 맞춰 보세요.",
+                "범인과 정답 경로를 먼저 확인하세요."
+        );
+
+        List<String> violations = validator.validate(load(invalidYaml));
+
+        assertThat(violations).anyMatch(message -> message.contains(
+                "hints[1].content contains blocked private/solution marker: 범인"));
+        assertThat(violations).anyMatch(message -> message.contains(
+                "hints[1].content contains blocked private/solution marker: 정답"));
+    }
+
+    @Test
     void publishedYamlRequiresEnabledVariant() throws IOException {
-        String invalidYaml = SAMPLE_YAML
-                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
-                .replace("status: DRAFT", "status: PUBLISHED")
+        String invalidYaml = published(SAMPLE_YAML)
                 .replace("enabled: true", "enabled: false");
 
         List<String> violations = validator.validate(load(invalidYaml));
@@ -216,9 +274,7 @@ class ScenarioYamlLoaderValidatorTest {
 
     @Test
     void publishedEnabledVariantRequiresSolutionMethodSummary() throws IOException {
-        String invalidYaml = SAMPLE_YAML
-                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
-                .replace("status: DRAFT", "status: PUBLISHED")
+        String invalidYaml = published(SAMPLE_YAML)
                 .replace("      methodSummary: \"방법\"\n", "");
 
         List<String> violations = validator.validate(load(invalidYaml));
@@ -228,9 +284,7 @@ class ScenarioYamlLoaderValidatorTest {
 
     @Test
     void publishedYamlRequiresLocationCoordinates() throws IOException {
-        String invalidYaml = SAMPLE_YAML
-                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
-                .replace("status: DRAFT", "status: PUBLISHED")
+        String invalidYaml = published(SAMPLE_YAML)
                 .replace("    mapX: 120\n    mapY: 80\n", "");
 
         List<String> violations = validator.validate(load(invalidYaml));
@@ -295,6 +349,12 @@ class ScenarioYamlLoaderValidatorTest {
         } finally {
             Files.deleteIfExists(tempFile);
         }
+    }
+
+    private static String published(String yaml) {
+        return yaml
+                .replace("contentStatus: DRAFT", "contentStatus: PUBLISHED")
+                .replace("status: DRAFT", "status: PUBLISHED");
     }
 
     private static final String SAMPLE_YAML = """
@@ -429,6 +489,16 @@ class ScenarioYamlLoaderValidatorTest {
                         - EVIDENCE_KEY
                 misleadingEvidenceCodes:
                   - EVIDENCE_SUPPORT
+
+            hints:
+              - hintLevel: 1
+                content: "초기 증거의 시간과 장소를 먼저 맞춰 보세요."
+                unlockAfterMinutes: 0
+                penaltyScore: 5
+              - hintLevel: 2
+                content: "핵심 증거와 초기 증거의 차이를 비교해 보세요."
+                unlockAfterMinutes: 5
+                penaltyScore: 10
 
             unlockRules:
               - evidenceCode: EVIDENCE_KEY

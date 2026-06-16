@@ -16,7 +16,6 @@ public record PlayLocationsResponse(
             String name,
             String floor,
             String description,
-            String imageAssetKey,
             String imageUrl,
             Integer mapX,
             Integer mapY,

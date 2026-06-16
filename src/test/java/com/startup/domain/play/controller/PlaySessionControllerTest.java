@@ -92,8 +92,7 @@ class PlaySessionControllerTest {
                         "침실",
                         "2F",
                         "피해자가 발견된 방",
-                        "official/seowolchae/v1/locations/LOC_BEDROOM.png",
-                        "https://assets.example.com/official/seowolchae/v1/locations/LOC_BEDROOM.png",
+                        "https://assets.example.com/official/seowolchae/v1/locations/location-001.png",
                         120,
                         80,
                         2,
@@ -112,8 +111,9 @@ class PlaySessionControllerTest {
                 .andExpect(jsonPath("$.data.scenarioTitle").value("서월채"))
                 .andExpect(jsonPath("$.data.mapImageUrl").value("https://assets.example.com/map.png"))
                 .andExpect(jsonPath("$.data.locations[0].locationCode").value("LOC_BEDROOM"))
+                .andExpect(jsonPath("$.data.locations[0].imageAssetKey").doesNotExist())
                 .andExpect(jsonPath("$.data.locations[0].imageUrl")
-                        .value("https://assets.example.com/official/seowolchae/v1/locations/LOC_BEDROOM.png"))
+                        .value("https://assets.example.com/official/seowolchae/v1/locations/location-001.png"))
                 .andExpect(jsonPath("$.error").doesNotExist());
 
         verify(playSessionService).getLocations(1L, 100L);
@@ -159,7 +159,6 @@ class PlaySessionControllerTest {
                         .evidenceId(200L)
                         .title("현재 증거")
                         .description("현재 증거 상세")
-                        .importance(null)
                         .guidance(new PlayEvidenceDetailResponse.EvidenceGuidanceInfo(
                                 List.of("시간대를 비교한다."),
                                 List.of(
@@ -215,8 +214,7 @@ class PlaySessionControllerTest {
                         "이사장의 일정을 관리한다.",
                         "회의실에 있었다고 주장한다.",
                         "20시 이후 1층에 있었다고 말한다.",
-                        "https://assets.example.com/official/seowolchae/v1/characters/SUSPECT_SECRETARY.png",
-                        70,
+                        "https://assets.example.com/official/seowolchae/v1/characters/character-001.png",
                         List.of(new PlaySuspectDetailResponse.RelatedEvidenceDto(200L, "해금 증거", true)),
                         List.of()
                 ));
@@ -230,7 +228,7 @@ class PlaySessionControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.suspectId").value(300L))
                 .andExpect(jsonPath("$.data.portraitImageUrl")
-                        .value("https://assets.example.com/official/seowolchae/v1/characters/SUSPECT_SECRETARY.png"))
+                        .value("https://assets.example.com/official/seowolchae/v1/characters/character-001.png"))
                 .andExpect(jsonPath("$.data.relatedEvidences[0].evidenceId").value(200L))
                 .andExpect(jsonPath("$.error").doesNotExist());
 

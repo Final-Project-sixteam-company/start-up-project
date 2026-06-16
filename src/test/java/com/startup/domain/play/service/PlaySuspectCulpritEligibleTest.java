@@ -1,5 +1,7 @@
 package com.startup.domain.play.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.startup.domain.play.dto.PlaySuspectResponse;
 import com.startup.domain.play.entity.PlaySession;
 import com.startup.domain.play.repository.PlaySessionRepository;
@@ -18,14 +20,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@DisplayName("C2-BE: 용의자 목록 응답에 culpritEligible이 노출된다 (P1-4)")
+@DisplayName("C2-BE: 용의자 목록 응답은 정답성 metadata를 노출하지 않는다")
 class PlaySuspectCulpritEligibleTest {
 
     @Autowired
@@ -41,6 +40,7 @@ class PlaySuspectCulpritEligibleTest {
     private PlaySessionRepository playSessionRepository;
 
     private static final Long USER_ID = 7001L;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @AfterEach
     void tearDown() {
@@ -50,8 +50,8 @@ class PlaySuspectCulpritEligibleTest {
     }
 
     @Test
-    @DisplayName("지목 가능 용의자는 true, 지목 불가(증인)는 false로 내려간다")
-    void getSuspects_exposesCulpritEligible() {
+    @DisplayName("culpritEligible과 suspicionLevel은 public suspect response에 포함하지 않는다")
+    void getSuspects_omitsTruthAdjacentMetadata() throws JsonProcessingException {
         Scenario scenario = scenarioRepository.save(Scenario.builder()
                 .title("culpritEligible test")
                 .description("desc")
@@ -63,7 +63,7 @@ class PlaySuspectCulpritEligibleTest {
 
         suspectRepository.save(Suspect.builder()
                 .scenarioId(scenario.getId())
-                .name("범인후보")
+                .name("후보A")
                 .role("비서실장")
                 .characterType("SUSPECT")
                 .culpritEligible(true)
@@ -87,10 +87,12 @@ class PlaySuspectCulpritEligibleTest {
 
         List<PlaySuspectResponse> suspects = playSessionService.getSuspects(USER_ID, session.getId());
 
-        Map<String, PlaySuspectResponse> byName = suspects.stream()
-                .collect(Collectors.toMap(PlaySuspectResponse::name, Function.identity()));
-
-        assertThat(byName.get("범인후보").culpritEligible()).isTrue();
-        assertThat(byName.get("증인").culpritEligible()).isFalse();
+        assertThat(suspects)
+                .extracting(PlaySuspectResponse::name)
+                .containsExactly("후보A", "증인");
+        String json = objectMapper.writeValueAsString(suspects);
+        assertThat(json)
+                .doesNotContain("culpritEligible")
+                .doesNotContain("suspicionLevel");
     }
 }

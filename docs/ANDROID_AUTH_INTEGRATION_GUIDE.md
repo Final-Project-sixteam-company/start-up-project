@@ -151,6 +151,8 @@ email linking은 Google email_verified=true일 때만 수행한다.
 email이 없거나 검증되지 않았으면 email=null 사용자도 생성될 수 있다.
 ```
 
+QA 전용 계정은 서버 secret env의 `AUTH_QA_SEED_*`로 일반 USER row를 먼저 만들 수 있다. Google이 같은 verified email을 반환하면 해당 OAuth provider 계정은 기존 QA user에 연결된다.
+
 ### 4.2 Kakao
 
 Android는 Kakao SDK로 Kakao access token을 받은 뒤 백엔드에 전달한다.
@@ -186,6 +188,8 @@ Kakao access_token_info app_id가 서버 KAKAO_APP_ID와 일치해야 한다.
 email linking은 Kakao email이 유효하고 검증된 경우에만 수행한다.
 email이 없거나 검증되지 않았으면 email=null 사용자도 생성될 수 있다.
 ```
+
+QA 전용 계정은 서버 secret env의 `AUTH_QA_SEED_*`로 일반 USER row를 먼저 만들 수 있다. Kakao가 같은 verified email을 반환하면 해당 OAuth provider 계정은 기존 QA user에 연결된다.
 
 ---
 

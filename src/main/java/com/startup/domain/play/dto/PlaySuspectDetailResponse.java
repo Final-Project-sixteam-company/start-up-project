@@ -17,7 +17,6 @@ public record PlaySuspectDetailResponse(
         String publicStatement,
         String alibi,
         String portraitImageUrl,
-        Integer suspicionLevel,
         List<RelatedEvidenceDto> relatedEvidences,
         List<InterrogationLogDto> interrogationLogs
 ) {
@@ -66,7 +65,6 @@ public record PlaySuspectDetailResponse(
                 suspect.getPublicStatement(),
                 suspect.getAlibi(),
                 portraitImageUrl,
-                suspect.getSuspicionLevel(),
                 relatedUnlockedEvidences.stream()
                         .map(RelatedEvidenceDto::from)
                         .toList(),

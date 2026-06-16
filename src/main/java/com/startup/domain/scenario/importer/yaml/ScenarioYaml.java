@@ -13,6 +13,7 @@ public record ScenarioYaml(
         List<TimelineEventYaml> timelineEvents,
         List<EvidenceVariantStateYaml> evidenceVariantStates,
         List<VariantYaml> variants,
+        List<HintYaml> hints,
         List<UnlockRuleYaml> unlockRules,
         List<NpcPolicyYaml> npcPolicies,
         Map<String, Object> scoring,
@@ -162,6 +163,14 @@ public record ScenarioYaml(
             Map<String, Object> coreTimeWindow,
             Map<String, Object> solution,
             List<String> misleadingEvidenceCodes
+    ) {
+    }
+
+    public record HintYaml(
+            Integer hintLevel,
+            String content,
+            Integer unlockAfterMinutes,
+            Integer penaltyScore
     ) {
     }
 

@@ -153,6 +153,9 @@ AUTH_REQUIRE_AUTHENTICATION
 AUTH_ADMIN_SEED_ENABLED
 AUTH_ADMIN_SEED_EMAIL
 AUTH_ADMIN_SEED_NICKNAME
+AUTH_QA_SEED_ENABLED
+AUTH_QA_SEED_EMAIL
+AUTH_QA_SEED_NICKNAME
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_IDS
 KAKAO_APP_ID
@@ -167,6 +170,7 @@ OAuth email 기반 기존 계정 연결은 provider verified email에만 허용�
 보호 모드에서는 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 요청에 `MOCK_USER_ID`를 부여하지 않는다.
 CORS preflight `OPTIONS` 요청은 인증 없이 통과해야 한다.
 AI rate limit 검증용 admin 계정은 `AUTH_ADMIN_SEED_*` 값으로만 생성/승격한다. 실제 admin email은 서버 secret env에만 저장하고 공개 문서/PR에 기록하지 않는다.
+blind QA 격리용 일반 계정은 `AUTH_QA_SEED_*` 값으로만 생성/재사용한다. 실제 QA email은 서버 secret env에만 저장하고 공개 문서/PR에 기록하지 않는다.
 
 Admin seed 설정 예:
 
@@ -189,6 +193,30 @@ mysql -h 172.26.1.185 -u <user> -p <database> \
 role=ADMIN
 status=ACTIVE
 ```
+
+QA seed 설정 예:
+
+```text
+AUTH_QA_SEED_ENABLED=true
+AUTH_QA_SEED_EMAIL=<server-secret-qa-email>
+AUTH_QA_SEED_NICKNAME=ClueRoom QA
+```
+
+QA seed 검증:
+
+```bash
+mysql -h 172.26.1.185 -u <user> -p <database> \
+  -e "SELECT id, role, status FROM users WHERE email = '<server-secret-qa-email>';"
+```
+
+기대:
+
+```text
+role=USER 또는 기존 role 유지
+status=ACTIVE
+```
+
+`AUTH_QA_SEED_EMAIL`은 `AUTH_ADMIN_SEED_EMAIL`과 달라야 한다. QA OAuth 계정은 provider가 verified email을 제공한 경우 이 seed user에 연결된다.
 
 Admin seed rollback:
 

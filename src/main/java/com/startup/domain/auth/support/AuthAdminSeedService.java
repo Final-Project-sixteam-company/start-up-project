@@ -22,20 +22,34 @@ public class AuthAdminSeedService {
 
     private static final int MAX_EMAIL_LENGTH = 255;
     private static final String DEFAULT_ADMIN_NICKNAME = "ClueRoom Admin";
+    private static final String DEFAULT_QA_NICKNAME = "ClueRoom QA";
 
     private final AuthProperties authProperties;
     private final UserRepository userRepository;
     private final PlatformTransactionManager transactionManager;
 
     public void seedIfEnabled() {
-        AuthProperties.AdminSeed seed = authProperties.getAdminSeed();
-        if (!seed.isEnabled()) {
-            return;
+        AuthProperties.AdminSeed adminSeed = authProperties.getAdminSeed();
+        AuthProperties.QaSeed qaSeed = authProperties.getQaSeed();
+        String adminEmail = null;
+        String qaEmail = null;
+
+        if (adminSeed.isEnabled()) {
+            adminEmail = normalizeEmail(adminSeed.getEmail(), "AUTH_ADMIN_SEED_EMAIL");
+        }
+        if (qaSeed.isEnabled()) {
+            qaEmail = normalizeEmail(qaSeed.getEmail(), "AUTH_QA_SEED_EMAIL");
+        }
+        if (adminEmail != null && adminEmail.equals(qaEmail)) {
+            throw new IllegalStateException("AUTH_QA_SEED_EMAIL must differ from AUTH_ADMIN_SEED_EMAIL.");
         }
 
-        String email = normalizeEmail(seed.getEmail());
-        String nickname = normalizeNickname(seed.getNickname());
-        ensureAdminWithRetry(email, nickname);
+        if (adminEmail != null) {
+            ensureAdminWithRetry(adminEmail, normalizeNickname(adminSeed.getNickname(), DEFAULT_ADMIN_NICKNAME));
+        }
+        if (qaEmail != null) {
+            ensureQaWithRetry(qaEmail, normalizeNickname(qaSeed.getNickname(), DEFAULT_QA_NICKNAME));
+        }
     }
 
     private void ensureAdminWithRetry(String email, String nickname) {
@@ -47,9 +61,25 @@ public class AuthAdminSeedService {
         }
     }
 
+    private void ensureQaWithRetry(String email, String nickname) {
+        try {
+            ensureQaInNewTransaction(email, nickname);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Auth QA seed insert raced with another instance. Retrying by lookup.");
+            ensureQaInNewTransaction(email, nickname);
+        }
+    }
+
     private void ensureAdminInNewTransaction(String email, String nickname) {
         Objects.requireNonNull(new TransactionTemplate(transactionManager).execute(status -> {
             ensureAdmin(email, nickname);
+            return Boolean.TRUE;
+        }));
+    }
+
+    private void ensureQaInNewTransaction(String email, String nickname) {
+        Objects.requireNonNull(new TransactionTemplate(transactionManager).execute(status -> {
+            ensureQaUser(email, nickname);
             return Boolean.TRUE;
         }));
     }
@@ -71,15 +101,35 @@ public class AuthAdminSeedService {
         log.info("Auth admin seed ensured: email={}", maskEmail(email));
     }
 
-    private String normalizeEmail(String email) {
+    private void ensureQaUser(String email, String nickname) {
+        User user = userRepository.findByEmail(email)
+                .orElseGet(() -> userRepository.saveAndFlush(User.builder()
+                        .email(email)
+                        .nickname(nickname)
+                        .role(UserRole.USER)
+                        .status(UserStatus.ACTIVE)
+                        .build()));
+
+        if (!user.isActive()) {
+            throw new IllegalStateException("AUTH_QA_SEED_EMAIL points to a non-active user.");
+        }
+
+        log.info("Auth QA seed ensured: email={}", maskEmail(email));
+    }
+
+    private String normalizeEmail(String email, String envName) {
         if (!StringUtils.hasText(email)) {
-            throw new IllegalStateException("AUTH_ADMIN_SEED_EMAIL is required when AUTH_ADMIN_SEED_ENABLED=true.");
+            throw new IllegalStateException(envName + " is required when " + enabledEnvName(envName) + "=true.");
         }
         String normalized = email.trim().toLowerCase(Locale.ROOT);
         if (!isValidEmail(normalized)) {
-            throw new IllegalStateException("AUTH_ADMIN_SEED_EMAIL is invalid.");
+            throw new IllegalStateException(envName + " is invalid.");
         }
         return normalized;
+    }
+
+    private String enabledEnvName(String emailEnvName) {
+        return emailEnvName.replace("_EMAIL", "_ENABLED");
     }
 
     private boolean isValidEmail(String email) {
@@ -92,9 +142,9 @@ public class AuthAdminSeedService {
                 && email.indexOf(' ', 0) < 0;
     }
 
-    private String normalizeNickname(String nickname) {
+    private String normalizeNickname(String nickname, String defaultNickname) {
         if (!StringUtils.hasText(nickname)) {
-            return DEFAULT_ADMIN_NICKNAME;
+            return defaultNickname;
         }
         return nickname.trim();
     }
