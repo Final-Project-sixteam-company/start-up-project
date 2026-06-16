@@ -223,6 +223,8 @@ public class AuthProperties {
 
     public static class Toss {
         private String apiBaseUrl = "https://apps-in-toss-api.toss.im";
+        private String mtlsCertPath = "";
+        private String mtlsKeyPath = "";
 
         public String getApiBaseUrl() {
             return apiBaseUrl;
@@ -232,6 +234,26 @@ public class AuthProperties {
             this.apiBaseUrl = (apiBaseUrl == null || apiBaseUrl.isBlank())
                     ? "https://apps-in-toss-api.toss.im"
                     : apiBaseUrl.trim();
+        }
+
+        public String getMtlsCertPath() {
+            return mtlsCertPath;
+        }
+
+        public void setMtlsCertPath(String mtlsCertPath) {
+            this.mtlsCertPath = mtlsCertPath == null ? "" : mtlsCertPath.trim();
+        }
+
+        public String getMtlsKeyPath() {
+            return mtlsKeyPath;
+        }
+
+        public void setMtlsKeyPath(String mtlsKeyPath) {
+            this.mtlsKeyPath = mtlsKeyPath == null ? "" : mtlsKeyPath.trim();
+        }
+
+        public boolean isMtlsConfigured() {
+            return !mtlsCertPath.isBlank() && !mtlsKeyPath.isBlank();
         }
     }
 

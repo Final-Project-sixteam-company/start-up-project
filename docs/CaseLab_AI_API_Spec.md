@@ -417,6 +417,11 @@ Apps in Toss 프론트가 `appLogin()`으로 받은 인가 코드를 백엔드�
 백엔드는 Toss API와 서버 간 통신으로 Toss access token을 발급받고 `login-me`에서 `userKey`를 조회한 뒤, 기존 ClueRoom JWT token pair만 프론트에 반환한다.
 Toss access/refresh token 원문은 프론트에 반환하지 않고 로그에도 남기지 않는다.
 
+운영 `https://apps-in-toss-api.toss.im` 호출은 Toss 서버 간 API 요구사항에 따라 mTLS client certificate가 필요하다.
+백엔드는 `TOSS_APPS_IN_TOSS_MTLS_CERT_PATH`, `TOSS_APPS_IN_TOSS_MTLS_KEY_PATH`에 지정된 서버 로컬 PEM 파일로 TLS client 인증을 구성한다.
+private key 파일은 unencrypted PKCS#8 PEM 형식이어야 한다.
+인증서/키 원문은 repository, 프론트, 로그에 남기지 않는다.
+
 ### Request
 
 ```json

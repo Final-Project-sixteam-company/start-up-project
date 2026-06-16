@@ -187,6 +187,40 @@ class OAuthProviderClientTest {
         }
     }
 
+    @Test
+    void appsInTossRealEndpointRequiresMtlsConfiguration() {
+        AppsInTossOAuthClient client = new AppsInTossOAuthClient(properties(), JsonMapper.builder().build());
+
+        assertThatThrownBy(() -> client.verify(new TossLoginRequest("auth-code", "DEFAULT", "device")))
+                .isInstanceOf(AuthException.class)
+                .extracting(e -> ((AuthException) e).getErrorCode())
+                .isEqualTo(AuthErrorCode.OAUTH_PROVIDER_NOT_CONFIGURED);
+    }
+
+    @Test
+    void appsInTossRealEndpointRequiresBothMtlsPaths() {
+        AuthProperties authProperties = properties();
+        authProperties.getOauth().getToss().setMtlsCertPath("/opt/clueroom/secrets/toss/client.crt");
+        AppsInTossOAuthClient client = new AppsInTossOAuthClient(authProperties, JsonMapper.builder().build());
+
+        assertThatThrownBy(() -> client.verify(new TossLoginRequest("auth-code", "DEFAULT", "device")))
+                .isInstanceOf(AuthException.class)
+                .extracting(e -> ((AuthException) e).getErrorCode())
+                .isEqualTo(AuthErrorCode.OAUTH_PROVIDER_NOT_CONFIGURED);
+    }
+
+    @Test
+    void appsInTossRejectsInvalidMtlsFiles() {
+        AuthProperties authProperties = properties();
+        authProperties.getOauth().getToss().setMtlsCertPath("/opt/clueroom/secrets/toss/missing-client.crt");
+        authProperties.getOauth().getToss().setMtlsKeyPath("/opt/clueroom/secrets/toss/missing-client.key");
+
+        assertThatThrownBy(() -> new AppsInTossOAuthClient(authProperties, JsonMapper.builder().build()))
+                .isInstanceOf(AuthException.class)
+                .extracting(e -> ((AuthException) e).getErrorCode())
+                .isEqualTo(AuthErrorCode.OAUTH_PROVIDER_NOT_CONFIGURED);
+    }
+
     private AuthProperties properties() {
         return new AuthProperties();
     }
