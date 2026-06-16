@@ -53,6 +53,7 @@ class SecurityConfigTest {
     @Test
     void tossLoginEndpointStaysPublicWhenFlagIsEnabled() throws Exception {
         mockMvc.perform(post("/api/auth/toss")
+                        .header("Authorization", "Bearer expired-or-invalid-access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
