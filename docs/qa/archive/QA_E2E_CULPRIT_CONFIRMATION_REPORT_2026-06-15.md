@@ -77,7 +77,7 @@ submit-ready 판단까지는 서월채 약 80턴, 스튜디오9 약 100턴의 ex
 | P0/P1 | Spoiler safety | public gameplay metadata 노출 문제가 반복됨 | locked evidence 응답에도 `importance`가 존재했고, FE가 `importance == CORE`를 핵심/분석 상태에 사용 | 플레이어용 응답은 정답성/중요도/비후보 추론 필드를 제거 또는 안전 변환 | API-only 또는 디버그 클라이언트에서 shortcut 가능 | blind QA validity 훼손, UI가 정답성 metadata에 의존 | public DTO/admin DTO 분리. locked evidence는 importance/proofDimensions/asset key 마스킹 |
 | P1 | Frontend UX | hardcoded suggested question chip 자동 전송 문제가 반복됨 | 현재 FE 코드에서 기본 심문 chip tap이 `_sendMessage(...RECOMMENDED)`로 직접 연결 | 모든 추천 질문 chip은 prefill-only | guidance 경로는 prefill 구현이 있으나 기본 chip은 자동 전송 유지 | 사용자가 AI 호출 전 질문을 통제하지 못함 | hardcoded chip 제거 또는 입력창 prefill-only로 변경 |
 | P1 | Candidate narrowing | 30~50턴 내 submit-ready 목표가 반복 미달 | 서월채는 50턴에서 확정 불가, 스튜디오9도 50턴에서 여러 축이 남음 | 30~50회 안에 후보를 1~2명으로 축소 | extended turns와 late evidence 후에야 submit-ready | 신규 유저가 찍기 제출 또는 이탈할 가능성 | 결정적 비교 증거 guidance를 더 빠르게 노출하고 next compare를 명시 |
-| P1 | Scenario/Guidance | late evidence가 있어야 추리 축이 닫힘 | 서월채는 마지막 증거 해금 후 물병/바이탈 축이 정리됨. 스튜디오9는 전체 증거 해금 후에도 추가 교차 심문 필요 | 핵심 비교가 30~50턴 안에 앱에서 자연스럽게 제시 | 사용자가 직접 긴 비교 그래프를 구성해야 함 | 플레이 감각이 "기다리고 많이 묻기"에 가까움 | phase/unlock 설계와 guidance priority 재조정 |
+| P1 | Scenario/Guidance | late evidence가 있어야 추리 축이 닫힘 | 서월채는 후반 핵심 경로성 evidence 해금 후 public-safe 수준에서 추리 축이 정리됨. 스튜디오9는 전체 증거 해금 후에도 추가 교차 심문 필요 | 핵심 비교가 30~50턴 안에 앱에서 자연스럽게 제시 | 사용자가 직접 긴 비교 그래프를 구성해야 함 | 플레이 감각이 "기다리고 많이 묻기"에 가까움 | phase/unlock 설계와 guidance priority 재조정 |
 | P2 | Scoring alignment | final result 상세 채점과 in-game guidance 사이 간극 가능성 | 세부 정오/채점 판단은 private note로 분리. public 보고서에는 result path 진입만 기록 | guidance/AI 답변이 최종 제출 서술 기준까지 이어짐 | 제출 서술 기준을 플레이 중 충분히 학습했는지 public surface만으로 판단 어려움 | 결과 UX에서 사용자가 납득하기 어려울 수 있음 | final-deduction rubric과 in-game guidance 용어를 맞추고 public-safe feedback 개선 |
 | P2 | Docs drift | 프론트 문서 일부가 현재 코드 상태와 다름 | 기존 FE 문서에는 guidance/timeline 미구현으로 남아 있으나 현재 코드는 모델/렌더링/timeline API가 일부 구현됨 | 문서가 코드 SoT를 반영 | QA 기준 문서와 실제 코드가 어긋남 | 리뷰/QA 우선순위 혼선 | FE 구현 상태 문서와 drift 문서 갱신 |
 
@@ -131,19 +131,19 @@ correctness detail: private note
   회의/동기/기본 동선은 넓게 열림.
 
 중반:
-  물병, 약통, 와인, 보안, 케어 기록 축이 병렬로 남음.
+  여러 동기/동선/상태/기록 계열 축이 병렬로 남음.
   50턴 시점에는 최종 후보 확정 기준을 충족하지 못함.
 
 후반:
-  late evidence가 위험 징후 시간대와 특정 섭취 경로를 더 잘 설명하면서 후보 축이 좁아짐.
+  late evidence가 핵심 원인 경로와 시간대를 더 잘 설명하면서 후보 축이 좁아짐.
   같은 증거를 여러 용의자에게 제시해 역할별 반응 차이를 비교한 뒤 submit-ready.
 ```
 
 ### 7.3 Public-Safe Finding
 
 ```text
-서월채는 guidance/AI 답변만으로 "어느 경로가 시간상 더 자연스러운지"를 50턴 안에 닫기 어렵다.
-마지막 증거와 후속 질문 이후에는 논리가 수렴하므로 시나리오 자체가 불가능한 것은 아니다.
+서월채는 guidance/AI 답변만으로 "어느 설명 축이 시간상 더 자연스러운지"를 50턴 안에 닫기 어렵다.
+late evidence와 후속 질문 이후에는 논리가 수렴하므로 시나리오 자체가 불가능한 것은 아니다.
 문제는 결정적 비교가 늦게 열리고, 앱이 그 비교 순서를 충분히 압축해 주지 못하는 점이다.
 ```
 
@@ -166,7 +166,7 @@ correctness detail: private note
 
 ```text
 초반:
-  위치 표시, 프롬프터, 조명, 안전장치, 제작비, 사후 자료 정리 축이 동시에 열림.
+  위치/기술/운영/사후 정리 계열 축이 동시에 열림.
 
 중반:
   전체 증거가 열려도 여러 조건이 병렬로 남아 50턴 안에는 핵심 실행 축과 보조 조건을 구분하기 어려움.
@@ -256,5 +256,6 @@ raw access token
 solution fullExplanation
 점수/등급/부분 정오답 breakdown
 제출 후보별 상세 반증 매트릭스
+비공개 증거명/시나리오별 추리축 원문
 AI 답변 전체 원문
 ```
