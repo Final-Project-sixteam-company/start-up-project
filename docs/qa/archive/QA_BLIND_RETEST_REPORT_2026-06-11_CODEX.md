@@ -243,8 +243,8 @@ User request에 따라 50턴 제한 이후에도 확정 기준을 채울 때까�
 참고 문서:
 
 ```text
-docs/MVP_PLAY_FLOW_QA_2026-06-10.md
-docs/MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md
+docs/qa/archive/MVP_PLAY_FLOW_QA_2026-06-10.md
+docs/qa/archive/MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md
 docs/QA_HANDOFF.md
 ```
 
