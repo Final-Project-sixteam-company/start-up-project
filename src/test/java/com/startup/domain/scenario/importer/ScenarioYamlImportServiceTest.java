@@ -1,6 +1,11 @@
 package com.startup.domain.scenario.importer;
 
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
+import com.startup.domain.scenario.entity.Scenario;
+import com.startup.domain.scenario.enums.Difficulty;
+import com.startup.domain.scenario.enums.ScenarioStatus;
+import com.startup.domain.scenario.enums.ScenarioType;
+import com.startup.domain.scenario.enums.ScenarioVisibility;
 import com.startup.domain.scenario.importer.yaml.ScenarioYaml;
 import com.startup.domain.scenario.repository.EvidenceRepository;
 import com.startup.domain.scenario.repository.EvidenceSuspectRepository;
@@ -169,6 +174,43 @@ class ScenarioYamlImportServiceTest {
         assertThatThrownBy(() -> importService.importYaml(yaml, "hash-b", "test"))
                 .isInstanceOf(ScenarioImportException.class)
                 .hasMessageContaining("version");
+    }
+
+    @Test
+    void importYaml_skipsSameHashBeforeValidatingLegacyYaml() {
+        ScenarioYaml base = sampleYaml();
+        Scenario existing = scenarioRepository.save(Scenario.builder()
+                .code(base.scenario().code())
+                .version(base.scenario().version())
+                .contentHash("legacy-hash")
+                .title(base.scenario().title())
+                .description(base.scenario().description())
+                .synopsis(base.scenario().synopsis())
+                .genre(base.scenario().genre())
+                .scenarioType(ScenarioType.OFFICIAL)
+                .visibility(ScenarioVisibility.PUBLIC)
+                .difficulty(Difficulty.NORMAL)
+                .estimatedPlayTimeMinutes(base.scenario().estimatedPlayTimeMinutes())
+                .playerCountMin(1)
+                .playerCountMax(1)
+                .culpritMode(base.scenario().culpritMode())
+                .deductionMode(base.scenario().deductionMode())
+                .mapMode(base.scenario().mapMode())
+                .evidenceMode(base.scenario().evidenceMode())
+                .status(ScenarioStatus.PUBLISHED)
+                .build());
+        ScenarioYaml legacyYamlWithoutHints = new ScenarioYaml(
+                base.metadata(), base.scenario(), base.victim(), base.locations(), base.characters(),
+                base.evidences(), base.timelineEvents(), base.evidenceVariantStates(), base.variants(),
+                List.of(),
+                base.unlockRules(), base.npcPolicies(), base.scoring(), base.assets()
+        );
+
+        ScenarioImportResult result = importService.importYaml(legacyYamlWithoutHints, "legacy-hash", "prod-legacy");
+
+        assertThat(result.status()).isEqualTo(ScenarioImportResult.Status.SKIPPED);
+        assertThat(result.scenarioId()).isEqualTo(existing.getId());
+        assertThat(hintRepository.count()).isZero();
     }
 
     private ScenarioYaml sampleYaml() {

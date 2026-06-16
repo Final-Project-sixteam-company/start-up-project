@@ -79,13 +79,12 @@ public class ScenarioYamlImportService {
 
     @Transactional
     public ScenarioImportResult importYaml(ScenarioYaml yaml, String contentHash, String sourceName) {
-        validator.validateOrThrow(yaml);
-
-        String scenarioCode = yaml.scenario().code();
-        String version = yaml.scenario().version();
-        Scenario existing = scenarioRepository.findByCodeAndVersion(scenarioCode, version).orElse(null);
+        Scenario existing = findExistingScenarioIfAddressable(yaml);
         if (existing != null) {
+            String scenarioCode = yaml.scenario().code();
+            String version = yaml.scenario().version();
             if (Objects.equals(existing.getContentHash(), contentHash)) {
+                // Existing production seeds must stay restart-safe when new validators become stricter.
                 return ScenarioImportResult.skipped(existing.getId(), scenarioCode, version);
             }
             throw new ScenarioImportException("같은 scenario.code/version의 YAML 내용이 변경되었습니다. "
@@ -93,6 +92,10 @@ public class ScenarioYamlImportService {
                     + " source=" + sourceName);
         }
 
+        validator.validateOrThrow(yaml);
+
+        String scenarioCode = yaml.scenario().code();
+        String version = yaml.scenario().version();
         Map<String, ScenarioYaml.UnlockRuleYaml> unlockRulesByEvidenceCode = mapByCode(
                 listOf(yaml.unlockRules()), ScenarioYaml.UnlockRuleYaml::evidenceCode);
 
@@ -128,6 +131,18 @@ public class ScenarioYamlImportService {
                 listOf(yaml.timelineEvents()).size(),
                 listOf(yaml.assets()).size()
         );
+    }
+
+    private Scenario findExistingScenarioIfAddressable(ScenarioYaml yaml) {
+        if (yaml == null || yaml.scenario() == null) {
+            return null;
+        }
+        String scenarioCode = yaml.scenario().code();
+        String version = yaml.scenario().version();
+        if (!hasText(scenarioCode) || !hasText(version)) {
+            return null;
+        }
+        return scenarioRepository.findByCodeAndVersion(scenarioCode, version).orElse(null);
     }
 
     private Scenario saveScenario(ScenarioYaml yaml, String contentHash) {
