@@ -86,6 +86,7 @@
 | [infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 인프라 agent 권한, 금지 작업, 승인 기준, Codex playbook, Ops Snapshot, Monitoring Agent, n8n infra/ops workflow 운영 모델 | infra agent 문서군 정본이다. |
 | [infra/agent/LLMOPS_OPERATING_GUIDE.md](infra/agent/LLMOPS_OPERATING_GUIDE.md) | LLMOps 계획, telemetry safety, smoke 절차, PromQL 후보, agent 역할, n8n LLMOps workflow 운영 모델 | LLMOps 문서군 정본이다. |
 | [infra/agent/LLMOPS_DAILY_SUMMARY_2026-06-09_TO_2026-06-13.md](infra/agent/LLMOPS_DAILY_SUMMARY_2026-06-09_TO_2026-06-13.md) | 2026-06-09~2026-06-13 LLMOps 일자별 통합 보고서 | Slack/작업 로그 기반 집계 보고서다. raw prompt, AI 답변, 사용자 질문 원문은 포함하지 않는다. |
+| [infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md](infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md) | AI 호출 비용 추정, 사용자 규모별 비용, 계정별 레이트리밋, 글로벌 예산 경보 기준 | daily summary 기반 계획 문서다. 실제 단가/환율은 운영 시점에 재확인한다. |
 
 ### QA / Handoff
 
