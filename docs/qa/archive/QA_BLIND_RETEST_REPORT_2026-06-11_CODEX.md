@@ -1,5 +1,7 @@
 # ClueRoom Blind Retest Report - 2026-06-11
 
+> 상태: 역사 QA 보고서다. 현재 QA 실행 지시, 보고서 템플릿, 오픈 이슈 board는 [QA_OPERATING_GUIDE.md](../../QA_OPERATING_GUIDE.md)를 따른다.
+
 ## 0. Scope
 
 - Tester: Codex API-only retest agent
@@ -241,8 +243,8 @@ User request에 따라 50턴 제한 이후에도 확정 기준을 채울 때까�
 참고 문서:
 
 ```text
-docs/MVP_PLAY_FLOW_QA_2026-06-10.md
-docs/MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md
+docs/qa/archive/MVP_PLAY_FLOW_QA_2026-06-10.md
+docs/qa/archive/MVP_PLAY_FLOW_QA_SEOWOLCHAE_2026-06-10.md
 docs/QA_HANDOFF.md
 ```
 
