@@ -8,6 +8,7 @@ import com.startup.domain.scenario.error.ScenarioException;
 import com.startup.domain.scenario.repository.EvidenceRepository;
 import com.startup.domain.scenario.repository.HintRepository;
 import com.startup.domain.scenario.repository.SolutionRepository;
+import com.startup.domain.scenario.repository.SolutionEvidenceRepository;
 import com.startup.domain.scenario.repository.SuspectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,7 @@ public class ScenarioPublishValidator {
     private final SuspectRepository suspectRepository;
     private final EvidenceRepository evidenceRepository;
     private final SolutionRepository solutionRepository;
+    private final SolutionEvidenceRepository solutionEvidenceRepository;
     private final HintRepository hintRepository;
     private final ScenarioValidationResultRepository scenarioValidationResultRepository;
 
@@ -59,13 +61,10 @@ public class ScenarioPublishValidator {
                         errors.add("정답의 범인이 현재 시나리오의 용의자가 아님");
                     }
 
-                    List<Long> keyEvidenceIds;
-                    try {
-                        keyEvidenceIds = solution.parseKeyEvidenceIds();
-                    } catch (NumberFormatException e) {
-                        errors.add("정답의 핵심 증거 ID 형식이 올바르지 않음");
-                        keyEvidenceIds = List.of();
-                    }
+                    List<Long> keyEvidenceIds = solutionEvidenceRepository.findAllBySolutionId(solution.getId())
+                            .stream()
+                            .map(se -> se.getEvidence().getId())
+                            .toList();
 
                     if (keyEvidenceIds.isEmpty()) {
                         errors.add("정답에 핵심 증거가 지정되지 않음");

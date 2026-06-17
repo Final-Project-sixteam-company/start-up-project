@@ -36,6 +36,7 @@ public class CustomScenarioService {
     private final EvidenceSuspectRepository evidenceSuspectRepository;
     private final HintRepository hintRepository;
     private final SolutionRepository solutionRepository;
+    private final SolutionEvidenceRepository solutionEvidenceRepository;
     private final SuspectResponsePolicyRepository suspectResponsePolicyRepository;
     private final EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
     private final ConditionJsonParser conditionJsonParser;
@@ -609,8 +610,10 @@ public class CustomScenarioService {
 
         solutionRepository.findByScenarioId(scenario.getId())
                 .ifPresent(solution -> {
-                    List<Long> keyEvidenceIds = solution.parseKeyEvidenceIds();
-                    if (keyEvidenceIds.contains(evidenceId)) {
+                    boolean isKey = solutionEvidenceRepository.findAllBySolutionId(solution.getId())
+                            .stream()
+                            .anyMatch(se -> se.getEvidence().getId().equals(evidenceId));
+                    if (isKey) {
                         throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_KEY);
                     }
                 });
@@ -806,14 +809,15 @@ public class CustomScenarioService {
             throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이 용의자는 범인으로 지목될 수 없습니다.");
         }
 
-        String keyEvidenceStr = "";
-        if (request.getKeyEvidenceIds() != null && !request.getKeyEvidenceIds().isEmpty()) {
-            List<Long> uniqueEvidences = request.getKeyEvidenceIds().stream().distinct().toList();
+        List<Long> uniqueEvidences = request.getKeyEvidenceIds() != null 
+                ? request.getKeyEvidenceIds().stream().distinct().toList() 
+                : List.of();
+                
+        if (!uniqueEvidences.isEmpty()) {
             long validCount = evidenceRepository.countByIdInAndScenarioId(uniqueEvidences, scenarioId);
             if (validCount != uniqueEvidences.size()) {
                 throw new ScenarioException(ScenarioErrorCode.INVALID_EVIDENCE_OWNERSHIP);
             }
-            keyEvidenceStr = String.join(",", uniqueEvidences.stream().map(String::valueOf).toList());
         }
 
         // UPSERT 분기
@@ -827,8 +831,7 @@ public class CustomScenarioService {
                     request.getMotive(),
                     request.getMethod(),
                     request.getCoverUp(),
-                    request.getFullExplanation(),
-                    keyEvidenceStr
+                    request.getFullExplanation()
             );
             savedSolution = solution;
         } else {
@@ -839,9 +842,18 @@ public class CustomScenarioService {
                     .method(request.getMethod())
                     .coverUp(request.getCoverUp())
                     .fullExplanation(request.getFullExplanation())
-                    .keyEvidenceIds(keyEvidenceStr)
                     .build();
             savedSolution = solutionRepository.save(newSolution);
+        }
+
+        // 기존 매핑 지우고 새로 Insert
+        solutionEvidenceRepository.deleteAllBySolutionId(savedSolution.getId());
+        if (!uniqueEvidences.isEmpty()) {
+            List<Evidence> evidenceList = evidenceRepository.findAllById(uniqueEvidences);
+            List<SolutionEvidence> mappings = evidenceList.stream()
+                    .map(ev -> new SolutionEvidence(savedSolution, ev, null))
+                    .toList();
+            solutionEvidenceRepository.saveAll(mappings);
         }
 
         // 부모 시나리오 updatedAt 갱신
@@ -958,6 +970,11 @@ public class CustomScenarioService {
         Solution solution = solutionRepository.findByScenarioId(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SOLUTION_NOT_FOUND));
 
-        return CustomSolutionResponse.from(solution);
+        List<Long> keyEvidenceIds = solutionEvidenceRepository.findAllBySolutionId(solution.getId())
+                .stream()
+                .map(se -> se.getEvidence().getId())
+                .toList();
+
+        return CustomSolutionResponse.from(solution, keyEvidenceIds);
     }
 }

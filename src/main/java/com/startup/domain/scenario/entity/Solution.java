@@ -44,39 +44,26 @@ public class Solution extends BaseEntity {
     @Column(name = "full_explanation", columnDefinition = "TEXT")
     private String fullExplanation;
 
-    // 핵심 증거 ID 목록 (쉼표 구분 문자열, 예: "2,6,7,8")
-    @Column(name = "key_evidence_ids", columnDefinition = "TEXT")
-    private String keyEvidenceIds;
 
     @Builder
     public Solution(Long scenarioId, Long culpritSuspectId, String motive,
-                    String method, String coverUp, String fullExplanation, String keyEvidenceIds) {
+                    String method, String coverUp, String fullExplanation) {
         this.scenarioId = scenarioId;
         this.culpritSuspectId = culpritSuspectId;
         this.motive = motive;
         this.method = method;
         this.coverUp = coverUp;
         this.fullExplanation = fullExplanation;
-        this.keyEvidenceIds = keyEvidenceIds;
     }
 
-    // "2,6,7,8" 형태의 문자열을 List<Long>으로 파싱
-    public List<Long> parseKeyEvidenceIds() {
-        if (keyEvidenceIds == null || keyEvidenceIds.isBlank()) return List.of();
-        return Arrays.stream(keyEvidenceIds.split(","))
-                .map(String::trim)
-                .map(Long::parseLong)
-                .toList();
-    }
 
     public void updateInfo(Long culpritSuspectId, String motive, String method,
-                           String coverUp, String fullExplanation, String keyEvidenceIds) {
+                           String coverUp, String fullExplanation) {
         this.culpritSuspectId = culpritSuspectId;
         this.motive = motive;
         this.method = method;
         this.coverUp = coverUp;
         this.fullExplanation = fullExplanation;
-        this.keyEvidenceIds = keyEvidenceIds;
     }
 
 }

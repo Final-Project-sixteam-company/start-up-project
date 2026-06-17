@@ -37,8 +37,8 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
     private final ScenarioVariantRepository variantRepository;
     private final VariantSolutionRepository variantSolutionRepository;
     private final SuspectResponsePolicyRepository policyRepository;
-    private final MockSolutionReader mockSolutionReader;
     private final SolutionRepository solutionRepository;
+    private final SolutionEvidenceRepository solutionEvidenceRepository;
     private final TimelineEventRepository timelineEventRepository;
 
     @Override
@@ -231,15 +231,13 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
                             keyEvidences
                     );
                 })
-                .orElseGet(() -> solutionRepository.findByScenarioId(scenarioId)
+                        .orElseGet(() -> solutionRepository.findByScenarioId(scenarioId)
                         .map(solution -> {
-                            List<Long> keyEvidences;
-                            try {
-                                keyEvidences = solution.parseKeyEvidenceIds();
-                            } catch (Exception e) {
-                                log.error("핵심 증거 ID 파싱 실패. Solution ID: {}", solution.getId(), e);
-                                keyEvidences = List.of();
-                            }
+                            List<Long> keyEvidences = solutionEvidenceRepository.findAllBySolutionId(solution.getId())
+                                    .stream()
+                                    .map(se -> se.getEvidence().getId())
+                                    .toList();
+                                    
                             // 커스텀 정답엔 이름/역할 컬럼이 없으므로 용의자 테이블에서 즉시 조회
                             Suspect suspect = suspectRepository.findById(solution.getCulpritSuspectId()).orElse(null);
                             return new ScenarioValidationData.SolutionValidationInfo(

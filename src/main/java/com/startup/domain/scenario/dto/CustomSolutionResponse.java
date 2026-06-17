@@ -18,7 +18,7 @@ public class CustomSolutionResponse {
     private String fullExplanation;
     private List<Long> keyEvidenceIds;
 
-    public static CustomSolutionResponse from(Solution solution) {
+    public static CustomSolutionResponse from(Solution solution, List<Long> keyEvidenceIds) {
         return CustomSolutionResponse.builder()
                 .solutionId(solution.getId())
                 .scenarioId(solution.getScenarioId())
@@ -27,7 +27,7 @@ public class CustomSolutionResponse {
                 .method(solution.getMethod())
                 .coverUp(solution.getCoverUp())
                 .fullExplanation(solution.getFullExplanation())
-                .keyEvidenceIds(solution.parseKeyEvidenceIds())
+                .keyEvidenceIds(keyEvidenceIds)
                 .build();
     }
 }

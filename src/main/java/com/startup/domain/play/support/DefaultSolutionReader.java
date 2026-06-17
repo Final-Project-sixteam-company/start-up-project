@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +35,7 @@ public class DefaultSolutionReader implements SolutionReader {
     // scenario_variants / variant_solutions 테이블에 행이 채워지면 이 경로는 사용되지 않는다.
     private final MockSolutionReader mockSolutionReader;
     private final SolutionRepository solutionRepository;
+    private final SolutionEvidenceRepository solutionEvidenceRepository;
     private final SuspectRepository suspectRepository;
     private final ScenarioRepository scenarioRepository;
 
@@ -58,7 +58,10 @@ public class DefaultSolutionReader implements SolutionReader {
                 Suspect suspect = suspectRepository.findByIdAndScenarioId(customSolution.getCulpritSuspectId(), scenarioId)
                         .orElseThrow(() -> new AiException(AiErrorCode.INTERROGATION_SUSPECT_NOT_FOUND));
 
-            List<Long> keyEvidenceIds = customSolution.parseKeyEvidenceIds();
+            List<Long> keyEvidenceIds = solutionEvidenceRepository.findAllBySolutionId(customSolution.getId())
+                    .stream()
+                    .map(se -> se.getEvidence().getId())
+                    .toList();
 
             // 증거 제목은 DB에서 동적으로 조회 (Ownership 외래키 검증: 해당 시나리오 소속인지 확인)
             Map<Long, String> evidenceTitles = evidenceRepository.findAllById(keyEvidenceIds)
