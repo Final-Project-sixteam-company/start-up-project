@@ -917,8 +917,10 @@ POST /api/scenarios/{scenarioId}/locations
 {
   "name": "데모룸",
   "description": "피해자가 발견된 장소",
+  "floor": "1F",
   "mapX": 120,
   "mapY": 80,
+  "imageAssetKey": "bg_demoroom_01",
   "sortOrder": 1
 }
 ```
@@ -955,6 +957,9 @@ GET /api/scenarios/{scenarioId}/locations
       "description": "피해자가 발견된 장소",
       "mapX": 120,
       "mapY": 80,
+      "floor": "1F",
+      "imageAssetKey": "bg_demoroom_01",
+      "sortOrder": 1,
       "evidenceCount": 3
     }
   ],
@@ -2463,7 +2468,9 @@ validationStatus / validationScore / checkItems 반환
 | `EVIDENCE_LOCKED` | 아직 해금되지 않은 증거 |
 | `EVIDENCE_NOT_UNLOCKABLE` / `P010` | 아직 해금 조건을 충족하지 않은 증거 |
 | `SUSPECT_NOT_FOUND` / `P011` | 플레이 세션 시나리오에 속하지 않는 용의자 |
+| `INVALID_FILTER_STATUS` / `P012` | 잘못된 상태 필터 값 |
 | `HINT_NOT_AVAILABLE` | 아직 사용 불가능한 힌트 |
+| `EVIDENCE_USED_IN_POLICY` | 답변 정책에서 참조 중인 증거 |
 | `FINAL_DEDUCTION_ALREADY_SUBMITTED` | 이미 최종 추리를 제출함 |
 | `AI_REQUEST_FAILED` | AI 요청 실패 |
 | `SCENARIO_VALIDATION_FAILED` | 시나리오 검증 실패 |

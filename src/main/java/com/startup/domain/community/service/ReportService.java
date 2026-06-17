@@ -2,6 +2,8 @@ package com.startup.domain.community.service;
 
 import com.startup.common.error.BusinessException;
 import com.startup.common.error.CommonErrorCode;
+import com.startup.domain.auth.error.AuthErrorCode;
+import com.startup.domain.auth.error.AuthException;
 import com.startup.domain.auth.repository.UserRepository;
 import com.startup.domain.community.dto.ReportCreateRequest;
 import com.startup.domain.community.dto.ReportStatusResponse;
@@ -42,7 +44,7 @@ public class ReportService {
         }
 
         userRepository.findById(reporterId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "유저를 찾을 수 없습니다."));
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         try {
             ScenarioReport report = ScenarioReport.builder()

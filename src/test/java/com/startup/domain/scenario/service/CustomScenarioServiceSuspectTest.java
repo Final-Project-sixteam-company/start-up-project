@@ -33,6 +33,7 @@ public class CustomScenarioServiceSuspectTest {
     @Autowired private SuspectRepository suspectRepository;
     @Autowired private SolutionRepository solutionRepository;
     @Autowired private SuspectResponsePolicyRepository suspectResponsePolicyRepository;
+    @Autowired private com.startup.domain.scenario.repository.SolutionEvidenceRepository solutionEvidenceRepository;
     @Autowired private EvidenceSuspectRepository evidenceSuspectRepository;
     @Autowired private EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
     @Autowired private JsonMapper jsonMapper;
@@ -57,6 +58,7 @@ public class CustomScenarioServiceSuspectTest {
 
     @AfterEach
     void tearDown() {
+        solutionEvidenceRepository.deleteAllInBatch();
         solutionRepository.deleteAllInBatch();
         evidenceUnlockRuleRepository.deleteAllInBatch();
         suspectResponsePolicyRepository.deleteAllInBatch();
@@ -159,7 +161,6 @@ public class CustomScenarioServiceSuspectTest {
                 .method("수단")
                 .coverUp("은폐")
                 .fullExplanation("전체 설명")
-                .keyEvidenceIds("1")
                 .build());
 
         // when & then
@@ -189,7 +190,6 @@ public class CustomScenarioServiceSuspectTest {
                 .method("수단")
                 .coverUp("은폐")
                 .fullExplanation("전체 설명")
-                .keyEvidenceIds("1")
                 .build());
 
         CustomSuspectUpdateRequest request = new CustomSuspectUpdateRequest();

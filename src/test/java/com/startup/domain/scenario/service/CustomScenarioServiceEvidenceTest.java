@@ -32,6 +32,7 @@ public class CustomScenarioServiceEvidenceTest {
     @Autowired private EvidenceSuspectRepository evidenceSuspectRepository;
     @Autowired private EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
     @Autowired private SuspectResponsePolicyRepository suspectResponsePolicyRepository;
+    @Autowired private com.startup.domain.scenario.repository.SolutionEvidenceRepository solutionEvidenceRepository;
 
     private static final Long OWNER_USER_ID = 100L;
     private static final Long OTHER_USER_ID = 999L;
@@ -64,6 +65,7 @@ public class CustomScenarioServiceEvidenceTest {
 
     @AfterEach
     void tearDown() {
+        solutionEvidenceRepository.deleteAllInBatch();
         solutionRepository.deleteAllInBatch();
         evidenceUnlockRuleRepository.deleteAllInBatch();
         suspectResponsePolicyRepository.deleteAllInBatch();
@@ -250,15 +252,15 @@ public class CustomScenarioServiceEvidenceTest {
                 .sortOrder(1)
                 .build());
 
-        solutionRepository.save(Solution.builder()
+        Solution savedSolution = solutionRepository.save(Solution.builder()
                 .scenarioId(savedScenario.getId())
                 .culpritSuspectId(savedSuspect.getId())
                 .motive("동기")
                 .method("수단")
                 .coverUp("은폐")
                 .fullExplanation("전체 설명")
-                .keyEvidenceIds(evidence.getId().toString())
                 .build());
+        solutionEvidenceRepository.save(new com.startup.domain.scenario.entity.SolutionEvidence(savedSolution, evidence, null));
 
         // when & then
         assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, evidence.getId()))
@@ -450,6 +452,74 @@ public class CustomScenarioServiceEvidenceTest {
     }
 
     @Test
+    @DisplayName("증거 생성 실패 - conditionJson이 잘못된 JSON 문자열일 때")
+    void createEvidence_fail_malformed_json() {
+        // given
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거");
+        ReflectionTestUtils.setField(request, "description", "설명");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.MANUAL);
+        ReflectionTestUtils.setField(request, "unlockConditionJson", "{malformed json");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("unlockConditionJson 파싱 실패");
+    }
+
+    @Test
+    @DisplayName("증거 생성 실패 - conditionJson이 객체가 아닐 때 (예: 단순 문자열)")
+    void createEvidence_fail_json_not_object() {
+        // given
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거");
+        ReflectionTestUtils.setField(request, "description", "설명");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.MANUAL);
+        ReflectionTestUtils.setField(request, "unlockConditionJson", "\"just_a_string\"");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("unlockConditionJson 파싱 실패");
+    }
+
+    @Test
+    @DisplayName("증거 생성 실패 - requiredEvidenceIds가 배열이 아닐 때")
+    void createEvidence_fail_requiredEvidenceIds_not_array() {
+        // given
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거");
+        ReflectionTestUtils.setField(request, "description", "설명");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.MANUAL);
+        ReflectionTestUtils.setField(request, "unlockConditionJson", "{\"requiredEvidenceIds\": \"not_array\"}");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("requiredEvidenceIds는 배열 형태여야 합니다.");
+    }
+
+    @Test
+    @DisplayName("증거 생성 실패 - requiredEvidenceIds의 원소가 숫자가 아닐 때")
+    void createEvidence_fail_requiredEvidenceIds_element_not_number() {
+        // given
+        CustomEvidenceCreateRequest request = new CustomEvidenceCreateRequest();
+        ReflectionTestUtils.setField(request, "title", "증거");
+        ReflectionTestUtils.setField(request, "description", "설명");
+        ReflectionTestUtils.setField(request, "evidenceType", EvidenceType.PHYSICAL);
+        ReflectionTestUtils.setField(request, "unlockType", EvidenceUnlockType.MANUAL);
+        ReflectionTestUtils.setField(request, "unlockConditionJson", "{\"requiredEvidenceIds\": [\"not_number\"]}");
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.createEvidence(OWNER_USER_ID, savedScenario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("requiredEvidenceIds의 원소는 숫자여야 합니다.");
+    }
+
+    @Test
     @DisplayName("PUBLISHED 상태 시나리오의 증거 삭제 시 예외 발생")
     void deleteEvidence_fail_when_published() {
         // given
@@ -470,5 +540,97 @@ public class CustomScenarioServiceEvidenceTest {
         assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, evidence.getId()))
                 .isInstanceOf(ScenarioException.class)
                 .hasMessageContaining(ScenarioErrorCode.SCENARIO_NOT_MODIFY.getMessage());
+    }
+    @Test
+    @DisplayName("증거 삭제 방어 - 다른 증거의 해금 조건이 Malformed JSON인 경우 (fail-closed)")
+    void deleteEvidence_fail_when_referenced_by_malformed_json() {
+        // given
+        Evidence targetEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("TARGET_EVD")
+                .title("타겟 증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        // 악의적 케이스 1: Malformed JSON
+        evidenceUnlockRuleRepository.save(EvidenceUnlockRule.builder()
+                .scenarioId(savedScenario.getId())
+                .evidenceId(999L)
+                .evidenceCode("OTHER_EVD")
+                .unlockType(EvidenceUnlockType.MANUAL.name())
+                .conditionJson("{ malformed json")
+                .sortOrder(1)
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, targetEvidence.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE.getMessage());
+    }
+
+    @Test
+    @DisplayName("증거 삭제 방어 - 다른 증거의 해금 조건이 단일 문자열인 경우 (fail-closed)")
+    void deleteEvidence_fail_when_referenced_by_single_string_json() {
+        // given
+        Evidence targetEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("TARGET_EVD")
+                .title("타겟 증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        // 악의적 케이스 2: 단순 문자열 JSON
+        evidenceUnlockRuleRepository.save(EvidenceUnlockRule.builder()
+                .scenarioId(savedScenario.getId())
+                .evidenceId(999L)
+                .evidenceCode("OTHER_EVD")
+                .unlockType(EvidenceUnlockType.MANUAL.name())
+                .conditionJson("\"TARGET_EVD\"")
+                .sortOrder(1)
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, targetEvidence.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE.getMessage());
+    }
+
+    @Test
+    @DisplayName("증거 삭제 방어 - 용의자 답변 정책에서 참조 중인 경우")
+    void deleteEvidence_fail_when_used_in_response_policy() {
+        // given
+        Evidence targetEvidence = evidenceRepository.save(Evidence.builder()
+                .scenarioId(savedScenario.getId())
+                .code("TARGET_EVD")
+                .title("타겟 증거")
+                .description("설명")
+                .evidenceType(EvidenceType.PHYSICAL)
+                .importance(EvidenceImportance.NORMAL)
+                .sortOrder(1)
+                .build());
+
+        // 신규 정책 참조 (presentedEvidenceId로 직접 참조)
+        suspectResponsePolicyRepository.save(com.startup.domain.ai.entity.SuspectResponsePolicy.builder()
+                .suspectId(savedSuspect.getId())
+                .conditionKey("TEST_KEY")
+                .policyText("정책")
+                .allowedFacts("[]")
+                .forbiddenFacts("[]")
+                .tone("단호함")
+                .presentedEvidenceId(targetEvidence.getId())
+                .priority(1)
+                .build());
+        suspectResponsePolicyRepository.flush();
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, targetEvidence.getId()))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.EVIDENCE_USED_IN_POLICY.getMessage());
     }
 }

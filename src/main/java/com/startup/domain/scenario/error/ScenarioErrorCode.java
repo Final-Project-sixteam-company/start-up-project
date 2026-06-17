@@ -30,7 +30,9 @@ public enum ScenarioErrorCode implements ErrorCode {
     INVALID_EVIDENCE_CONDITION(HttpStatus.BAD_REQUEST, "SCENARIO_019", "잘못된 증거 해금 조건입니다."),
     SCENARIO_ALREADY_DELETED(HttpStatus.NOT_FOUND, "SCENARIO_020", "삭제된 시나리오입니다."),
     SCENARIO_CANNOT_HIDE(HttpStatus.BAD_REQUEST, "SCENARIO_021", "현재 상태에서는 시나리오를 비공개 처리할 수 없습니다."),
-    SCENARIO_CANNOT_DELETE(HttpStatus.BAD_REQUEST, "SCENARIO_022", "시나리오를 삭제할 수 없는 상태입니다.");
+    SCENARIO_CANNOT_DELETE(HttpStatus.BAD_REQUEST, "SCENARIO_022", "시나리오를 삭제할 수 없는 상태입니다."),
+    EVIDENCE_USED_IN_POLICY(HttpStatus.BAD_REQUEST, "SCENARIO_023", "답변 정책에서 참조 중인 증거는 삭제할 수 없습니다."),
+    INVALID_DEFAULT_POLICY_CONDITION(HttpStatus.BAD_REQUEST, "SCENARIO_024", "DEFAULT 상태인 정책에는 증거 조건(해금/제시 등)을 설정할 수 없습니다. 별도의 conditionKey를 지정해주세요.");
 
     private final HttpStatus status;
     private final String code;

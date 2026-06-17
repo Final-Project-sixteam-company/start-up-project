@@ -8,6 +8,7 @@ import com.startup.domain.ai.entity.SuspectResponsePolicy;
 import com.startup.domain.ai.repository.SuspectResponsePolicyRepository;
 import com.startup.domain.scenario.enums.EvidenceUnlockType;
 import com.startup.domain.scenario.enums.RelationType;
+import com.startup.domain.scenario.support.ConditionJsonParser;
 import com.startup.domain.scenario.error.ScenarioErrorCode;
 import com.startup.domain.scenario.error.ScenarioException;
 import tools.jackson.databind.JsonNode;
@@ -35,8 +36,10 @@ public class CustomScenarioService {
     private final EvidenceSuspectRepository evidenceSuspectRepository;
     private final HintRepository hintRepository;
     private final SolutionRepository solutionRepository;
+    private final SolutionEvidenceRepository solutionEvidenceRepository;
     private final SuspectResponsePolicyRepository suspectResponsePolicyRepository;
     private final EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
+    private final ConditionJsonParser conditionJsonParser;
     private final JsonMapper jsonMapper;
 
     @Transactional
@@ -57,9 +60,12 @@ public class CustomScenarioService {
         Integer maxSortOrder = locationRepository.findMaxSortOrderByScenarioId(scenarioId);
         int nextSortOrder = request.getSortOrder() != null ? request.getSortOrder() : ((maxSortOrder == null ? 0 : maxSortOrder) + 1);
 
+        String autoCode = "LOCATION_" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
         // 엔티티 생성
         ScenarioLocation location = ScenarioLocation.builder()
                 .scenarioId(scenarioId)
+                .code(autoCode)
                 .name(request.getName())
                 .description(request.getDescription())
                 .floor(request.getFloor())
@@ -99,6 +105,9 @@ public class CustomScenarioService {
                         loc.getDescription(),
                         loc.getMapX(),
                         loc.getMapY(),
+                        loc.getFloor(),
+                        loc.getImageAssetKey(),
+                        loc.getSortOrder(),
                         countsMap.getOrDefault(loc.getId(), 0L).intValue()
                 ))
                 .toList();
@@ -601,8 +610,10 @@ public class CustomScenarioService {
 
         solutionRepository.findByScenarioId(scenario.getId())
                 .ifPresent(solution -> {
-                    List<Long> keyEvidenceIds = solution.parseKeyEvidenceIds();
-                    if (keyEvidenceIds.contains(evidenceId)) {
+                    boolean isKey = solutionEvidenceRepository.findAllBySolutionId(solution.getId())
+                            .stream()
+                            .anyMatch(se -> se.getEvidence().getId().equals(evidenceId));
+                    if (isKey) {
                         throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_KEY);
                     }
                 });
@@ -612,7 +623,7 @@ public class CustomScenarioService {
         }
 
         if (isEvidenceUsedInResponsePolicy(scenario.getId(), evidenceId)) {
-            throw new ScenarioException(ScenarioErrorCode.EVIDENCE_IS_PREREQUISITE);
+            throw new ScenarioException(ScenarioErrorCode.EVIDENCE_USED_IN_POLICY);
         }
 
         evidenceSuspectRepository.deleteByEvidenceId(evidenceId);
@@ -626,16 +637,7 @@ public class CustomScenarioService {
     private boolean isSuspectUsedAsPrerequisite(Long scenarioId, String suspectCode) {
         List<EvidenceUnlockRule> rules = evidenceUnlockRuleRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
         for (EvidenceUnlockRule rule : rules) {
-            if (rule.getConditionJson() == null || rule.getConditionJson().isBlank()) continue;
-            try {
-                JsonNode root = jsonMapper.readTree(rule.getConditionJson());
-                if (root.has("requiredCharacterCode") && !root.get("requiredCharacterCode").isNull()) {
-                    if (suspectCode.equals(root.get("requiredCharacterCode").asText())) {
-                        return true;
-                    }
-                }
-            } catch (Exception e) {
-                // 파싱 실패 시, 혹시 모를 의존성이 있을 수 있으므로 안전하게 삭제 차단(fail-closed)
+            if (conditionJsonParser.hasRequiredCharacterCode(rule.getConditionJson(), suspectCode)) {
                 return true;
             }
         }
@@ -645,30 +647,7 @@ public class CustomScenarioService {
     private boolean isEvidenceUsedAsPrerequisite(Long scenarioId, String evidenceCode) {
         List<EvidenceUnlockRule> rules = evidenceUnlockRuleRepository.findAllByScenarioIdOrderBySortOrder(scenarioId);
         for (EvidenceUnlockRule rule : rules) {
-            if (rule.getConditionJson() == null || rule.getConditionJson().isBlank()) continue;
-            try {
-                JsonNode root = jsonMapper.readTree(rule.getConditionJson());
-                if (root.has("requiredPresentedEvidenceCode") && !root.get("requiredPresentedEvidenceCode").isNull()) {
-                    if (evidenceCode.equals(root.get("requiredPresentedEvidenceCode").asText())) {
-                        return true;
-                    }
-                }
-                if (root.has("requiredEvidenceCodes") && !root.get("requiredEvidenceCodes").isNull()) {
-                    JsonNode reqCodes = root.get("requiredEvidenceCodes");
-                    if (reqCodes.isArray()) {
-                        for (JsonNode node : reqCodes) {
-                            if (evidenceCode.equals(node.asText())) {
-                                return true;
-                            }
-                        }
-                    } else if (reqCodes.isTextual()) {
-                        if (evidenceCode.equals(reqCodes.asText())) {
-                            return true;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                // 파싱 실패 시, 혹시 모를 의존성이 있을 수 있으므로 안전하게 삭제 차단(fail-closed)
+            if (conditionJsonParser.hasRequiredPresentedEvidenceCodeOrEvidenceCodes(rule.getConditionJson(), evidenceCode)) {
                 return true;
             }
         }
@@ -686,37 +665,11 @@ public class CustomScenarioService {
             if (evidenceId.equals(policy.getPresentedEvidenceId())) {
                 return true;
             }
-            if (policy.getRequiredEvidenceIds() != null && !policy.getRequiredEvidenceIds().isBlank()) {
-                try {
-                    JsonNode node = jsonMapper.readTree(policy.getRequiredEvidenceIds());
-                    if (node.isArray()) {
-                        for (JsonNode idNode : node) {
-                            if (evidenceId.equals(idNode.asLong())) return true;
-                        }
-                    } else if (node.isNumber() && evidenceId.equals(node.asLong())) {
-                        return true;
-                    } else if (node.isTextual() && evidenceId.toString().equals(node.asText())) {
-                        return true;
-                    }
-                } catch (Exception e) {
-                    return true; // fail-closed
-                }
+            if (conditionJsonParser.hasEvidenceIdInArrayOrString(policy.getRequiredEvidenceIds(), evidenceId)) {
+                return true;
             }
-            if (policy.getExcludedEvidenceIds() != null && !policy.getExcludedEvidenceIds().isBlank()) {
-                try {
-                    JsonNode node = jsonMapper.readTree(policy.getExcludedEvidenceIds());
-                    if (node.isArray()) {
-                        for (JsonNode idNode : node) {
-                            if (evidenceId.equals(idNode.asLong())) return true;
-                        }
-                    } else if (node.isNumber() && evidenceId.equals(node.asLong())) {
-                        return true;
-                    } else if (node.isTextual() && evidenceId.toString().equals(node.asText())) {
-                        return true;
-                    }
-                } catch (Exception e) {
-                    return true; // fail-closed
-                }
+            if (conditionJsonParser.hasEvidenceIdInArrayOrString(policy.getExcludedEvidenceIds(), evidenceId)) {
+                return true;
             }
         }
         return false;
@@ -733,8 +686,12 @@ public class CustomScenarioService {
             ObjectNode root = (ObjectNode) jsonMapper.readTree(conditionJson);
             
             if (unlockType == EvidenceUnlockType.EVIDENCE_PRESENTED) {
-                Long presentedEvidenceId = root.has("requiredPresentedEvidenceId") ? root.get("requiredPresentedEvidenceId").asLong() : 
-                                           (root.has("evidenceId") ? root.get("evidenceId").asLong() : null);
+                Long presentedEvidenceId = null;
+                if (root.has("requiredPresentedEvidenceId") && !root.get("requiredPresentedEvidenceId").isNull()) {
+                    presentedEvidenceId = root.get("requiredPresentedEvidenceId").asLong();
+                } else if (root.has("evidenceId") && !root.get("evidenceId").isNull()) {
+                    presentedEvidenceId = root.get("evidenceId").asLong();
+                }
                 if (presentedEvidenceId == null) {
                     throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "제시 대상 증거 ID(requiredPresentedEvidenceId)가 누락되었습니다.");
                 }
@@ -852,14 +809,15 @@ public class CustomScenarioService {
             throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "이 용의자는 범인으로 지목될 수 없습니다.");
         }
 
-        String keyEvidenceStr = "";
-        if (request.getKeyEvidenceIds() != null && !request.getKeyEvidenceIds().isEmpty()) {
-            List<Long> uniqueEvidences = request.getKeyEvidenceIds().stream().distinct().toList();
+        List<Long> uniqueEvidences = request.getKeyEvidenceIds() != null 
+                ? request.getKeyEvidenceIds().stream().distinct().toList() 
+                : List.of();
+                
+        if (!uniqueEvidences.isEmpty()) {
             long validCount = evidenceRepository.countByIdInAndScenarioId(uniqueEvidences, scenarioId);
             if (validCount != uniqueEvidences.size()) {
                 throw new ScenarioException(ScenarioErrorCode.INVALID_EVIDENCE_OWNERSHIP);
             }
-            keyEvidenceStr = String.join(",", uniqueEvidences.stream().map(String::valueOf).toList());
         }
 
         // UPSERT 분기
@@ -873,8 +831,7 @@ public class CustomScenarioService {
                     request.getMotive(),
                     request.getMethod(),
                     request.getCoverUp(),
-                    request.getFullExplanation(),
-                    keyEvidenceStr
+                    request.getFullExplanation()
             );
             savedSolution = solution;
         } else {
@@ -885,9 +842,18 @@ public class CustomScenarioService {
                     .method(request.getMethod())
                     .coverUp(request.getCoverUp())
                     .fullExplanation(request.getFullExplanation())
-                    .keyEvidenceIds(keyEvidenceStr)
                     .build();
             savedSolution = solutionRepository.save(newSolution);
+        }
+
+        // 기존 매핑 지우고 새로 Insert
+        solutionEvidenceRepository.deleteAllBySolutionId(savedSolution.getId());
+        if (!uniqueEvidences.isEmpty()) {
+            List<Evidence> evidenceList = evidenceRepository.findAllById(uniqueEvidences);
+            List<SolutionEvidence> mappings = evidenceList.stream()
+                    .map(ev -> new SolutionEvidence(savedSolution, ev, null))
+                    .toList();
+            solutionEvidenceRepository.saveAll(mappings);
         }
 
         // 부모 시나리오 updatedAt 갱신
@@ -897,7 +863,7 @@ public class CustomScenarioService {
     }
 
     private void saveSuspectResponsePolicy(Long suspectId, JsonNode node) {
-        String basePolicy = node.has("policyText") && !node.get("policyText").isNull() ? node.get("policyText").asText() : "";
+        String basePolicy = node.has("policyText") && !node.get("policyText").isNull() ? node.get("policyText").asText("") : "";
         StringBuilder policyBuilder = new StringBuilder(basePolicy);
 
         Integer maxSentences = node.has("maxSentences") && !node.get("maxSentences").isNull() ? node.get("maxSentences").asInt() : null;
@@ -912,22 +878,22 @@ public class CustomScenarioService {
             policyBuilder.append("설정에 없는 외부 사실을 임의로 지어내지 않는다.");
         }
 
-        String defaultStance = node.has("defaultStance") && !node.get("defaultStance").isNull() ? node.get("defaultStance").asText() : null;
+        String defaultStance = node.has("defaultStance") && !node.get("defaultStance").isNull() ? node.get("defaultStance").asText("") : null;
         if (defaultStance != null && basePolicy.isEmpty()) {
             if (!policyBuilder.isEmpty()) policyBuilder.append(" ");
             policyBuilder.append("기본 태도: ").append(defaultStance).append(".");
         }
 
         String finalPolicyText = !policyBuilder.isEmpty() ? policyBuilder.toString().trim() : "기본 응답";
-        String tone = node.has("tone") && !node.get("tone").isNull() ? node.get("tone").asText() : defaultStance;
+        String tone = node.has("tone") && !node.get("tone").isNull() ? node.get("tone").asText("") : defaultStance;
 
         SuspectResponsePolicy policy = SuspectResponsePolicy.builder()
                 .suspectId(suspectId)
-                .conditionKey(node.has("conditionKey") ? node.get("conditionKey").asText() : "DEFAULT")
-                .userIntent(node.has("userIntent") && !node.get("userIntent").isNull() ? node.get("userIntent").asText() : null)
+                .conditionKey(node.has("conditionKey") ? node.get("conditionKey").asText("") : "DEFAULT")
+                .userIntent(node.has("userIntent") && !node.get("userIntent").isNull() ? node.get("userIntent").asText("") : null)
                 .requiredEvidenceIds(node.has("requiredEvidenceIds") && !node.get("requiredEvidenceIds").isNull() ? node.get("requiredEvidenceIds").toString() : null)
                 .excludedEvidenceIds(node.has("excludedEvidenceIds") && !node.get("excludedEvidenceIds").isNull() ? node.get("excludedEvidenceIds").toString() : null)
-                .presentedEvidenceId(node.has("presentedEvidenceId") && !node.get("presentedEvidenceId").isNull() ? node.get("presentedEvidenceId").asLong() : null)
+                .presentedEvidenceId(node.has("presentedEvidenceId") && !node.get("presentedEvidenceId").isNull() ? Long.valueOf(node.get("presentedEvidenceId").asLong()) : null)
                 .policyText(finalPolicyText)
                 .allowedFacts(node.has("allowedFacts") && !node.get("allowedFacts").isNull() ? node.get("allowedFacts").toString() : null)
                 .forbiddenFacts(node.has("forbiddenFacts") && !node.get("forbiddenFacts").isNull() ? node.get("forbiddenFacts").toString() : null)
@@ -941,7 +907,7 @@ public class CustomScenarioService {
         validateEvidenceArray(scenarioId, node.get("requiredEvidenceIds"));
         validateEvidenceArray(scenarioId, node.get("excludedEvidenceIds"));
 
-        String conditionKey = node.has("conditionKey") && !node.get("conditionKey").isNull() ? node.get("conditionKey").asText() : "DEFAULT";
+        String conditionKey = node.has("conditionKey") && !node.get("conditionKey").isNull() ? node.get("conditionKey").asText("") : "DEFAULT";
 
         boolean hasGates = false;
 
@@ -968,7 +934,7 @@ public class CustomScenarioService {
         }
 
         if ("DEFAULT".equals(conditionKey) && hasGates) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "DEFAULT 상태인 정책에는 증거 조건(해금/제시 등)을 설정할 수 없습니다. 별도의 conditionKey를 지정해주세요.");
+            throw new ScenarioException(ScenarioErrorCode.INVALID_DEFAULT_POLICY_CONDITION);
         }
     }
 
@@ -1004,6 +970,11 @@ public class CustomScenarioService {
         Solution solution = solutionRepository.findByScenarioId(scenarioId)
                 .orElseThrow(() -> new ScenarioException(ScenarioErrorCode.SOLUTION_NOT_FOUND));
 
-        return CustomSolutionResponse.from(solution);
+        List<Long> keyEvidenceIds = solutionEvidenceRepository.findAllBySolutionId(solution.getId())
+                .stream()
+                .map(se -> se.getEvidence().getId())
+                .toList();
+
+        return CustomSolutionResponse.from(solution, keyEvidenceIds);
     }
 }

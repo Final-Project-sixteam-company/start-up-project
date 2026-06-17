@@ -37,8 +37,9 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
     private final ScenarioVariantRepository variantRepository;
     private final VariantSolutionRepository variantSolutionRepository;
     private final SuspectResponsePolicyRepository policyRepository;
-    private final MockSolutionReader mockSolutionReader;
     private final SolutionRepository solutionRepository;
+    private final SolutionEvidenceRepository solutionEvidenceRepository;
+    private final TimelineEventRepository timelineEventRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -138,9 +139,18 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
                 ))
                 .toList();
 
-        // 7. 타임라인 이벤트 - 별도 테이블/엔티티가 없으므로 빈 리스트로 처리
-        // TODO: 타임라인 테이블이 추가되면 여기에 조회 로직을 추가한다.
-        List<ScenarioValidationData.TimelineEventInfo> timelineEvents = List.of();
+        // 7. 타임라인 이벤트
+        List<ScenarioValidationData.TimelineEventInfo> timelineEvents = timelineEventRepository
+                .findAllByScenarioIdOrderByEventOrder(scenarioId)
+                .stream()
+                .map(e -> new ScenarioValidationData.TimelineEventInfo(
+                        e.getEventTime(),
+                        e.getTitle(),
+                        e.getDescription(),
+                        e.getEventType(),
+                        e.getIsTrueEvent()
+                ))
+                .toList();
 
         // 8. 정답(Solution) + 핵심 증거 목록
         ScenarioValidationData.SolutionValidationInfo solutionInfo = buildSolutionInfo(scenarioId);
@@ -221,15 +231,13 @@ public class DefaultScenarioDataReader implements ScenarioDataReader {
                             keyEvidences
                     );
                 })
-                .orElseGet(() -> solutionRepository.findByScenarioId(scenarioId)
+                        .orElseGet(() -> solutionRepository.findByScenarioId(scenarioId)
                         .map(solution -> {
-                            List<Long> keyEvidences;
-                            try {
-                                keyEvidences = solution.parseKeyEvidenceIds();
-                            } catch (Exception e) {
-                                log.error("핵심 증거 ID 파싱 실패. Solution ID: {}", solution.getId(), e);
-                                keyEvidences = List.of();
-                            }
+                            List<Long> keyEvidences = solutionEvidenceRepository.findAllBySolutionId(solution.getId())
+                                    .stream()
+                                    .map(se -> se.getEvidence().getId())
+                                    .toList();
+                                    
                             // 커스텀 정답엔 이름/역할 컬럼이 없으므로 용의자 테이블에서 즉시 조회
                             Suspect suspect = suspectRepository.findById(solution.getCulpritSuspectId()).orElse(null);
                             return new ScenarioValidationData.SolutionValidationInfo(

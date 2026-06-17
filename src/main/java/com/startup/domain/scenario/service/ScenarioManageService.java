@@ -79,8 +79,9 @@ public class ScenarioManageService {
             boolean isBookmarked = bookmarkedScenarioIds.contains(scenario.getId());
             String thumbnailUrl = scenarioAssetUrlResolver.resolve(scenario.getCoverAssetKey());
 
-            // 내 시나리오는 항상 플레이 가능하다고 간주하거나 별도의 로직 불필요 시 true 반환
-            // (권한 체크는 이미 creator_id로 쿼리에서 끝났으므로)
+            // 제작자 미리보기(Creator Preview) 지원:
+            // 내 시나리오는 DRAFT, HIDDEN 등 상태에 무관하게 항상 플레이 가능하도록 true를 반환합니다.
+            // (실제 플레이 진입 권한 체크 로직인 ScenarioAccessService.canPlay와 동기화됨)
             Boolean canPlay = true;
             return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, isBookmarked, thumbnailUrl, canPlay);
         });
