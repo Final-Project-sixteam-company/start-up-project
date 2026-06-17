@@ -7,6 +7,7 @@ import com.startup.domain.auth.dto.DevLoginRequest;
 import com.startup.domain.auth.dto.LogoutRequest;
 import com.startup.domain.auth.dto.OAuthLoginRequest;
 import com.startup.domain.auth.dto.TokenRefreshRequest;
+import com.startup.domain.auth.dto.TossLoginRequest;
 import com.startup.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,11 @@ public class AuthController {
     @PostMapping("/oauth")
     public ApiResponse<AuthTokenResponse> oauthLogin(@Valid @RequestBody OAuthLoginRequest request) {
         return ApiResponse.success(authService.oauthLogin(request));
+    }
+
+    @PostMapping("/toss")
+    public ApiResponse<AuthTokenResponse> tossLogin(@Valid @RequestBody TossLoginRequest request) {
+        return ApiResponse.success(authService.tossLogin(request));
     }
 
     @PostMapping("/refresh")
