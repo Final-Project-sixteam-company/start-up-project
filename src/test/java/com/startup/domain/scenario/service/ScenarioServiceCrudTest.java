@@ -29,6 +29,7 @@ public class ScenarioServiceCrudTest {
     @Autowired private EvidenceRepository evidenceRepository;
     @Autowired private SolutionRepository solutionRepository;
     @Autowired private HintRepository hintRepository;
+    @Autowired private SolutionEvidenceRepository solutionEvidenceRepository;
     @Autowired private ScenarioValidationResultRepository validationResultRepository;
 
     // ──────────────────────────────────────────
@@ -57,6 +58,7 @@ public class ScenarioServiceCrudTest {
     void tearDown() {
         validationResultRepository.deleteAllInBatch();
         hintRepository.deleteAllInBatch();
+        solutionEvidenceRepository.deleteAllInBatch();
         solutionRepository.deleteAllInBatch();
         evidenceRepository.deleteAllInBatch();
         suspectRepository.deleteAllInBatch();
@@ -210,14 +212,15 @@ public class ScenarioServiceCrudTest {
                 .build());
 
         // 정답: 채점 필수 필드(motive, method, coverUp) + 실제 증거 ID를 핵심 증거로 지정
-        solutionRepository.save(Solution.builder()
+        Solution savedSolution = solutionRepository.save(Solution.builder()
                 .scenarioId(scenarioId)
                 .culpritSuspectId(suspect.getId())
                 .motive("금전")
                 .method("독살")
                 .coverUp("시체 유기")
-                .keyEvidenceIds(evidence1.getId() + "," + evidence2.getId())
                 .build());
+        solutionEvidenceRepository.save(new com.startup.domain.scenario.entity.SolutionEvidence(savedSolution, evidence1, null));
+        solutionEvidenceRepository.save(new com.startup.domain.scenario.entity.SolutionEvidence(savedSolution, evidence2, null));
 
         // 힌트 1개 (최소 1개 필요)
         hintRepository.save(Hint.builder()

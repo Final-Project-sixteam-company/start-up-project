@@ -32,6 +32,7 @@ public class CustomScenarioServiceEvidenceTest {
     @Autowired private EvidenceSuspectRepository evidenceSuspectRepository;
     @Autowired private EvidenceUnlockRuleRepository evidenceUnlockRuleRepository;
     @Autowired private SuspectResponsePolicyRepository suspectResponsePolicyRepository;
+    @Autowired private com.startup.domain.scenario.repository.SolutionEvidenceRepository solutionEvidenceRepository;
 
     private static final Long OWNER_USER_ID = 100L;
     private static final Long OTHER_USER_ID = 999L;
@@ -64,6 +65,7 @@ public class CustomScenarioServiceEvidenceTest {
 
     @AfterEach
     void tearDown() {
+        solutionEvidenceRepository.deleteAllInBatch();
         solutionRepository.deleteAllInBatch();
         evidenceUnlockRuleRepository.deleteAllInBatch();
         suspectResponsePolicyRepository.deleteAllInBatch();
@@ -250,15 +252,15 @@ public class CustomScenarioServiceEvidenceTest {
                 .sortOrder(1)
                 .build());
 
-        solutionRepository.save(Solution.builder()
+        Solution savedSolution = solutionRepository.save(Solution.builder()
                 .scenarioId(savedScenario.getId())
                 .culpritSuspectId(savedSuspect.getId())
                 .motive("동기")
                 .method("수단")
                 .coverUp("은폐")
                 .fullExplanation("전체 설명")
-                .keyEvidenceIds(evidence.getId().toString())
                 .build());
+        solutionEvidenceRepository.save(new com.startup.domain.scenario.entity.SolutionEvidence(savedSolution, evidence, null));
 
         // when & then
         assertThatThrownBy(() -> customScenarioService.deleteEvidence(OWNER_USER_ID, evidence.getId()))

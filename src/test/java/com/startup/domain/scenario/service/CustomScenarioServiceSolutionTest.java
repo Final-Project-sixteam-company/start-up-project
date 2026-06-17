@@ -27,6 +27,7 @@ public class CustomScenarioServiceSolutionTest {
     @Autowired private SuspectRepository suspectRepository;
     @Autowired private EvidenceRepository evidenceRepository;
     @Autowired private SolutionRepository solutionRepository;
+    @Autowired private SolutionEvidenceRepository solutionEvidenceRepository;
 
     private static final Long OWNER_USER_ID = 100L;
     private static final Long OTHER_USER_ID = 999L;
@@ -70,6 +71,7 @@ public class CustomScenarioServiceSolutionTest {
 
     @AfterEach
     void tearDown() {
+        solutionEvidenceRepository.deleteAllInBatch();
         solutionRepository.deleteAllInBatch();
         evidenceRepository.deleteAllInBatch();
         suspectRepository.deleteAllInBatch();
@@ -95,7 +97,9 @@ public class CustomScenarioServiceSolutionTest {
         assertThat(response.getSolutionId()).isNotNull();
         Solution solution = solutionRepository.findByScenarioId(savedScenario.getId()).orElseThrow();
         assertThat(solution.getMotive()).isEqualTo("원한");
-        assertThat(solution.getKeyEvidenceIds()).isEqualTo(keyEvidence.getId().toString());
+        List<SolutionEvidence> mappedEvidences = solutionEvidenceRepository.findAllBySolutionId(solution.getId());
+        assertThat(mappedEvidences).hasSize(1);
+        assertThat(mappedEvidences.get(0).getEvidence().getId()).isEqualTo(keyEvidence.getId());
     }
 
     @Test
@@ -116,15 +120,15 @@ public class CustomScenarioServiceSolutionTest {
     @DisplayName("정답 조회(GET) 성공")
     void getSolution_success() {
         // given
-        solutionRepository.save(Solution.builder()
+        Solution savedSolution = solutionRepository.save(Solution.builder()
                 .scenarioId(savedScenario.getId())
                 .culpritSuspectId(culpritSuspect.getId())
                 .motive("테스트 동기")
                 .method("테스트 방법")
                 .coverUp("은폐")
                 .fullExplanation("전체 설명")
-                .keyEvidenceIds(keyEvidence.getId().toString())
                 .build());
+        solutionEvidenceRepository.save(new SolutionEvidence(savedSolution, keyEvidence, null));
 
         // when
         CustomSolutionResponse response = customScenarioService.getSolution(OWNER_USER_ID, savedScenario.getId());
@@ -148,15 +152,15 @@ public class CustomScenarioServiceSolutionTest {
     @DisplayName("타인의 시나리오 정답 조회 시나리오 접근 권한 예외 발생")
     void getSolution_fail_unauthorized() {
         // given
-        solutionRepository.save(Solution.builder()
+        Solution savedSolution = solutionRepository.save(Solution.builder()
                 .scenarioId(savedScenario.getId())
                 .culpritSuspectId(culpritSuspect.getId())
                 .motive("동기")
                 .method("방법")
                 .coverUp("은폐")
                 .fullExplanation("전체 설명")
-                .keyEvidenceIds(keyEvidence.getId().toString())
                 .build());
+        solutionEvidenceRepository.save(new SolutionEvidence(savedSolution, keyEvidence, null));
 
         // when & then
         assertThatThrownBy(() -> customScenarioService.getSolution(OTHER_USER_ID, savedScenario.getId()))
