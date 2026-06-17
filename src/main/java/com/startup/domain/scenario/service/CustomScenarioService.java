@@ -922,7 +922,7 @@ public class CustomScenarioService {
         }
 
         if ("DEFAULT".equals(conditionKey) && hasGates) {
-            throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "DEFAULT 상태인 정책에는 증거 조건(해금/제시 등)을 설정할 수 없습니다. 별도의 conditionKey를 지정해주세요.");
+            throw new ScenarioException(ScenarioErrorCode.INVALID_DEFAULT_POLICY_CONDITION);
         }
     }
 

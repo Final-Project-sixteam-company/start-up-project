@@ -4,6 +4,8 @@ import com.startup.common.dto.PageResponse;
 import com.startup.common.error.CommonErrorCode;
 import com.startup.common.error.BusinessException;
 import com.startup.domain.auth.entity.User;
+import com.startup.domain.auth.error.AuthErrorCode;
+import com.startup.domain.auth.error.AuthException;
 import com.startup.domain.auth.repository.UserRepository;
 import com.startup.domain.community.dto.ReviewCreateRequest;
 import com.startup.domain.community.dto.ReviewResponse;
@@ -69,7 +71,7 @@ public class ReviewService {
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND, "유저를 찾을 수 없습니다."));
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         try {
             ScenarioReview review = ScenarioReview.builder()
