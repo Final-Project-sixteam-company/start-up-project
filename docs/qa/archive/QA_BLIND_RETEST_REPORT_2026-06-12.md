@@ -1,5 +1,7 @@
 # ClueRoom Blind Retest Report - 2026-06-12
 
+> 상태: 역사 QA 보고서다. 현재 QA 실행 지시, 보고서 템플릿, 오픈 이슈 board는 [QA_OPERATING_GUIDE.md](../../QA_OPERATING_GUIDE.md)를 따른다.
+
 ## 0. Scope
 
 - Tester: fresh Codex QA agent
@@ -40,8 +42,8 @@ guidance가 추리 보조인지 정답 경로 고정인지: 있는 guidance는 �
 | Priority | Scenario | Finding | Evidence | Expected | Actual | Impact | Recommended Action |
 |---|---|---|---|---|---|---|---|
 | P1 | 공통 | API evidence response에 spoiler-like metadata 필드가 노출됨 | locked/unlocked evidence raw field names에 `importance`, `imageAssetKey`, `imageUrl` 존재 | public play API는 후보성/중요도/asset 기반 역할 추론 필드를 gameplay 응답에서 제거하거나 서버에서 redaction | API-only runner가 별도 마스킹하지 않으면 blind validity가 깨질 수 있음 | QA/외부 클라이언트가 CORE/FAKE 또는 역할성 asset 추론을 볼 위험 | public DTO에서 제거하거나 앱 전용 안전 필드만 반환 |
-| P1 | 스튜디오9 | 50턴 내 후보를 1~2명으로 좁히기 어려움 | 50턴 후에도 여러 현장 조건, 역할, 동선 축이 병렬로 남음 | guidance와 AI 답변이 비교 순서를 제시해 후보가 단계적으로 축소됨 | 물리 단서는 늘어나지만 사용자가 직접 비교 그래프를 구성해야 함 | 신규 유저가 찍기 없이 최종 제출하기 어려움 | 핵심 증거군별 reading/compare/question guidance를 앞당겨 추가 |
-| P1 | 서월채 | 50턴 내 최종 후보 확정 기준 미충족 | 접근/동선 신호는 생기지만 동기/수단/기회/은폐가 한 후보로 수렴하지 않음 | 30~50턴 안에 최종 후보 1~2명 수준까지 축소 | 중반 이후에도 여러 축이 남아 최종 제출 보류 | 최종 추리 제출 흐름까지 자연스럽게 도달하지 못함 | 5분 해금 증거에도 guidance를 확장하고 비교 순서를 명확히 제공 |
+| P1 | 스튜디오9 | 50턴 내 후보를 1~2명으로 좁히기 어려움 | 50턴 후에도 여러 현장/역할/운영 조건 축이 병렬로 남음 | guidance와 AI 답변이 비교 순서를 제시해 후보가 단계적으로 축소됨 | 물리 단서는 늘어나지만 사용자가 직접 비교 그래프를 구성해야 함 | 신규 유저가 찍기 없이 최종 제출하기 어려움 | 핵심 증거군별 reading/compare/question guidance를 앞당겨 추가 |
+| P1 | 서월채 | 50턴 내 최종 후보 확정 기준 미충족 | 접근 가능성/행동 흐름 신호는 생기지만 동기/수단/기회/은폐가 한 후보로 수렴하지 않음 | 30~50턴 안에 최종 후보 1~2명 수준까지 축소 | 중반 이후에도 여러 축이 남아 최종 제출 보류 | 최종 추리 제출 흐름까지 자연스럽게 도달하지 못함 | 5분 해금 증거에도 guidance를 확장하고 비교 순서를 명확히 제공 |
 | P2 | 공통 | guidance coverage가 낮음 | 서월채: 5분 후 13개 해금 중 2개 guidance, 스튜디오9: 10분 후 29개 해금 중 2개 guidance | 주요 해금 증거에는 readingPoints/compareEvidences/suggestedQuestions 제공 | 일부 증거에만 제공되어 사용자가 다음 질문을 직접 설계해야 함 | 진행감은 있으나 UX 안내가 약함 | 핵심/분기 증거마다 최소 readingPoints와 next compare target 제공 |
 | P2 | 공통 | Android chip prefill-only 동작 미확인 | 현재 세션에서 Android UI 조작 불가 | chip tap, draft override, 자동 전송 여부 검증 | API-only로는 UI 동작을 검증할 수 없음 | 프론트 계약 핵심 항목이 미검증 상태 | Android retest에서 별도 확인 필요 |
 
@@ -81,7 +83,7 @@ turns used: 50
 candidate narrowing: broad -> medium, but final 1~2명 확정 실패
 blind validity: API metadata masking 적용
 blocked moments: guidance 없는 해금 증거가 많아 다음 비교 순서를 사용자가 직접 구성해야 함
-public narrowing summary: 물병/약통/동선/보안/케어 축은 생겼지만 한 후보로 수렴하지 않음
+public narrowing summary: 여러 접근/행동/상태/기록 계열 축은 생겼지만 한 후보로 수렴하지 않음
 rejected-candidate rationale detail: omitted from public report; private note only
 remaining doubt: public-safe broad summary only
 ```
@@ -176,7 +178,7 @@ Turn 1~10:
   evidence used: initial scene/role evidence
   public narrowing delta: broader
   AI answer quality: concise, safe
-  next interrogation plan: MARK 9 / safety / overexposure comparison
+  next interrogation plan: location / safety / visibility comparison
 
 Turn 11~20:
   main targets: all suspects

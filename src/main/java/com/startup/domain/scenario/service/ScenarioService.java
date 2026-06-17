@@ -51,7 +51,7 @@ public class ScenarioService {
         Pageable mappedPageable = mapPageableSort(pageable);
 
         // 상태가 PUBLISHED 이고 가시성이 PUBLIC 또는 OFFICIAL인 시나리오만 조회
-        // TODO: 세부 필터링(condition)은 나중에 QueryDSL 도입 시 추가
+        // TODO: 세부 필터링(condition)은 별도 복잡 조회 구현 시 추가
         List<ScenarioVisibility> allowedVisibilities = List.of(ScenarioVisibility.PUBLIC, ScenarioVisibility.OFFICIAL);
         Page<Scenario> scenarios = scenarioRepository.findAllByStatusAndVisibilityIn(
                 ScenarioStatus.PUBLISHED,

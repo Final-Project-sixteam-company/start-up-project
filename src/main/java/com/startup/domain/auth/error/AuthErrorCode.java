@@ -19,7 +19,8 @@ public enum AuthErrorCode implements ErrorCode {
     OAUTH_TOKEN_REQUIRED(HttpStatus.BAD_REQUEST, "AUTH_009", "OAuth token is required."),
     OAUTH_PROVIDER_NOT_CONFIGURED(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH_010", "OAuth provider is not configured."),
     OAUTH_TOKEN_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "AUTH_011", "OAuth token verification failed."),
-    OAUTH_ACCOUNT_CONFLICT(HttpStatus.CONFLICT, "AUTH_012", "OAuth account is already linked to another user.");
+    OAUTH_ACCOUNT_CONFLICT(HttpStatus.CONFLICT, "AUTH_012", "OAuth account is already linked to another user."),
+    OAUTH_PROVIDER_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AUTH_013", "OAuth provider request failed.");
 
     private final HttpStatus status;
     private final String code;

@@ -4,6 +4,7 @@ import com.startup.common.auth.CurrentUserProvider;
 import com.startup.domain.auth.dto.AuthTokenResponse;
 import com.startup.domain.auth.dto.OAuthLoginRequest;
 import com.startup.domain.auth.dto.TokenRefreshRequest;
+import com.startup.domain.auth.dto.TossLoginRequest;
 import com.startup.domain.auth.entity.AuthRefreshToken;
 import com.startup.domain.auth.entity.User;
 import com.startup.domain.auth.entity.UserOAuthAccount;
@@ -17,6 +18,7 @@ import com.startup.domain.auth.support.AuthProperties;
 import com.startup.domain.auth.support.JwtTokenService;
 import com.startup.domain.auth.support.OAuthProviderClient;
 import com.startup.domain.auth.support.OAuthUserProfile;
+import com.startup.domain.auth.support.TossOAuthClient;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -59,7 +61,8 @@ class AuthServiceTest {
                 accountRepository,
                 refreshTokenRepository,
                 transactionManager(),
-                List.of(providerClient)
+                List.of(providerClient),
+                mock(TossOAuthClient.class)
         );
 
         when(accountRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub"))
@@ -131,7 +134,8 @@ class AuthServiceTest {
                 accountRepository,
                 refreshTokenRepository,
                 transactionManager(),
-                List.of(providerClient)
+                List.of(providerClient),
+                mock(TossOAuthClient.class)
         );
 
         when(accountRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub"))
@@ -193,7 +197,8 @@ class AuthServiceTest {
                 accountRepository,
                 refreshTokenRepository,
                 transactionManager,
-                List.of(providerClient)
+                List.of(providerClient),
+                mock(TossOAuthClient.class)
         );
 
         when(accountRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub"))
@@ -236,7 +241,8 @@ class AuthServiceTest {
                 accountRepository,
                 refreshTokenRepository,
                 transactionManager(),
-                List.of(providerClient)
+                List.of(providerClient),
+                mock(TossOAuthClient.class)
         );
 
         User existingUser = user(20L, "oauth@example.com");
@@ -287,7 +293,8 @@ class AuthServiceTest {
                 accountRepository,
                 refreshTokenRepository,
                 transactionManager(),
-                List.of(providerClient)
+                List.of(providerClient),
+                mock(TossOAuthClient.class)
         );
 
         User currentUser = user(30L, null);
@@ -314,6 +321,121 @@ class AuthServiceTest {
     }
 
     @Test
+    void tossLoginCreatesUserLinksProviderAndStoresDeviceId() {
+        AuthProperties authProperties = properties();
+        JwtTokenService jwtTokenService = new JwtTokenService(authProperties, JsonMapper.builder().build());
+        CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        UserOAuthAccountRepository accountRepository = mock(UserOAuthAccountRepository.class);
+        AuthRefreshTokenRepository refreshTokenRepository = mock(AuthRefreshTokenRepository.class);
+        TrackingTransactionManager transactionManager = new TrackingTransactionManager();
+        TossOAuthClient tossOAuthClient = request -> {
+            assertThat(transactionManager.isActive()).isFalse();
+            return new OAuthUserProfile(
+                    AuthProvider.TOSS,
+                    "443731104",
+                    null,
+                    false,
+                    "TossUser-731104",
+                    null
+            );
+        };
+        AuthService authService = new AuthService(
+                authProperties,
+                jwtTokenService,
+                currentUserProvider,
+                userRepository,
+                accountRepository,
+                refreshTokenRepository,
+                transactionManager,
+                List.of(),
+                tossOAuthClient
+        );
+
+        when(accountRepository.findByProviderAndProviderUserId(AuthProvider.TOSS, "443731104"))
+                .thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            assertThat(transactionManager.isActive()).isTrue();
+            User user = invocation.getArgument(0);
+            ReflectionTestUtils.setField(user, "id", 50L);
+            return user;
+        });
+        when(accountRepository.findByUserIdAndProvider(50L, AuthProvider.TOSS)).thenReturn(Optional.empty());
+        when(accountRepository.saveAndFlush(any(UserOAuthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(refreshTokenRepository.save(any(AuthRefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ArgumentCaptor<UserOAuthAccount> accountCaptor = ArgumentCaptor.forClass(UserOAuthAccount.class);
+        ArgumentCaptor<AuthRefreshToken> refreshCaptor = ArgumentCaptor.forClass(AuthRefreshToken.class);
+
+        AuthTokenResponse response = authService.tossLogin(
+                new TossLoginRequest("authorization-code", "SANDBOX", "apps-device")
+        );
+
+        assertThat(response.tokenType()).isEqualTo("Bearer");
+        assertThat(response.accessToken()).isNotBlank();
+        assertThat(response.refreshToken()).isNotBlank();
+        assertThat(response.user().userId()).isEqualTo(50L);
+        assertThat(response.user().email()).isNull();
+        assertThat(response.user().nickname()).isEqualTo("TossUser-731104");
+        verify(accountRepository).saveAndFlush(accountCaptor.capture());
+        assertThat(accountCaptor.getValue().getProvider()).isEqualTo(AuthProvider.TOSS);
+        assertThat(accountCaptor.getValue().getProviderUserId()).isEqualTo("443731104");
+        verify(refreshTokenRepository).save(refreshCaptor.capture());
+        assertThat(refreshCaptor.getValue().getDeviceId()).isEqualTo("apps-device");
+    }
+
+    @Test
+    void tossLoginReusesExistingProviderAccount() {
+        AuthProperties authProperties = properties();
+        JwtTokenService jwtTokenService = new JwtTokenService(authProperties, JsonMapper.builder().build());
+        CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+        UserRepository userRepository = mock(UserRepository.class);
+        UserOAuthAccountRepository accountRepository = mock(UserOAuthAccountRepository.class);
+        AuthRefreshTokenRepository refreshTokenRepository = mock(AuthRefreshTokenRepository.class);
+        TossOAuthClient tossOAuthClient = request -> new OAuthUserProfile(
+                AuthProvider.TOSS,
+                "443731104",
+                null,
+                false,
+                "TossUser-731104",
+                null
+        );
+        AuthService authService = new AuthService(
+                authProperties,
+                jwtTokenService,
+                currentUserProvider,
+                userRepository,
+                accountRepository,
+                refreshTokenRepository,
+                transactionManager(),
+                List.of(),
+                tossOAuthClient
+        );
+
+        User existingUser = user(51L, null);
+        UserOAuthAccount existingAccount = UserOAuthAccount.builder()
+                .userId(51L)
+                .provider(AuthProvider.TOSS)
+                .providerUserId("443731104")
+                .email(null)
+                .nickname("Old Toss")
+                .profileImageUrl(null)
+                .build();
+        when(accountRepository.findByProviderAndProviderUserId(AuthProvider.TOSS, "443731104"))
+                .thenReturn(Optional.of(existingAccount));
+        when(userRepository.findById(51L)).thenReturn(Optional.of(existingUser));
+        when(refreshTokenRepository.save(any(AuthRefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AuthTokenResponse response = authService.tossLogin(
+                new TossLoginRequest("authorization-code", "DEFAULT", "apps-device")
+        );
+
+        assertThat(response.user().userId()).isEqualTo(51L);
+        verify(userRepository, never()).save(any(User.class));
+        verify(accountRepository, never()).saveAndFlush(any(UserOAuthAccount.class));
+        verify(refreshTokenRepository).save(any(AuthRefreshToken.class));
+    }
+
+    @Test
     void refreshWhenRevokedTokenIsReusedBurnsActiveTokenChainAndRejects() {
         AuthProperties authProperties = properties();
         JwtTokenService jwtTokenService = new JwtTokenService(authProperties, JsonMapper.builder().build());
@@ -329,7 +451,8 @@ class AuthServiceTest {
                 accountRepository,
                 refreshTokenRepository,
                 transactionManager(),
-                List.of()
+                List.of(),
+                mock(TossOAuthClient.class)
         );
         String refreshTokenValue = "rotated-refresh-token";
         String tokenHash = jwtTokenService.hashRefreshToken(refreshTokenValue);
@@ -372,7 +495,8 @@ class AuthServiceTest {
                 accountRepository,
                 refreshTokenRepository,
                 transactionManager(),
-                List.of()
+                List.of(),
+                mock(TossOAuthClient.class)
         );
         String refreshTokenValue = "expired-rotated-refresh-token";
         String tokenHash = jwtTokenService.hashRefreshToken(refreshTokenValue);
@@ -415,7 +539,8 @@ class AuthServiceTest {
                 accountRepository,
                 refreshTokenRepository,
                 transactionManager(),
-                List.of()
+                List.of(),
+                mock(TossOAuthClient.class)
         );
         String refreshTokenValue = "active-refresh-token";
         String tokenHash = jwtTokenService.hashRefreshToken(refreshTokenValue);
