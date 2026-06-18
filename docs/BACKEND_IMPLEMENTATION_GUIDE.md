@@ -795,6 +795,7 @@ FAILED
 ```text
 구현됨:
 - POST /api/auth/oauth
+- POST /api/auth/oauth/kakao/code
 - POST /api/auth/dev
 - POST /api/auth/refresh
 - POST /api/auth/logout
@@ -803,6 +804,7 @@ FAILED
 - CurrentUserProvider
 - AuthRefreshToken rotation
 - Google/Kakao provider token verification client
+- Web Kakao authorization-code exchange client
 
 전환 모드:
 - AUTH_REQUIRE_AUTHENTICATION=false

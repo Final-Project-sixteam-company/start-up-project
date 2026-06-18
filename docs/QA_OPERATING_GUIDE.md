@@ -460,7 +460,7 @@ Findings First를 먼저 쓴다.
 | Backend | P1 | Open | 이전 QA_HANDOFF에서 유지 | concurrent create race fallback에서 `activeSessionId` details 누락 가능성 | `DataIntegrityViolationException` fallback active session 재조회와 P002 details 포함 여부 재검 |
 | Backend/Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | final-deduction in-flight 중 abandon 허용 시 제출 결과가 사라진 것처럼 보일 수 있음 | in-flight abandon 차단 또는 Android 제출 중 이탈/포기 UX 차단 smoke |
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | P002 active session 복구 계약이 앱에서 `details.activeSessionId`와 `GET /active` fallback을 안정적으로 쓰는지 재검 필요 | active PLAYING 세션 상태에서 재시작, 409/P002, 이어가기/포기 UX E2E |
-| Frontend | P0/P1 | Open | 이전 QA_HANDOFF에서 유지 | Studio9 상세/시작 ready gate가 앱에서 준비 중 상태로 막힐 수 있음 | Studio9 상세 진입 후 시작 버튼이 조사 시작 상태이며 현장 진입 가능한지 Android E2E |
+| Frontend | P0/P1 | Partial local verified, prod/fresh auth pending | 이전 QA_HANDOFF에서 유지, 2026-06-18 local Android E2E report | Studio9 상세/시작 ready gate가 앱에서 준비 중 상태로 막힐 수 있음. 로컬 dev-login Android E2E에서는 상세 진입, 조사 시작, 현장 진입 확인 | 운영/QA 인증 경로에서 fresh install 후 Studio9 상세 진입, 시작 버튼, 현장 진입 재검 |
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 시나리오 목록/상세/현장 이미지가 API image URL 대신 placeholder로 보일 수 있음 | `thumbnailUrl`, `coverImageUrl`, `mapImageUrl` 렌더링 smoke |
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 라이브러리 검색/필터 UI가 실제 결과에 반영되지 않거나 미지원 상태가 불명확할 수 있음 | 검색어/필터 적용 결과 변화, 결과 수, empty state 확인 |
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 브리핑/결과 화면 copy가 하드코딩되어 실제 시나리오 정보, 서버 result 문구 계약, 내부 용어와 어긋날 수 있음 | 서버 scenario/result 계약 기반 copy와 내부 용어 미노출 확인 |
@@ -470,6 +470,7 @@ Findings First를 먼저 쓴다.
 | Product/Backend | P2 | Open | 2026-06-15 report | final-deduction 세부 rubric과 in-game guidance 용어가 어긋날 수 있음 | result feedback public-safe review |
 | Ops | P0 | Open | 이전 QA_HANDOFF에서 유지 | 운영 Hibernate bind parameter TRACE가 사용자 질문/최종 추리 입력 원문을 노출할 수 있음 | prod `HIBERNATE_SQL_PARAM_LOG` off/warn, `org.hibernate.orm.jdbc.bind` TRACE 비활성, redacted marker 재검증 |
 | Ops | P1 | Open | 반복 QA reports | AI_CALL/AI_CALL_CONTEXT privacy spot check를 보고서마다 확인해야 함 | redacted Loki/Grafana snippet으로 raw prompt/answer/user question 부재 확인 |
+| Docs/QA | P2 | Open | 2026-06-18 local Android E2E report | 표준 Android QA AVD/launch command가 없으면 Pixel_10/API37 preview emulator crash로 앱 QA가 중단될 수 있음 | API35 Google APIs x86_64 기반 `ClueRoom_QA_API35`와 host GPU headless launch command를 runbook에 고정 후 smoke |
 | Docs | P2 | Open | 2026-06-15 report | QA/FE 문서가 현재 구현 상태와 어긋나는 drift | 코드 SoT 기준 docs update |
 
 ## 11. Regression Checklist Appendix

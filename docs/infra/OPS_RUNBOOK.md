@@ -159,16 +159,22 @@ AUTH_QA_SEED_NICKNAME
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_IDS
 KAKAO_APP_ID
+KAKAO_REST_API_KEY
+KAKAO_CLIENT_SECRET
+CORS_ALLOWED_ORIGIN_PATTERNS
 ```
 
 `AUTH_REQUIRE_AUTHENTICATION=true`, `AUTH_DEV_LOGIN_ENABLED=true`, `GOOGLE_CLIENT_ID(S)` 또는 `KAKAO_APP_ID`가 설정된 상태에서 `JWT_SECRET`이 비어 있거나 32자 미만이면 앱은 부팅 단계에서 실패한다.
+`KAKAO_REST_API_KEY`는 Web Kakao authorization-code login(`/api/auth/oauth/kakao/code`)을 사용할 때 필요하다.
+`KAKAO_CLIENT_SECRET`은 Kakao console에서 client secret을 활성화한 경우에만 입력한다.
 
 1단계에서는 기존 API 호환을 위해 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`를 유지한다.
-Android가 OAuth login과 Bearer token 첨부를 완료한 뒤 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한다.
+Android와 Web이 OAuth login과 Bearer token 첨부를 완료한 뒤 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한다.
 보호 모드에서는 명시 public endpoint를 제외한 `/api/**`가 기본 인증 대상이다.
 OAuth email 기반 기존 계정 연결은 provider verified email에만 허용한다.
 보호 모드에서는 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 요청에 `MOCK_USER_ID`를 부여하지 않는다.
 CORS preflight `OPTIONS` 요청은 인증 없이 통과해야 한다.
+웹 프론트 운영 origin은 `CORS_ALLOWED_ORIGIN_PATTERNS`에 `https://clueroom.xyz`, `https://www.clueroom.xyz`를 포함한다. Native Android HTTP client는 CORS 대상이 아니다.
 AI rate limit 검증용 admin 계정은 `AUTH_ADMIN_SEED_*` 값으로만 생성/승격한다. 실제 admin email은 서버 secret env에만 저장하고 공개 문서/PR에 기록하지 않는다.
 blind QA 격리용 일반 계정은 `AUTH_QA_SEED_*` 값으로만 생성/재사용한다. 실제 QA email은 서버 secret env에만 저장하고 공개 문서/PR에 기록하지 않는다.
 

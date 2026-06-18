@@ -61,13 +61,23 @@ class SecurityConfigTest {
     }
 
     @Test
-    void refreshEndpointIgnoresInvalidAccessTokenHeader() throws Exception {
-        mockMvc.perform(post("/api/auth/refresh")
+    void kakaoCodeLoginEndpointStaysPublicWhenFlagIsEnabled() throws Exception {
+        mockMvc.perform(post("/api/auth/oauth/kakao/code")
                         .header("Authorization", "Bearer expired-or-invalid-access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("C001"));
+    }
+
+    @Test
+    void refreshEndpointIgnoresInvalidAccessTokenHeader() throws Exception {
+        mockMvc.perform(post("/api/auth/refresh")
+                        .header("Authorization", "Bearer expired-or-invalid-access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("AUTH_004"));
     }
 
     @Test
@@ -92,6 +102,8 @@ class SecurityConfigTest {
         mockMvc.perform(options("/api/play-sessions/active")
                         .header("Origin", "http://localhost:3000")
                         .header("Access-Control-Request-Method", "GET"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Access-Control-Allow-Credentials", "true"));
     }
 }
