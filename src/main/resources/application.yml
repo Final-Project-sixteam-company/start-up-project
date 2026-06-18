@@ -117,6 +117,13 @@ clueroom:
       secret: ${JWT_SECRET:}
       access-token-ttl-seconds: ${JWT_ACCESS_TOKEN_TTL_SECONDS:1800}
       refresh-token-ttl-days: ${JWT_REFRESH_TOKEN_TTL_DAYS:30}
+    refresh-cookie:
+      enabled: ${AUTH_REFRESH_COOKIE_ENABLED:true}
+      name: ${AUTH_REFRESH_COOKIE_NAME:clueroom_refresh_token}
+      path: ${AUTH_REFRESH_COOKIE_PATH:/api/auth}
+      domain: ${AUTH_REFRESH_COOKIE_DOMAIN:}
+      secure: ${AUTH_REFRESH_COOKIE_SECURE:true}
+      same-site: ${AUTH_REFRESH_COOKIE_SAME_SITE:Lax}
     oauth:
       timeout-seconds: ${OAUTH_PROVIDER_TIMEOUT_SECONDS:5}
       google:
@@ -157,3 +164,4 @@ app:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:https://clueroom.xyz,https://www.clueroom.xyz,http://localhost:[*],http://127.0.0.1:[*],http://10.0.2.2:[*],http://192.168.*.*:[*]}
     allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
     allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}

@@ -1,14 +1,18 @@
 package com.startup.domain.play.controller;
 
 import com.startup.common.auth.MockUserProvider;
+import com.startup.common.dto.PageResponse;
 import com.startup.domain.play.dto.ActivePlaySessionResponse;
 import com.startup.domain.play.dto.EvidenceUnlockResponse;
 import com.startup.domain.play.dto.PlayEvidenceDetailResponse;
 import com.startup.domain.play.dto.PlayLocationsResponse;
+import com.startup.domain.play.dto.PlaySessionRecordResponse;
 import com.startup.domain.play.dto.PlaySuspectDetailResponse;
 import com.startup.domain.play.enums.PlaySessionStatus;
 import com.startup.domain.play.service.PlaySessionService;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -16,6 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,6 +60,53 @@ class PlaySessionControllerTest {
                 .andExpect(jsonPath("$.error").doesNotExist());
 
         verify(playSessionService).getActiveSession(1L, 10L);
+    }
+
+    @Test
+    void getMyRecords_usesCurrentUserAndReturnsPagedRecordSummary() throws Exception {
+        PlaySessionService playSessionService = mock(PlaySessionService.class);
+        MockUserProvider mockUserProvider = mock(MockUserProvider.class);
+        when(mockUserProvider.currentUserId()).thenReturn(1L);
+        when(playSessionService.getMyRecords(org.mockito.ArgumentMatchers.eq(1L), any(Pageable.class)))
+                .thenReturn(new PageResponse<>(
+                        List.of(new PlaySessionRecordResponse(
+                                "session-100",
+                                100L,
+                                10L,
+                                "서월채",
+                                "COMPLETED",
+                                82,
+                                "A",
+                                LocalDateTime.parse("2026-06-18T12:00:00"),
+                                LocalDateTime.parse("2026-06-18T12:00:00")
+                        )),
+                        0,
+                        20,
+                        1,
+                        1,
+                        false
+                ));
+
+        MockMvc mockMvc = MockMvcBuilders
+                .standaloneSetup(new PlaySessionController(playSessionService, mockUserProvider))
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .build();
+
+        mockMvc.perform(get("/api/play-sessions/records")
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content[0].recordId").value("session-100"))
+                .andExpect(jsonPath("$.data.content[0].sessionId").value(100L))
+                .andExpect(jsonPath("$.data.content[0].scenarioTitle").value("서월채"))
+                .andExpect(jsonPath("$.data.content[0].status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.content[0].score").value(82))
+                .andExpect(jsonPath("$.data.content[0].grade").value("A"))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.error").doesNotExist());
+
+        verify(playSessionService).getMyRecords(org.mockito.ArgumentMatchers.eq(1L), any(Pageable.class));
     }
 
     @Test

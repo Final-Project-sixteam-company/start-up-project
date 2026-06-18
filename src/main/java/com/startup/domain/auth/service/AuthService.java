@@ -155,7 +155,12 @@ public class AuthService {
 
     @Transactional
     public AuthTokenResponse refresh(TokenRefreshRequest request) {
-        String tokenHash = jwtTokenService.hashRefreshToken(request.refreshToken());
+        return refresh(request.refreshToken(), request.deviceId());
+    }
+
+    @Transactional
+    public AuthTokenResponse refresh(String rawRefreshToken, String deviceId) {
+        String tokenHash = jwtTokenService.hashRefreshToken(rawRefreshToken);
         AuthRefreshToken refreshToken = authRefreshTokenRepository.findByTokenHashForUpdate(tokenHash)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
@@ -195,7 +200,12 @@ public class AuthService {
 
     @Transactional
     public void logout(LogoutRequest request) {
-        String tokenHash = jwtTokenService.hashRefreshToken(request.refreshToken());
+        logout(request.refreshToken());
+    }
+
+    @Transactional
+    public void logout(String rawRefreshToken) {
+        String tokenHash = jwtTokenService.hashRefreshToken(rawRefreshToken);
         authRefreshTokenRepository.findByTokenHash(tokenHash)
                 .ifPresent(AuthRefreshToken::revoke);
     }
