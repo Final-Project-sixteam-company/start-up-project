@@ -415,7 +415,9 @@ coverUpText 필수
 | 예정 API | 현재 대체 방식 |
 |---|---|
 | `GET /api/play-sessions/{sessionId}/recommended-questions` | 별도 추천 질문 API는 호출하지 않음. 증거 기반 질문은 evidence detail `guidance.suggestedQuestions` 사용 |
-| `GET /api/play-sessions/records` | 내 기록 화면은 이 API를 우선 사용하고, 미배포/실패 시 웹 localStorage 기록으로 fallback |
+
+`GET /api/play-sessions/records`는 계정 기반 플레이 기록 API로 사용한다.
+웹은 이 API를 우선 호출하고, API 미배포나 일시 실패 때만 브라우저 localStorage 기록으로 fallback한다.
 
 ---
 

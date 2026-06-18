@@ -238,8 +238,8 @@ FAILED
 | 5 | DELETE | `/api/scenarios/{scenarioId}` | 시나리오 삭제 | O | △ 미구현 |
 | 6 | POST | `/api/scenarios/{scenarioId}/publish` | 시나리오 공개 등록 | O | O |
 | 7 | POST | `/api/scenarios/{scenarioId}/hide` | 시나리오 비공개/숨김 | O | △ 미구현 |
-| 8 | GET | `/api/scenarios/me` | 내가 만든 시나리오 조회 | O | △ 미구현 |
-| 9 | GET | `/api/scenarios/bookmarked` | 북마크한 시나리오 조회 | O | △ 미구현 |
+| 8 | GET | `/api/scenarios/me` | 내가 만든 시나리오 조회 | O | O |
+| 9 | GET | `/api/scenarios/bookmarked` | 북마크한 시나리오 조회 | O | O |
 
 ---
 
@@ -329,12 +329,12 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/api/scenarios/{scenarioId}/bookmarks` | 시나리오 북마크 | O | △ 미구현 |
-| 2 | DELETE | `/api/scenarios/{scenarioId}/bookmarks` | 북마크 취소 | O | △ 미구현 |
-| 3 | POST | `/api/scenarios/{scenarioId}/reviews` | 리뷰 작성 | O | △ 미구현 |
-| 4 | GET | `/api/scenarios/{scenarioId}/reviews` | 리뷰 목록 조회 | 선택 | △ 미구현 |
-| 5 | PATCH | `/api/reviews/{reviewId}` | 리뷰 수정 | O | △ 미구현 |
-| 6 | DELETE | `/api/reviews/{reviewId}` | 리뷰 삭제 | O | △ 미구현 |
+| 1 | POST | `/api/scenarios/{scenarioId}/bookmarks` | 시나리오 북마크 | O | O |
+| 2 | DELETE | `/api/scenarios/{scenarioId}/bookmarks` | 북마크 취소 | O | O |
+| 3 | POST | `/api/scenarios/{scenarioId}/reviews` | 리뷰 작성 | O | O |
+| 4 | GET | `/api/scenarios/{scenarioId}/reviews` | 리뷰 목록 조회 | 선택 | O |
+| 5 | PATCH | `/api/reviews/{reviewId}` | 리뷰 수정 | O | O |
+| 6 | DELETE | `/api/reviews/{reviewId}` | 리뷰 삭제 | O | O |
 | 7 | POST | `/api/scenarios/{scenarioId}/reports` | 시나리오 신고 | O | △ |
 
 ---
@@ -2113,8 +2113,8 @@ GET /api/play-sessions/records
 
 # 12. 커뮤니티 API
 
-현재 `develop` 기준 리뷰/북마크 컨트롤러는 없다.
-이 절의 북마크/리뷰 API는 1차 MVP 구현 계약이 아니라 후속 커뮤니티 기능 후보로 본다.
+현재 `develop` 기준 북마크/리뷰 컨트롤러는 구현되어 있다.
+웹/앱은 북마크와 리뷰를 서버 계정 기준으로 저장하고, 리뷰 별점은 정수 `1`~`5`만 전송한다.
 
 ## 12.1 시나리오 북마크
 
