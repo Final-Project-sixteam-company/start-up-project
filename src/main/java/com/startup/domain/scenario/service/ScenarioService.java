@@ -44,9 +44,18 @@ public class ScenarioService {
     private final ScenarioPublishValidator scenarioPublishValidator;
     private final ScenarioBookmarkRepository bookmarkRepository;
     private final UserRepository userRepository;
+    private final RedisScenarioService redisScenarioService;
 
     @Transactional(readOnly = true)
     public PageResponse<ScenarioSummaryResponse> getScenarios(Long userId, ScenarioSearchCondition condition, Pageable pageable) {
+        String sortParam = pageable.getSort().isSorted() ? pageable.getSort().toString() : "";
+        String cacheKey = ScenarioCachePolicy.buildListCacheKey(userId, pageable.getPageNumber(), pageable.getPageSize(), sortParam);
+
+        PageResponse<ScenarioSummaryResponse> cachedResponse = redisScenarioService.getCachedList(cacheKey);
+        if (cachedResponse != null) {
+            return cachedResponse;
+        }
+
         // API 정렬 파라미터(popular 등)를 실제 엔티티 필드(playCount 등)로 변환
         Pageable mappedPageable = mapPageableSort(pageable);
 
@@ -86,7 +95,10 @@ public class ScenarioService {
             return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, isBookmarked, thumbnailUrl, canPlay);
         });
 
-        return PageResponse.from(responsePage);
+        PageResponse<ScenarioSummaryResponse> finalResponse = PageResponse.from(responsePage);
+        redisScenarioService.cacheList(cacheKey, finalResponse);
+
+        return finalResponse;
     }
 
     @Transactional(readOnly = true)
