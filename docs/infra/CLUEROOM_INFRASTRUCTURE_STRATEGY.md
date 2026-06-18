@@ -274,19 +274,26 @@ Domain: clueroom.xyz
 API Domain: api.clueroom.xyz
 DNS Record:
   Type: A
+  Host: @
+  Target: Lightsail Static IP
+  Type: A
+  Host: www
+  Target: Lightsail Static IP
+  Type: A
   Host: api
   Target: Lightsail Static IP
 ```
 
-현재 루트 도메인 `clueroom.xyz`는 사용하지 않는다.
-API 서버는 `api.clueroom.xyz`로 분리한다.
+루트 도메인 `clueroom.xyz`와 `www.clueroom.xyz`는 Vite 기반 웹 프론트를 제공한다.
+API 서버는 `api.clueroom.xyz`로 분리해 Android 앱과 웹 프론트가 같은 backend API를 사용한다.
 
 ```text
 clueroom.xyz
-→ 추후 랜딩 페이지 / 웹 프론트 / 소개 페이지
+www.clueroom.xyz
+→ 웹 프론트 / 브라우저 시연
 
 api.clueroom.xyz
-→ Spring Boot API 서버
+→ Spring Boot API 서버 / Android APK / Web 공용 API
 ```
 
 ### 4.2 서버

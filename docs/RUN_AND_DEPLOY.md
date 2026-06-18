@@ -129,7 +129,7 @@ cp .env.example .env
 | `AI_LLMOPS_DB_LOGGING_ENABLED` | AI 호출 로그 DB 저장 활성화 여부 |
 | `AUTH_MOCK_FALLBACK_ENABLED` | JWT 전환기 token 없는 기존 API 요청을 `MOCK_USER_ID`로 허용할지 여부 |
 | `AUTH_DEV_LOGIN_ENABLED` | `/api/auth/dev` 개발용 로그인 활성 여부. 운영 기본 `false` |
-| `AUTH_REQUIRE_AUTHENTICATION` | 사용자별 API 인증 강제 여부. Android 전환 전 기본 `false` |
+| `AUTH_REQUIRE_AUTHENTICATION` | 사용자별 API 인증 강제 여부. Android/Web 전환 전 기본 `false` |
 | `AUTH_ADMIN_SEED_ENABLED` | 운영 secret env에 지정한 admin 테스트 계정을 생성/승격할지 여부. 기본 `false` |
 | `AUTH_ADMIN_SEED_EMAIL` | admin seed 대상 이메일. 실제 값은 서버 secret env에만 저장 |
 | `AUTH_ADMIN_SEED_NICKNAME` | admin seed 신규 생성 시 nickname |
@@ -142,6 +142,8 @@ cp .env.example .env
 | `JWT_REFRESH_TOKEN_TTL_DAYS` | refresh token 유효 일수 |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_IDS` | Google ID token `aud` 검증용 client id. 여러 개면 comma-separated |
 | `KAKAO_APP_ID` | Kakao access token info `app_id` 검증용 앱 ID |
+| `KAKAO_REST_API_KEY` | Web Kakao authorization code를 access token으로 교환할 때 사용하는 REST API key |
+| `KAKAO_CLIENT_SECRET` | Kakao client secret을 활성화한 경우에만 사용하는 선택값 |
 | `AWS_REGION` | S3 리전 |
 | `AWS_ACCESS_KEY_ID` | 서버 전용 AWS access key |
 | `AWS_SECRET_ACCESS_KEY` | 서버 전용 AWS secret key |
@@ -156,7 +158,7 @@ cp .env.example .env
 | `GRAFANA_SERVER_DOMAIN` | Grafana public domain |
 | `GRAFANA_SERVER_ROOT_URL` | Grafana public root URL |
 | `GRAFANA_SERVER_ENFORCE_DOMAIN` | Grafana Host header domain enforcement |
-| `CORS_ALLOWED_ORIGIN_PATTERNS` | 브라우저/WebView 테스트용 CORS |
+| `CORS_ALLOWED_ORIGIN_PATTERNS` | 웹 프론트/브라우저/WebView CORS origin. 운영 웹 기본 origin은 `https://clueroom.xyz`, `https://www.clueroom.xyz` |
 
 ### 3.2 Docker 내부 연결
 
@@ -300,10 +302,11 @@ curl -s -X POST http://localhost:8080/api/auth/oauth \
   -d '{"provider":"KAKAO","accessToken":"<kakao-access-token>","deviceId":"android"}'
 ```
 
-운영에서는 `GOOGLE_CLIENT_ID` 또는 `GOOGLE_CLIENT_IDS`, `KAKAO_APP_ID`를 secret env로 주입한다. Google은 ID token의 `aud`, Kakao는 access token info의 `app_id`를 서버 설정값과 비교한다.
+운영에서는 `GOOGLE_CLIENT_ID` 또는 `GOOGLE_CLIENT_IDS`, `KAKAO_APP_ID`를 secret env로 주입한다. Web Kakao code-flow를 쓰면 `KAKAO_REST_API_KEY`도 함께 주입한다. Google은 ID token의 `aud`, Kakao는 access token info의 `app_id`를 서버 설정값과 비교한다.
+Android와 Web이 같은 백엔드를 쓰면 `GOOGLE_CLIENT_IDS`에 Android OAuth client id와 Web OAuth client id를 comma-separated로 모두 넣는다.
 기존 계정 email 기반 linking은 provider가 verified email을 제공한 경우에만 수행한다. Google은 `email_verified`, Kakao는 `is_email_valid=true`와 `is_email_verified=true`를 기준으로 한다.
 
-보호 API 전환은 Android가 access token 저장과 `Authorization: Bearer <accessToken>` 첨부를 완료한 뒤 진행한다.
+보호 API 전환은 Android와 Web이 모두 access token 저장과 `Authorization: Bearer <accessToken>` 첨부를 완료한 뒤 진행한다.
 
 ```properties
 AUTH_REQUIRE_AUTHENTICATION=true
@@ -323,6 +326,14 @@ AUTH_REQUIRE_AUTHENTICATION=true
 
 `/api/auth/refresh` 등 auth 공개 endpoint는 만료 access token이 `Authorization` 헤더에 남아 있어도 refresh body 검증까지 도달해야 한다. 클라이언트 interceptor가 refresh 요청에 기존 Bearer token을 자동 첨부할 수 있기 때문이다.
 보호 API에 대한 브라우저/WebView CORS preflight `OPTIONS` 요청은 Bearer token 없이 통과해야 한다.
+
+웹 프론트 운영 origin:
+
+```properties
+CORS_ALLOWED_ORIGIN_PATTERNS=https://clueroom.xyz,https://www.clueroom.xyz,http://localhost:[*],http://127.0.0.1:[*],http://10.0.2.2:[*],http://192.168.*.*:[*]
+```
+
+Native Android HTTP client는 CORS 대상이 아니므로 위 값은 웹/브라우저/WebView 호출만 제어한다.
 
 ---
 
