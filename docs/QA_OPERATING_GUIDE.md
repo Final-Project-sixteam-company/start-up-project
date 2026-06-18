@@ -200,6 +200,9 @@ public 보고서에는 result screen/API 도달 여부만 남기고, 선택 후�
 1. 환경 확인
    - 앱 빌드/commit, API URL, 계정 종류, device/emulator 상태를 기록한다.
    - 운영 API write가 발생하면 QA 계정/승인 여부를 기록한다.
+   - 웹 QA를 진행할 때 QA 로그인 버튼이 숨겨져 있으면 운영자에게 QA용 빌드/env 상태를 확인한다.
+   - QA 계정 식별자는 public 보고서에 쓰지 않고 private handoff 또는 private artifact에만 남긴다.
+   - QA 전용 웹 로그인은 프론트 `VITE_ENABLE_QA_LOGIN=true`, `VITE_QA_LOGIN_EMAIL` 설정과 백엔드 `AUTH_DEV_LOGIN_ENABLED=true`가 모두 준비된 경우에만 사용한다.
 
 2. 신규 세션 시작
    - active session 여부를 확인한다.
@@ -279,6 +282,21 @@ Android가 불가능하면 public API를 보조 surface로 사용하되, spoiler
 7. AI 답변이 설정에 없는 사실을 만들지 않고, 증거 제시 시 다음 비교 방향을 주는지 확인한다.
 8. 30~50턴 안에 후보 축소가 가능한지 판단한다.
 9. 운영/privacy spot check 결과를 기록한다.
+
+# 계정 / 로그인
+
+QA 계정 식별자는 operator가 private handoff로 제공한 값만 사용한다.
+public 보고서에는 QA 계정 이메일, token, raw session id를 쓰지 않는다.
+
+Android 앱 또는 웹에서 Google/Kakao 로그인이 가능하면 해당 QA 계정으로 로그인한다.
+웹 QA에서 "QA 테스트 계정 로그인" 버튼이 보이면 그 버튼을 사용한다.
+버튼이 보이지 않으면 임의 계정으로 우회하지 말고 아래를 환경 blocker로 기록한다.
+
+```text
+QA login unavailable:
+- VITE_ENABLE_QA_LOGIN / VITE_QA_LOGIN_EMAIL 확인 필요
+- backend AUTH_DEV_LOGIN_ENABLED 확인 필요
+```
 
 # fresh session
 
@@ -381,6 +399,7 @@ Findings First를 먼저 쓴다.
 - App build:
 - Backend commit/version:
 - Account policy:
+- QA login route: OAuth / QA button / API-only token / unavailable
 - Blind validity:
 - Private artifact:
 
