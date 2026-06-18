@@ -1,5 +1,8 @@
 package com.startup.domain.play.service;
 
+import com.startup.common.dto.PageResponse;
+import com.startup.domain.ai.entity.FinalDeduction;
+import com.startup.domain.ai.repository.FinalDeductionRepository;
 import com.startup.domain.ai.repository.InterrogationLogRepository;
 import com.startup.domain.play.dto.*;
 import com.startup.domain.play.entity.PlaySession;
@@ -46,6 +49,7 @@ public class PlaySessionService {
     private static final TypeReference<StoredEvidenceGuidance> EVIDENCE_GUIDANCE_TYPE = new TypeReference<>() {};
 
     private final PlaySessionRepository playSessionRepository;
+    private final FinalDeductionRepository finalDeductionRepository;
     private final UnlockedEvidenceRepository unlockedEvidenceRepository;
     private final ScenarioRepository scenarioRepository;
     private final ScenarioAccessService scenarioAccessService;
@@ -66,6 +70,34 @@ public class PlaySessionService {
     private final ScenarioAssetUrlResolver scenarioAssetUrlResolver;
     private final TimelineEventRepository timelineEventRepository;
     private final JsonMapper jsonMapper;
+
+    @Transactional(readOnly = true)
+    public PageResponse<PlaySessionRecordResponse> getMyRecords(Long userId, org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<PlaySession> sessions =
+                playSessionRepository.findAllByUserIdAndStatusInOrderByUpdatedAtDesc(
+                        userId,
+                        List.of(PlaySessionStatus.PLAYING, PlaySessionStatus.COMPLETED),
+                        pageable
+                );
+
+        Set<Long> scenarioIds = sessions.stream()
+                .map(PlaySession::getScenarioId)
+                .collect(Collectors.toSet());
+        Map<Long, Scenario> scenarioMap = scenarioRepository.findAllById(scenarioIds).stream()
+                .collect(Collectors.toMap(Scenario::getId, Function.identity()));
+
+        List<Long> sessionIds = sessions.stream()
+                .map(PlaySession::getId)
+                .toList();
+        Map<Long, FinalDeduction> deductionMap = finalDeductionRepository.findAllByPlaySessionIdIn(sessionIds).stream()
+                .collect(Collectors.toMap(FinalDeduction::getPlaySessionId, Function.identity()));
+
+        return PageResponse.from(sessions.map(session -> toRecordResponse(
+                session,
+                scenarioMap.get(session.getScenarioId()),
+                deductionMap.get(session.getId())
+        )));
+    }
 
     //게임 시작 세션
     @Transactional
@@ -811,6 +843,31 @@ public class PlaySessionService {
 
         session.markCompleted();
         log.info("세션 완료 처리: sessionId={}", sessionId);
+    }
+
+    private PlaySessionRecordResponse toRecordResponse(
+            PlaySession session,
+            Scenario scenario,
+            FinalDeduction deduction
+    ) {
+        boolean completed = session.getStatus() == PlaySessionStatus.COMPLETED;
+        Integer score = completed && deduction != null ? deduction.getScore() : null;
+        String grade = completed && deduction != null ? deduction.getGrade() : null;
+        LocalDateTime completedAt = completed
+                ? (deduction != null ? deduction.getSubmittedAt() : session.getEndedAt())
+                : null;
+
+        return new PlaySessionRecordResponse(
+                "session-" + session.getId(),
+                session.getId(),
+                session.getScenarioId(),
+                scenario != null ? scenario.getTitle() : "삭제된 사건",
+                completed ? "COMPLETED" : "IN_PROGRESS",
+                score,
+                grade,
+                session.getUpdatedAt(),
+                completedAt
+        );
     }
 
     // 유저가 게임을 포기할 때
