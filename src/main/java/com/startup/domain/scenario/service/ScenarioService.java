@@ -49,7 +49,7 @@ public class ScenarioService {
     @Transactional(readOnly = true)
     public PageResponse<ScenarioSummaryResponse> getScenarios(Long userId, ScenarioSearchCondition condition, Pageable pageable) {
         String sortParam = pageable.getSort().isSorted() ? pageable.getSort().toString() : "";
-        String cacheKey = ScenarioCachePolicy.buildListCacheKey(userId, pageable.getPageNumber(), pageable.getPageSize(), sortParam);
+        String cacheKey = ScenarioCachePolicy.buildListCacheKey(userId, condition, pageable.getPageNumber(), pageable.getPageSize(), sortParam);
 
         PageResponse<ScenarioSummaryResponse> cachedResponse = redisScenarioService.getCachedList(cacheKey);
         if (cachedResponse != null) {
