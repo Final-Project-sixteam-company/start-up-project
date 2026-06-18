@@ -12,11 +12,16 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class RedisScenarioService {
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+
+    public RedisScenarioService(StringRedisTemplate redisTemplate) {
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.findAndRegisterModules(); // JavaTimeModule 등 자동 등록
+    }
 
     public PageResponse<ScenarioSummaryResponse> getCachedList(String key) {
         try {
