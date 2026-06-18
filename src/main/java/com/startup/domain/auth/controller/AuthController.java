@@ -4,6 +4,7 @@ import com.startup.common.dto.ApiResponse;
 import com.startup.domain.auth.dto.AuthMeResponse;
 import com.startup.domain.auth.dto.AuthTokenResponse;
 import com.startup.domain.auth.dto.DevLoginRequest;
+import com.startup.domain.auth.dto.KakaoCodeLoginRequest;
 import com.startup.domain.auth.dto.LogoutRequest;
 import com.startup.domain.auth.dto.OAuthLoginRequest;
 import com.startup.domain.auth.dto.TokenRefreshRequest;
@@ -32,6 +33,11 @@ public class AuthController {
     @PostMapping("/oauth")
     public ApiResponse<AuthTokenResponse> oauthLogin(@Valid @RequestBody OAuthLoginRequest request) {
         return ApiResponse.success(authService.oauthLogin(request));
+    }
+
+    @PostMapping("/oauth/kakao/code")
+    public ApiResponse<AuthTokenResponse> kakaoCodeLogin(@Valid @RequestBody KakaoCodeLoginRequest request) {
+        return ApiResponse.success(authService.kakaoCodeLogin(request));
     }
 
     @PostMapping("/toss")

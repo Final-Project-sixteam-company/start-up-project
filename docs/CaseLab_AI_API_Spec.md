@@ -218,11 +218,12 @@ FAILED
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/auth/oauth` | Google/Kakao provider token으로 ClueRoom token 발급 | X | O |
-| 2 | POST | `/api/auth/toss` | Apps in Toss authorizationCode로 ClueRoom token 발급 | X | O |
-| 3 | POST | `/api/auth/dev` | local/staging 개발용 로그인. 운영 기본 disabled | X | O |
-| 4 | POST | `/api/auth/refresh` | Refresh token rotation + 새 access token 발급 | X/Refresh | O |
-| 5 | POST | `/api/auth/logout` | 제출한 refresh token revoke | X/Refresh | O |
-| 6 | GET | `/api/auth/me` | 현재 인증 사용자 조회 | O | O |
+| 2 | POST | `/api/auth/oauth/kakao/code` | Web Kakao authorizationCode로 ClueRoom token 발급 | X | O |
+| 3 | POST | `/api/auth/toss` | Apps in Toss authorizationCode로 ClueRoom token 발급 | X | O |
+| 4 | POST | `/api/auth/dev` | local/staging 개발용 로그인. 운영 기본 disabled | X | O |
+| 5 | POST | `/api/auth/refresh` | Refresh token rotation + 새 access token 발급 | X/Refresh | O |
+| 6 | POST | `/api/auth/logout` | 제출한 refresh token revoke | X/Refresh | O |
+| 7 | GET | `/api/auth/me` | 현재 인증 사용자 조회 | O | O |
 
 ---
 
@@ -383,9 +384,28 @@ Kakao:
 }
 ```
 
+Web Kakao JS SDK v2 authorization-code flow는 access token을 프론트에서 받지 않고 별도 endpoint를 사용한다.
+프론트는 `Kakao.Auth.authorize()`가 redirect로 반환한 code만 백엔드에 전달하고, 백엔드는 서버 간 token exchange 후 기존 ClueRoom token response만 반환한다.
+
+```http
+POST /api/auth/oauth/kakao/code
+```
+
+```json
+{
+  "authorizationCode": "kakao-authorization-code-from-web-redirect",
+  "redirectUri": "https://www.clueroom.xyz",
+  "deviceId": "browser-installation-id"
+}
+```
+
+`redirectUri`는 Kakao console에 등록된 redirect URI와 프론트가 `Kakao.Auth.authorize()`에 넘긴 값과 정확히 같아야 한다.
+백엔드는 `KAKAO_REST_API_KEY`로 Kakao token endpoint를 호출한 뒤 access token info/user info를 검증한다.
+Kakao access/refresh token 원문은 프론트 응답과 로그에 남기지 않는다.
+
 ### Response
 
-`/api/auth/oauth`, `/api/auth/toss`, `/api/auth/dev`, `/api/auth/refresh`는 같은 token response shape를 반환한다.
+`/api/auth/oauth`, `/api/auth/oauth/kakao/code`, `/api/auth/toss`, `/api/auth/dev`, `/api/auth/refresh`는 같은 token response shape를 반환한다.
 
 ```json
 {
@@ -2260,6 +2280,7 @@ docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
 
 ```text
 POST /api/auth/oauth
+POST /api/auth/oauth/kakao/code
 POST /api/auth/toss
 POST /api/auth/dev
 POST /api/auth/refresh

@@ -189,6 +189,9 @@ public class AuthProperties {
 
     public static class Kakao {
         private String appId = "";
+        private String restApiKey = "";
+        private String clientSecret = "";
+        private String tokenUri = "https://kauth.kakao.com/oauth/token";
         private String accessTokenInfoUri = "https://kapi.kakao.com/v1/user/access_token_info";
         private String userInfoUri = "https://kapi.kakao.com/v2/user/me";
 
@@ -198,6 +201,32 @@ public class AuthProperties {
 
         public void setAppId(String appId) {
             this.appId = appId == null ? "" : appId.trim();
+        }
+
+        public String getRestApiKey() {
+            return restApiKey;
+        }
+
+        public void setRestApiKey(String restApiKey) {
+            this.restApiKey = restApiKey == null ? "" : restApiKey.trim();
+        }
+
+        public String getClientSecret() {
+            return clientSecret;
+        }
+
+        public void setClientSecret(String clientSecret) {
+            this.clientSecret = clientSecret == null ? "" : clientSecret.trim();
+        }
+
+        public String getTokenUri() {
+            return tokenUri;
+        }
+
+        public void setTokenUri(String tokenUri) {
+            this.tokenUri = (tokenUri == null || tokenUri.isBlank())
+                    ? "https://kauth.kakao.com/oauth/token"
+                    : tokenUri.trim();
         }
 
         public String getAccessTokenInfoUri() {

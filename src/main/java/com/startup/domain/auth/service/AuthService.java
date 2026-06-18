@@ -5,6 +5,7 @@ import com.startup.common.auth.CurrentUserProvider;
 import com.startup.domain.auth.dto.AuthMeResponse;
 import com.startup.domain.auth.dto.AuthTokenResponse;
 import com.startup.domain.auth.dto.DevLoginRequest;
+import com.startup.domain.auth.dto.KakaoCodeLoginRequest;
 import com.startup.domain.auth.dto.LogoutRequest;
 import com.startup.domain.auth.dto.OAuthLoginRequest;
 import com.startup.domain.auth.dto.TokenRefreshRequest;
@@ -20,6 +21,7 @@ import com.startup.domain.auth.repository.UserOAuthAccountRepository;
 import com.startup.domain.auth.repository.UserRepository;
 import com.startup.domain.auth.support.AuthProperties;
 import com.startup.domain.auth.support.JwtTokenService;
+import com.startup.domain.auth.support.KakaoOAuthProviderClient;
 import com.startup.domain.auth.support.OAuthProviderClient;
 import com.startup.domain.auth.support.OAuthUserProfile;
 import com.startup.domain.auth.support.TossOAuthClient;
@@ -102,6 +104,21 @@ public class AuthService {
         } catch (DataIntegrityViolationException e) {
             log.warn("OAuth login raced with another request. Retrying by provider account lookup. provider={}",
                     profile.provider());
+            return retryOAuthLoginAfterRace(profile, request.deviceId());
+        }
+    }
+
+    public AuthTokenResponse kakaoCodeLogin(KakaoCodeLoginRequest request) {
+        OAuthProviderClient providerClient = providerClientMap().get(AuthProvider.KAKAO);
+        if (!(providerClient instanceof KakaoOAuthProviderClient kakaoProviderClient)) {
+            throw new AuthException(AuthErrorCode.OAUTH_PROVIDER_NOT_SUPPORTED);
+        }
+
+        OAuthUserProfile profile = kakaoProviderClient.verifyAuthorizationCode(request);
+        try {
+            return loginOAuthUserInTransaction(profile, request.deviceId());
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Kakao code login raced with another request. Retrying by provider account lookup.");
             return retryOAuthLoginAfterRace(profile, request.deviceId());
         }
     }
