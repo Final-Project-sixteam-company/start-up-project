@@ -20,13 +20,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Value("${app.cors.allowed-headers}")
     private String[] allowedHeaders;
 
+    @Value("${app.cors.allow-credentials}")
+    private boolean allowCredentials;
+
     @Override
     public void addCorsMappings(@NonNull CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOriginPatterns(allowedOriginPatterns)
                 .allowedMethods(allowedMethods)
                 .allowedHeaders(allowedHeaders)
-                .allowCredentials(false)
+                .allowCredentials(allowCredentials)
                 .maxAge(3600);
     }
 }

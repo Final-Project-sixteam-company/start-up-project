@@ -140,6 +140,10 @@ cp .env.example .env
 | `JWT_SECRET` | 서버 전용 JWT HMAC secret. 레포/.env.example에는 실제 값 저장 금지 |
 | `JWT_ACCESS_TOKEN_TTL_SECONDS` | access token 유효 시간 |
 | `JWT_REFRESH_TOKEN_TTL_DAYS` | refresh token 유효 일수 |
+| `AUTH_REFRESH_COOKIE_ENABLED` | 웹 refresh token HttpOnly cookie 발급 여부. 운영 기본 `true` |
+| `AUTH_REFRESH_COOKIE_NAME` | refresh cookie 이름. 기본 `clueroom_refresh_token` |
+| `AUTH_REFRESH_COOKIE_SECURE` | refresh cookie `Secure` 속성. 운영 HTTPS에서는 `true` |
+| `AUTH_REFRESH_COOKIE_SAME_SITE` | refresh cookie SameSite 정책. `www.clueroom.xyz` → `api.clueroom.xyz` 구조에서는 기본 `Lax` |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_IDS` | Google ID token `aud` 검증용 client id. 여러 개면 comma-separated |
 | `KAKAO_APP_ID` | Kakao access token info `app_id` 검증용 앱 ID |
 | `KAKAO_REST_API_KEY` | Web Kakao authorization code를 access token으로 교환할 때 사용하는 REST API key |
@@ -159,6 +163,7 @@ cp .env.example .env
 | `GRAFANA_SERVER_ROOT_URL` | Grafana public root URL |
 | `GRAFANA_SERVER_ENFORCE_DOMAIN` | Grafana Host header domain enforcement |
 | `CORS_ALLOWED_ORIGIN_PATTERNS` | 웹 프론트/브라우저/WebView CORS origin. 운영 웹 기본 origin은 `https://clueroom.xyz`, `https://www.clueroom.xyz` |
+| `CORS_ALLOW_CREDENTIALS` | 웹 refresh cookie를 포함한 cross-origin API 호출 허용 여부. 웹 배포 시 `true` |
 
 ### 3.2 Docker 내부 연결
 
@@ -326,11 +331,16 @@ AUTH_REQUIRE_AUTHENTICATION=true
 
 `/api/auth/refresh` 등 auth 공개 endpoint는 만료 access token이 `Authorization` 헤더에 남아 있어도 refresh body 검증까지 도달해야 한다. 클라이언트 interceptor가 refresh 요청에 기존 Bearer token을 자동 첨부할 수 있기 때문이다.
 보호 API에 대한 브라우저/WebView CORS preflight `OPTIONS` 요청은 Bearer token 없이 통과해야 한다.
+웹 프론트는 refresh token을 JavaScript 저장소에 보관하지 않고 `HttpOnly; Secure` refresh cookie를 사용한다. Android 앱은 기존처럼 body의 `refreshToken`을 사용할 수 있으므로 두 방식은 병행 지원한다.
 
 웹 프론트 운영 origin:
 
 ```properties
 CORS_ALLOWED_ORIGIN_PATTERNS=https://clueroom.xyz,https://www.clueroom.xyz,http://localhost:[*],http://127.0.0.1:[*],http://10.0.2.2:[*],http://192.168.*.*:[*]
+CORS_ALLOW_CREDENTIALS=true
+AUTH_REFRESH_COOKIE_ENABLED=true
+AUTH_REFRESH_COOKIE_SECURE=true
+AUTH_REFRESH_COOKIE_SAME_SITE=Lax
 ```
 
 Native Android HTTP client는 CORS 대상이 아니므로 위 값은 웹/브라우저/WebView 호출만 제어한다.

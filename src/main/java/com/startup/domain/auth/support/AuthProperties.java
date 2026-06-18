@@ -14,6 +14,7 @@ public class AuthProperties {
     private boolean devLoginEnabled = false;
     private boolean requireAuthentication = false;
     private Jwt jwt = new Jwt();
+    private RefreshCookie refreshCookie = new RefreshCookie();
     private OAuth oauth = new OAuth();
     private AdminSeed adminSeed = new AdminSeed();
     private QaSeed qaSeed = new QaSeed();
@@ -48,6 +49,14 @@ public class AuthProperties {
 
     public void setJwt(Jwt jwt) {
         this.jwt = jwt == null ? new Jwt() : jwt;
+    }
+
+    public RefreshCookie getRefreshCookie() {
+        return refreshCookie;
+    }
+
+    public void setRefreshCookie(RefreshCookie refreshCookie) {
+        this.refreshCookie = refreshCookie == null ? new RefreshCookie() : refreshCookie;
     }
 
     public OAuth getOauth() {
@@ -115,6 +124,63 @@ public class AuthProperties {
 
         public void setRefreshTokenTtlDays(int refreshTokenTtlDays) {
             this.refreshTokenTtlDays = Math.max(1, refreshTokenTtlDays);
+        }
+    }
+
+    public static class RefreshCookie {
+        private boolean enabled = true;
+        private String name = "clueroom_refresh_token";
+        private String path = "/api/auth";
+        private String domain = "";
+        private boolean secure = true;
+        private String sameSite = "Lax";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = (name == null || name.isBlank()) ? "clueroom_refresh_token" : name.trim();
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public void setPath(String path) {
+            this.path = (path == null || path.isBlank()) ? "/api/auth" : path.trim();
+        }
+
+        public String getDomain() {
+            return domain;
+        }
+
+        public void setDomain(String domain) {
+            this.domain = domain == null ? "" : domain.trim();
+        }
+
+        public boolean isSecure() {
+            return secure;
+        }
+
+        public void setSecure(boolean secure) {
+            this.secure = secure;
+        }
+
+        public String getSameSite() {
+            return sameSite;
+        }
+
+        public void setSameSite(String sameSite) {
+            this.sameSite = (sameSite == null || sameSite.isBlank()) ? "Lax" : sameSite.trim();
         }
     }
 
