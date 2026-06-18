@@ -159,10 +159,14 @@ AUTH_QA_SEED_NICKNAME
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_IDS
 KAKAO_APP_ID
+KAKAO_REST_API_KEY
+KAKAO_CLIENT_SECRET
 CORS_ALLOWED_ORIGIN_PATTERNS
 ```
 
 `AUTH_REQUIRE_AUTHENTICATION=true`, `AUTH_DEV_LOGIN_ENABLED=true`, `GOOGLE_CLIENT_ID(S)` 또는 `KAKAO_APP_ID`가 설정된 상태에서 `JWT_SECRET`이 비어 있거나 32자 미만이면 앱은 부팅 단계에서 실패한다.
+`KAKAO_REST_API_KEY`는 Web Kakao authorization-code login(`/api/auth/oauth/kakao/code`)을 사용할 때 필요하다.
+`KAKAO_CLIENT_SECRET`은 Kakao console에서 client secret을 활성화한 경우에만 입력한다.
 
 1단계에서는 기존 API 호환을 위해 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`를 유지한다.
 Android와 Web이 OAuth login과 Bearer token 첨부를 완료한 뒤 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한다.
