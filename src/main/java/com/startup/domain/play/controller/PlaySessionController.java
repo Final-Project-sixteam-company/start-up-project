@@ -2,10 +2,12 @@ package com.startup.domain.play.controller;
 
 import com.startup.common.auth.MockUserProvider;
 import com.startup.common.dto.ApiResponse;
+import com.startup.common.dto.PageResponse;
 import com.startup.domain.play.dto.*;
 import com.startup.domain.play.service.PlaySessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +40,16 @@ public class PlaySessionController {
     ) {
         Long userId = mockUserProvider.currentUserId();
         ActivePlaySessionResponse response = playSessionService.getActiveSession(userId, scenarioId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "내 플레이 기록 목록 조회")
+    @GetMapping("/records")
+    public ResponseEntity<ApiResponse<PageResponse<PlaySessionRecordResponse>>> getMyRecords(
+            Pageable pageable
+    ) {
+        Long userId = mockUserProvider.currentUserId();
+        PageResponse<PlaySessionRecordResponse> response = playSessionService.getMyRecords(userId, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

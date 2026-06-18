@@ -415,9 +415,7 @@ coverUpText 필수
 | 예정 API | 현재 대체 방식 |
 |---|---|
 | `GET /api/play-sessions/{sessionId}/recommended-questions` | 별도 추천 질문 API는 호출하지 않음. 증거 기반 질문은 evidence detail `guidance.suggestedQuestions` 사용 |
-| `GET /api/play-sessions/me` | 내 기록 화면은 인증/기록 API 전까지 더미 또는 empty state |
-| `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` | 북마크 UI는 비활성 또는 optimistic action 금지 |
-| `GET/POST /api/scenarios/{scenarioId}/reviews` | 리뷰 UI는 더미 또는 숨김 |
+| `GET /api/play-sessions/records` | 내 기록 화면은 이 API를 우선 사용하고, 미배포/실패 시 웹 localStorage 기록으로 fallback |
 
 ---
 
@@ -493,9 +491,9 @@ POST /api/device-tokens
 | 사건 카드 클릭 | 해당 `scenarioId`로 사건 상세 화면 이동 |
 | 하단 `홈` 클릭 | 홈 유지 또는 홈으로 복귀 |
 | 하단 `라이브러리` 클릭 | 사건 라이브러리 화면 이동 |
-| 하단 `기록` 클릭 | 현재는 내 기록 API가 없으므로 empty/mock 화면 |
+| 하단 `기록` 클릭 | `GET /api/play-sessions/records`로 계정 기록 조회. 실패 시 웹 localStorage 기록 fallback |
 | 하단 `만들기` 클릭 | 커스텀 제작 API 완성 전까지 placeholder |
-| 하단 `내 정보` 클릭 | 인증 API 완성 전까지 placeholder |
+| 하단 `내 정보` 클릭 | `GET /api/auth/me` 기준으로 프로필 조회 |
 
 홈에서 시나리오 목록 API가 실패하면 카드 영역만 empty/error 상태로 표시하고, 하단 네비게이션은 유지한다.
 
@@ -1552,9 +1550,9 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 | 용의자 상세 API | `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` 사용 |
 | 타임라인 API | `GET /api/play-sessions/{sessionId}/timeline` 사용. 빈 응답만 empty state |
 | 추천 질문 API | 별도 API는 호출하지 않음. 증거 기반 질문은 detail `guidance.suggestedQuestions` 사용 |
-| 내 기록 API | empty/mock |
-| 마이페이지 API | empty/mock |
-| 북마크/리뷰 API | 숨김 또는 disabled |
+| 내 기록 API | `GET /api/play-sessions/records` 우선, 실패 시 웹 localStorage fallback |
+| 마이페이지 API | `GET /api/auth/me` |
+| 북마크/리뷰 API | 서버 API 연동 |
 | 커스텀 제작 | 별도 제작 플로우 확정 전 placeholder |
 
 placeholder는 "아직 구현 전"이라는 내부 표현보다 유저 관점의 자연스러운 문구를 사용한다.

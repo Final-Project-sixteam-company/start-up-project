@@ -289,18 +289,19 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/play-sessions` | 게임 세션 시작 | O | O |
 | 2 | GET | `/api/play-sessions/active?scenarioId={scenarioId}` | 진행 중 세션 조회 | O | O |
-| 3 | GET | `/api/play-sessions/{sessionId}` | 게임 세션 기본 정보 조회 | △ | △ |
-| 4 | GET | `/api/play-sessions/{sessionId}/dashboard` | 탐정 대시보드 조회 | O | O |
-| 5 | GET | `/api/play-sessions/{sessionId}/locations` | 현장 정보 조회 | O | O |
-| 6 | GET | `/api/play-sessions/{sessionId}/evidences` | 현재 해금된 증거 조회 | O | O |
-| 7 | GET | `/api/play-sessions/{sessionId}/evidences/{evidenceId}` | 증거 상세 조회 | O | O |
-| 8 | POST | `/api/play-sessions/{sessionId}/evidences/{evidenceId}/unlock` | 증거 수동/조건 해금 | O | O |
-| 9 | GET | `/api/play-sessions/{sessionId}/suspects` | 용의자 목록 조회 | O | O |
-| 10 | GET | `/api/play-sessions/{sessionId}/suspects/{suspectId}` | 용의자 상세 조회 | O | O |
-| 11 | GET | `/api/play-sessions/{sessionId}/timeline` | 타임라인 조회 | O | O |
-| 12 | GET | `/api/play-sessions/{sessionId}/hints` | 사용 가능 힌트 조회 | O | O |
-| 13 | POST | `/api/play-sessions/{sessionId}/hints/{hintId}/use` | 힌트 사용 | O | O |
-| 14 | POST | `/api/play-sessions/{sessionId}/abandon` | 게임 포기/중단 | O | △ |
+| 3 | GET | `/api/play-sessions/records` | 내 플레이 기록 조회 | O | △ |
+| 4 | GET | `/api/play-sessions/{sessionId}` | 게임 세션 기본 정보 조회 | △ | △ |
+| 5 | GET | `/api/play-sessions/{sessionId}/dashboard` | 탐정 대시보드 조회 | O | O |
+| 6 | GET | `/api/play-sessions/{sessionId}/locations` | 현장 정보 조회 | O | O |
+| 7 | GET | `/api/play-sessions/{sessionId}/evidences` | 현재 해금된 증거 조회 | O | O |
+| 8 | GET | `/api/play-sessions/{sessionId}/evidences/{evidenceId}` | 증거 상세 조회 | O | O |
+| 9 | POST | `/api/play-sessions/{sessionId}/evidences/{evidenceId}/unlock` | 증거 수동/조건 해금 | O | O |
+| 10 | GET | `/api/play-sessions/{sessionId}/suspects` | 용의자 목록 조회 | O | O |
+| 11 | GET | `/api/play-sessions/{sessionId}/suspects/{suspectId}` | 용의자 상세 조회 | O | O |
+| 12 | GET | `/api/play-sessions/{sessionId}/timeline` | 타임라인 조회 | O | O |
+| 13 | GET | `/api/play-sessions/{sessionId}/hints` | 사용 가능 힌트 조회 | O | O |
+| 14 | POST | `/api/play-sessions/{sessionId}/hints/{hintId}/use` | 힌트 사용 | O | O |
+| 15 | POST | `/api/play-sessions/{sessionId}/abandon` | 게임 포기/중단 | O | △ |
 
 ---
 
@@ -321,7 +322,6 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/play-sessions/{sessionId}/final-deduction` | 최종 추리 제출 | O | O |
 | 2 | GET | `/api/play-sessions/{sessionId}/result` | 결과/해설 조회 | O | O |
-| 3 | GET | `/api/play-sessions/me` | 내 플레이 기록 조회 | O | △ |
 
 ---
 
@@ -2066,16 +2066,19 @@ GET /api/play-sessions/{sessionId}/result
 ## 11.3 내 플레이 기록 조회
 
 ```http
-GET /api/play-sessions/me
+GET /api/play-sessions/records
 ```
 
 ### Query Parameters
 
 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|
-| status | String | N | PLAYING, COMPLETED, ABANDONED |
 | page | Integer | N | 페이지 |
 | size | Integer | N | 크기 |
+
+`PLAYING` 세션은 `IN_PROGRESS`, `COMPLETED` 세션은 `COMPLETED`로 내려간다.
+`ABANDONED` 세션은 현재 기록 목록에서 제외한다.
+완료 결과의 `score`/`grade`만 포함하고, 범인명, 정오 여부, matched/missed breakdown, AI feedback 원문은 이 목록 API에 포함하지 않는다.
 
 ### Response
 
@@ -2085,14 +2088,15 @@ GET /api/play-sessions/me
   "data": {
     "content": [
       {
+        "recordId": "session-100",
         "sessionId": 100,
         "scenarioId": 10,
         "scenarioTitle": "데모데이 전야 살인사건",
         "status": "COMPLETED",
         "score": 87,
         "grade": "A",
-        "startedAt": "2026-05-15T20:00:00",
-        "endedAt": "2026-05-15T20:40:00"
+        "updatedAt": "2026-05-15T20:40:00",
+        "completedAt": "2026-05-15T20:40:00"
       }
     ],
     "page": 0,
@@ -2326,7 +2330,6 @@ POST /api/scenarios/{scenarioId}/publish
 
 ```text
 POST /api/ai/scenarios/draft
-GET /api/play-sessions/me
 GET /api/scenarios/me
 GET /api/scenarios/bookmarked
 ```
