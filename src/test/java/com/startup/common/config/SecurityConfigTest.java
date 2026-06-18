@@ -76,8 +76,8 @@ class SecurityConfigTest {
                         .header("Authorization", "Bearer expired-or-invalid-access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error.code").value("C001"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("AUTH_004"));
     }
 
     @Test
@@ -102,6 +102,8 @@ class SecurityConfigTest {
         mockMvc.perform(options("/api/play-sessions/active")
                         .header("Origin", "http://localhost:3000")
                         .header("Access-Control-Request-Method", "GET"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Access-Control-Allow-Credentials", "true"));
     }
 }
