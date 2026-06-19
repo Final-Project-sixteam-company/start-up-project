@@ -19,15 +19,16 @@
 | `GET` | `/api/auth/me` | 필요 | 현재 인증 사용자 조회 |
 | `POST` | `/api/auth/dev` | 없음 | local/staging 전용. 운영 기본 disabled |
 
-백엔드 전환 플래그:
+로컬 호환 모드 플래그:
 
 ```text
-AUTH_REQUIRE_AUTHENTICATION=false  # Android 준비 전까지 현재 호환 모드
-AUTH_MOCK_FALLBACK_ENABLED=true    # 인증 강제 전환 전 legacy fallback
+AUTH_REQUIRE_AUTHENTICATION=false  # local/test 호환 모드에서만 사용
+AUTH_MOCK_FALLBACK_ENABLED=true    # local/test legacy fallback
 ```
 
-Android는 지금부터 token 저장과 Bearer header 첨부를 구현해야 한다.
-나중에 백엔드가 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환되면, 앱 변경 없이 보호 API가 token을 요구하게 된다.
+운영 보호 모드는 `AUTH_REQUIRE_AUTHENTICATION=true`를 사용한다.
+이 상태에서는 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 보호 API 요청에 `MOCK_USER_ID`를 부여하지 않는다.
+Android는 token 저장과 Bearer header 첨부를 기본 전제로 구현한다.
 
 ---
 
@@ -450,7 +451,7 @@ GET /api/scenarios/{scenarioId}
 
 이유: 인증된 작성자는 자기 DRAFT/PRIVATE 시나리오를 볼 수 있다. 익명 사용자는 public/playable data만 본다.
 
-백엔드가 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환하면 보호되는 endpoint:
+운영 보호 모드(`AUTH_REQUIRE_AUTHENTICATION=true`)에서 보호되는 endpoint:
 
 ```text
 /api/play-sessions/**
@@ -533,7 +534,7 @@ Authenticated
 
 ## 14. QA 체크리스트
 
-백엔드 protected mode 전환 전 확인:
+운영 보호 모드 유지 전제 확인:
 
 - [ ] Google login이 `/api/auth/oauth`에 `provider=GOOGLE`, `idToken`을 보낸다.
 - [ ] Kakao login이 `/api/auth/oauth`에 `provider=KAKAO`, `accessToken`을 보낸다.
@@ -549,7 +550,7 @@ Authenticated
 - [ ] UI가 `user.email == null`을 허용한다.
 - [ ] client role만 보고 admin/rate-limit bypass UI를 노출하지 않는다.
 
-백엔드가 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한 뒤 smoke:
+운영 보호 모드 smoke:
 
 ```text
 token 없는 protected gameplay API -> 401

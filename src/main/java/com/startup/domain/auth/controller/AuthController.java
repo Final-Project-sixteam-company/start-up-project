@@ -8,7 +8,6 @@ import com.startup.domain.auth.dto.KakaoCodeLoginRequest;
 import com.startup.domain.auth.dto.LogoutRequest;
 import com.startup.domain.auth.dto.OAuthLoginRequest;
 import com.startup.domain.auth.dto.TokenRefreshRequest;
-import com.startup.domain.auth.dto.TossLoginRequest;
 import com.startup.domain.auth.error.AuthErrorCode;
 import com.startup.domain.auth.error.AuthException;
 import com.startup.domain.auth.service.AuthService;
@@ -58,16 +57,6 @@ public class AuthController {
             HttpServletResponse response
     ) {
         AuthTokenResponse tokenResponse = authService.kakaoCodeLogin(request);
-        authCookieSupport.addRefreshCookie(response, tokenResponse.refreshToken());
-        return ApiResponse.success(tokenResponse);
-    }
-
-    @PostMapping("/toss")
-    public ApiResponse<AuthTokenResponse> tossLogin(
-            @Valid @RequestBody TossLoginRequest request,
-            HttpServletResponse response
-    ) {
-        AuthTokenResponse tokenResponse = authService.tossLogin(request);
         authCookieSupport.addRefreshCookie(response, tokenResponse.refreshToken());
         return ApiResponse.success(tokenResponse);
     }
