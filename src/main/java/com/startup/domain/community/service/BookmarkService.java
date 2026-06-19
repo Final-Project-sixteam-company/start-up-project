@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.startup.domain.scenario.service.RedisScenarioService;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -55,8 +57,15 @@ public class BookmarkService {
                     .build();
             bookmarkRepository.save(bookmark);
             
-            // 캐시 무효화: 북마크 상태 변경 즉시 반영
-            redisScenarioService.evictUserListCache(userId);
+            // 캐시 무효화: 트랜잭션 커밋 이후에 실행되도록 보장 (Race Condition 방어)
+            TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        redisScenarioService.evictUserListCache(userId);
+                    }
+                }
+            );
 
         } catch (DataIntegrityViolationException e) {
             log.warn("북마크 중복 삽입 감지: userId={}, scenarioId={}", userId, scenarioId);
@@ -70,8 +79,15 @@ public class BookmarkService {
         bookmarkRepository.findByUserIdAndScenarioId(userId, scenarioId)
                 .ifPresent(bookmark -> {
                     bookmarkRepository.delete(bookmark);
-                    // 캐시 무효화: 북마크 상태 변경 즉시 반영
-                    redisScenarioService.evictUserListCache(userId);
+                    // 캐시 무효화: 트랜잭션 커밋 이후에 실행되도록 보장
+                    org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                        new org.springframework.transaction.support.TransactionSynchronization() {
+                            @Override
+                            public void afterCommit() {
+                                redisScenarioService.evictUserListCache(userId);
+                            }
+                        }
+                    );
                 });
     }
 
