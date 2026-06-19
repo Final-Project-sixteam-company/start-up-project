@@ -35,4 +35,8 @@ public enum AiErrorCode implements ErrorCode {
     private final HttpStatus status;
     private final String code;
     private final String message;
+
+    public boolean isRateLimitError() {
+        return code.startsWith("AI_RATE_");
+    }
 }
