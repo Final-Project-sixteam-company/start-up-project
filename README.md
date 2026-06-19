@@ -124,7 +124,7 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
     <td width="50%">
       <img src="docs/readme-assets/metrics/scenario-api-p95.svg" alt="Scenario API P95 latency chart" width="100%">
       <br>
-      <sub>시나리오 목록 API는 복합 인덱스와 Redis short TTL cache 적용 후 P95가 241ms에서 19ms로 내려갔습니다.</sub>
+      <sub>시나리오 목록 API는 복합 인덱스, 충돌 방지 cache key, Redis short TTL cache 적용 후 P95가 241ms에서 19ms로 내려갔습니다.</sub>
     </td>
     <td width="50%">
       <img src="docs/readme-assets/metrics/llmops-context-breakdown.svg" alt="LLMOps prompt context breakdown chart" width="100%">
@@ -202,11 +202,11 @@ ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 
 | 정답 누설 방지 | `Solution`/private seed는 백엔드가 보관하고 AI NPC 심문 prompt에는 범인 정보를 직접 전달하지 않음 | prompt injection과 spoiler metadata를 동시에 방어 |
 | Response Policy | `ResponsePolicyResolver`가 현재 질문/증거/상태에 맞는 답변 정책을 결정 | AI가 정책을 판단하지 않도록 서버 rule engine 분리 |
 | Scenario YAML Import | 공식 시나리오 YAML을 검증 후 DB에 import하고 content hash로 중복 반영 제어 | 운영 seed 교체와 public/private 경계 관리 |
-| Scenario List Performance | QueryDSL 동적 필터, `(status, visibility, created_at DESC, id DESC)` 복합 인덱스, Redis 30초 캐시 | 홈 화면 핵심 API를 k6로 측정하고 P95 `241ms -> 19ms`로 개선. [성능 리포트](docs/perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) |
+| Scenario List Performance | QueryDSL 동적 필터, Base64 keyword cache key, `(status, visibility, created_at DESC, id DESC)` 복합 인덱스, Redis 30초 캐시 | 홈 화면 핵심 API를 k6로 측정하고 P95 `241ms -> 19ms`로 개선. [성능 리포트](docs/perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) |
 | Play Runtime | session, evidence unlock, suspect, interrogation, final deduction, result path 관리 | 추리게임 상태 전이를 서버에서 일관되게 보장 |
 | Auth | Google/Kakao OAuth, JWT access token, refresh session, web/android 공존 | 모바일 앱과 웹 배포를 함께 지원 |
 | AI Quota / Rate Limit | Redis 일일 counter로 계정+시나리오 150회, 계정 전체 350회 실제 AI provider 호출 제한 | 과다 심문은 35/50/70/100/120회 안내 단계로 정리 유도, quota 초과는 `429 / AI_RATE_002`로 차단 |
-| Review / Play Count Consistency | 리뷰 평점은 DB 비관적 락, playCount는 쿼리 레벨 atomic update 적용 | Lost update 방어와 단순 카운터 경합 최소화 |
+| Review / Play Count Consistency | 리뷰 평점은 DB 비관적 락, playCount는 쿼리 레벨 atomic update, 북마크는 커밋 후 목록 캐시 무효화 | Lost update 방어, 북마크 정합성 보장, playCount/averageRating은 30초 stale 허용 정책 명시 |
 | Ops | Blue-Green 배포, 외부 MySQL/Redis, Loki/Grafana/n8n, Slack alert | 저비용 MVP 환경에서 운영 경험과 복구 절차 확보 |
 | LLMOps | `AI_CALL`, `AI_CALL_CONTEXT` 로그로 token, latency, failure/fallback 관측 | 비용과 품질을 raw prompt 없이 운영 지표화 |
 
@@ -324,7 +324,7 @@ AI receives:
 | 기능 | 대표 API | 설명 |
 |---|---|---|
 | Auth | `POST /api/auth/oauth`, `POST /api/auth/oauth/kakao/code`, `POST /api/auth/refresh` | Google/Kakao OAuth, JWT 재발급 |
-| Scenario | `GET /api/scenarios`, `GET /api/scenarios/{scenarioId}` | 공개 시나리오 목록/상세. keyword/type/difficulty/playTime 조건 검색과 Redis short TTL cache 적용 |
+| Scenario | `GET /api/scenarios`, `GET /api/scenarios/{scenarioId}` | 공개 시나리오 목록/상세. keyword/type/difficulty/playTime 조건 검색, Base64 keyword cache key, Redis short TTL cache 적용 |
 | Play Session | `POST /api/play-sessions`, `GET /api/play-sessions/{sessionId}` | 플레이 시작과 진행 상태 조회 |
 | Evidence | `GET /api/play-sessions/{sessionId}/evidences` | 해금된 증거, guidance, 함께 볼 증거 |
 | Suspect | `GET /api/play-sessions/{sessionId}/suspects` | public-safe 용의자 정보 |
