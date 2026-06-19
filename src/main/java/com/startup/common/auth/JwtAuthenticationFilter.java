@@ -89,7 +89,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return "/api/auth/dev".equals(path)
                 || "/api/auth/oauth".equals(path)
                 || "/api/auth/oauth/kakao/code".equals(path)
-                || "/api/auth/toss".equals(path)
                 || "/api/auth/refresh".equals(path)
                 || "/api/auth/logout".equals(path);
     }

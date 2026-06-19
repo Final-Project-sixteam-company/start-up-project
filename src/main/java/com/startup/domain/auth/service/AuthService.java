@@ -9,7 +9,6 @@ import com.startup.domain.auth.dto.KakaoCodeLoginRequest;
 import com.startup.domain.auth.dto.LogoutRequest;
 import com.startup.domain.auth.dto.OAuthLoginRequest;
 import com.startup.domain.auth.dto.TokenRefreshRequest;
-import com.startup.domain.auth.dto.TossLoginRequest;
 import com.startup.domain.auth.entity.AuthRefreshToken;
 import com.startup.domain.auth.entity.User;
 import com.startup.domain.auth.entity.UserOAuthAccount;
@@ -24,7 +23,6 @@ import com.startup.domain.auth.support.JwtTokenService;
 import com.startup.domain.auth.support.KakaoOAuthProviderClient;
 import com.startup.domain.auth.support.OAuthProviderClient;
 import com.startup.domain.auth.support.OAuthUserProfile;
-import com.startup.domain.auth.support.TossOAuthClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -55,7 +53,6 @@ public class AuthService {
     private final AuthRefreshTokenRepository authRefreshTokenRepository;
     private final PlatformTransactionManager transactionManager;
     private final List<OAuthProviderClient> oAuthProviderClients;
-    private final TossOAuthClient tossOAuthClient;
 
     @Transactional
     public AuthTokenResponse devLogin(DevLoginRequest request) {
@@ -119,17 +116,6 @@ public class AuthService {
             return loginOAuthUserInTransaction(profile, request.deviceId());
         } catch (DataIntegrityViolationException e) {
             log.warn("Kakao code login raced with another request. Retrying by provider account lookup.");
-            return retryOAuthLoginAfterRace(profile, request.deviceId());
-        }
-    }
-
-    public AuthTokenResponse tossLogin(TossLoginRequest request) {
-        OAuthUserProfile profile = tossOAuthClient.verify(request);
-        try {
-            return loginOAuthUserInTransaction(profile, request.deviceId());
-        } catch (DataIntegrityViolationException e) {
-            log.warn("Toss login raced with another request. Retrying by provider account lookup. provider={}",
-                    profile.provider());
             return retryOAuthLoginAfterRace(profile, request.deviceId());
         }
     }
