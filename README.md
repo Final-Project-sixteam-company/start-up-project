@@ -169,7 +169,7 @@ ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 
 | 정답 누설 방지 | `Solution`/private seed는 백엔드가 보관하고 AI prompt에는 범인 정보를 직접 전달하지 않음 | prompt injection과 spoiler metadata를 동시에 방어 |
 | Response Policy | `ResponsePolicyResolver`가 현재 질문/증거/상태에 맞는 답변 정책을 결정 | AI가 정책을 판단하지 않도록 서버 rule engine 분리 |
 | Scenario YAML Import | 공식 시나리오 YAML을 검증 후 DB에 import하고 content hash로 중복 반영 제어 | 운영 seed 교체와 public/private 경계 관리 |
-| Scenario List Performance | QueryDSL 동적 필터, `(status, visibility, created_at DESC)` 복합 인덱스, Redis 30초 캐시 | 홈 화면 핵심 API를 k6로 측정하고 P95 `241ms -> 19ms`로 개선 |
+| Scenario List Performance | QueryDSL 동적 필터, `(status, visibility, created_at DESC)` 복합 인덱스, Redis 30초 캐시 | 홈 화면 핵심 API를 k6로 측정하고 P95 `241ms -> 19ms`로 개선. [성능 리포트](docs/perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) |
 | Play Runtime | session, evidence unlock, suspect, interrogation, final deduction, result path 관리 | 추리게임 상태 전이를 서버에서 일관되게 보장 |
 | Auth | Google/Kakao OAuth, JWT access token, refresh session, web/android 공존 | 모바일 앱과 웹 배포를 함께 지원 |
 | Review / Play Count Consistency | 리뷰 평점은 DB 비관적 락, playCount는 쿼리 레벨 atomic update 적용 | Lost update 방어와 단순 카운터 경합 최소화 |
@@ -444,7 +444,7 @@ scripts/
 | AI가 정답을 받지 않는 구조 | [AI NPC Prompt Policy](docs/AI_NPC_PROMPT_POLICY.md) |
 | API와 도메인 경계 | [API Spec](docs/CaseLab_AI_API_Spec.md), [ERD Design](docs/CaseLab_AI_ERD_Design.md) |
 | 운영 인프라 | [Infrastructure Strategy](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md), [Ops Runbook](docs/infra/OPS_RUNBOOK.md) |
-| 시나리오 목록 성능 개선 | [k6 load test](scripts/k6/scenario-list-load-test.js), [scenario list index migration](docs/db/migrations/20260618_add_scenario_list_index.sql) |
+| 시나리오 목록 성능 개선 | [Performance report](docs/perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md), [k6 load test](scripts/k6/scenario-list-load-test.js), [scenario list index migration](docs/db/migrations/20260618_add_scenario_list_index.sql) |
 | LLMOps 비용과 rate limit | [LLMOps Cost & Rate Limit Plan](docs/infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md) |
 | QA와 public-safe 보고 기준 | [QA Operating Guide](docs/QA_OPERATING_GUIDE.md) |
 | Scale-out 검증 | [Scale-out PoC](docs/infra/poc/POC-006-scaleout-manual-lb.md), [Scale-out Runbook](docs/infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) |
