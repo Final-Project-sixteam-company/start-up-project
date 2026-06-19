@@ -78,6 +78,7 @@ ON scenarios (status, visibility, created_at DESC);
 
 - 시나리오 목록 응답에 Redis 30초 캐시를 적용했다.
 - 신규 등록, 북마크 변동 등 실시간성을 완전히 포기하지 않도록 긴 TTL 대신 짧은 TTL을 선택했다.
+- 데이터 정합성 정책: 북마크는 실시간 무효화를 적용하여 정합성을 보장하지만, 조회수(`playCount`) 및 평점(`averageRating`)은 성능 최적화를 위해 최대 30초의 지연(Stale Data) 노출을 정책적으로 허용한다.
 - `PageResponse` generic 직렬화 이슈를 피하기 위해 `StringRedisTemplate` 기반 수동 캐시 경로를 사용했다.
 
 ## Result
