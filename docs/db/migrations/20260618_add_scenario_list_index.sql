@@ -8,19 +8,30 @@
 DELIMITER $$
 CREATE PROCEDURE CreateScenarioListIndexIfNotExists()
 BEGIN
-    DECLARE indexCount INT;
+    DECLARE indexCols INT;
     
-    SELECT COUNT(1) INTO indexCount
+    -- 인덱스가 존재하는 경우 최대 컬럼 수를 가져옵니다 (없으면 NULL)
+    SELECT MAX(SEQ_IN_INDEX) INTO indexCols
     FROM INFORMATION_SCHEMA.STATISTICS
     WHERE table_schema = DATABASE()
       AND table_name = 'scenarios'
       AND index_name = 'idx_scenarios_status_visibility_created';
       
-    IF indexCount = 0 THEN
-        SET @sql = 'CREATE INDEX idx_scenarios_status_visibility_created ON scenarios (status, visibility, created_at DESC, id DESC)';
-        PREPARE stmt FROM @sql;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
+    -- 인덱스가 아예 없거나, 예전 버전(컬럼 3개)인 경우
+    IF indexCols IS NULL OR indexCols < 4 THEN
+        -- 예전 버전 인덱스가 있다면 삭제
+        IF indexCols IS NOT NULL THEN
+            SET @sql_drop = 'DROP INDEX idx_scenarios_status_visibility_created ON scenarios';
+            PREPARE stmt_drop FROM @sql_drop;
+            EXECUTE stmt_drop;
+            DEALLOCATE PREPARE stmt_drop;
+        END IF;
+        
+        -- 최신 버전(컬럼 4개) 인덱스 생성
+        SET @sql_create = 'CREATE INDEX idx_scenarios_status_visibility_created ON scenarios (status, visibility, created_at DESC, id DESC)';
+        PREPARE stmt_create FROM @sql_create;
+        EXECUTE stmt_create;
+        DEALLOCATE PREPARE stmt_create;
     END IF;
 END $$
 DELIMITER ;
