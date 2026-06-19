@@ -400,6 +400,8 @@ Findings First를 먼저 쓴다.
 - Backend commit/version:
 - Account policy:
 - QA login route: OAuth / QA button / API-only token / unavailable
+- Production API writes: yes/no/not applicable
+- Production API write approval: approved/not approved/not applicable
 - Blind validity:
 - Private artifact:
 
@@ -407,6 +409,9 @@ Findings First를 먼저 쓴다.
 
 - Private seed/solution opened: yes/no
 - API-only masking recorded: yes/no/not applicable
+- Production infra/config modification: yes/no
+- Production API writes: yes/no/not applicable
+- Production API write approval: approved/not approved/not applicable
 - Result score/grade/correctness/breakdown kept private: yes/no/not submitted
 - Rejected-candidate rationale kept private: yes/no
 - Privacy spot check: pass/fail/not checked
