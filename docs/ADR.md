@@ -56,3 +56,14 @@
 - **대안:** scenario_id unique로 최신 결과를 덮어쓴다.
 - **근거:** 검증 결과 변화 추적이 가능하고, AI 비용 중복은 in-flight lock으로 충분히 막을 수 있다.
 - **Trade-off:** 최신 결과 조회 시 정렬 기준이 필요하다. checkedAt DESC, id DESC로 조회한다.
+
+---
+
+## ADR-7. AI provider 호출 quota는 계정+시나리오 150회/day, 계정 전체 350회/day로 둔다
+
+- **결정:** 실제 AI provider 호출 전에 Redis daily counter를 차감하고, 계정+시나리오별 150회/day와 계정 전체 350회/day를 적용한다. 초과 시 provider를 호출하지 않고 `429 / AI_RATE_002`로 차단한다.
+- **대안:** 50회 hard stop, 세션 단위 hard cap, feature별 quota, 전역 비용 cap만 적용.
+- **근거:** QA 문서 기준 목표는 30~50턴 내 후보 축소지만, 2026-06-18 Android E2E QA에서는 공식 시나리오가 30~50턴 안에 안정적으로 submit-ready에 도달하지 못했고 extended route가 필요했다. LLMOps 비용 계획도 현재 baseline을 80~100회 플레이 + buffer로 보고 50회 hard stop을 금지한다. 따라서 150회는 하루에 공식 시나리오 하나를 충분히 플레이할 수 있는 상한이며, 350회 total은 같은 계정이 서월채와 스튜디오9를 모두 길게 플레이할 여지를 둔다.
+- **Trade-off:** 150회까지 무제한으로 방치하면 UX가 반복 심문으로 흐를 수 있다. 그래서 35/50/70/100/120회 threshold에서 정리, 힌트, 추천 질문, 최종 추리 유도를 프론트가 표시할 수 있도록 quota metadata를 응답에 포함한다.
+- **관측:** quota hit는 provider failure가 아니므로 `AI_QUOTA_BLOCK`과 별도 metric으로 기록한다. Redis quota 상태를 확인할 수 없으면 비용 방어를 위해 `503 / AI_RATE_003`으로 실패시킨다.
+- **후속 후보:** 세션 단위 hard cap, feature별 quota, 월간 quota, 관리자 override audit은 실제 운영 데이터가 쌓인 뒤 분리한다.

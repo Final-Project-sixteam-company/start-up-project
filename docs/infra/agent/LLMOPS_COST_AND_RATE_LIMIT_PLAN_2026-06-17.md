@@ -15,7 +15,7 @@
 | QA overrun / abuse 기준 | 120회 이상 심문은 비용·UX 남용 신호로 보고 강하게 최종추리로 유도한다 |
 | 계정+시나리오 hard cap | 실제 AI provider 호출 150회 / day |
 | 계정당 기본 daily cap | 계정+시나리오별 실제 AI provider 호출 150회 / day, 계정 전체 350회 / day |
-| 계정당 기본 monthly cap | `INTERROGATION` 1,500회 / month, `FINAL_DEDUCTION` 30회 / month |
+| 계정당 monthly cap | 현재 미구현. `INTERROGATION` 1,500회/month, `FINAL_DEDUCTION` 30회/month는 후속 후보 |
 | QA 전용 계정 | 별도 role 또는 allowlist로 일반 cap보다 높게 부여하고 public report에 raw 결과를 남기지 않음 |
 | 우선 최적화 대상 | `npc_interrogation_v1`의 evidence/history prompt context |
 | 비용 위험 판단 | provider 실패보다 prompt token 증가와 free-form 반복 심문이 비용 위험의 핵심 |
@@ -62,7 +62,7 @@
 
 ## 3. 플레이 1회당 AI 호출·토큰·비용
 
-30~50회 심문은 **제품 목표**이지 현재 QA에서 안정적으로 검증된 submit-ready 기준이 아니다. 2026-06-12~15 QA에서는 30~50회 안에 submit-ready 판단이 반복 미달이었고, extended interrogation 기준으로 서월채는 약 80회, 스튜디오9는 약 100회 전후가 필요했다. 따라서 비용 계획은 목표형 30/50회와 현재 관측형 80/100회, 안전 hard cap 후보 120회를 함께 본다.
+30~50회 심문은 **제품 목표**이지 현재 QA에서 안정적으로 검증된 submit-ready 기준이 아니다. 2026-06-12~15 QA에서는 30~50회 안에 submit-ready 판단이 반복 미달이었고, extended interrogation 기준으로 서월채는 약 80회, 스튜디오9는 약 100회 전후가 필요했다. 따라서 비용 계획은 목표형 30/50회와 현재 관측형 80/100회, 강한 UX warning 후보 120회를 함께 본다.
 
 ### 3.1 30~50회 기준의 출처와 재해석
 
@@ -102,7 +102,7 @@ cost_usd =
 | 70 | 강한 UX warning | 71 | 210,456 | 4,526 | 214,982 | $0.0307 | 약 47원 |
 | 80 | 서월채 extended 관측 근사 | 81 | 240,436 | 5,136 | 245,572 | $0.0351 | 약 53원 |
 | 100 | 스튜디오9 extended 관측 근사 | 101 | 300,396 | 6,356 | 306,752 | $0.0438 | 약 66원 |
-| 120 | session hard cap 후보 | 121 | 360,356 | 7,576 | 367,932 | $0.0526 | 약 80원 |
+| 120 | strong warning 후보, 차단 아님 | 121 | 360,356 | 7,576 | 367,932 | $0.0526 | 약 80원 |
 
 판단:
 
@@ -122,9 +122,9 @@ cost_usd =
 | 10,000 | 1,010,000 | 3,067,520,000 | $438.35 | 약 663,225원 |
 | 100,000 | 10,100,000 | 30,675,200,000 | $4,383.51 | 약 6,632,254원 |
 
-목표형 30~50회, 현재 관측형 80~100회, hard cap 후보 120회를 비교하면 아래와 같다.
+목표형 30~50회, 현재 관측형 80~100회, strong warning 후보 120회를 비교하면 아래와 같다.
 
-| 플레이 사용자 수 | 30회 목표형 | 50회 목표형 | 80회 현재 관측형 | 100회 현재 관측형 | 120회 hard cap |
+| 플레이 사용자 수 | 30회 목표형 | 50회 목표형 | 80회 현재 관측형 | 100회 현재 관측형 | 120회 strong warning |
 |---:|---:|---:|---:|---:|---:|
 | 100 | 약 2,006원 | 약 3,328원 | 약 5,311원 | 약 6,632원 | 약 7,954원 |
 | 1,000 | 약 20,061원 | 약 33,279원 | 약 53,115원 | 약 66,323원 | 약 79,530원 |
@@ -150,26 +150,31 @@ cost_usd =
 | final deduction checklist | 100 `INTERROGATION` / session | 현재 QA submit-ready baseline 도달 구간 | 범인·동기·수단·은폐 정황 정리 유도 |
 | strong warning | 120 `INTERROGATION` / session | 비용·UX overrun 신호 | 추가 심문보다 최종 추리 CTA를 강하게 노출 |
 | hard cap | 150 actual AI calls / account+scenario / day | 하루에 공식 시나리오 하나를 충분히 플레이하되 반복 호출 abuse 방어 | 추가 AI 호출 차단, 증거/힌트/최종추리 화면으로 유도 |
-| final submit cap | 3 `FINAL_DEDUCTION` / session | 찍기 제출/반복 채점 방어 | 제출 전 근거 completeness check 유도 |
+| final submit cap | 1 `FINAL_DEDUCTION` / session | 현재 코드 계약. `play_session_id` unique와 이미 제출 검증으로 세션당 1회만 허용 | 이미 제출한 세션은 재제출 차단 |
 
 150회 hard cap 전까지는 조용히 허용하지 않고 35/50/70/100/120 threshold에서 정리, 힌트, 추천 질문, 최종 추리로 유도한다. 현재 QA 기준으로 50회 hard stop은 금지한다.
 
 ### 5.2 계정 단위 제한
 
-MVP 무료 계정 기본값:
+현재 구현:
+
+| 제한 | 값 |
+|---|---:|
+| AI provider call daily per scenario | 150회 / day |
+| AI provider call daily total | 350회 / day |
+| `INTERROGATION`, `FINAL_DEDUCTION`, `SCENARIO_VALIDATION` | feature별 분리 전까지 실제 provider 호출을 위 daily cap에 합산 |
+
+현재 구현 baseline은 feature별 분리 전 단계이므로 `INTERROGATION`, `FINAL_DEDUCTION`, `SCENARIO_VALIDATION`의 실제 provider 호출을 계정+시나리오별 150회/day로 합산한다. 계정 전체 daily cap은 350회/day로 두어 한 계정이 하루에 서월채와 스튜디오9를 모두 길게 플레이할 수 있게 한다.
+
+후속 후보:
 
 | 제한 | 값 |
 |---|---:|
 | `INTERROGATION` burst | 8회 / minute |
 | `INTERROGATION` hourly | 60회 / hour |
-| AI provider call daily per scenario | 150회 / day |
-| AI provider call daily total | 350회 / day |
 | `INTERROGATION` monthly | 1,500회 / month |
-| `FINAL_DEDUCTION` daily | 별도 분리 전까지 account daily cap에 합산 |
 | `FINAL_DEDUCTION` monthly | 30회 / month |
 | concurrent AI call | 1~2회 / account |
-
-현재 구현 baseline은 feature별 분리 전 단계이므로 `INTERROGATION`, `FINAL_DEDUCTION`, `SCENARIO_VALIDATION`의 실제 provider 호출을 계정+시나리오별 150회/day로 합산한다. 계정 전체 daily cap은 350회/day로 두어 한 계정이 하루에 서월채와 스튜디오9를 모두 길게 플레이할 수 있게 한다.
 
 1,500회/month + final deduction 30회는 보수적으로 약 4.6M tokens, 약 $0.66, 약 1,000원 수준이다. 현재 QA 기준 100회 심문형 플레이로 약 15회까지 허용하는 값이라, per-scenario `daily 150회`와 충돌하지 않으면서도 월 단위 남용을 막는 후보로 볼 수 있다.
 
@@ -181,9 +186,10 @@ QA/운영 계정:
 | 관리자 계정 | 일반 cap 우회 가능하되 모든 AI_CALL에 owner/purpose tag 기록 |
 | 공유 mock 계정 | 운영 public API에서는 사용 지양. 사용 시 시간대 조율과 세션 abandon 주의 |
 
-### 5.3 IP / 디바이스 보조 제한
+### 5.3 IP / 디바이스 보조 제한 후보
 
-인증 계정 기준이 1차 방어다. IP 기반 제한은 NAT/학교/회사망에서 정상 사용자를 같이 막을 수 있으므로 보조 신호로 둔다.
+현재 구현은 인증 계정 기준 daily quota가 1차 방어다. IP/device 제한은 아직 구현하지 않는다.
+IP 기반 제한은 NAT/학교/회사망에서 정상 사용자를 같이 막을 수 있으므로 후속 보조 신호로 둔다.
 
 | 제한 | 값 |
 |---|---:|
@@ -196,13 +202,20 @@ QA/운영 계정:
 
 레이트리밋은 provider 호출 직전에 걸어야 한다. 호출 후에 비용을 계산하는 방식은 예산 방어가 아니다.
 
-권장 Redis key:
+현재 구현 Redis key:
+
+```text
+ai:rate:daily:{yyyyMMdd}:user:{userId}:scenario:{scenarioId}
+ai:rate:daily:{yyyyMMdd}:user:{userId}:total
+ai:rate:daily:{yyyyMMdd}:anonymous:scenario:{scenarioId}
+ai:rate:daily:{yyyyMMdd}:anonymous:total
+```
+
+후속 후보 Redis key:
 
 ```text
 ai:limit:user:{userId}:minute:{yyyyMMddHHmm}
 ai:limit:user:{userId}:hour:{yyyyMMddHH}
-ai:rate:daily:{yyyyMMdd}:user:{userId}:scenario:{scenarioId}
-ai:rate:daily:{yyyyMMdd}:user:{userId}:total
 ai:limit:user:{userId}:month:{yyyyMM}
 ai:limit:session:{sessionId}:interrogation
 ai:limit:session:{sessionId}:final-deduction
@@ -214,11 +227,22 @@ ai:limit:device:{deviceHash}:day:{yyyyMMdd}
 
 응답 정책:
 
+현재 구현:
+
 | 상황 | HTTP | 에러 코드 후보 | 메시지 방향 |
 |---|---:|---|---|
-| session hard cap | 429 | `AI_RATE_001` | 심문량이 많아 품질/비용 보호를 위해 제한. 힌트/증거 정리/최종 추리 유도 |
 | account daily cap | 429 | `AI_RATE_002` | 오늘 사용량 초과. 다음 날 또는 QA 계정 사용 안내 |
 | rate-limit state unavailable | 503 | `AI_RATE_003` | Redis 장애 등으로 quota 상태를 확인할 수 없어 비용 방어를 위해 일시 제한 |
+
+후속 목표:
+
+| 상황 | HTTP | 에러 코드 후보 | 메시지 방향 |
+|---|---:|---|---|
+| session hard cap | 429 | 미정 | 한 세션에서 심문량이 과도해 품질/비용 보호를 위해 제한. 힌트/증거 정리/최종 추리 유도 |
+| feature daily cap | 429 | 미정 | interrogation, final deduction, scenario validation별 비용 편차가 커질 경우 feature별 제한 |
+
+현재 production contract는 account+scenario daily cap `AI_RATE_002`와 quota state unavailable `AI_RATE_003`이다.
+세션/feature별 quota는 목표 설계로 유지하되, 실제 운영 데이터가 쌓인 뒤 코드/에러 계약을 별도로 확정한다.
 
 ## 7. 글로벌 예산 경보
 

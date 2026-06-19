@@ -354,7 +354,7 @@ Native Android HTTP client는 CORS 대상이 아니므로 위 값은 웹/브라�
 
 ## 4. Android 앱 연결
 
-Android 앱은 Spring Boot를 REST API 서버로 호출한다.
+Flutter Android 앱은 Spring Boot를 REST API 서버로 호출한다.
 Android 앱 안에 OpenAI API Key, AWS Key, Firebase service account를 넣지 않는다.
 
 ### 4.1 Android Emulator
@@ -363,15 +363,13 @@ Android 앱 안에 OpenAI API Key, AWS Key, Firebase service account를 넣지 �
 http://10.0.2.2:8080
 ```
 
-Retrofit 예시:
+Flutter 실행 예시:
 
-```kotlin
-Retrofit.Builder()
-    .baseUrl("http://10.0.2.2:8080/")
-    .build()
+```bash
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-Retrofit `baseUrl`은 마지막 `/`가 필요하다.
+앱 레포의 local default가 `18080`이면 백엔드 포트와 맞게 `API_BASE_URL`을 명시해서 실행한다.
 
 ### 4.2 실제 기기
 
@@ -394,7 +392,7 @@ Base URL에는 `/api`를 넣지 않는다.
 
 ### 4.4 CORS
 
-Native Android 앱의 Retrofit, OkHttp는 브라우저가 아니므로 CORS 제한을 받지 않는다.
+Native/Flutter Android HTTP client는 브라우저가 아니므로 CORS 제한을 받지 않는다.
 Android WebView, 웹 프론트, API 테스트 페이지에는 CORS 설정이 필요할 수 있다.
 
 ---

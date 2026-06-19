@@ -37,7 +37,7 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 | Backend Test | Scenario Coverage | Scenario API Perf | LLMOps Smoke | Scale-out PoC | Web Retest |
 |---:|---:|---:|---:|---:|---:|
-| **344 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | **10 / 0 / 0** success/failure/fallback | **21 / 19 / 20** over 60 requests | guidance/bookmark/mobile/final/result **PASS** |
+| **344 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | **10 / 0 / 0** success/failure/fallback | **21 / 19 / 20** over 60 requests | targeted retest **PASS**, mobile CTA tracked |
 
 > 수치는 public-safe QA/LLMOps/PoC 보고서 기준입니다. 정답, 점수, session/token, raw prompt/answer는 공개 README에 포함하지 않습니다.
 
@@ -199,10 +199,10 @@ ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 
 | 영역 | 구현 내용 | 포트폴리오 포인트 |
 |---|---|---|
 | AI NPC 심문 | 용의자별 공개 정보, 해금 증거, 답변 정책을 조합해 짧은 AI 답변 생성 | LLM을 자유 생성기가 아니라 NPC actor로 제한 |
-| 정답 누설 방지 | `Solution`/private seed는 백엔드가 보관하고 AI prompt에는 범인 정보를 직접 전달하지 않음 | prompt injection과 spoiler metadata를 동시에 방어 |
+| 정답 누설 방지 | `Solution`/private seed는 백엔드가 보관하고 AI NPC 심문 prompt에는 범인 정보를 직접 전달하지 않음 | prompt injection과 spoiler metadata를 동시에 방어 |
 | Response Policy | `ResponsePolicyResolver`가 현재 질문/증거/상태에 맞는 답변 정책을 결정 | AI가 정책을 판단하지 않도록 서버 rule engine 분리 |
 | Scenario YAML Import | 공식 시나리오 YAML을 검증 후 DB에 import하고 content hash로 중복 반영 제어 | 운영 seed 교체와 public/private 경계 관리 |
-| Scenario List Performance | QueryDSL 동적 필터, `(status, visibility, created_at DESC)` 복합 인덱스, Redis 30초 캐시 | 홈 화면 핵심 API를 k6로 측정하고 P95 `241ms -> 19ms`로 개선. [성능 리포트](docs/perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) |
+| Scenario List Performance | QueryDSL 동적 필터, `(status, visibility, created_at DESC, id DESC)` 복합 인덱스, Redis 30초 캐시 | 홈 화면 핵심 API를 k6로 측정하고 P95 `241ms -> 19ms`로 개선. [성능 리포트](docs/perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) |
 | Play Runtime | session, evidence unlock, suspect, interrogation, final deduction, result path 관리 | 추리게임 상태 전이를 서버에서 일관되게 보장 |
 | Auth | Google/Kakao OAuth, JWT access token, refresh session, web/android 공존 | 모바일 앱과 웹 배포를 함께 지원 |
 | AI Quota / Rate Limit | Redis 일일 counter로 계정+시나리오 150회, 계정 전체 350회 실제 AI provider 호출 제한 | 과다 심문은 35/50/70/100/120회 안내 단계로 정리 유도, quota 초과는 `429 / AI_RATE_002`로 차단 |
@@ -307,7 +307,7 @@ AI receives:
 
 핵심 제약:
 
-- AI prompt에 “너는 범인이다” 또는 전체 정답을 넣지 않습니다.
+- AI NPC 심문 prompt에 “너는 범인이다” 또는 전체 정답을 넣지 않습니다.
 - 사용자가 증거를 제시해도 서버가 결정한 policy 범위 안에서만 답변합니다.
 - 답변은 1~2문장으로 제한합니다.
 - 설정에 없는 사실을 새로 만들지 않도록 system/policy prompt를 분리합니다.
@@ -380,7 +380,7 @@ QA는 blind 조건과 public/private 경계를 분리해서 운영합니다.
 | 문서 | 확인한 내용 |
 |---|---|
 | [Android E2E Local Retest 2026-06-18](docs/qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md) | 로그인, 라이브러리, 상세, 브리핑, 조사 탭, 심문, 제출 화면 도달. 공식 시나리오 `25/25`, `35/35` evidence reachability |
-| [Web E2E QA 2026-06-19](docs/qa/archive/QA_WEB_E2E_REPORT_2026-06-19.md) | 웹 로그인, 시나리오 진입, 심문, 최종 제출/result path, guidance/bookmark/mobile/final/result retest |
+| [Web E2E QA 2026-06-19](docs/qa/archive/QA_WEB_E2E_REPORT_2026-06-19.md) | 웹 로그인, 시나리오 진입, 심문, 최종 제출/result path targeted retest PASS. 모바일 scenario detail CTA 이슈는 QA board에서 추적 |
 | [LLMOps Daily Report 2026-06-18](docs/infra/agent/LLMOPS_DAILY_REPORT_2026-06-18.md) | 운영 `AI_CALL` 10건, success/failure/fallback `10/0/0`, prompt token ratio `97.2%` |
 | [Scale-out PoC 2026-06-12](docs/infra/poc/POC-006-scaleout-manual-lb.md) | 수동 Nginx LB equal mode, 60회 요청 `21/19/20` 분산, rollback 기준 |
 

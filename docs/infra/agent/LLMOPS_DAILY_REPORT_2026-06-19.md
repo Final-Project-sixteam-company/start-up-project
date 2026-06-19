@@ -265,7 +265,7 @@ rough cost: 136,314 / 1,000,000 * 0.14 + 4,446 / 1,000,000 * 0.28 = $0.0203
 |---|---|
 | 30~50회 | 달성된 평균이 아니라 제품 목표 |
 | 80~100회 | 이전 extended QA 기반 현실적 비용 대표값 |
-| 120회 | session hard cap 후보 |
+| 120회 | strong warning 후보, 현재 구현상 차단 아님 |
 | 6/19 AI_CALL 95건 | QA-driven smoke로 유효하지만 cap 변경 근거는 아님 |
 
 ## 12. Verification
