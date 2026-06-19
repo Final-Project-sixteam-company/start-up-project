@@ -15,7 +15,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
+public interface ScenarioRepository extends JpaRepository<Scenario, Long>, ScenarioRepositoryCustom {
 
     Optional<Scenario> findByCodeAndVersion(String code, String version);
     
