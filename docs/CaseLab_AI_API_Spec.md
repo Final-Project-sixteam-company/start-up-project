@@ -1,15 +1,15 @@
 # CaseLab AI API 명세서 & API 테이블
 
 > 버전: MVP v0.1  
-> 기준 플랫폼: Android App + Spring Boot Backend  
+> 기준 플랫폼: Flutter Android App + React/Vite Web + Spring Boot Backend
 > 프로젝트 정체성: AI 용의자 심문형 추리게임 + 커스텀 시나리오 공유 플랫폼  
-> 작성 목적: 팀 백엔드/프론트/Android 개발자가 공통으로 참고할 API 설계 초안
+> 작성 목적: 팀 백엔드/Android/Web 개발자가 공통으로 참고할 API 계약
 
 ---
 
 ## 0. 프로젝트 요약
 
-**CaseLab AI**는 사용자가 탐정이 되어 사건을 조사하고, AI 용의자를 심문하며, 증거와 알리바이를 조합해 범인·동기·범행 방법을 추리하는 Android 추리게임 앱이다.
+**ClueRoom**은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자를 심문하며, 증거와 알리바이를 조합해 범인·동기·범행 방법을 추리하는 AI 추리게임 서비스다. 현재 클라이언트는 Flutter Android 앱과 React/Vite Web을 병행한다.
 
 핵심 구조는 다음과 같다.
 
@@ -68,7 +68,7 @@ Authorization: Bearer {accessToken}
 ### 1.4 ID 필드 네이밍 규칙
 
 - JPA Entity의 PK 필드명은 `id`를 사용한다.
-- API Request/Response DTO에서는 Android 화면 매핑과 혼동을 줄이기 위해 `scenarioId`, `evidenceId`, `suspectId`처럼 자원명이 포함된 필드명을 우선 사용한다.
+- API Request/Response DTO에서는 클라이언트 화면 매핑과 혼동을 줄이기 위해 `scenarioId`, `evidenceId`, `suspectId`처럼 자원명이 포함된 필드명을 우선 사용한다.
 - 중첩 객체도 다른 엔티티를 참조하면 `creatorId`, `locationId`, `reviewId`처럼 명시한다.
 
 ---
@@ -2740,7 +2740,7 @@ wallet 차감은 하나의 Transaction 안에서 처리
 이 API 설계의 핵심은 다음이다.
 
 ```text
-1. Android 앱은 탐정 플레이 경험에 집중한다.
+1. Android/Web 클라이언트는 탐정 플레이 경험에 집중한다.
 2. 백엔드는 시나리오, 증거, 용의자, 플레이 상태를 관리한다.
 3. AI는 사건 생성, 시나리오 검증, 용의자 심문, 최종 채점에 사용한다.
 4. AI에게 전체 정답을 넘기지 않고, 현재 허용된 정보만 전달한다.

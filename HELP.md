@@ -1,30 +1,11 @@
-# Getting Started
+# ClueRoom Backend Help
 
-### Reference Documentation
+이 파일은 Spring Boot 생성 기본 도움말 대신 ClueRoom 백엔드 문서의 진입점만 남긴다.
 
-For further reference, please consider the following sections:
-
-* [Official Gradle documentation](https://docs.gradle.org)
-* [Spring Boot Gradle Plugin Reference Guide](https://docs.spring.io/spring-boot/4.0.6/gradle-plugin)
-* [Create an OCI image](https://docs.spring.io/spring-boot/4.0.6/gradle-plugin/packaging-oci-image.html)
-* [Spring Boot Actuator](https://docs.spring.io/spring-boot/4.0.6/reference/actuator/index.html)
-* [Spring Data JPA](https://docs.spring.io/spring-boot/4.0.6/reference/data/sql.html#data.sql.jpa-and-spring-data)
-* [Prometheus](https://docs.spring.io/spring-boot/4.0.6/reference/actuator/metrics.html#actuator.metrics.export.prometheus)
-* [Spring Web](https://docs.spring.io/spring-boot/4.0.6/reference/web/servlet.html)
-
-### Guides
-
-The following guides illustrate how to use some features concretely:
-
-* [Building a RESTful Web Service with Spring Boot Actuator](https://spring.io/guides/gs/actuator-service/)
-* [Accessing Data with JPA](https://spring.io/guides/gs/accessing-data-jpa/)
-* [Building a RESTful Web Service](https://spring.io/guides/gs/rest-service/)
-* [Serving Web Content with Spring MVC](https://spring.io/guides/gs/serving-web-content/)
-* [Building REST services with Spring](https://spring.io/guides/tutorials/rest/)
-
-### Additional Links
-
-These additional references should also help you:
-
-* [Gradle Build Scans – insights for your project's build](https://scans.gradle.com#gradle)
-
+| 문서 | 용도 |
+|---|---|
+| [README.md](README.md) | 프로젝트 소개, 기술 스택, 검증 지표 |
+| [docs/README.md](docs/README.md) | 문서 인덱스와 정본 지도 |
+| [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 로컬 실행, Docker, 배포 명령 |
+| [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 구현 규칙 |
+| [docs/infra/OPS_RUNBOOK.md](docs/infra/OPS_RUNBOOK.md) | 운영 명령, rollback, 장애 대응 |

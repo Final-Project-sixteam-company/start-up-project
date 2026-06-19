@@ -99,14 +99,16 @@ Base URL에는 `/api`를 붙이지 않는다.
 
 ### 2.3 인증 상태
 
-현재 MVP는 로그인 없이 Mock user 기준으로 호출 가능하다.
+인증 정책은 실행 환경에 따라 다르다.
 
-```text
-Authorization Header 없이 호출 가능
-백엔드는 MockUserProvider.currentUserId() 기준으로 사용자 ID를 결정
-```
+| 환경 | 정책 |
+|---|---|
+| Local/test 호환 모드 | `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true` 조합에서 token 없는 요청을 Mock user 기준으로 처리할 수 있다. 기존 QA/API smoke 호환용이다. |
+| 운영/protected mode | `AUTH_REQUIRE_AUTHENTICATION=true` 기준으로 플레이 세션, 디바이스 토큰, 알림, 시나리오 write/validation, 신규 `/api/**` 보호 API는 `Authorization: Bearer {accessToken}`이 필요하다. |
+| 공개 조회 | 공개 시나리오 목록/상세 같은 명시 public endpoint는 anonymous로 조회할 수 있다. DRAFT/PRIVATE 또는 사용자별 데이터는 노출하지 않는다. |
 
-JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
+Android/Web 클라이언트는 로그인 후 보호 API 호출마다 `Authorization: Bearer {accessToken}`을 추가한다.
+Web refresh는 HttpOnly cookie를 사용하고, Android는 기존 refresh body 흐름을 병행 지원한다.
 
 ### 2.4 ID 필드명 규칙
 

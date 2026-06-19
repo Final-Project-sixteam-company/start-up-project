@@ -129,7 +129,7 @@ cp .env.example .env
 | `AI_LLMOPS_DB_LOGGING_ENABLED` | AI 호출 로그 DB 저장 활성화 여부 |
 | `AUTH_MOCK_FALLBACK_ENABLED` | JWT 전환기 token 없는 기존 API 요청을 `MOCK_USER_ID`로 허용할지 여부 |
 | `AUTH_DEV_LOGIN_ENABLED` | `/api/auth/dev` 개발용 로그인 활성 여부. 운영 기본 `false` |
-| `AUTH_REQUIRE_AUTHENTICATION` | 사용자별 API 인증 강제 여부. Android/Web 전환 전 기본 `false` |
+| `AUTH_REQUIRE_AUTHENTICATION` | 사용자별 API 인증 강제 여부. local/test 호환 모드는 `false`, 운영 protected mode는 `true` |
 | `AUTH_ADMIN_SEED_ENABLED` | 운영 secret env에 지정한 admin 테스트 계정을 생성/승격할지 여부. 기본 `false` |
 | `AUTH_ADMIN_SEED_EMAIL` | admin seed 대상 이메일. 실제 값은 서버 secret env에만 저장 |
 | `AUTH_ADMIN_SEED_NICKNAME` | admin seed 신규 생성 시 nickname |
@@ -419,7 +419,7 @@ OPENAI_CHAT_TEMPERATURE=0.4
 ```
 
 API Key는 로컬 개발용 `.env` 또는 운영 서버 secret env에만 둔다.
-GitHub Actions Secrets에는 AI/PortOne/OAuth/Firebase/DB 같은 runtime secret을 넣지 않는다. CD workflow는 운영 서버 SSH 접속 secret만 사용한다.
+GitHub Actions Secrets에는 AI/OAuth/Firebase/DB 같은 runtime secret을 넣지 않는다. CD workflow는 운영 서버 SSH 접속 secret만 사용한다.
 
 ---
 
@@ -1019,7 +1019,7 @@ LIGHTSAIL_USER
 LIGHTSAIL_SSH_KEY
 ```
 
-runtime secret인 AI/PortOne/OAuth/Firebase/DB 값은 GitHub Actions Secrets에 넣지 않고 서버 `.env`와 `/opt/clueroom/secrets`에서 관리한다.
+runtime secret인 AI/OAuth/Firebase/DB 값은 GitHub Actions Secrets에 넣지 않고 서버 `.env`와 `/opt/clueroom/secrets`에서 관리한다.
 
 CD 성공 후 운영 서버에서 확인한다.
 

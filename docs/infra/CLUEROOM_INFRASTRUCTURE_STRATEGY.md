@@ -574,7 +574,6 @@ Let's Encrypt privkey file
 ```text
 /opt/clueroom/app/.env
 /opt/clueroom/secrets/env.d/ai.env
-/opt/clueroom/secrets/env.d/portone.env
 /opt/clueroom/secrets/env.d/oauth.env
 /opt/clueroom/secrets/firebase-service-account.json
 ```
@@ -587,7 +586,8 @@ LIGHTSAIL_USER
 LIGHTSAIL_SSH_KEY
 ```
 
-AI/PortOne/OAuth/Firebase/DB secret은 GitHub Actions 로그에 노출될 이유가 없으므로 서버 secret으로 관리한다.
+AI/OAuth/Firebase/DB secret은 GitHub Actions 로그에 노출될 이유가 없으므로 서버 secret으로 관리한다.
+현재 MVP 런타임에는 실제 PG/PortOne secret을 사용하지 않는다.
 
 ### 5.3 이미지 보안
 
