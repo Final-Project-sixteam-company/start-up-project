@@ -88,6 +88,7 @@
 | [infra/agent/LLMOPS_DAILY_SUMMARY_2026-06-09_TO_2026-06-13.md](infra/agent/LLMOPS_DAILY_SUMMARY_2026-06-09_TO_2026-06-13.md) | 2026-06-09~2026-06-13 LLMOps 일자별 통합 보고서 | Slack/작업 로그 기반 집계 보고서다. raw prompt, AI 답변, 사용자 질문 원문은 포함하지 않는다. |
 | [infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md](infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md) | AI 호출 비용 추정, 사용자 규모별 비용, 계정별 레이트리밋, 글로벌 예산 경보 기준 | daily summary 기반 계획 문서다. 실제 단가/환율은 운영 시점에 재확인한다. |
 | [infra/agent/LLMOPS_DAILY_REPORT_2026-06-18.md](infra/agent/LLMOPS_DAILY_REPORT_2026-06-18.md) | 2026-06-18 LLMOps daily report | 운영 AI_CALL/AI_CALL_CONTEXT 집계 분석이다. 같은 날짜 로컬 Android QA는 none/mock mode라 비용 표본에서 분리한다. |
+| [infra/agent/LLMOPS_DAILY_REPORT_2026-06-19.md](infra/agent/LLMOPS_DAILY_REPORT_2026-06-19.md) | 2026-06-19 LLMOps daily report | 운영 AI_CALL/AI_CALL_CONTEXT와 Infra handoff를 함께 분석한다. 같은 기간 web QA traffic은 organic production traffic과 분리해서 해석한다. |
 
 ### QA / Handoff
 
