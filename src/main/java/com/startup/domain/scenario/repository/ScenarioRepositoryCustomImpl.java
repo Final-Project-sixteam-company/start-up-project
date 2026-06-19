@@ -121,6 +121,9 @@ public class ScenarioRepositoryCustomImpl implements ScenarioRepositoryCustom {
             orderSpecifiers.add(scenario.createdAt.desc());
         }
 
+        // 페이징 중복/누락 방지를 위한 최종 보조 정렬 (Tie-breaker)
+        orderSpecifiers.add(scenario.id.desc());
+
         return orderSpecifiers;
     }
 }
