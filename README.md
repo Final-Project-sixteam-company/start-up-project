@@ -215,10 +215,10 @@ ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 
 ## Architecture
 
 <p align="center">
-  <img src="docs/infra/images/clueroom_current_production_architecture_logo_style.png" alt="ClueRoom production architecture" width="100%">
+  <img src="docs/infra/images/clueroom_current_ops_logo_presentation_v3.png" alt="ClueRoom current operations architecture" width="100%">
 </p>
 
-현재 운영 기준은 저비용 Lightsail 3서버 역할 분리 구조입니다.
+현재 운영 기준은 저비용 Lightsail 3서버 역할 분리 구조입니다. 더 상세한 서버/백업/관측 흐름 이미지는 [Infra Portfolio Summary](docs/infra/INFRA_PORTFOLIO_SUMMARY.md)에 분리했습니다.
 
 | 서버 | 역할 |
 |---|---|
