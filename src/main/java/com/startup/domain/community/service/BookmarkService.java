@@ -21,6 +21,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.startup.domain.scenario.service.RedisScenarioService;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,6 +32,7 @@ public class BookmarkService {
     private final ScenarioRepository scenarioRepository;
     private final ScenarioAccessService scenarioAccessService;
     private final UserRepository userRepository;
+    private final RedisScenarioService redisScenarioService;
 
     // 시나리오 북마크 등록
     @Transactional
@@ -51,6 +54,10 @@ public class BookmarkService {
                     .scenarioId(scenario.getId())
                     .build();
             bookmarkRepository.save(bookmark);
+            
+            // 캐시 무효화: 북마크 상태 변경 즉시 반영
+            redisScenarioService.evictUserListCache(userId);
+
         } catch (DataIntegrityViolationException e) {
             log.warn("북마크 중복 삽입 감지: userId={}, scenarioId={}", userId, scenarioId);
             throw new CommunityException(CommunityErrorCode.ALREADY_BOOKMARKED);
@@ -61,7 +68,11 @@ public class BookmarkService {
     @Transactional
     public void removeBookmark(Long userId, Long scenarioId) {
         bookmarkRepository.findByUserIdAndScenarioId(userId, scenarioId)
-                .ifPresent(bookmarkRepository::delete);
+                .ifPresent(bookmark -> {
+                    bookmarkRepository.delete(bookmark);
+                    // 캐시 무효화: 북마크 상태 변경 즉시 반영
+                    redisScenarioService.evictUserListCache(userId);
+                });
     }
 
     // 인증 및 접근 권한 검증 후 시나리오 조회 (북마크는 PUBLISHED 상태에서만 허용)

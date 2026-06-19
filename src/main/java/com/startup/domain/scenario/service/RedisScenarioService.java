@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.startup.common.dto.PageResponse;
 import com.startup.domain.scenario.dto.ScenarioSummaryResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -43,6 +42,19 @@ public class RedisScenarioService {
             log.warn("Redis 시나리오 목록 캐시 저장(직렬화) 실패: {}", e.getMessage());
         } catch (Exception e) {
             log.warn("Redis 시나리오 목록 캐시 저장 실패: {}", e.getMessage());
+        }
+    }
+
+    public void evictUserListCache(Long userId) {
+        if (userId == null) return;
+        String pattern = "scenario:list:user:" + userId + "*";
+        try {
+            java.util.Set<String> keys = redisTemplate.keys(pattern);
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
+        } catch (Exception e) {
+            log.warn("Redis 시나리오 캐시 무효화 실패 (userId={}): {}", userId, e.getMessage());
         }
     }
 }
