@@ -17,7 +17,7 @@ BEGIN
       AND index_name = 'idx_scenarios_status_visibility_created';
       
     IF indexCount = 0 THEN
-        SET @sql = 'CREATE INDEX idx_scenarios_status_visibility_created ON scenarios (status, visibility, created_at DESC)';
+        SET @sql = 'CREATE INDEX idx_scenarios_status_visibility_created ON scenarios (status, visibility, created_at DESC, id DESC)';
         PREPARE stmt FROM @sql;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
