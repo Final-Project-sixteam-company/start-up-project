@@ -50,7 +50,9 @@ QA account email recorded in report: no
 Raw user question/AI answer transcript recorded in report: no
 Result score/grade/correctness/breakdown kept private: yes
 Rejected-candidate rationale kept private: yes
-Production server modification: no
+Production infra/config modification: no
+Production API writes: yes, QA account scoped
+Production API write approval: yes, operator-approved web E2E QA
 Privacy spot check: API/browser output only, no ops log check
 ```
 

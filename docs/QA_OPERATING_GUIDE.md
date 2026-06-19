@@ -483,6 +483,7 @@ Findings First를 먼저 쓴다.
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 시나리오 목록/상세/현장 이미지가 API image URL 대신 placeholder로 보일 수 있음 | `thumbnailUrl`, `coverImageUrl`, `mapImageUrl` 렌더링 smoke |
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 라이브러리 검색/필터 UI가 실제 결과에 반영되지 않거나 미지원 상태가 불명확할 수 있음 | 검색어/필터 적용 결과 변화, 결과 수, empty state 확인 |
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 브리핑/결과 화면 copy가 하드코딩되어 실제 시나리오 정보, 서버 result 문구 계약, 내부 용어와 어긋날 수 있음 | 서버 scenario/result 계약 기반 copy와 내부 용어 미노출 확인 |
+| Frontend Web | P1 | Open | 2026-06-19 web E2E report | 모바일 390x844 시나리오 상세에서 `수사 시작` CTA가 review empty 영역에 의해 click intercept될 수 있음 | scenario detail 하단 CTA와 review empty 영역의 stacking/spacing/pointer-events 수정 후 mobile click regression |
 | Frontend | P2 | Open | 이전 QA_HANDOFF에서 유지 | `hints=[]` 상태에서 명확한 빈 상태/닫기 동선이 부족할 수 있음 | 힌트 empty state와 닫기 동선 확인 |
 | Backend | P1 | Open | 2026-06-12 report | final deduction/result의 interrogation count 집계 불일치 가능성 | 제출 전후 DB/log count, result response count 대조 |
 | Frontend | P1/P2 | Open | 2026-06-12~2026-06-15 reports | guidance rendering, timeline, final submit/result full E2E coverage 부족 | Android full E2E |
