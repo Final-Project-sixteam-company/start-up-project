@@ -9,6 +9,7 @@ import com.startup.domain.ai.error.AiException;
 import com.startup.domain.auth.enums.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
@@ -78,6 +79,23 @@ class AiRateLimitServiceTest {
                 .isInstanceOfSatisfying(AiException.class, exception ->
                         org.assertj.core.api.Assertions.assertThat(exception.getErrorCode())
                                 .isEqualTo(AiErrorCode.AI_DAILY_RATE_LIMIT_EXCEEDED));
+    }
+
+    @Test
+    void checkAndConsume_rollsBackTotalQuotaWhenScenarioLimitRejects() {
+        when(currentUserProvider.authenticatedPrincipal())
+                .thenReturn(Optional.of(userPrincipal(10L)));
+        when(valueOperations.increment(startsWith("ai:rate:daily:"))).thenReturn(200L, 151L);
+
+        assertThatThrownBy(() -> service.checkAndConsume(context()))
+                .isInstanceOfSatisfying(AiException.class, exception ->
+                        org.assertj.core.api.Assertions.assertThat(exception.getErrorCode())
+                                .isEqualTo(AiErrorCode.AI_DAILY_RATE_LIMIT_EXCEEDED));
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(valueOperations, times(2)).decrement(keyCaptor.capture());
+        assertThat(keyCaptor.getAllValues()).anySatisfy(key -> assertThat(key).contains(":total"));
+        assertThat(keyCaptor.getAllValues()).anySatisfy(key -> assertThat(key).contains(":scenario:1"));
     }
 
     @Test

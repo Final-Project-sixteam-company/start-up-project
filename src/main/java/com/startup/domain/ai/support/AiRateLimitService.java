@@ -45,29 +45,41 @@ public class AiRateLimitService {
         }
 
         String subjectKey = resolveSubjectKey(principal);
+        String totalKey = null;
         long accountCount = 0L;
-        if (properties.getDailyLimitPerUserTotal() > 0) {
-            accountCount = consume(
-                    buildTotalKey(subjectKey),
-                    properties.getDailyLimitPerUserTotal(),
-                    subjectKey,
-                    "total",
-                    context
-            );
-        }
+        boolean accountConsumed = false;
 
-        if (context.scenarioId() != null && properties.getDailyLimitPerUserPerScenario() > 0) {
-            long scenarioCount = consume(
-                    buildScenarioKey(subjectKey, context.scenarioId()),
-                    properties.getDailyLimitPerUserPerScenario(),
-                    subjectKey,
-                    "scenario:" + context.scenarioId(),
-                    context
-            );
-            return buildQuotaStatus(scenarioCount, accountCount);
-        }
+        try {
+            if (properties.getDailyLimitPerUserTotal() > 0) {
+                totalKey = buildTotalKey(subjectKey);
+                accountCount = consume(
+                        totalKey,
+                        properties.getDailyLimitPerUserTotal(),
+                        subjectKey,
+                        "total",
+                        context
+                );
+                accountConsumed = true;
+            }
 
-        return null;
+            if (context.scenarioId() != null && properties.getDailyLimitPerUserPerScenario() > 0) {
+                long scenarioCount = consume(
+                        buildScenarioKey(subjectKey, context.scenarioId()),
+                        properties.getDailyLimitPerUserPerScenario(),
+                        subjectKey,
+                        "scenario:" + context.scenarioId(),
+                        context
+                );
+                return buildQuotaStatus(scenarioCount, accountCount);
+            }
+
+            return null;
+        } catch (AiException e) {
+            if (accountConsumed && totalKey != null) {
+                release(totalKey);
+            }
+            throw e;
+        }
     }
 
     private boolean isAdminBypass(Optional<AuthenticatedUserPrincipal> principal) {
@@ -96,6 +108,7 @@ public class AiRateLimitService {
         }
 
         if (count > limit) {
+            release(key);
             log.warn("AI rate limit exceeded. subject={}, scope={}, feature={}, count={}, limit={}",
                     subjectKey, scope, context.featureType(), count, limit);
             throw new AiException(AiErrorCode.AI_DAILY_RATE_LIMIT_EXCEEDED);
@@ -189,6 +202,14 @@ public class AiRateLimitService {
         } catch (RedisConnectionFailureException e) {
             log.error("AI rate limit Redis connection failed", e);
             throw new AiException(AiErrorCode.AI_RATE_LIMIT_UNAVAILABLE, e);
+        }
+    }
+
+    private void release(String key) {
+        try {
+            redisTemplate.opsForValue().decrement(key);
+        } catch (Exception e) {
+            log.warn("AI rate limit rollback failed. key={}", key, e);
         }
     }
 

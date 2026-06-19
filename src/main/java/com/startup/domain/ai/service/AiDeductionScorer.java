@@ -274,6 +274,13 @@ public class AiDeductionScorer {
 
             AiCallResult response = aiClient.chatWithMetadata(systemPrompt, userPrompt, params, context);
             return parseAiFeedback(response.text());
+        } catch (AiException e) {
+            if (e.getErrorCode() instanceof AiErrorCode aiErrorCode && aiErrorCode.isRateLimitError()) {
+                throw e;
+            }
+            log.warn("AI 피드백 생성 실패, Fallback 사용: {}", e.getMessage());
+            aiClient.recordFallback(context, e.getErrorCode().getCode(), elapsedMs(startTime));
+            return fallbackFeedbackGenerator.generate(scoringResult, criteria);
         } catch (Exception e) {
             log.warn("AI 피드백 생성 실패, Fallback 사용: {}", e.getMessage());
             aiClient.recordFallback(context, errorCode(e), elapsedMs(startTime));
