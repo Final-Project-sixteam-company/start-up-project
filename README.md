@@ -35,9 +35,9 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 ## Proof Snapshot
 
-| Backend Test | Scenario Coverage | LLMOps Smoke | Scale-out PoC | Web Retest |
-|---:|---:|---:|---:|---:|
-| **340 PASS** | **25/25 · 35/35** evidence reachability | **10 / 0 / 0** success/failure/fallback | **21 / 19 / 20** over 60 requests | guidance/bookmark/mobile/final/result **PASS** |
+| Backend Test | Scenario Coverage | Scenario API Perf | LLMOps Smoke | Scale-out PoC | Web Retest |
+|---:|---:|---:|---:|---:|---:|
+| **342 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | **10 / 0 / 0** success/failure/fallback | **21 / 19 / 20** over 60 requests | guidance/bookmark/mobile/final/result **PASS** |
 
 > 수치는 public-safe QA/LLMOps/PoC 보고서 기준입니다. 정답, 점수, session/token, raw prompt/answer는 공개 README에 포함하지 않습니다.
 
@@ -169,8 +169,10 @@ ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 
 | 정답 누설 방지 | `Solution`/private seed는 백엔드가 보관하고 AI prompt에는 범인 정보를 직접 전달하지 않음 | prompt injection과 spoiler metadata를 동시에 방어 |
 | Response Policy | `ResponsePolicyResolver`가 현재 질문/증거/상태에 맞는 답변 정책을 결정 | AI가 정책을 판단하지 않도록 서버 rule engine 분리 |
 | Scenario YAML Import | 공식 시나리오 YAML을 검증 후 DB에 import하고 content hash로 중복 반영 제어 | 운영 seed 교체와 public/private 경계 관리 |
+| Scenario List Performance | QueryDSL 동적 필터, `(status, visibility, created_at DESC)` 복합 인덱스, Redis 30초 캐시 | 홈 화면 핵심 API를 k6로 측정하고 P95 `241ms -> 19ms`로 개선. [성능 리포트](docs/perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) |
 | Play Runtime | session, evidence unlock, suspect, interrogation, final deduction, result path 관리 | 추리게임 상태 전이를 서버에서 일관되게 보장 |
 | Auth | Google/Kakao OAuth, JWT access token, refresh session, web/android 공존 | 모바일 앱과 웹 배포를 함께 지원 |
+| Review / Play Count Consistency | 리뷰 평점은 DB 비관적 락, playCount는 쿼리 레벨 atomic update 적용 | Lost update 방어와 단순 카운터 경합 최소화 |
 | Ops | Blue-Green 배포, 외부 MySQL/Redis, Loki/Grafana/n8n, Slack alert | 저비용 MVP 환경에서 운영 경험과 복구 절차 확보 |
 | LLMOps | `AI_CALL`, `AI_CALL_CONTEXT` 로그로 token, latency, failure/fallback 관측 | 비용과 품질을 raw prompt 없이 운영 지표화 |
 
@@ -288,7 +290,7 @@ AI receives:
 | 기능 | 대표 API | 설명 |
 |---|---|---|
 | Auth | `POST /api/auth/oauth`, `POST /api/auth/oauth/kakao/code`, `POST /api/auth/refresh` | Google/Kakao OAuth, JWT 재발급 |
-| Scenario | `GET /api/scenarios`, `GET /api/scenarios/{scenarioId}` | 공개 시나리오 목록/상세 |
+| Scenario | `GET /api/scenarios`, `GET /api/scenarios/{scenarioId}` | 공개 시나리오 목록/상세. keyword/type/difficulty/playTime 조건 검색과 Redis short TTL cache 적용 |
 | Play Session | `POST /api/play-sessions`, `GET /api/play-sessions/{sessionId}` | 플레이 시작과 진행 상태 조회 |
 | Evidence | `GET /api/play-sessions/{sessionId}/evidences` | 해금된 증거, guidance, 함께 볼 증거 |
 | Suspect | `GET /api/play-sessions/{sessionId}/suspects` | public-safe 용의자 정보 |
@@ -359,12 +361,13 @@ QA는 blind 조건과 public/private 경계를 분리해서 운영합니다.
 | Framework | Spring Boot 4.0.6, Spring MVC, Spring Security, Spring Data JPA |
 | AI | Spring AI, OpenAI-compatible DeepSeek API |
 | Database | MySQL 8.4, H2 test profile |
+| Query | QueryDSL 5.1.0 |
 | Cache / Lock | Redis 8, Redisson |
 | Auth | JWT, Google OAuth, Kakao OAuth, refresh session |
 | Observability | Spring Actuator, Micrometer, Prometheus, Grafana, Loki, Alloy |
 | Infra | Docker Compose, Nginx, Certbot, AWS Lightsail, AWS S3 |
 | Notification | Firebase Admin SDK, Slack alert via n8n |
-| Test | JUnit 5, Spring Boot Test, WebMVC Test |
+| Test | JUnit 5, Spring Boot Test, WebMVC Test, k6 |
 | Docs | Markdown, Mermaid, public-safe QA/LLMOps reports |
 
 ---
@@ -397,6 +400,12 @@ Android Emulator에서 로컬 백엔드를 호출할 때는 `http://10.0.2.2:808
 
 운영 secret, OAuth key, AI key, DB password는 Git에 포함하지 않습니다. 실행/배포 상세는 [Run and Deploy](docs/RUN_AND_DEPLOY.md), 운영 절차는 [Ops Runbook](docs/infra/OPS_RUNBOOK.md)을 따릅니다.
 
+시나리오 목록 API 부하 테스트는 로컬 백엔드 실행 후 선택적으로 수행합니다.
+
+```bash
+k6 run scripts/k6/scenario-list-load-test.js
+```
+
 ---
 
 ## Repository Map
@@ -414,10 +423,14 @@ src/main/java/com/startup
   infrastructure/  외부 시스템 연동
 
 docs/
+  db/migrations/  운영 DB 보강 SQL, 성능 인덱스
   infra/           운영 인프라, runbook, LLMOps, scale-out PoC
   frontend/        앱/웹 화면 흐름과 API mapping
   qa/archive/      public-safe QA history
   scenarios/       scenario YAML schema
+
+scripts/
+  k6/              시나리오 목록 API 부하 테스트
 ```
 
 전체 문서 지도는 [docs/README.md](docs/README.md)를 확인하세요.
@@ -431,6 +444,7 @@ docs/
 | AI가 정답을 받지 않는 구조 | [AI NPC Prompt Policy](docs/AI_NPC_PROMPT_POLICY.md) |
 | API와 도메인 경계 | [API Spec](docs/CaseLab_AI_API_Spec.md), [ERD Design](docs/CaseLab_AI_ERD_Design.md) |
 | 운영 인프라 | [Infrastructure Strategy](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md), [Ops Runbook](docs/infra/OPS_RUNBOOK.md) |
+| 시나리오 목록 성능 개선 | [Performance report](docs/perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md), [k6 load test](scripts/k6/scenario-list-load-test.js), [scenario list index migration](docs/db/migrations/20260618_add_scenario_list_index.sql) |
 | LLMOps 비용과 rate limit | [LLMOps Cost & Rate Limit Plan](docs/infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md) |
 | QA와 public-safe 보고 기준 | [QA Operating Guide](docs/QA_OPERATING_GUIDE.md) |
 | Scale-out 검증 | [Scale-out PoC](docs/infra/poc/POC-006-scaleout-manual-lb.md), [Scale-out Runbook](docs/infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) |

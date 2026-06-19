@@ -25,6 +25,7 @@
 | Android 화면 흐름과 API 호출 순서 확인 | [frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) |
 | Android OAuth/JWT 연동 확인 | [ANDROID_AUTH_INTEGRATION_GUIDE.md](ANDROID_AUTH_INTEGRATION_GUIDE.md) |
 | 백엔드 패키지/계층/트랜잭션 규칙 확인 | [BACKEND_IMPLEMENTATION_GUIDE.md](BACKEND_IMPLEMENTATION_GUIDE.md) |
+| 시나리오 목록 API 성능 개선 결과 확인 | [perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md](perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) |
 | AI NPC 프롬프트와 정답 누설 방지 정책 확인 | [AI_NPC_PROMPT_POLICY.md](AI_NPC_PROMPT_POLICY.md) |
 | DB/엔티티 설계 확인 | [CaseLab_AI_ERD_Design.md](CaseLab_AI_ERD_Design.md) |
 | 로컬 실행, Android 연결, 배포 요약 확인 | [RUN_AND_DEPLOY.md](RUN_AND_DEPLOY.md) |
@@ -49,6 +50,7 @@
 | [frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) | Android/Frontend 화면 흐름, 호출 순서, E2E 사용법 | 화면 흐름과 API 사용 순서 정본이다. |
 | [ANDROID_AUTH_INTEGRATION_GUIDE.md](ANDROID_AUTH_INTEGRATION_GUIDE.md) | Android OAuth/JWT token flow, refresh/logout/me 연동 | 인증 API 상세 연동 가이드다. |
 | [BACKEND_IMPLEMENTATION_GUIDE.md](BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 계층, 패키지, 예외, 트랜잭션, CurrentUser/MockUser, 현재 구현 지도 | API/ERD 상세는 정본 링크를 둔다. |
+| [perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md](perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) | 시나리오 목록 API 성능 개선 목표, k6 조건, before/after 결과, 한계 | PR #73 성능 최적화의 public-safe 요약 보고서다. |
 | [CaseLab_AI_ERD_Design.md](CaseLab_AI_ERD_Design.md) | 엔티티, 테이블, 관계, 컬럼 설계 | 코드 SoT와 drift 정정 필요. |
 | [ADR.md](ADR.md) | 이미 결정된 주요 아키텍처 결정 목록 | 상세 설명은 각 정본 문서로 링크한다. |
 
