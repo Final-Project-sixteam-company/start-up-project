@@ -1,6 +1,8 @@
 package com.startup.domain.scenario.service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 
 import com.startup.domain.scenario.dto.ScenarioSearchCondition;
 
@@ -15,7 +17,11 @@ public class ScenarioCachePolicy {
             base.append(":sort:").append(sortParam);
         }
         if (condition != null) {
-            if (condition.getKeyword() != null) base.append(":kw:").append(condition.getKeyword());
+            if (condition.getKeyword() != null) {
+                String encodedKw = Base64.getUrlEncoder().withoutPadding().encodeToString(condition.getKeyword().getBytes(StandardCharsets.UTF_8));
+                base.append(":kw:").append(encodedKw);
+            }
+
             if (condition.getType() != null) base.append(":type:").append(condition.getType());
             if (condition.getDifficulty() != null) base.append(":diff:").append(condition.getDifficulty());
             if (condition.getVisibility() != null) base.append(":vis:").append(condition.getVisibility());

@@ -21,6 +21,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.startup.domain.scenario.service.RedisScenarioService;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,6 +34,7 @@ public class BookmarkService {
     private final ScenarioRepository scenarioRepository;
     private final ScenarioAccessService scenarioAccessService;
     private final UserRepository userRepository;
+    private final RedisScenarioService redisScenarioService;
 
     // 시나리오 북마크 등록
     @Transactional
@@ -51,6 +56,17 @@ public class BookmarkService {
                     .scenarioId(scenario.getId())
                     .build();
             bookmarkRepository.save(bookmark);
+            
+            // 캐시 무효화: 트랜잭션 커밋 이후에 실행되도록 보장 (Race Condition 방어)
+            TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        redisScenarioService.evictUserListCache(userId);
+                    }
+                }
+            );
+
         } catch (DataIntegrityViolationException e) {
             log.warn("북마크 중복 삽입 감지: userId={}, scenarioId={}", userId, scenarioId);
             throw new CommunityException(CommunityErrorCode.ALREADY_BOOKMARKED);
@@ -61,7 +77,18 @@ public class BookmarkService {
     @Transactional
     public void removeBookmark(Long userId, Long scenarioId) {
         bookmarkRepository.findByUserIdAndScenarioId(userId, scenarioId)
-                .ifPresent(bookmarkRepository::delete);
+                .ifPresent(bookmark -> {
+                    bookmarkRepository.delete(bookmark);
+                    // 캐시 무효화: 트랜잭션 커밋 이후에 실행되도록 보장
+                    org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                        new org.springframework.transaction.support.TransactionSynchronization() {
+                            @Override
+                            public void afterCommit() {
+                                redisScenarioService.evictUserListCache(userId);
+                            }
+                        }
+                    );
+                });
     }
 
     // 인증 및 접근 권한 검증 후 시나리오 조회 (북마크는 PUBLISHED 상태에서만 허용)
