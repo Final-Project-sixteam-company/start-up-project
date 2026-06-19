@@ -10,6 +10,7 @@ import com.startup.domain.auth.enums.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
@@ -54,10 +55,26 @@ class AiRateLimitServiceTest {
         when(currentUserProvider.authenticatedPrincipal())
                 .thenReturn(Optional.of(userPrincipal(10L)));
         when(valueOperations.increment(startsWith("ai:rate:daily:"))).thenReturn(1L, 1L);
+        when(redisTemplate.expire(startsWith("ai:rate:daily:"), any(Duration.class))).thenReturn(true);
 
         service.checkAndConsume(context());
 
         verify(redisTemplate, times(2)).expire(startsWith("ai:rate:daily:"), any(Duration.class));
+    }
+
+    @Test
+    void checkAndConsume_rollsBackAndThrowsRateLimitUnavailableWhenExpireFails() {
+        when(currentUserProvider.authenticatedPrincipal())
+                .thenReturn(Optional.of(userPrincipal(10L)));
+        when(valueOperations.increment(startsWith("ai:rate:daily:"))).thenReturn(1L);
+        when(redisTemplate.expire(startsWith("ai:rate:daily:"), any(Duration.class)))
+                .thenThrow(new RedisConnectionFailureException("redis down"));
+
+        assertThatThrownBy(() -> service.checkAndConsume(context()))
+                .isInstanceOfSatisfying(AiException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(AiErrorCode.AI_RATE_LIMIT_UNAVAILABLE));
+
+        verify(valueOperations).decrement(startsWith("ai:rate:daily:"));
     }
 
     @Test

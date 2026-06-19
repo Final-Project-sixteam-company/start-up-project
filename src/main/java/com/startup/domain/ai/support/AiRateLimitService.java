@@ -104,7 +104,7 @@ public class AiRateLimitService {
     private long consume(String key, long limit, String subjectKey, String scope, AiCallContext context) {
         long count = increment(key);
         if (count == 1L) {
-            redisTemplate.expire(key, Duration.ofHours(properties.getTtlHours()));
+            expireOrRelease(key);
         }
 
         if (count > limit) {
@@ -201,6 +201,22 @@ public class AiRateLimitService {
             return value;
         } catch (RedisConnectionFailureException e) {
             log.error("AI rate limit Redis connection failed", e);
+            throw new AiException(AiErrorCode.AI_RATE_LIMIT_UNAVAILABLE, e);
+        }
+    }
+
+    private void expireOrRelease(String key) {
+        try {
+            Boolean applied = redisTemplate.expire(key, Duration.ofHours(properties.getTtlHours()));
+            if (!Boolean.TRUE.equals(applied)) {
+                release(key);
+                throw new AiException(AiErrorCode.AI_RATE_LIMIT_UNAVAILABLE);
+            }
+        } catch (AiException e) {
+            throw e;
+        } catch (RedisConnectionFailureException e) {
+            release(key);
+            log.error("AI rate limit Redis expire failed", e);
             throw new AiException(AiErrorCode.AI_RATE_LIMIT_UNAVAILABLE, e);
         }
     }
