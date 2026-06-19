@@ -9,7 +9,7 @@ import com.startup.domain.ai.error.AiException;
 import com.startup.domain.auth.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -199,7 +199,7 @@ public class AiRateLimitService {
                 throw new AiException(AiErrorCode.AI_RATE_LIMIT_UNAVAILABLE);
             }
             return value;
-        } catch (RedisConnectionFailureException e) {
+        } catch (DataAccessException e) {
             log.error("AI rate limit Redis connection failed", e);
             throw new AiException(AiErrorCode.AI_RATE_LIMIT_UNAVAILABLE, e);
         }
@@ -214,7 +214,7 @@ public class AiRateLimitService {
             }
         } catch (AiException e) {
             throw e;
-        } catch (RedisConnectionFailureException e) {
+        } catch (DataAccessException e) {
             release(key);
             log.error("AI rate limit Redis expire failed", e);
             throw new AiException(AiErrorCode.AI_RATE_LIMIT_UNAVAILABLE, e);

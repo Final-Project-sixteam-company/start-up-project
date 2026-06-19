@@ -68,8 +68,7 @@ public class AiClient {
             quotaStatus = aiRateLimitService.checkAndConsume(context);
         } catch (AiException e) {
             long latency = System.currentTimeMillis() - startTime;
-            aiCallRecorder.record(context, providerName(), getModelName(), latency,
-                    false, e.getErrorCode().getCode(), false, null);
+            aiCallRecorder.recordQuotaBlock(context, e.getErrorCode().getCode(), latency);
             throw e;
         }
 

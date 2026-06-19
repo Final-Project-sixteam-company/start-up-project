@@ -346,7 +346,7 @@ ClueRoom은 AI 기능을 “잘 동작한다” 수준에서 끝내지 않고, �
 |---|---|
 | `AI_CALL` | featureType, promptVersion, model, latency, token, success/failure/fallback 관측 |
 | `AI_CALL_CONTEXT` | system/policy/npc/evidence/history/question block별 token estimate 관측 |
-| AI quota | Redis counter로 실제 provider 호출만 제한하고, quota 초과/Redis 장애를 `AI_RATE_002`/`AI_RATE_003`으로 명확히 분리 |
+| `AI_QUOTA_BLOCK` / `ai.quota.blocks` | Redis counter로 실제 provider 호출 전 차단된 요청을 provider failure와 분리해 기록. quota 초과/Redis 장애를 `AI_RATE_002`/`AI_RATE_003`으로 명확히 분리 |
 | LLMOps Light Monitor | 최근 window 기준 Slack alert |
 | Codex Handoff Report | 사람이 필요할 때 raw-free 집계 리포트를 Codex에 전달해 분석 |
 
