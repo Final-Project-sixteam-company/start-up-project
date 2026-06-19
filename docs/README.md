@@ -102,6 +102,8 @@
 | [qa/archive/QA_BLIND_RETEST_REPORT_2026-06-12.md](qa/archive/QA_BLIND_RETEST_REPORT_2026-06-12.md) | 2026-06-12 backend/API blind and extended retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
 | [qa/archive/QA_E2E_FOLLOWUP_REPORT_2026-06-12.md](qa/archive/QA_E2E_FOLLOWUP_REPORT_2026-06-12.md) | 2026-06-10~12 backend/API/front E2E follow-up 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
 | [qa/archive/QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md](qa/archive/QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md) | 2026-06-15 Android E2E/API fallback 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md](qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md) | 2026-06-18 local backend + Android E2E retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/QA_WEB_E2E_REPORT_2026-06-19.md](qa/archive/QA_WEB_E2E_REPORT_2026-06-19.md) | 2026-06-19 web frontend E2E QA 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
 
 ## 3. 흡수/제거 이력
 

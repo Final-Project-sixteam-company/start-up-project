@@ -200,6 +200,9 @@ public 보고서에는 result screen/API 도달 여부만 남기고, 선택 후�
 1. 환경 확인
    - 앱 빌드/commit, API URL, 계정 종류, device/emulator 상태를 기록한다.
    - 운영 API write가 발생하면 QA 계정/승인 여부를 기록한다.
+   - 웹 QA를 진행할 때 QA 로그인 버튼이 숨겨져 있으면 운영자에게 QA용 빌드/env 상태를 확인한다. 단, production public traffic 상태에서는 dev-login 기반 QA 버튼을 기본 경로로 켜지 않는다.
+   - QA 계정 식별자는 public 보고서에 쓰지 않고 private handoff 또는 private artifact에만 남긴다.
+   - QA 전용 웹 로그인 버튼은 local/staging 또는 운영자 승인된 time-boxed production 예외에서만 사용한다. production 예외를 쓰면 `AUTH_DEV_LOGIN_ENABLED=true` 전환 시간, 승인자, 종료 시간을 private artifact에 남기고 public traffic 전에는 즉시 `false`로 원복한다.
 
 2. 신규 세션 시작
    - active session 여부를 확인한다.
@@ -279,6 +282,24 @@ Android가 불가능하면 public API를 보조 surface로 사용하되, spoiler
 7. AI 답변이 설정에 없는 사실을 만들지 않고, 증거 제시 시 다음 비교 방향을 주는지 확인한다.
 8. 30~50턴 안에 후보 축소가 가능한지 판단한다.
 9. 운영/privacy spot check 결과를 기록한다.
+
+# 계정 / 로그인
+
+QA 계정 식별자는 operator가 private handoff로 제공한 값만 사용한다.
+public 보고서에는 QA 계정 이메일, token, raw session id를 쓰지 않는다.
+
+Android 앱 또는 웹에서 Google/Kakao 로그인이 가능하면 해당 QA 계정으로 로그인한다.
+웹 QA에서 "QA 테스트 계정 로그인" 버튼이 보이면 그 버튼을 사용한다.
+버튼이 보이지 않으면 임의 계정으로 우회하지 말고 아래를 환경 blocker로 기록한다.
+단, production public API에서 QA 버튼이 필요하면 operator가 승인한 time-boxed 예외인지 먼저 확인한다.
+일반 production public traffic 상태에서 `AUTH_DEV_LOGIN_ENABLED=true`를 요구하거나 켜라고 지시하지 않는다.
+
+```text
+QA login unavailable:
+- VITE_ENABLE_QA_LOGIN / VITE_QA_LOGIN_EMAIL 확인 필요
+- backend AUTH_DEV_LOGIN_ENABLED 확인 필요(local/staging 또는 승인된 time-boxed production 예외만)
+- production이면 승인자/시작/종료/원복 여부를 private artifact에 기록 필요
+```
 
 # fresh session
 
@@ -381,6 +402,9 @@ Findings First를 먼저 쓴다.
 - App build:
 - Backend commit/version:
 - Account policy:
+- QA login route: OAuth / QA button / API-only token / unavailable
+- Production API writes: yes/no/not applicable
+- Production API write approval: approved/not approved/not applicable
 - Blind validity:
 - Private artifact:
 
@@ -388,6 +412,9 @@ Findings First를 먼저 쓴다.
 
 - Private seed/solution opened: yes/no
 - API-only masking recorded: yes/no/not applicable
+- Production infra/config modification: yes/no
+- Production API writes: yes/no/not applicable
+- Production API write approval: approved/not approved/not applicable
 - Result score/grade/correctness/breakdown kept private: yes/no/not submitted
 - Rejected-candidate rationale kept private: yes/no
 - Privacy spot check: pass/fail/not checked
@@ -464,6 +491,7 @@ Findings First를 먼저 쓴다.
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 시나리오 목록/상세/현장 이미지가 API image URL 대신 placeholder로 보일 수 있음 | `thumbnailUrl`, `coverImageUrl`, `mapImageUrl` 렌더링 smoke |
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 라이브러리 검색/필터 UI가 실제 결과에 반영되지 않거나 미지원 상태가 불명확할 수 있음 | 검색어/필터 적용 결과 변화, 결과 수, empty state 확인 |
 | Frontend | P1 | Open | 이전 QA_HANDOFF에서 유지 | 브리핑/결과 화면 copy가 하드코딩되어 실제 시나리오 정보, 서버 result 문구 계약, 내부 용어와 어긋날 수 있음 | 서버 scenario/result 계약 기반 copy와 내부 용어 미노출 확인 |
+| Frontend Web | P1 | Open | 2026-06-19 web E2E report | 모바일 390x844 시나리오 상세에서 `수사 시작` CTA가 review empty 영역에 의해 click intercept될 수 있음 | scenario detail 하단 CTA와 review empty 영역의 stacking/spacing/pointer-events 수정 후 mobile click regression |
 | Frontend | P2 | Open | 이전 QA_HANDOFF에서 유지 | `hints=[]` 상태에서 명확한 빈 상태/닫기 동선이 부족할 수 있음 | 힌트 empty state와 닫기 동선 확인 |
 | Backend | P1 | Open | 2026-06-12 report | final deduction/result의 interrogation count 집계 불일치 가능성 | 제출 전후 DB/log count, result response count 대조 |
 | Frontend | P1/P2 | Open | 2026-06-12~2026-06-15 reports | guidance rendering, timeline, final submit/result full E2E coverage 부족 | Android full E2E |
