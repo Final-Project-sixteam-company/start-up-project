@@ -218,7 +218,7 @@ ai:limit:device:{deviceHash}:day:{yyyyMMdd}
 |---|---:|---|---|
 | session hard cap | 429 | `AI_RATE_001` | 심문량이 많아 품질/비용 보호를 위해 제한. 힌트/증거 정리/최종 추리 유도 |
 | account daily cap | 429 | `AI_RATE_002` | 오늘 사용량 초과. 다음 날 또는 QA 계정 사용 안내 |
-| global circuit breaker | 503 | `AI_RATE_003` | 현재 AI 사용량이 높아 일시 제한 |
+| rate-limit state unavailable | 503 | `AI_RATE_003` | Redis 장애 등으로 quota 상태를 확인할 수 없어 비용 방어를 위해 일시 제한 |
 
 ## 7. 글로벌 예산 경보
 
