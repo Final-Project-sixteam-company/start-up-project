@@ -79,7 +79,7 @@ Next action: report query alignment + provider-enabled QA cost/session measureme
 최근 24시간 운영 AI 호출은 95건 모두 성공했고 failure/fallback은 0건이다.
 전일 10건 smoke 수준보다 표본은 늘었지만, 6/19 웹 E2E QA와 겹치므로 일반 사용자 traffic 기준으로 해석하면 안 된다.
 총 토큰은 140,760으로 전일보다 증가했지만, 호출당 평균 total token은 1,482로 6/13/6/18 보고서보다 낮다.
-이번 window의 AI_CALL_CONTEXT는 INTERROGATION 91건과 1:1로 맞아 보이며, FINAL_DEDUCTION 4건은 context breakdown 대상이 아닌 것으로 해석한다.
+이번 window의 AI_CALL_CONTEXT는 집계 기준으로 INTERROGATION 91건과 count가 일치하며, FINAL_DEDUCTION 4건은 context breakdown 대상이 아닌 것으로 해석한다.
 Infra handoff는 CRITICAL로 표시됐지만 data/server/ops health와 Nginx 5xx는 OK다. 주요 watch item은 낮은 available memory, refresh token warning noise, Infra handoff의 AI_CALL sample 0과 LLMOps handoff의 AI_CALL 95 불일치다.
 ```
 
@@ -193,7 +193,7 @@ templateHashCount=2는 이전 보고서와 동일하게 관찰된다. 배포 차
 | AI_CALL in infra handoff | sample count 0 | MISMATCH with LLMOps handoff |
 | Blue-Green | active app-green, standby app-blue, both up 10h | PASS/WATCH |
 | Prod memory | available 362MB, swap used 628MB | WATCH |
-| External data | DB/Redis target 172.26.1.185, TCP OK | PASS |
+| External data | DB/Redis private target reachable | PASS |
 | LLMOps DB logging | `AI_LLMOPS_DB_LOGGING_ENABLED=false` | EXPECTED |
 
 Infra handoff raw status는 CRITICAL이지만, 이 문서 기준으로는 즉시 서비스 장애 증거보다 watch 항목이 더 선명하다.
@@ -289,7 +289,7 @@ Infra:
   - Nginx 5xx sample: 0
   - app warning sample: refresh token invalid x3
   - external DB/Redis connectivity: OK
-  - active upstream: 127.0.0.1:8082
+  - active upstream slot: reachable
   - available memory: 362MB, WATCH
 
 Data boundary:
