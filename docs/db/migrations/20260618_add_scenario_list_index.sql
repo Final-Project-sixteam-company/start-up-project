@@ -2,6 +2,10 @@
 -- 조건 필터링 (status, visibility) 및 정렬 (createdAt DESC) 최적화를 통해 Filesort를 제거합니다.
 -- (관련 PR: 성능 병목 개선 - 부하 테스트 k6)
 
+-- [주의] 이 마이그레이션 스크립트는 내부적으로 `DELIMITER` 구문과 Stored Procedure를 사용합니다.
+-- Flyway, Liquibase 등 JDBC 기반의 자동 마이그레이션 툴에서는 문법 에러가 발생할 수 있으므로,
+-- 가급적 MySQL CLI 환경에서 수동으로 실행(예: `mysql < 20260618_add_scenario_list_index.sql`)해 주세요.
+
 -- 안전장치(Idempotency): 이미 인덱스가 존재하는 경우 중복 실행 에러를 방지하기 위해 
 -- INFORMATION_SCHEMA를 확인 후 동적으로 생성합니다.
 
