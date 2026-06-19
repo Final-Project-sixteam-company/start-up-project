@@ -2,7 +2,9 @@ package com.startup.domain.ai.client;
 
 import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.error.AiException;
+import com.startup.domain.ai.dto.AiQuotaStatus;
 import com.startup.domain.ai.support.AiCallRecorder;
+import com.startup.domain.ai.support.AiRateLimitService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -25,6 +27,7 @@ public class AiClient {
     private final ChatModel chatModel;
     private final MockResponseProvider mockResponseProvider;
     private final AiCallRecorder aiCallRecorder;
+    private final AiRateLimitService aiRateLimitService;
     private final boolean mockMode;
     private final String baseUrl;
     private final String configuredModel;
@@ -32,12 +35,14 @@ public class AiClient {
     public AiClient(@Autowired(required = false) ChatModel chatModel,
                     MockResponseProvider mockResponseProvider,
                     AiCallRecorder aiCallRecorder,
+                    AiRateLimitService aiRateLimitService,
                     @Value("${spring.ai.model.chat:none}") String chatModelType,
                     @Value("${spring.ai.openai.base-url:}") String baseUrl,
                     @Value("${spring.ai.openai.chat.options.model:unknown}") String configuredModel) {
         this.chatModel = chatModel;
         this.mockResponseProvider = mockResponseProvider;
         this.aiCallRecorder = aiCallRecorder;
+        this.aiRateLimitService = aiRateLimitService;
         this.mockMode = "none".equalsIgnoreCase(chatModelType);
         this.baseUrl = baseUrl;
         this.configuredModel = configuredModel;
@@ -56,6 +61,16 @@ public class AiClient {
                     false, AiErrorCode.AI_SERVICE_UNAVAILABLE.getCode(), false, null);
             throw new AiException(AiErrorCode.AI_SERVICE_UNAVAILABLE,
                     "ChatModel not configured. Set SPRING_AI_MODEL_CHAT in .env");
+        }
+
+        AiQuotaStatus quotaStatus;
+        try {
+            quotaStatus = aiRateLimitService.checkAndConsume(context);
+        } catch (AiException e) {
+            long latency = System.currentTimeMillis() - startTime;
+            aiCallRecorder.record(context, providerName(), getModelName(), latency,
+                    false, e.getErrorCode().getCode(), false, null);
+            throw e;
         }
 
         try {
@@ -86,7 +101,7 @@ public class AiClient {
             AiTokenUsage usage = extractUsage(response);
             aiCallRecorder.record(context, providerName(), modelName, latency, true, null, false, usage);
 
-            return new AiCallResult(text, modelName, latency, usage, false);
+            return new AiCallResult(text, modelName, latency, usage, false, quotaStatus);
         } catch (AiException e) {
             long latency = System.currentTimeMillis() - startTime;
             aiCallRecorder.record(context, providerName(), getModelName(), latency,

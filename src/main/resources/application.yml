@@ -106,6 +106,13 @@ caselab:
 clueroom:
   assets:
     public-base-url: ${AWS_S3_PUBLIC_BASE_URL:}
+  ai:
+    rate-limit:
+      enabled: ${AI_RATE_LIMIT_ENABLED:true}
+      daily-limit-per-user-per-scenario: ${AI_DAILY_RATE_LIMIT_PER_USER_PER_SCENARIO:${AI_DAILY_RATE_LIMIT_PER_USER:150}}
+      daily-limit-per-user-total: ${AI_DAILY_RATE_LIMIT_PER_USER_TOTAL:350}
+      ttl-hours: ${AI_RATE_LIMIT_TTL_HOURS:24}
+      admin-bypass-enabled: ${AI_RATE_LIMIT_ADMIN_BYPASS_ENABLED:true}
   auth:
     mock-fallback-enabled: ${AUTH_MOCK_FALLBACK_ENABLED:true}
     dev-login-enabled: ${AUTH_DEV_LOGIN_ENABLED:false}

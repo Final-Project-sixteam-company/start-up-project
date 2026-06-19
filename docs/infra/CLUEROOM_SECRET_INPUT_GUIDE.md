@@ -115,6 +115,11 @@ AUTH_ADMIN_SEED_NICKNAME=ClueRoom Admin
 AUTH_QA_SEED_ENABLED=false
 AUTH_QA_SEED_EMAIL=
 AUTH_QA_SEED_NICKNAME=ClueRoom QA
+AI_RATE_LIMIT_ENABLED=true
+AI_DAILY_RATE_LIMIT_PER_USER_PER_SCENARIO=150
+AI_DAILY_RATE_LIMIT_PER_USER_TOTAL=350
+AI_RATE_LIMIT_TTL_HOURS=24
+AI_RATE_LIMIT_ADMIN_BYPASS_ENABLED=true
 KAKAO_APP_ID=...
 KAKAO_REST_API_KEY=...
 # Kakao client secret을 활성화한 경우에만 입력
@@ -130,6 +135,9 @@ JWT secret은 32자 이상의 충분히 긴 난수로 생성하고 레포에 기
 운영 secret에는 보호 API 기본 인증을 유지하기 위해 `AUTH_REQUIRE_AUTHENTICATION=true`를 둔다.
 AI rate limit 검증용 admin 계정이 필요하면 `AUTH_ADMIN_SEED_ENABLED=true`와 실제 admin email을 서버 secret env에만 입력한다. 공개 문서/PR/코드에는 실제 admin email을 기록하지 않는다.
 blind QA 격리용 일반 계정이 필요하면 `AUTH_QA_SEED_ENABLED=true`와 실제 QA email을 서버 secret env에만 입력한다. 공개 문서/PR/코드에는 실제 QA email을 기록하지 않는다.
+`AI_DAILY_RATE_LIMIT_PER_USER_PER_SCENARIO`는 인증 계정+시나리오 기준 실제 AI provider 호출 한도다. 기본 운영값은 150회/day이며 `INTERROGATION`, `FINAL_DEDUCTION`, `SCENARIO_VALIDATION` 호출을 합산한다.
+`AI_DAILY_RATE_LIMIT_PER_USER_TOTAL`은 같은 계정이 하루에 공식 시나리오 2개를 모두 플레이할 수 있도록 기본 350회/day로 둔다.
+ADMIN role은 `AI_RATE_LIMIT_ADMIN_BYPASS_ENABLED=true`일 때 제한을 우회한다. 우회 계정은 운영 smoke/QA 목적을 명확히 남긴다.
 `GOOGLE_CLIENT_IDS`는 Android/Web 등 여러 client id가 같은 백엔드를 사용할 때 comma-separated로 입력한다.
 `KAKAO_APP_ID`는 Kakao access token info 응답의 `app_id`와 비교하는 값이다.
 `KAKAO_REST_API_KEY`는 Web Kakao authorization code를 서버에서 access token으로 교환할 때 사용한다.

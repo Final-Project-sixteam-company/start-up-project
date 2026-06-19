@@ -1,10 +1,17 @@
 package com.startup.domain.ai.client;
 
 import com.startup.domain.ai.enums.AiFeatureType;
+import com.startup.domain.ai.error.AiErrorCode;
+import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.support.AiCallRecorder;
+import com.startup.domain.ai.support.AiRateLimitService;
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 class AiClientTest {
@@ -13,7 +20,8 @@ class AiClientTest {
     void recordFallback_preservesProvidedLatency() {
         MockResponseProvider mockResponseProvider = mock(MockResponseProvider.class);
         AiCallRecorder recorder = mock(AiCallRecorder.class);
-        AiClient client = new AiClient(null, mockResponseProvider, recorder,
+        AiRateLimitService rateLimitService = mock(AiRateLimitService.class);
+        AiClient client = new AiClient(null, mockResponseProvider, recorder, rateLimitService,
                 "none", "", "MOCK");
         AiCallContext context = new AiCallContext(
                 AiFeatureType.INTERROGATION,
@@ -34,7 +42,8 @@ class AiClientTest {
     void recordFallback_clampsNegativeLatencyToZero() {
         MockResponseProvider mockResponseProvider = mock(MockResponseProvider.class);
         AiCallRecorder recorder = mock(AiCallRecorder.class);
-        AiClient client = new AiClient(null, mockResponseProvider, recorder,
+        AiRateLimitService rateLimitService = mock(AiRateLimitService.class);
+        AiClient client = new AiClient(null, mockResponseProvider, recorder, rateLimitService,
                 "none", "", "MOCK");
         AiCallContext context = AiCallContext.unknown();
 
@@ -42,5 +51,22 @@ class AiClientTest {
 
         verify(recorder).record(context, "fallback", "FALLBACK",
                 0L, true, "AI001", true, null);
+    }
+
+    @Test
+    void chatWithMetadata_doesNotConsumeQuotaWhenChatModelMissing() {
+        MockResponseProvider mockResponseProvider = mock(MockResponseProvider.class);
+        AiCallRecorder recorder = mock(AiCallRecorder.class);
+        AiRateLimitService rateLimitService = mock(AiRateLimitService.class);
+        AiClient client = new AiClient(null, mockResponseProvider, recorder, rateLimitService,
+                "openai", "https://api.deepseek.com", "deepseek-v4-flash");
+        AiCallContext context = AiCallContext.unknown();
+
+        assertThatThrownBy(() -> client.chatWithMetadata(
+                "system", "user", AiRequestParams.interrogation(0.3, 150), context))
+                .isInstanceOfSatisfying(AiException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(AiErrorCode.AI_SERVICE_UNAVAILABLE));
+
+        verify(rateLimitService, never()).checkAndConsume(any(AiCallContext.class));
     }
 }
