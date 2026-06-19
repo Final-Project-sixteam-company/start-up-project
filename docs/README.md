@@ -25,6 +25,7 @@
 | Android 화면 흐름과 API 호출 순서 확인 | [frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) |
 | Android OAuth/JWT 연동 확인 | [ANDROID_AUTH_INTEGRATION_GUIDE.md](ANDROID_AUTH_INTEGRATION_GUIDE.md) |
 | 백엔드 패키지/계층/트랜잭션 규칙 확인 | [BACKEND_IMPLEMENTATION_GUIDE.md](BACKEND_IMPLEMENTATION_GUIDE.md) |
+| 시나리오 목록 API 성능 개선 결과 확인 | [perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md](perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) |
 | AI NPC 프롬프트와 정답 누설 방지 정책 확인 | [AI_NPC_PROMPT_POLICY.md](AI_NPC_PROMPT_POLICY.md) |
 | DB/엔티티 설계 확인 | [CaseLab_AI_ERD_Design.md](CaseLab_AI_ERD_Design.md) |
 | 로컬 실행, Android 연결, 배포 요약 확인 | [RUN_AND_DEPLOY.md](RUN_AND_DEPLOY.md) |
@@ -49,6 +50,7 @@
 | [frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) | Android/Frontend 화면 흐름, 호출 순서, E2E 사용법 | 화면 흐름과 API 사용 순서 정본이다. |
 | [ANDROID_AUTH_INTEGRATION_GUIDE.md](ANDROID_AUTH_INTEGRATION_GUIDE.md) | Android OAuth/JWT token flow, refresh/logout/me 연동 | 인증 API 상세 연동 가이드다. |
 | [BACKEND_IMPLEMENTATION_GUIDE.md](BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 계층, 패키지, 예외, 트랜잭션, CurrentUser/MockUser, 현재 구현 지도 | API/ERD 상세는 정본 링크를 둔다. |
+| [perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md](perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) | 시나리오 목록 API 성능 개선 목표, k6 조건, before/after 결과, 한계 | PR #73 성능 최적화의 public-safe 요약 보고서다. |
 | [CaseLab_AI_ERD_Design.md](CaseLab_AI_ERD_Design.md) | 엔티티, 테이블, 관계, 컬럼 설계 | 코드 SoT와 drift 정정 필요. |
 | [ADR.md](ADR.md) | 이미 결정된 주요 아키텍처 결정 목록 | 상세 설명은 각 정본 문서로 링크한다. |
 
@@ -86,6 +88,9 @@
 | [infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | 인프라 agent 권한, 금지 작업, 승인 기준, Codex playbook, Ops Snapshot, Monitoring Agent, n8n infra/ops workflow 운영 모델 | infra agent 문서군 정본이다. |
 | [infra/agent/LLMOPS_OPERATING_GUIDE.md](infra/agent/LLMOPS_OPERATING_GUIDE.md) | LLMOps 계획, telemetry safety, smoke 절차, PromQL 후보, agent 역할, n8n LLMOps workflow 운영 모델 | LLMOps 문서군 정본이다. |
 | [infra/agent/LLMOPS_DAILY_SUMMARY_2026-06-09_TO_2026-06-13.md](infra/agent/LLMOPS_DAILY_SUMMARY_2026-06-09_TO_2026-06-13.md) | 2026-06-09~2026-06-13 LLMOps 일자별 통합 보고서 | Slack/작업 로그 기반 집계 보고서다. raw prompt, AI 답변, 사용자 질문 원문은 포함하지 않는다. |
+| [infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md](infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md) | AI 호출 비용 추정, 사용자 규모별 비용, 계정별 레이트리밋, 글로벌 예산 경보 기준 | daily summary 기반 계획 문서다. 실제 단가/환율은 운영 시점에 재확인한다. |
+| [infra/agent/LLMOPS_DAILY_REPORT_2026-06-18.md](infra/agent/LLMOPS_DAILY_REPORT_2026-06-18.md) | 2026-06-18 LLMOps daily report | 운영 AI_CALL/AI_CALL_CONTEXT 집계 분석이다. 같은 날짜 로컬 Android QA는 none/mock mode라 비용 표본에서 분리한다. |
+| [infra/agent/LLMOPS_DAILY_REPORT_2026-06-19.md](infra/agent/LLMOPS_DAILY_REPORT_2026-06-19.md) | 2026-06-19 LLMOps daily report | 운영 AI_CALL/AI_CALL_CONTEXT와 Infra handoff를 함께 분석한다. 같은 기간 web QA traffic은 organic production traffic과 분리해서 해석한다. |
 
 ### QA / Handoff
 
@@ -100,6 +105,8 @@
 | [qa/archive/QA_BLIND_RETEST_REPORT_2026-06-12.md](qa/archive/QA_BLIND_RETEST_REPORT_2026-06-12.md) | 2026-06-12 backend/API blind and extended retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
 | [qa/archive/QA_E2E_FOLLOWUP_REPORT_2026-06-12.md](qa/archive/QA_E2E_FOLLOWUP_REPORT_2026-06-12.md) | 2026-06-10~12 backend/API/front E2E follow-up 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
 | [qa/archive/QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md](qa/archive/QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md) | 2026-06-15 Android E2E/API fallback 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md](qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md) | 2026-06-18 local backend + Android E2E retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/QA_WEB_E2E_REPORT_2026-06-19.md](qa/archive/QA_WEB_E2E_REPORT_2026-06-19.md) | 2026-06-19 web frontend E2E QA 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
 
 ## 3. 흡수/제거 이력
 

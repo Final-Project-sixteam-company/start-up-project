@@ -29,7 +29,6 @@ public class AuthStartupValidator implements ApplicationRunner {
         return authProperties.isRequireAuthentication()
                 || authProperties.isDevLoginEnabled()
                 || !authProperties.getOauth().getGoogle().clientIdList().isEmpty()
-                || StringUtils.hasText(authProperties.getOauth().getKakao().getAppId())
-                || authProperties.getOauth().getToss().isMtlsConfigured();
+                || StringUtils.hasText(authProperties.getOauth().getKakao().getAppId());
     }
 }

@@ -44,20 +44,23 @@ public class ScenarioService {
     private final ScenarioPublishValidator scenarioPublishValidator;
     private final ScenarioBookmarkRepository bookmarkRepository;
     private final UserRepository userRepository;
+    private final RedisScenarioService redisScenarioService;
 
     @Transactional(readOnly = true)
     public PageResponse<ScenarioSummaryResponse> getScenarios(Long userId, ScenarioSearchCondition condition, Pageable pageable) {
+        String sortParam = pageable.getSort().isSorted() ? pageable.getSort().toString() : "";
+        String cacheKey = ScenarioCachePolicy.buildListCacheKey(userId, condition, pageable.getPageNumber(), pageable.getPageSize(), sortParam);
+
+        PageResponse<ScenarioSummaryResponse> cachedResponse = redisScenarioService.getCachedList(cacheKey);
+        if (cachedResponse != null) {
+            return cachedResponse;
+        }
+
         // API 정렬 파라미터(popular 등)를 실제 엔티티 필드(playCount 등)로 변환
         Pageable mappedPageable = mapPageableSort(pageable);
 
-        // 상태가 PUBLISHED 이고 가시성이 PUBLIC 또는 OFFICIAL인 시나리오만 조회
-        // TODO: 세부 필터링(condition)은 별도 복잡 조회 구현 시 추가
-        List<ScenarioVisibility> allowedVisibilities = List.of(ScenarioVisibility.PUBLIC, ScenarioVisibility.OFFICIAL);
-        Page<Scenario> scenarios = scenarioRepository.findAllByStatusAndVisibilityIn(
-                ScenarioStatus.PUBLISHED,
-                allowedVisibilities,
-                mappedPageable
-        );
+        // QueryDSL 기반 복합 조건 검색 (키워드, 난이도, 인원, 플레이시간 등 동적 필터링)
+        Page<Scenario> scenarios = scenarioRepository.searchByCondition(condition, mappedPageable);
 
         // ── N+1 방어: IN 절 벌크 쿼리로 한 번에 카운트 ──
         List<Long> scenarioIds = scenarios.getContent().stream().map(Scenario::getId).toList();
@@ -92,7 +95,10 @@ public class ScenarioService {
             return ScenarioSummaryResponse.from(scenario, suspectCount, evidenceCount, isBookmarked, thumbnailUrl, canPlay);
         });
 
-        return PageResponse.from(responsePage);
+        PageResponse<ScenarioSummaryResponse> finalResponse = PageResponse.from(responsePage);
+        redisScenarioService.cacheList(cacheKey, finalResponse);
+
+        return finalResponse;
     }
 
     @Transactional(readOnly = true)

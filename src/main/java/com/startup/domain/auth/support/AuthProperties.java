@@ -14,6 +14,7 @@ public class AuthProperties {
     private boolean devLoginEnabled = false;
     private boolean requireAuthentication = false;
     private Jwt jwt = new Jwt();
+    private RefreshCookie refreshCookie = new RefreshCookie();
     private OAuth oauth = new OAuth();
     private AdminSeed adminSeed = new AdminSeed();
     private QaSeed qaSeed = new QaSeed();
@@ -48,6 +49,14 @@ public class AuthProperties {
 
     public void setJwt(Jwt jwt) {
         this.jwt = jwt == null ? new Jwt() : jwt;
+    }
+
+    public RefreshCookie getRefreshCookie() {
+        return refreshCookie;
+    }
+
+    public void setRefreshCookie(RefreshCookie refreshCookie) {
+        this.refreshCookie = refreshCookie == null ? new RefreshCookie() : refreshCookie;
     }
 
     public OAuth getOauth() {
@@ -118,11 +127,67 @@ public class AuthProperties {
         }
     }
 
+    public static class RefreshCookie {
+        private boolean enabled = true;
+        private String name = "clueroom_refresh_token";
+        private String path = "/api/auth";
+        private String domain = "";
+        private boolean secure = true;
+        private String sameSite = "Lax";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = (name == null || name.isBlank()) ? "clueroom_refresh_token" : name.trim();
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public void setPath(String path) {
+            this.path = (path == null || path.isBlank()) ? "/api/auth" : path.trim();
+        }
+
+        public String getDomain() {
+            return domain;
+        }
+
+        public void setDomain(String domain) {
+            this.domain = domain == null ? "" : domain.trim();
+        }
+
+        public boolean isSecure() {
+            return secure;
+        }
+
+        public void setSecure(boolean secure) {
+            this.secure = secure;
+        }
+
+        public String getSameSite() {
+            return sameSite;
+        }
+
+        public void setSameSite(String sameSite) {
+            this.sameSite = (sameSite == null || sameSite.isBlank()) ? "Lax" : sameSite.trim();
+        }
+    }
+
     public static class OAuth {
         private int timeoutSeconds = 5;
         private Google google = new Google();
         private Kakao kakao = new Kakao();
-        private Toss toss = new Toss();
 
         public int getTimeoutSeconds() {
             return timeoutSeconds;
@@ -148,13 +213,6 @@ public class AuthProperties {
             this.kakao = kakao == null ? new Kakao() : kakao;
         }
 
-        public Toss getToss() {
-            return toss;
-        }
-
-        public void setToss(Toss toss) {
-            this.toss = toss == null ? new Toss() : toss;
-        }
     }
 
     public static class Google {
@@ -189,6 +247,9 @@ public class AuthProperties {
 
     public static class Kakao {
         private String appId = "";
+        private String restApiKey = "";
+        private String clientSecret = "";
+        private String tokenUri = "https://kauth.kakao.com/oauth/token";
         private String accessTokenInfoUri = "https://kapi.kakao.com/v1/user/access_token_info";
         private String userInfoUri = "https://kapi.kakao.com/v2/user/me";
 
@@ -198,6 +259,32 @@ public class AuthProperties {
 
         public void setAppId(String appId) {
             this.appId = appId == null ? "" : appId.trim();
+        }
+
+        public String getRestApiKey() {
+            return restApiKey;
+        }
+
+        public void setRestApiKey(String restApiKey) {
+            this.restApiKey = restApiKey == null ? "" : restApiKey.trim();
+        }
+
+        public String getClientSecret() {
+            return clientSecret;
+        }
+
+        public void setClientSecret(String clientSecret) {
+            this.clientSecret = clientSecret == null ? "" : clientSecret.trim();
+        }
+
+        public String getTokenUri() {
+            return tokenUri;
+        }
+
+        public void setTokenUri(String tokenUri) {
+            this.tokenUri = (tokenUri == null || tokenUri.isBlank())
+                    ? "https://kauth.kakao.com/oauth/token"
+                    : tokenUri.trim();
         }
 
         public String getAccessTokenInfoUri() {
@@ -218,42 +305,6 @@ public class AuthProperties {
             this.userInfoUri = (userInfoUri == null || userInfoUri.isBlank())
                     ? "https://kapi.kakao.com/v2/user/me"
                     : userInfoUri.trim();
-        }
-    }
-
-    public static class Toss {
-        private String apiBaseUrl = "https://apps-in-toss-api.toss.im";
-        private String mtlsCertPath = "";
-        private String mtlsKeyPath = "";
-
-        public String getApiBaseUrl() {
-            return apiBaseUrl;
-        }
-
-        public void setApiBaseUrl(String apiBaseUrl) {
-            this.apiBaseUrl = (apiBaseUrl == null || apiBaseUrl.isBlank())
-                    ? "https://apps-in-toss-api.toss.im"
-                    : apiBaseUrl.trim();
-        }
-
-        public String getMtlsCertPath() {
-            return mtlsCertPath;
-        }
-
-        public void setMtlsCertPath(String mtlsCertPath) {
-            this.mtlsCertPath = mtlsCertPath == null ? "" : mtlsCertPath.trim();
-        }
-
-        public String getMtlsKeyPath() {
-            return mtlsKeyPath;
-        }
-
-        public void setMtlsKeyPath(String mtlsKeyPath) {
-            this.mtlsKeyPath = mtlsKeyPath == null ? "" : mtlsKeyPath.trim();
-        }
-
-        public boolean isMtlsConfigured() {
-            return !mtlsCertPath.isBlank() && !mtlsKeyPath.isBlank();
         }
     }
 

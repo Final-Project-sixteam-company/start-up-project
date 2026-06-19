@@ -1,9 +1,11 @@
 # CaseLab AI
 
-AI 용의자를 심문하고, 증거와 알리바이를 조합해 범인·동기·범행 방법을 추리하는 Android 기반 AI 추리게임 플랫폼.
+AI 용의자를 심문하고, 증거와 알리바이를 조합해 범인·동기·범행 방법을 추리하는 ClueRoom 백엔드 프로젝트.
+현재 클라이언트는 Flutter Android 앱과 React/Vite Web을 병행하며, 이 저장소는 Spring Boot API와 운영 문서를 관리한다.
 
 ```text
-Android App(Kotlin)
+Flutter Android App(Dart)
+React/Vite Web
 Spring Boot Backend(Java 21, Spring Boot 4)
 MySQL + Redis
 Spring AI 기반 LLM 연동
@@ -59,15 +61,16 @@ AI 시나리오 검증
 리뷰 / 북마크 기본형
 ```
 
-아래 기능은 후순위다.
+아래 기능은 후순위 또는 현재 MVP 제외 범위다.
 
 ```text
-JWT 인증 완성
 거래 / 크레딧 / 구매 / 언락
 제작자 정산
 AI 시나리오 초안 생성 고도화
 내 기록 / 마이페이지 완성
 ```
+
+JWT/OAuth foundation은 구현되어 있으며, local/test mock 호환 모드와 운영 protected mode를 분리해 사용한다.
 
 제품 범위와 우선순위 정본은 [docs/CaseLab_AI_PRD.md](docs/CaseLab_AI_PRD.md)를 따른다.
 

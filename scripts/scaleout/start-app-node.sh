@@ -99,12 +99,13 @@ services:
 EOF_RUNTIME
 
 echo "[3/9] Check required files"
-for f in "$APP_DIR/.env" "$APP_DIR/docker-compose.yml" "$APP_DIR/docker-compose.external-data.yml" "$APP_DIR/build/libs/app.jar" "$SECRET_ENV_DIR/ai.env" "$SECRET_ENV_DIR/portone.env" "$SECRET_ENV_DIR/oauth.env" "/opt/clueroom/secrets/firebase-service-account.json" "/opt/clueroom/secrets/scenarios"; do
+for f in "$APP_DIR/.env" "$APP_DIR/docker-compose.yml" "$APP_DIR/docker-compose.external-data.yml" "$APP_DIR/build/libs/app.jar" "$SECRET_ENV_DIR/ai.env" "$SECRET_ENV_DIR/oauth.env" "/opt/clueroom/secrets/firebase-service-account.json" "/opt/clueroom/secrets/scenarios"; do
   if [ ! -e "$f" ]; then
     echo "ERROR: required path missing: $f"
     exit 1
   fi
 done
+OPTIONAL_ENV_FILES=("$SECRET_ENV_DIR/portone.env")
 ls -lh "$APP_DIR/build/libs/app.jar"
 ls -lh /opt/clueroom/secrets/firebase-service-account.json
 echo scenario_file_count=$(find /opt/clueroom/secrets/scenarios -type f | wc -l)
@@ -114,9 +115,15 @@ cat "$APP_DIR/.env" > "$RUNTIME_ENV_FILE"
 printf '\n' >> "$RUNTIME_ENV_FILE"
 cat "$SECRET_ENV_DIR/ai.env" >> "$RUNTIME_ENV_FILE"
 printf '\n' >> "$RUNTIME_ENV_FILE"
-cat "$SECRET_ENV_DIR/portone.env" >> "$RUNTIME_ENV_FILE"
-printf '\n' >> "$RUNTIME_ENV_FILE"
 cat "$SECRET_ENV_DIR/oauth.env" >> "$RUNTIME_ENV_FILE"
+for optional_env in "${OPTIONAL_ENV_FILES[@]}"; do
+  if [ -s "$optional_env" ]; then
+    printf '\n' >> "$RUNTIME_ENV_FILE"
+    cat "$optional_env" >> "$RUNTIME_ENV_FILE"
+  else
+    echo "optional env not found or empty: $optional_env"
+  fi
+done
 chmod 600 "$RUNTIME_ENV_FILE"
 
 echo "[5/9] Check data server ports"

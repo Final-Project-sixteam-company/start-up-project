@@ -1,6 +1,6 @@
 # CaseLab AI — Codex Review Guide
 
-AI 용의자 심문형 추리게임 플랫폼. Android(Kotlin) + Spring Boot(Java 21, Spring Boot 4) 백엔드.
+AI 용의자 심문형 추리게임 플랫폼. Flutter Android(Dart) + React/Vite Web + Spring Boot(Java 21, Spring Boot 4) 백엔드.
 프로젝트 상세 컨텍스트는 [CLAUDE.md](CLAUDE.md)를 함께 참조한다.
 구현 규칙 상세는 [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md)를 따른다.
 

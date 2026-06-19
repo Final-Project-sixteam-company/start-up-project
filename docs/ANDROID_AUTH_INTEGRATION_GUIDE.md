@@ -13,20 +13,22 @@
 | Method | Path | Auth header | 목적 |
 |---|---|---|---|
 | `POST` | `/api/auth/oauth` | 없음 | Google/Kakao provider token을 ClueRoom token으로 교환 |
+| `POST` | `/api/auth/oauth/kakao/code` | 없음 | Web Kakao authorizationCode를 ClueRoom token으로 교환. Android 호출 대상 아님 |
 | `POST` | `/api/auth/refresh` | 없음 | refresh token rotation 후 새 access token 발급 |
 | `POST` | `/api/auth/logout` | 없음 | 제출한 refresh token revoke |
 | `GET` | `/api/auth/me` | 필요 | 현재 인증 사용자 조회 |
 | `POST` | `/api/auth/dev` | 없음 | local/staging 전용. 운영 기본 disabled |
 
-백엔드 전환 플래그:
+로컬 호환 모드 플래그:
 
 ```text
-AUTH_REQUIRE_AUTHENTICATION=false  # Android 준비 전까지 현재 호환 모드
-AUTH_MOCK_FALLBACK_ENABLED=true    # 인증 강제 전환 전 legacy fallback
+AUTH_REQUIRE_AUTHENTICATION=false  # local/test 호환 모드에서만 사용
+AUTH_MOCK_FALLBACK_ENABLED=true    # local/test legacy fallback
 ```
 
-Android는 지금부터 token 저장과 Bearer header 첨부를 구현해야 한다.
-나중에 백엔드가 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환되면, 앱 변경 없이 보호 API가 token을 요구하게 된다.
+운영 보호 모드는 `AUTH_REQUIRE_AUTHENTICATION=true`를 사용한다.
+이 상태에서는 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 보호 API 요청에 `MOCK_USER_ID`를 부여하지 않는다.
+Android는 token 저장과 Bearer header 첨부를 기본 전제로 구현한다.
 
 ---
 
@@ -73,7 +75,7 @@ Android는 지금부터 token 저장과 Bearer header 첨부를 구현해야 한
 
 ## 3. Token Response DTO
 
-`POST /api/auth/oauth`, `POST /api/auth/dev`, `POST /api/auth/refresh`는 같은 token response shape를 반환한다.
+`POST /api/auth/oauth`, `POST /api/auth/oauth/kakao/code`, `POST /api/auth/dev`, `POST /api/auth/refresh`는 같은 token response shape를 반환한다.
 
 ```json
 {
@@ -190,6 +192,34 @@ email이 없거나 검증되지 않았으면 email=null 사용자도 생성될 �
 ```
 
 QA 전용 계정은 서버 secret env의 `AUTH_QA_SEED_*`로 일반 USER row를 먼저 만들 수 있다. Kakao가 같은 verified email을 반환하면 해당 OAuth provider 계정은 기존 QA user에 연결된다.
+
+### 4.3 Web Kakao code-flow
+
+Android native 앱은 4.2의 `/api/auth/oauth` access token 방식을 유지한다.
+웹 프론트는 Kakao JS SDK v2에서 access token을 직접 받지 않고, redirect로 받은 authorization code를 아래 endpoint에 전달한다.
+
+```http
+POST /api/auth/oauth/kakao/code
+Content-Type: application/json
+```
+
+```json
+{
+  "authorizationCode": "kakao-authorization-code-from-web-redirect",
+  "redirectUri": "https://www.clueroom.xyz",
+  "deviceId": "browser-installation-id"
+}
+```
+
+규칙:
+
+```text
+authorizationCode는 Kakao.Auth.authorize() redirect query의 code 값이다.
+redirectUri는 Kakao console에 등록된 redirect URI이자 authorize 호출 시 사용한 값과 정확히 같아야 한다.
+deviceId는 웹 프론트의 per-install 또는 browser-scoped 식별자다. 최대 100자다.
+웹 프론트는 Kakao access/refresh token을 저장하지 않는다.
+응답 shape는 /api/auth/oauth와 동일하다.
+```
 
 ---
 
@@ -421,7 +451,7 @@ GET /api/scenarios/{scenarioId}
 
 이유: 인증된 작성자는 자기 DRAFT/PRIVATE 시나리오를 볼 수 있다. 익명 사용자는 public/playable data만 본다.
 
-백엔드가 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환하면 보호되는 endpoint:
+운영 보호 모드(`AUTH_REQUIRE_AUTHENTICATION=true`)에서 보호되는 endpoint:
 
 ```text
 /api/play-sessions/**
@@ -504,10 +534,11 @@ Authenticated
 
 ## 14. QA 체크리스트
 
-백엔드 protected mode 전환 전 확인:
+운영 보호 모드 유지 전제 확인:
 
 - [ ] Google login이 `/api/auth/oauth`에 `provider=GOOGLE`, `idToken`을 보낸다.
 - [ ] Kakao login이 `/api/auth/oauth`에 `provider=KAKAO`, `accessToken`을 보낸다.
+- [ ] Web Kakao login은 `/api/auth/oauth/kakao/code`에 `authorizationCode`, `redirectUri`, `deviceId`를 보낸다.
 - [ ] 앱이 access/refresh token을 안전하게 저장한다.
 - [ ] protected/gameplay 요청에 token이 있으면 `Authorization: Bearer`를 붙인다.
 - [ ] 가능하면 auth endpoint는 자동 Bearer header 첨부에서 제외한다.
@@ -519,7 +550,7 @@ Authenticated
 - [ ] UI가 `user.email == null`을 허용한다.
 - [ ] client role만 보고 admin/rate-limit bypass UI를 노출하지 않는다.
 
-백엔드가 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한 뒤 smoke:
+운영 보호 모드 smoke:
 
 ```text
 token 없는 protected gameplay API -> 401

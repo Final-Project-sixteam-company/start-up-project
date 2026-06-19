@@ -8,7 +8,10 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface PlaySessionRepository extends JpaRepository<PlaySession, Long> {
 
@@ -16,6 +19,12 @@ public interface PlaySessionRepository extends JpaRepository<PlaySession, Long> 
     Optional<PlaySession> findByUserIdAndScenarioIdAndStatus(Long userId, Long scenarioId, PlaySessionStatus status);
 
     boolean existsByUserIdAndScenarioIdAndStatus(Long userId, Long scenarioId, PlaySessionStatus status);
+
+    Page<PlaySession> findAllByUserIdAndStatusInOrderByUpdatedAtDesc(
+            Long userId,
+            Collection<PlaySessionStatus> statuses,
+            Pageable pageable
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select ps from PlaySession ps where ps.id = :sessionId")

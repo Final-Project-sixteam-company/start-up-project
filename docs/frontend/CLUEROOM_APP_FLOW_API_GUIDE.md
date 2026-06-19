@@ -99,14 +99,16 @@ Base URL에는 `/api`를 붙이지 않는다.
 
 ### 2.3 인증 상태
 
-현재 MVP는 로그인 없이 Mock user 기준으로 호출 가능하다.
+인증 정책은 실행 환경에 따라 다르다.
 
-```text
-Authorization Header 없이 호출 가능
-백엔드는 MockUserProvider.currentUserId() 기준으로 사용자 ID를 결정
-```
+| 환경 | 정책 |
+|---|---|
+| Local/test 호환 모드 | `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true` 조합에서 token 없는 요청을 Mock user 기준으로 처리할 수 있다. 기존 QA/API smoke 호환용이다. |
+| 운영/protected mode | `AUTH_REQUIRE_AUTHENTICATION=true` 기준으로 플레이 세션, 디바이스 토큰, 알림, 시나리오 write/validation, 신규 `/api/**` 보호 API는 `Authorization: Bearer {accessToken}`이 필요하다. |
+| 공개 조회 | 공개 시나리오 목록/상세 같은 명시 public endpoint는 anonymous로 조회할 수 있다. DRAFT/PRIVATE 또는 사용자별 데이터는 노출하지 않는다. |
 
-JWT 인증이 붙으면 `Authorization: Bearer {accessToken}`을 추가한다.
+Android/Web 클라이언트는 로그인 후 보호 API 호출마다 `Authorization: Bearer {accessToken}`을 추가한다.
+Web refresh는 HttpOnly cookie를 사용하고, Android는 기존 refresh body 흐름을 병행 지원한다.
 
 ### 2.4 ID 필드명 규칙
 
@@ -415,9 +417,9 @@ coverUpText 필수
 | 예정 API | 현재 대체 방식 |
 |---|---|
 | `GET /api/play-sessions/{sessionId}/recommended-questions` | 별도 추천 질문 API는 호출하지 않음. 증거 기반 질문은 evidence detail `guidance.suggestedQuestions` 사용 |
-| `GET /api/play-sessions/me` | 내 기록 화면은 인증/기록 API 전까지 더미 또는 empty state |
-| `POST/DELETE /api/scenarios/{scenarioId}/bookmarks` | 북마크 UI는 비활성 또는 optimistic action 금지 |
-| `GET/POST /api/scenarios/{scenarioId}/reviews` | 리뷰 UI는 더미 또는 숨김 |
+
+`GET /api/play-sessions/records`는 계정 기반 플레이 기록 API로 사용한다.
+웹은 이 API를 우선 호출하고, API 미배포나 일시 실패 때만 브라우저 localStorage 기록으로 fallback한다.
 
 ---
 
@@ -493,9 +495,9 @@ POST /api/device-tokens
 | 사건 카드 클릭 | 해당 `scenarioId`로 사건 상세 화면 이동 |
 | 하단 `홈` 클릭 | 홈 유지 또는 홈으로 복귀 |
 | 하단 `라이브러리` 클릭 | 사건 라이브러리 화면 이동 |
-| 하단 `기록` 클릭 | 현재는 내 기록 API가 없으므로 empty/mock 화면 |
+| 하단 `기록` 클릭 | `GET /api/play-sessions/records`로 계정 기록 조회. 실패 시 웹 localStorage 기록 fallback |
 | 하단 `만들기` 클릭 | 커스텀 제작 API 완성 전까지 placeholder |
-| 하단 `내 정보` 클릭 | 인증 API 완성 전까지 placeholder |
+| 하단 `내 정보` 클릭 | `GET /api/auth/me` 기준으로 프로필 조회 |
 
 홈에서 시나리오 목록 API가 실패하면 카드 영역만 empty/error 상태로 표시하고, 하단 네비게이션은 유지한다.
 
@@ -553,7 +555,7 @@ GET /api/scenarios?difficulty=NORMAL&page=0&size=20
 |---|---|
 | `조사 시작` 클릭 | 세션 생성 없이 사건 브리핑 화면으로 이동 |
 | 뒤로가기 | 사건 라이브러리로 복귀 |
-| 리뷰/북마크 클릭 | 현재 리뷰/북마크 API 미구현. UI는 숨기거나 비활성 |
+| 리뷰/북마크 클릭 | 서버 API 연동. 북마크는 `POST/DELETE /api/scenarios/{scenarioId}/bookmarks`, 리뷰는 `GET/POST /api/scenarios/{scenarioId}/reviews`를 사용 |
 
 ### 6.5 사건 브리핑 화면
 
@@ -1552,9 +1554,9 @@ empty state에서는 정답이나 숨겨진 진행 정보를 암시하지 않는
 | 용의자 상세 API | `GET /api/play-sessions/{sessionId}/suspects/{suspectId}` 사용 |
 | 타임라인 API | `GET /api/play-sessions/{sessionId}/timeline` 사용. 빈 응답만 empty state |
 | 추천 질문 API | 별도 API는 호출하지 않음. 증거 기반 질문은 detail `guidance.suggestedQuestions` 사용 |
-| 내 기록 API | empty/mock |
-| 마이페이지 API | empty/mock |
-| 북마크/리뷰 API | 숨김 또는 disabled |
+| 내 기록 API | `GET /api/play-sessions/records` 우선, 실패 시 웹 localStorage fallback |
+| 마이페이지 API | `GET /api/auth/me` |
+| 북마크/리뷰 API | 서버 API 연동 |
 | 커스텀 제작 | 별도 제작 플로우 확정 전 placeholder |
 
 placeholder는 "아직 구현 전"이라는 내부 표현보다 유저 관점의 자연스러운 문구를 사용한다.

@@ -1,6 +1,6 @@
 # CaseLab AI PRD
 
-> Android 기반 AI 추리게임 / 커스텀 시나리오 플랫폼  
+> Flutter Android + React/Vite Web 기반 AI 추리게임 / 커스텀 시나리오 플랫폼
 > 이 문서는 IntelliJ, Cursor, Claude Code, GitHub Copilot Chat 등 개발 보조 AI에게 프로젝트 의도와 범위를 전달하기 위한 PRD입니다.
 > 기존 기획 핸드오버 문서의 기획/화면/우선순위 내용은 이 문서에 통합한다.
 
@@ -21,13 +21,13 @@
 
 ## 0. 문서 목적
 
-이 PRD는 CaseLab AI의 제품 목표, 사용자 경험, 핵심 기능, MVP 범위, AI 사용 원칙, Android 화면 흐름, 백엔드 요구사항을 정리한다.
+이 PRD는 CaseLab AI/ClueRoom의 제품 목표, 사용자 경험, 핵심 기능, MVP 범위, AI 사용 원칙, Android/Web 화면 흐름, 백엔드 요구사항을 정리한다.
 
 개발용 AI는 이 문서를 기준으로 다음을 이해해야 한다.
 
 ```text
 1. CaseLab AI가 어떤 서비스인지
-2. Android 앱에서 사용자가 어떤 흐름으로 플레이하는지
+2. Android 앱과 Web에서 사용자가 어떤 흐름으로 플레이하는지
 3. 공식 시나리오와 커스텀 시나리오가 어떻게 다른지
 4. AI 용의자 심문 기능이 어떤 원칙으로 동작해야 하는지
 5. 백엔드는 어떤 도메인과 상태를 관리해야 하는지
@@ -42,7 +42,7 @@
 |---|---|
 | 제품 목표, 문제 정의, 사용자 흐름 | API Request/Response 상세 |
 | MVP 범위, Phase, 구현 우선순위 | ERD, DDL, 인덱스, DB 제약 |
-| Android 화면 요구사항과 UX 방향 | AI 프롬프트 템플릿, 답변 정책 |
+| Android/Web 화면 요구사항과 UX 방향 | AI 프롬프트 템플릿, 답변 정책 |
 | 공식/커스텀 시나리오의 제품 관점 차이 | 공식 시나리오 seed data 전문 |
 | 리스크, 성공 지표, 개발 우선순위 | 실행, 배포, 환경변수, 인프라 |
 
@@ -59,7 +59,7 @@
 
 ### 1.2 한 줄 정의
 
-AI 용의자를 심문하고, 증거와 알리바이를 조합해 사건의 범인·동기·범행 방법을 추리하는 Android 기반 AI 추리게임 플랫폼.
+AI 용의자를 심문하고, 증거와 알리바이를 조합해 사건의 범인·동기·범행 방법을 추리하는 Android/Web 기반 AI 추리게임 플랫폼.
 
 ### 1.3 제품 정체성
 
@@ -112,7 +112,7 @@ CaseLab AI는 다음 방식으로 문제를 해결한다.
 
 ### 3.1 1차 목표
 
-Android 앱에서 사용자가 하나의 공식 시나리오를 선택해 사건을 플레이할 수 있게 한다.
+Android 앱과 Web에서 사용자가 하나의 공식 시나리오를 선택해 사건을 플레이할 수 있게 한다.
 
 핵심 경험:
 
@@ -489,7 +489,7 @@ JWT 인증 도입 후 제공한다.
 최종 추리 제출 진입
 ```
 
-Android 앱에서는 하단 탭으로 구성한다.
+Android 앱에서는 하단 탭, Web에서는 responsive navigation으로 구성한다.
 
 ```text
 현장
@@ -733,7 +733,7 @@ Step 8. 공개 설정
 
 ---
 
-## 9. Android 화면 요구사항
+## 9. Android/Web 화면 요구사항
 
 ### 9.1 하단 탭 구조
 
@@ -795,7 +795,7 @@ AI 검증 결과 화면
 최종 추리 제출은 폼 형태로 명확하게 만든다.
 ```
 
-### 9.5 Android 화면별 핵심 요구사항
+### 9.5 Android/Web 화면별 핵심 요구사항
 
 화면별 API 상세와 응답 필드 매핑은 `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md`를 따른다.
 이 절은 제품 관점에서 화면에 반드시 필요한 구성 요소만 정의한다.
@@ -1305,7 +1305,7 @@ AI 시나리오 초안 생성
 개발 보조 AI는 다음 원칙을 지켜야 한다.
 
 ```text
-1. 이 프로젝트는 Android 앱 + Spring Boot 백엔드 구조를 전제로 한다.
+1. 이 프로젝트는 Flutter Android 앱 + React/Vite Web + Spring Boot 백엔드 구조를 전제로 한다.
 2. AI 용의자에게 범인 정보를 직접 전달하지 않는다.
 3. 범인, 정답, 핵심 비밀은 백엔드 secret으로 관리한다.
 4. 심문 응답은 현재 공개 정보와 response policy 기반으로 생성한다.
@@ -1360,7 +1360,7 @@ OFFICIAL_SCENARIO_DEMO_DAY.md
 
 ## 20. 최종 요약
 
-CaseLab AI는 Android 기반 AI 추리게임 앱이다.
+CaseLab AI/ClueRoom은 Android/Web 기반 AI 추리게임 서비스다.
 
 사용자는 탐정이 되어 사건 브리핑, 현장 정보, 증거 카드, 타임라인을 확인하고, AI 용의자들을 심문해 범인·동기·범행 방법을 추리한다.
 

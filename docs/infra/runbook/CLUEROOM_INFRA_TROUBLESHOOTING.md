@@ -90,7 +90,7 @@ scale-out PoC app nodes
 | 12 | CN Block | 403 원인 구분 어려움 | access log에 `cn` flag 없음 | 1차는 403 alert로 운영, 필요 시 log_format에 `cn=$clueroom_is_cn_ip` 추가 |
 | 13 | LogQL | Grafana 패널 parse error | `\.` escape 오류 | `[.]env`, backtick raw string 사용 |
 | 14 | LLMOps | AI_CALL_CONTEXT가 AI_CALL 쿼리에 섞임 | `|= "AI_CALL"`이 `AI_CALL_CONTEXT`도 매칭 | `|= "AI_CALL "`로 수정 |
-| 15 | OAuth/JWT | `/api/auth/oauth` 500 | `GOOGLE_CLIENT_IDS`, `KAKAO_APP_ID` 비어 있음 | oauth.env 보강 후 재배포 |
+| 15 | OAuth/JWT | `/api/auth/oauth` 500 또는 `/api/auth/oauth/kakao/code` `AUTH_010` | `GOOGLE_CLIENT_IDS`, `KAKAO_APP_ID`, Web Kakao용 `KAKAO_REST_API_KEY` 비어 있음 | oauth.env 보강 후 재배포 |
 | 16 | OAuth/JWT | migration 전 deploy | schema/column 없는 상태에서 새 앱 배포 가능성 | S3 백업 → migration → deploy 순서로 재정렬 |
 | 17 | SSH Alias | prod에서 `ssh clueroom-data` 실패 | SSH alias는 로컬 PC에만 존재 | data 작업은 로컬에서 실행하거나 IP/별도 SSH config 사용 |
 | 18 | Lightsail | `get-key-pairs` 빈 결과 | 해당 리전에 Lightsail key pair 없음 | Terraform으로 public key import하여 key pair 생성 |
@@ -608,6 +608,7 @@ PR #53 배포 후 OAuth smoke test에서 500이 발생했다.
 ```text
 GOOGLE_CLIENT_IDS: empty
 KAKAO_APP_ID: empty
+KAKAO_REST_API_KEY: empty for Web Kakao code-flow
 ```
 
 JWT secret presence는 정상으로 확인되어 직접 원인이 아니었다.
@@ -621,6 +622,7 @@ JWT secret presence는 정상으로 확인되어 직접 원인이 아니었다.
 ```text
 GOOGLE_CLIENT_IDS: non-empty placeholder
 KAKAO_APP_ID: non-empty placeholder
+KAKAO_REST_API_KEY: non-empty real value for Web Kakao code-flow
 ```
 
 실제 로그인 전에는 반드시 실제 값으로 교체해야 한다.
@@ -633,6 +635,7 @@ OAuth/JWT 배포 전 체크리스트:
 JWT_SECRET_PRESENT=yes
 GOOGLE_CLIENT_IDS non-empty
 KAKAO_APP_ID non-empty
+KAKAO_REST_API_KEY non-empty if Web Kakao code-flow is enabled
 auth schema migration applied
 ```
 

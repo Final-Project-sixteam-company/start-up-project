@@ -35,7 +35,6 @@ secret 입력만 필요한 담당자는 범위별 제한 계정을 사용한다.
 
 ```text
 ai-secret       -> /opt/clueroom/secrets/env.d/ai.env
-portone-secret  -> /opt/clueroom/secrets/env.d/portone.env
 oauth-secret    -> /opt/clueroom/secrets/env.d/oauth.env
 ```
 
@@ -46,14 +45,12 @@ oauth-secret    -> /opt/clueroom/secrets/env.d/oauth.env
 ```bash
 sudo mkdir -p /opt/clueroom/secrets/env.d
 sudo touch /opt/clueroom/secrets/env.d/ai.env
-sudo touch /opt/clueroom/secrets/env.d/portone.env
 sudo touch /opt/clueroom/secrets/env.d/oauth.env
 
 sudo chown root:root /opt/clueroom/secrets/env.d/*.env
 sudo chmod 600 /opt/clueroom/secrets/env.d/*.env
 
 sudo setfacl -m u:ai-secret:rw /opt/clueroom/secrets/env.d/ai.env
-sudo setfacl -m u:portone-secret:rw /opt/clueroom/secrets/env.d/portone.env
 sudo setfacl -m u:oauth-secret:rw /opt/clueroom/secrets/env.d/oauth.env
 ```
 
@@ -69,7 +66,6 @@ getfacl /opt/clueroom/secrets/env.d/ai.env
 
 ```text
 /opt/clueroom/secrets/env.d/ai.env
-/opt/clueroom/secrets/env.d/portone.env
 /opt/clueroom/secrets/env.d/oauth.env
 ```
 
@@ -97,15 +93,10 @@ OPENAI_CHAT_TEMPERATURE=0.4
 
 `OPENAI_API_KEY`에는 실제 값을 서버에서만 입력한다.
 
-## 8. PortOne 설정 예시
+## 8. 결제 provider secret
 
-```env
-PORTONE_API_SECRET=...
-PORTONE_STORE_ID=...
-PORTONE_CHANNEL_KEY=...
-```
-
-실제 키 이름은 백엔드 설정과 결제 연동 코드에서 사용하는 환경변수명과 맞춘다.
+현재 MVP 런타임에는 실제 PG/PortOne 연동 코드가 없다. 결제 provider secret 파일은 만들지 않는다.
+향후 결제 PR에서 코드와 운영 절차가 함께 추가될 때 별도 secret env 파일을 정의한다.
 
 ## 9. OAuth/JWT 설정 예시
 
@@ -115,17 +106,19 @@ JWT_ISSUER=https://api.clueroom.xyz
 JWT_ACCESS_TOKEN_TTL_SECONDS=1800
 JWT_REFRESH_TOKEN_TTL_DAYS=30
 AUTH_DEV_LOGIN_ENABLED=false
-AUTH_MOCK_FALLBACK_ENABLED=true
-AUTH_REQUIRE_AUTHENTICATION=false
+AUTH_MOCK_FALLBACK_ENABLED=false
+AUTH_REQUIRE_AUTHENTICATION=true
+CORS_ALLOWED_ORIGIN_PATTERNS=https://clueroom.xyz,https://www.clueroom.xyz,http://localhost:[*],http://127.0.0.1:[*],http://10.0.2.2:[*],http://192.168.*.*:[*]
 AUTH_ADMIN_SEED_ENABLED=false
 AUTH_ADMIN_SEED_EMAIL=
 AUTH_ADMIN_SEED_NICKNAME=ClueRoom Admin
 AUTH_QA_SEED_ENABLED=false
 AUTH_QA_SEED_EMAIL=
 AUTH_QA_SEED_NICKNAME=ClueRoom QA
-KAKAO_CLIENT_ID=...
-KAKAO_CLIENT_SECRET=...
 KAKAO_APP_ID=...
+KAKAO_REST_API_KEY=...
+# Kakao client secret을 활성화한 경우에만 입력
+KAKAO_CLIENT_SECRET=
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_IDS=...
 GOOGLE_CLIENT_SECRET=...
@@ -133,11 +126,14 @@ GOOGLE_CLIENT_SECRET=...
 
 JWT secret은 32자 이상의 충분히 긴 난수로 생성하고 레포에 기록하지 않는다.
 `AUTH_DEV_LOGIN_ENABLED`는 개발/스테이징 token-flow 확인용이며 운영에서는 기본적으로 `false`를 유지한다.
-`AUTH_REQUIRE_AUTHENTICATION`은 Android가 Bearer token 첨부를 완료한 뒤 `true`로 전환한다.
+로컬 호환 테스트에서는 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true` 조합을 사용할 수 있다.
+운영 secret에는 보호 API 기본 인증을 유지하기 위해 `AUTH_REQUIRE_AUTHENTICATION=true`를 둔다.
 AI rate limit 검증용 admin 계정이 필요하면 `AUTH_ADMIN_SEED_ENABLED=true`와 실제 admin email을 서버 secret env에만 입력한다. 공개 문서/PR/코드에는 실제 admin email을 기록하지 않는다.
 blind QA 격리용 일반 계정이 필요하면 `AUTH_QA_SEED_ENABLED=true`와 실제 QA email을 서버 secret env에만 입력한다. 공개 문서/PR/코드에는 실제 QA email을 기록하지 않는다.
 `GOOGLE_CLIENT_IDS`는 Android/Web 등 여러 client id가 같은 백엔드를 사용할 때 comma-separated로 입력한다.
 `KAKAO_APP_ID`는 Kakao access token info 응답의 `app_id`와 비교하는 값이다.
+`KAKAO_REST_API_KEY`는 Web Kakao authorization code를 서버에서 access token으로 교환할 때 사용한다.
+`CORS_ALLOWED_ORIGIN_PATTERNS`는 웹 프론트 배포 origin과 로컬 개발 origin만 넣는다. Native Android HTTP client는 CORS 대상이 아니다.
 
 ## 10. 접속 실패 시 점검
 
@@ -161,7 +157,6 @@ SSH public key가 서버 계정에 등록되었는지
 
 ```bash
 getfacl /opt/clueroom/secrets/env.d/ai.env
-getfacl /opt/clueroom/secrets/env.d/portone.env
 getfacl /opt/clueroom/secrets/env.d/oauth.env
 ```
 

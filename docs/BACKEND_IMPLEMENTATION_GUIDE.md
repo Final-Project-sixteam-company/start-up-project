@@ -41,7 +41,7 @@ Framework: Spring Boot 4
 Persistence: Spring Data JPA
 Database: MySQL
 Cache/Lock 확장: Redis
-Client: Android Kotlin
+Clients: Flutter Android(Dart), React/Vite Web
 ```
 
 ### 1.2 1차 MVP 우선순위
@@ -75,8 +75,9 @@ AI 시나리오 초안 생성 고도화
 ```
 
 JWT/OAuth foundation은 구현돼 있다.
-다만 운영 전환 중에는 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true` 조합으로
-기존 MockUser 호환 모드를 유지할 수 있다. 완전한 인증 강제 전환은 Android token flow 검증 후 별도 배포 단계로 진행한다.
+로컬/전환 테스트에서는 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true` 조합으로
+기존 MockUser 호환 모드를 사용할 수 있다. 운영 보호 모드는 `AUTH_REQUIRE_AUTHENTICATION=true`를 사용하며,
+이 경우 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 보호 API 요청에 `MOCK_USER_ID`를 부여하지 않는다.
 
 단, 아래 확장 필드는 제거하지 않는다.
 
@@ -795,6 +796,7 @@ FAILED
 ```text
 구현됨:
 - POST /api/auth/oauth
+- POST /api/auth/oauth/kakao/code
 - POST /api/auth/dev
 - POST /api/auth/refresh
 - POST /api/auth/logout
@@ -803,23 +805,24 @@ FAILED
 - CurrentUserProvider
 - AuthRefreshToken rotation
 - Google/Kakao provider token verification client
+- Web Kakao authorization-code exchange client
 
-전환 모드:
+로컬 호환 모드:
 - AUTH_REQUIRE_AUTHENTICATION=false
 - AUTH_MOCK_FALLBACK_ENABLED=true
 - Bearer token이 없으면 MOCK_USER_ID fallback
 ```
 
-### 10.2 다음 단계: 인증 강제 전환
+### 10.2 운영 보호 모드 검증
 
 목표:
 
 ```text
 Android OAuth/JWT 저장/refresh flow 검증
 운영 JWT_SECRET 설정
-AUTH_REQUIRE_AUTHENTICATION=true 전환
+AUTH_REQUIRE_AUTHENTICATION=true 유지
 token 없는 gameplay/write API 401 확인
-Mock fallback 축소 또는 QA/Admin 전용화
+Mock fallback이 보호 모드에서 우회되지 않는지 확인
 ```
 
 전환 후 권한 정책:

@@ -1,15 +1,15 @@
 # CaseLab AI API 명세서 & API 테이블
 
 > 버전: MVP v0.1  
-> 기준 플랫폼: Android App + Spring Boot Backend  
+> 기준 플랫폼: Flutter Android App + React/Vite Web + Spring Boot Backend
 > 프로젝트 정체성: AI 용의자 심문형 추리게임 + 커스텀 시나리오 공유 플랫폼  
-> 작성 목적: 팀 백엔드/프론트/Android 개발자가 공통으로 참고할 API 설계 초안
+> 작성 목적: 팀 백엔드/Android/Web 개발자가 공통으로 참고할 API 계약
 
 ---
 
 ## 0. 프로젝트 요약
 
-**CaseLab AI**는 사용자가 탐정이 되어 사건을 조사하고, AI 용의자를 심문하며, 증거와 알리바이를 조합해 범인·동기·범행 방법을 추리하는 Android 추리게임 앱이다.
+**ClueRoom**은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자를 심문하며, 증거와 알리바이를 조합해 범인·동기·범행 방법을 추리하는 AI 추리게임 서비스다. 현재 클라이언트는 Flutter Android 앱과 React/Vite Web을 병행한다.
 
 핵심 구조는 다음과 같다.
 
@@ -68,7 +68,7 @@ Authorization: Bearer {accessToken}
 ### 1.4 ID 필드 네이밍 규칙
 
 - JPA Entity의 PK 필드명은 `id`를 사용한다.
-- API Request/Response DTO에서는 Android 화면 매핑과 혼동을 줄이기 위해 `scenarioId`, `evidenceId`, `suspectId`처럼 자원명이 포함된 필드명을 우선 사용한다.
+- API Request/Response DTO에서는 클라이언트 화면 매핑과 혼동을 줄이기 위해 `scenarioId`, `evidenceId`, `suspectId`처럼 자원명이 포함된 필드명을 우선 사용한다.
 - 중첩 객체도 다른 엔티티를 참조하면 `creatorId`, `locationId`, `reviewId`처럼 명시한다.
 
 ---
@@ -218,7 +218,7 @@ FAILED
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/auth/oauth` | Google/Kakao provider token으로 ClueRoom token 발급 | X | O |
-| 2 | POST | `/api/auth/toss` | Apps in Toss authorizationCode로 ClueRoom token 발급 | X | O |
+| 2 | POST | `/api/auth/oauth/kakao/code` | Web Kakao authorizationCode로 ClueRoom token 발급 | X | O |
 | 3 | POST | `/api/auth/dev` | local/staging 개발용 로그인. 운영 기본 disabled | X | O |
 | 4 | POST | `/api/auth/refresh` | Refresh token rotation + 새 access token 발급 | X/Refresh | O |
 | 5 | POST | `/api/auth/logout` | 제출한 refresh token revoke | X/Refresh | O |
@@ -234,11 +234,11 @@ FAILED
 | 2 | GET | `/api/scenarios/{scenarioId}` | 시나리오 상세 조회 | 선택 | O |
 | 3 | POST | `/api/scenarios` | 커스텀 시나리오 생성 | O | O |
 | 4 | PATCH | `/api/scenarios/{scenarioId}` | 시나리오 기본 정보 수정 | O | O |
-| 5 | DELETE | `/api/scenarios/{scenarioId}` | 시나리오 삭제 | O | △ 미구현 |
+| 5 | DELETE | `/api/scenarios/{scenarioId}` | 시나리오 삭제 | O | O |
 | 6 | POST | `/api/scenarios/{scenarioId}/publish` | 시나리오 공개 등록 | O | O |
-| 7 | POST | `/api/scenarios/{scenarioId}/hide` | 시나리오 비공개/숨김 | O | △ 미구현 |
-| 8 | GET | `/api/scenarios/me` | 내가 만든 시나리오 조회 | O | △ 미구현 |
-| 9 | GET | `/api/scenarios/bookmarked` | 북마크한 시나리오 조회 | O | △ 미구현 |
+| 7 | POST | `/api/scenarios/{scenarioId}/hide` | 시나리오 비공개/숨김 | O | O |
+| 8 | GET | `/api/scenarios/me` | 내가 만든 시나리오 조회 | O | O |
+| 9 | GET | `/api/scenarios/bookmarked` | 북마크한 시나리오 조회 | O | O |
 
 ---
 
@@ -247,24 +247,24 @@ FAILED
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/scenarios/{scenarioId}/locations` | 장소 등록 | O | O |
-| 2 | GET | `/api/scenarios/{scenarioId}/locations` | 장소 목록 조회 | O | △ 미구현 |
+| 2 | GET | `/api/scenarios/{scenarioId}/locations` | 장소 목록 조회 | O | O |
 | 3 | POST | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 등록/수정 | O | O |
-| 4 | GET | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 조회 | O | △ 미구현 |
+| 4 | GET | `/api/scenarios/{scenarioId}/victim` | 피해자 정보 조회 | O | O |
 | 5 | POST | `/api/scenarios/{scenarioId}/suspects` | 용의자 등록 | O | O |
-| 6 | GET | `/api/scenarios/{scenarioId}/suspects` | 용의자 목록 조회 | O | △ 미구현 |
-| 7 | PATCH | `/api/suspects/{suspectId}` | 용의자 수정 | O | △ 미구현 |
-| 8 | DELETE | `/api/suspects/{suspectId}` | 용의자 삭제 | O | △ 미구현 |
+| 6 | GET | `/api/scenarios/{scenarioId}/suspects` | 용의자 목록 조회 | O | O |
+| 7 | PATCH | `/api/suspects/{suspectId}` | 용의자 수정 | O | O |
+| 8 | DELETE | `/api/suspects/{suspectId}` | 용의자 삭제 | O | O |
 | 9 | POST | `/api/scenarios/{scenarioId}/evidences` | 증거 등록 | O | O |
-| 10 | GET | `/api/scenarios/{scenarioId}/evidences` | 증거 목록 조회 | O | △ 미구현 |
-| 11 | PATCH | `/api/evidences/{evidenceId}` | 증거 수정 | O | △ 미구현 |
-| 12 | DELETE | `/api/evidences/{evidenceId}` | 증거 삭제 | O | △ 미구현 |
+| 10 | GET | `/api/scenarios/{scenarioId}/evidences` | 증거 목록 조회 | O | O |
+| 11 | PATCH | `/api/evidences/{evidenceId}` | 증거 수정 | O | O |
+| 12 | DELETE | `/api/evidences/{evidenceId}` | 증거 삭제 | O | O |
 | 13 | POST | `/api/scenarios/{scenarioId}/hints` | 힌트 등록 | O | O |
-| 14 | GET | `/api/scenarios/{scenarioId}/hints` | 힌트 목록 조회 | O | △ 미구현 |
+| 14 | GET | `/api/scenarios/{scenarioId}/hints` | 힌트 목록 조회 | O | O |
 | 15 | POST | `/api/scenarios/{scenarioId}/solution` | 정답 등록/수정 | O/작성자·관리자 | O |
-| 16 | GET | `/api/scenarios/{scenarioId}/solution` | 정답 조회 | O/작성자·관리자 전용, Android 플레이 화면 호출 금지 | △ 미구현 |
+| 16 | GET | `/api/scenarios/{scenarioId}/solution` | 정답 조회 | O/작성자·관리자 전용, Android 플레이 화면 호출 금지 | O |
 
-현재 `develop` 기준 커스텀 시나리오 컨트롤러는 POST create/upsert 6종만 구현되어 있다.
-GET/PATCH/DELETE 계열은 후속 구현 대상으로 본다.
+현재 `develop` 기준 커스텀 시나리오 컨트롤러는 create/upsert, 조회, 수정, 삭제, 정답 관리의 기본 API를 제공한다.
+Android/웹 플레이 화면은 제작자 전용 solution API를 호출하지 않는다.
 
 ---
 
@@ -288,18 +288,19 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/play-sessions` | 게임 세션 시작 | O | O |
 | 2 | GET | `/api/play-sessions/active?scenarioId={scenarioId}` | 진행 중 세션 조회 | O | O |
-| 3 | GET | `/api/play-sessions/{sessionId}` | 게임 세션 기본 정보 조회 | △ | △ |
-| 4 | GET | `/api/play-sessions/{sessionId}/dashboard` | 탐정 대시보드 조회 | O | O |
-| 5 | GET | `/api/play-sessions/{sessionId}/locations` | 현장 정보 조회 | O | O |
-| 6 | GET | `/api/play-sessions/{sessionId}/evidences` | 현재 해금된 증거 조회 | O | O |
-| 7 | GET | `/api/play-sessions/{sessionId}/evidences/{evidenceId}` | 증거 상세 조회 | O | O |
-| 8 | POST | `/api/play-sessions/{sessionId}/evidences/{evidenceId}/unlock` | 증거 수동/조건 해금 | O | O |
-| 9 | GET | `/api/play-sessions/{sessionId}/suspects` | 용의자 목록 조회 | O | O |
-| 10 | GET | `/api/play-sessions/{sessionId}/suspects/{suspectId}` | 용의자 상세 조회 | O | O |
-| 11 | GET | `/api/play-sessions/{sessionId}/timeline` | 타임라인 조회 | O | O |
-| 12 | GET | `/api/play-sessions/{sessionId}/hints` | 사용 가능 힌트 조회 | O | O |
-| 13 | POST | `/api/play-sessions/{sessionId}/hints/{hintId}/use` | 힌트 사용 | O | O |
-| 14 | POST | `/api/play-sessions/{sessionId}/abandon` | 게임 포기/중단 | O | △ |
+| 3 | GET | `/api/play-sessions/records` | 내 플레이 기록 조회 | O | O |
+| 4 | GET | `/api/play-sessions/{sessionId}` | 게임 세션 기본 정보 조회 | O | O |
+| 5 | GET | `/api/play-sessions/{sessionId}/dashboard` | 탐정 대시보드 조회 | O | O |
+| 6 | GET | `/api/play-sessions/{sessionId}/locations` | 현장 정보 조회 | O | O |
+| 7 | GET | `/api/play-sessions/{sessionId}/evidences` | 현재 해금된 증거 조회 | O | O |
+| 8 | GET | `/api/play-sessions/{sessionId}/evidences/{evidenceId}` | 증거 상세 조회 | O | O |
+| 9 | POST | `/api/play-sessions/{sessionId}/evidences/{evidenceId}/unlock` | 증거 수동/조건 해금 | O | O |
+| 10 | GET | `/api/play-sessions/{sessionId}/suspects` | 용의자 목록 조회 | O | O |
+| 11 | GET | `/api/play-sessions/{sessionId}/suspects/{suspectId}` | 용의자 상세 조회 | O | O |
+| 12 | GET | `/api/play-sessions/{sessionId}/timeline` | 타임라인 조회 | O | O |
+| 13 | GET | `/api/play-sessions/{sessionId}/hints` | 사용 가능 힌트 조회 | O | O |
+| 14 | POST | `/api/play-sessions/{sessionId}/hints/{hintId}/use` | 힌트 사용 | O | O |
+| 15 | POST | `/api/play-sessions/{sessionId}/abandon` | 게임 포기/중단 | O | O |
 
 ---
 
@@ -309,7 +310,7 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/play-sessions/{sessionId}/interrogations` | AI 용의자 심문 | O | O |
 | 2 | GET | `/api/play-sessions/{sessionId}/interrogations` | 심문 로그 조회 | O | O |
-| 3 | GET | `/api/play-sessions/{sessionId}/interrogations?suspectId={suspectId}` | 특정 용의자 심문 로그 조회 | O | △ |
+| 3 | GET | `/api/play-sessions/{sessionId}/interrogations?suspectId={suspectId}` | 특정 용의자 심문 로그 조회 | O | O |
 | 4 | GET | `/api/play-sessions/{sessionId}/recommended-questions` | 별도 추천 질문 API | O | X 미구현. 증거 기반 질문은 증거 상세 `guidance.suggestedQuestions` 사용 |
 
 ---
@@ -320,7 +321,6 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 |---:|---|---|---|---|---|
 | 1 | POST | `/api/play-sessions/{sessionId}/final-deduction` | 최종 추리 제출 | O | O |
 | 2 | GET | `/api/play-sessions/{sessionId}/result` | 결과/해설 조회 | O | O |
-| 3 | GET | `/api/play-sessions/me` | 내 플레이 기록 조회 | O | △ |
 
 ---
 
@@ -328,13 +328,13 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 
 | No | Method | Endpoint | 설명 | 인증 | MVP |
 |---:|---|---|---|---|---|
-| 1 | POST | `/api/scenarios/{scenarioId}/bookmarks` | 시나리오 북마크 | O | △ 미구현 |
-| 2 | DELETE | `/api/scenarios/{scenarioId}/bookmarks` | 북마크 취소 | O | △ 미구현 |
-| 3 | POST | `/api/scenarios/{scenarioId}/reviews` | 리뷰 작성 | O | △ 미구현 |
-| 4 | GET | `/api/scenarios/{scenarioId}/reviews` | 리뷰 목록 조회 | 선택 | △ 미구현 |
-| 5 | PATCH | `/api/reviews/{reviewId}` | 리뷰 수정 | O | △ 미구현 |
-| 6 | DELETE | `/api/reviews/{reviewId}` | 리뷰 삭제 | O | △ 미구현 |
-| 7 | POST | `/api/scenarios/{scenarioId}/reports` | 시나리오 신고 | O | △ |
+| 1 | POST | `/api/scenarios/{scenarioId}/bookmarks` | 시나리오 북마크 | O | O |
+| 2 | DELETE | `/api/scenarios/{scenarioId}/bookmarks` | 북마크 취소 | O | O |
+| 3 | POST | `/api/scenarios/{scenarioId}/reviews` | 리뷰 작성 | O | O |
+| 4 | GET | `/api/scenarios/{scenarioId}/reviews` | 리뷰 목록 조회 | 선택 | O |
+| 5 | PATCH | `/api/reviews/{reviewId}` | 리뷰 수정 | O | O |
+| 6 | DELETE | `/api/reviews/{reviewId}` | 리뷰 삭제 | O | O |
+| 7 | POST | `/api/scenarios/{scenarioId}/reports` | 시나리오 신고 | O | O |
 
 ---
 
@@ -352,7 +352,8 @@ AI draft 생성과 AI log 조회 REST API는 아직 없다.
 ---
 
 > 현재 인증 foundation은 구현되어 있다.
-> 운영 전환 중에는 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`로 token 없는 기존 gameplay API를 `MOCK_USER_ID`에 fallback할 수 있다.
+> 로컬/전환 테스트에서는 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`로 token 없는 기존 gameplay API를 `MOCK_USER_ID`에 fallback할 수 있다.
+> 운영 보호 모드에서는 `AUTH_REQUIRE_AUTHENTICATION=true`를 사용하며, 명시 public endpoint 외 `/api/**`는 인증 대상이다.
 > Android 상세 연동 기준은 [ANDROID_AUTH_INTEGRATION_GUIDE.md](ANDROID_AUTH_INTEGRATION_GUIDE.md)를 따른다.
 
 ## 5.1 OAuth 로그인
@@ -383,9 +384,28 @@ Kakao:
 }
 ```
 
+Web Kakao JS SDK v2 authorization-code flow는 access token을 프론트에서 받지 않고 별도 endpoint를 사용한다.
+프론트는 `Kakao.Auth.authorize()`가 redirect로 반환한 code만 백엔드에 전달하고, 백엔드는 서버 간 token exchange 후 기존 ClueRoom token response만 반환한다.
+
+```http
+POST /api/auth/oauth/kakao/code
+```
+
+```json
+{
+  "authorizationCode": "kakao-authorization-code-from-web-redirect",
+  "redirectUri": "https://www.clueroom.xyz",
+  "deviceId": "browser-installation-id"
+}
+```
+
+`redirectUri`는 Kakao console에 등록된 redirect URI와 프론트가 `Kakao.Auth.authorize()`에 넘긴 값과 정확히 같아야 한다.
+백엔드는 `KAKAO_REST_API_KEY`로 Kakao token endpoint를 호출한 뒤 access token info/user info를 검증한다.
+Kakao access/refresh token 원문은 프론트 응답과 로그에 남기지 않는다.
+
 ### Response
 
-`/api/auth/oauth`, `/api/auth/toss`, `/api/auth/dev`, `/api/auth/refresh`는 같은 token response shape를 반환한다.
+`/api/auth/oauth`, `/api/auth/oauth/kakao/code`, `/api/auth/dev`, `/api/auth/refresh`는 같은 token response shape를 반환한다.
 
 ```json
 {
@@ -407,39 +427,7 @@ Kakao:
 }
 ```
 
-## 5.2 Apps in Toss 로그인
-
-```http
-POST /api/auth/toss
-```
-
-Apps in Toss 프론트가 `appLogin()`으로 받은 인가 코드를 백엔드에 전달한다.
-백엔드는 Toss API와 서버 간 통신으로 Toss access token을 발급받고 `login-me`에서 `userKey`를 조회한 뒤, 기존 ClueRoom JWT token pair만 프론트에 반환한다.
-Toss access/refresh token 원문은 프론트에 반환하지 않고 로그에도 남기지 않는다.
-
-운영 `https://apps-in-toss-api.toss.im` 호출은 Toss 서버 간 API 요구사항에 따라 mTLS client certificate가 필요하다.
-백엔드는 `TOSS_APPS_IN_TOSS_MTLS_CERT_PATH`, `TOSS_APPS_IN_TOSS_MTLS_KEY_PATH`에 지정된 서버 로컬 PEM 파일로 TLS client 인증을 구성한다.
-private key 파일은 unencrypted PKCS#8 PEM 형식이어야 한다.
-인증서/키 원문은 repository, 프론트, 로그에 남기지 않는다.
-
-### Request
-
-```json
-{
-  "authorizationCode": "apps-in-toss-authorization-code",
-  "referrer": "DEFAULT",
-  "deviceId": "apps-in-toss-installation-id"
-}
-```
-
-`referrer`는 Apps in Toss `appLogin()`의 `DEFAULT` 또는 `SANDBOX` 값을 그대로 전달한다.
-`deviceId`는 Toss 반환값이 아니라 프론트 앱의 per-install 식별자다.
-
-### Response
-
-5.1의 token response shape와 동일하다.
-
-## 5.3 개발용 로그인
+## 5.2 개발용 로그인
 
 ```http
 POST /api/auth/dev
@@ -2046,16 +2034,19 @@ GET /api/play-sessions/{sessionId}/result
 ## 11.3 내 플레이 기록 조회
 
 ```http
-GET /api/play-sessions/me
+GET /api/play-sessions/records
 ```
 
 ### Query Parameters
 
 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|
-| status | String | N | PLAYING, COMPLETED, ABANDONED |
 | page | Integer | N | 페이지 |
 | size | Integer | N | 크기 |
+
+`PLAYING` 세션은 `IN_PROGRESS`, `COMPLETED` 세션은 `COMPLETED`로 내려간다.
+`ABANDONED` 세션은 현재 기록 목록에서 제외한다.
+완료 결과의 `score`/`grade`만 포함하고, 범인명, 정오 여부, matched/missed breakdown, AI feedback 원문은 이 목록 API에 포함하지 않는다.
 
 ### Response
 
@@ -2065,14 +2056,15 @@ GET /api/play-sessions/me
   "data": {
     "content": [
       {
+        "recordId": "session-100",
         "sessionId": 100,
         "scenarioId": 10,
         "scenarioTitle": "데모데이 전야 살인사건",
         "status": "COMPLETED",
         "score": 87,
         "grade": "A",
-        "startedAt": "2026-05-15T20:00:00",
-        "endedAt": "2026-05-15T20:40:00"
+        "updatedAt": "2026-05-15T20:40:00",
+        "completedAt": "2026-05-15T20:40:00"
       }
     ],
     "page": 0,
@@ -2089,8 +2081,8 @@ GET /api/play-sessions/me
 
 # 12. 커뮤니티 API
 
-현재 `develop` 기준 리뷰/북마크 컨트롤러는 없다.
-이 절의 북마크/리뷰 API는 1차 MVP 구현 계약이 아니라 후속 커뮤니티 기능 후보로 본다.
+현재 `develop` 기준 북마크/리뷰 컨트롤러는 구현되어 있다.
+웹/앱은 북마크와 리뷰를 서버 계정 기준으로 저장하고, 리뷰 별점은 정수 `1`~`5`만 전송한다.
 
 ## 12.1 시나리오 북마크
 
@@ -2260,7 +2252,7 @@ docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
 
 ```text
 POST /api/auth/oauth
-POST /api/auth/toss
+POST /api/auth/oauth/kakao/code
 POST /api/auth/dev
 POST /api/auth/refresh
 POST /api/auth/logout
@@ -2305,7 +2297,6 @@ POST /api/scenarios/{scenarioId}/publish
 
 ```text
 POST /api/ai/scenarios/draft
-GET /api/play-sessions/me
 GET /api/scenarios/me
 GET /api/scenarios/bookmarked
 ```
@@ -2749,7 +2740,7 @@ wallet 차감은 하나의 Transaction 안에서 처리
 이 API 설계의 핵심은 다음이다.
 
 ```text
-1. Android 앱은 탐정 플레이 경험에 집중한다.
+1. Android/Web 클라이언트는 탐정 플레이 경험에 집중한다.
 2. 백엔드는 시나리오, 증거, 용의자, 플레이 상태를 관리한다.
 3. AI는 사건 생성, 시나리오 검증, 용의자 심문, 최종 채점에 사용한다.
 4. AI에게 전체 정답을 넘기지 않고, 현재 허용된 정보만 전달한다.
