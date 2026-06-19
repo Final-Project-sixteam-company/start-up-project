@@ -45,6 +45,7 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 - [Live & Docs](#live--docs)
 - [Visual Evidence](#visual-evidence)
+- [Metric Charts](#metric-charts)
 - [Repository Scope](#repository-scope)
 - [Team Ownership](#team-ownership)
 - [Product Flow](#product-flow)
@@ -108,6 +109,39 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
       <img src="docs/readme-assets/grafana-bot-scan-defense-summary.png" alt="Grafana bot scan defense summary" width="100%">
       <br>
       <sub>운영 로그 탐색 대시보드. 봇 스캔 요청 급증을 Loki에서 분리해 확인하고, 같은 window에서 app error와 Nginx 5xx를 함께 봅니다.</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Metric Charts
+
+아래 차트는 public-safe 문서에 남긴 집계 수치만 사용합니다. 원문 prompt, AI 답변, 사용자 질문, session/token, 정답성 정보는 포함하지 않습니다.
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/scenario-api-p95.svg" alt="Scenario API P95 latency chart" width="100%">
+      <br>
+      <sub>시나리오 목록 API는 복합 인덱스와 Redis short TTL cache 적용 후 P95가 241ms에서 19ms로 내려갔습니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/llmops-context-breakdown.svg" alt="LLMOps prompt context breakdown chart" width="100%">
+      <br>
+      <sub>LLMOps 집계에서는 심문 비용의 병목이 completion이 아니라 evidence/history prompt context임을 확인했습니다. block token은 estimate 기준입니다.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/scaleout-lb-distribution.svg" alt="Scale-out load balancing distribution chart" width="100%">
+      <br>
+      <sub>Scale-out은 운영 기본 구조가 아니라 PoC입니다. Terraform app node 2대와 local active slot을 Nginx equal upstream으로 묶어 60회 요청 분산을 확인했습니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/evidence-reachability.svg" alt="Official scenario evidence reachability chart" width="100%">
+      <br>
+      <sub>Android E2E local retest에서 두 공식 시나리오 모두 public evidence reachability를 끝까지 확인했습니다.</sub>
     </td>
   </tr>
 </table>

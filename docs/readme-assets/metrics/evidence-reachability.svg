@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" role="img" aria-labelledby="title desc">
+  <title id="title">Official scenario evidence reachability</title>
+  <desc id="desc">Progress bars showing Seowolchae reached 25 of 25 evidence items and Studio9 reached 35 of 35 evidence items in Android E2E local retest.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #dbe4ee; stroke-width: 1; }
+      .track { fill: #e5edf5; }
+      .title { fill: #0f172a; font: 700 28px "Segoe UI", Arial, sans-serif; }
+      .subtitle { fill: #475569; font: 500 15px "Segoe UI", Arial, sans-serif; }
+      .label { fill: #334155; font: 700 17px "Segoe UI", Arial, sans-serif; }
+      .value { fill: #0f172a; font: 800 28px "Segoe UI", Arial, sans-serif; }
+      .small { fill: #64748b; font: 500 13px "Segoe UI", Arial, sans-serif; }
+      .tag { fill: #ffffff; font: 800 15px "Segoe UI", Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="900" height="420" rx="18"/>
+  <rect class="panel" x="30" y="28" width="840" height="364" rx="18"/>
+
+  <text class="title" x="72" y="78">Evidence Reachability</text>
+  <text class="subtitle" x="72" y="105">Official scenarios reached full public evidence count in local Android E2E retest</text>
+
+  <text class="label" x="92" y="168">Seowolchae</text>
+  <rect class="track" x="225" y="143" width="560" height="34" rx="12"/>
+  <rect x="225" y="143" width="560" height="34" rx="12" fill="#16a34a"/>
+  <text class="tag" x="452" y="165">25 / 25</text>
+  <text class="value" x="792" y="170">100%</text>
+
+  <text class="label" x="92" y="251">Studio9</text>
+  <rect class="track" x="225" y="226" width="560" height="34" rx="12"/>
+  <rect x="225" y="226" width="560" height="34" rx="12" fill="#2563eb"/>
+  <text class="tag" x="452" y="248">35 / 35</text>
+  <text class="value" x="792" y="253">100%</text>
+
+  <rect x="92" y="303" width="180" height="34" rx="17" fill="#f97316"/>
+  <text class="tag" x="121" y="325">60 / 60 reached</text>
+
+  <text class="small" x="300" y="325">Source: docs/qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md</text>
+</svg>
