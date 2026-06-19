@@ -302,7 +302,7 @@ GET /api/play-sessions/{sessionId}/suspects/{suspectId}
 | 사용 화면 | 심문 채팅 화면 |
 | 호출 시점 | 사용자가 질문 전송 버튼을 누를 때 |
 | Request | `suspectId`, `questionType`, `question`, `presentedEvidenceId` |
-| 응답 핵심 | `interrogationId`, `suspectId`, `suspectName`, `question`, `answer`, `unlockedEvidences`, `createdAt` |
+| 응답 핵심 | `interrogationId`, `suspectId`, `suspectName`, `question`, `answer`, `unlockedEvidences`, `createdAt`, `aiQuota` |
 
 `questionType`은 현재 아래 값을 사용한다.
 
@@ -315,6 +315,9 @@ EVIDENCE_PRESENTED
 `RECOMMENDED` enum은 호환성상 남아 있지만, 증거 상세 `guidance.suggestedQuestions` chip은 `EVIDENCE_PRESENTED`로 prefill한다.
 증거 제시 질문일 때만 `presentedEvidenceId`를 넣는다.
 현재 구현에서는 `unlockedEvidences`가 비어 있을 수 있으므로, 심문 성공 후에는 증거 목록과 대시보드를 다시 조회한다.
+`aiQuota`가 있으면 현재 시나리오 기준 AI 호출 사용량과 UX 유도 단계를 표시할 수 있다.
+프론트는 `35/50/70/100/120`회 threshold에서 정리, 용의자 비교, 힌트/가이던스, 최종추리 CTA를 단계적으로 노출한다.
+이 안내는 AI를 추가 호출하지 않고 이미 내려온 quota metadata만 사용해야 한다.
 
 ### 3.9 힌트 목록
 
@@ -1104,9 +1107,22 @@ Content-Type: application/json
 | `answer` | 용의자 답변 말풍선 |
 | `unlockedEvidences` | 현재는 비어 있을 수 있음 |
 | `createdAt` | 메시지 시간 |
+| `aiQuota` | AI 호출량 기반 정리/힌트/최종추리 유도 배너 |
 
 현재 서비스 구현상 `unlockedEvidences`는 빈 리스트일 수 있다.
 따라서 심문 성공 후에는 이 필드에만 의존하지 않는다.
+
+`aiQuota.stage` 사용 기준:
+
+| stage | 권장 UI |
+|---|---|
+| `NONE` | 별도 배너 없음 |
+| `SUGGEST_EVIDENCE_REVIEW` | 증거/타임라인 정리 안내 |
+| `SUGGEST_SUSPECT_COMPARE` | 용의자별 진술 비교 안내 |
+| `SUGGEST_HINT_OR_GUIDANCE` | 힌트, 함께 볼 증거, 추천 질문 확인 안내 |
+| `SUGGEST_FINAL_DEDUCTION_CHECKLIST` | 최종추리 준비 체크리스트 CTA |
+| `STRONGLY_RECOMMEND_FINAL_DEDUCTION` | 추가 심문 대신 최종추리 강한 CTA |
+| `AI_RATE_002` 429 | 입력 차단 후 증거/힌트/최종추리 화면으로 유도 |
 
 심문 성공 후 권장 갱신은 아래와 같다.
 

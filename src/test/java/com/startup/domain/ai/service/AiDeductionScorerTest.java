@@ -3,7 +3,9 @@ package com.startup.domain.ai.service;
 import com.startup.common.auth.MockUserProvider;
 import com.startup.common.error.BusinessException;
 import com.startup.common.error.CommonErrorCode;
+import com.startup.domain.ai.client.AiCallContext;
 import com.startup.domain.ai.client.AiClient;
+import com.startup.domain.ai.client.AiRequestParams;
 import com.startup.domain.ai.dto.AiFeedbackResult;
 import com.startup.domain.ai.dto.DeductionResultResponse;
 import com.startup.domain.ai.dto.FinalDeductionRequest;
@@ -39,6 +41,8 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -407,6 +411,34 @@ class AiDeductionScorerTest {
 
         verify(contextLoader).releaseFinalDeductionLock(SESSION_ID);
         verify(ruleBasedScorer, never()).score(any(FinalDeductionRequest.class), any(ScoringCriteria.class));
+    }
+
+    @Test
+    @DisplayName("AI rate limit은 최종추리 feedback fallback으로 저장하지 않고 전파한다")
+    void submitAndScore_withAiRateLimit_propagatesWithoutFallbackOrSave() {
+        stubSuccessfulSubmitChain(List.of(2L), new ScoringResult(85, 30, true, 25, 20, 10, 0, 0));
+        when(aiClient.isMockMode()).thenReturn(false);
+        when(promptBuilder.buildDeductionScoringPrompt(
+                any(ScoringResult.class),
+                any(SolutionInfo.class),
+                any(FinalDeductionRequest.class),
+                any(ScoringCriteria.class)))
+                .thenReturn("deduction prompt");
+        when(aiClient.chatWithMetadata(
+                anyString(), anyString(), any(AiRequestParams.class), any(AiCallContext.class)))
+                .thenThrow(new AiException(AiErrorCode.AI_DAILY_RATE_LIMIT_EXCEEDED));
+
+        FinalDeductionRequest request = buildSubmitRequest(1L, List.of(2L));
+
+        assertThatThrownBy(() -> scorer.submitAndScore(SESSION_ID, request))
+                .isInstanceOfSatisfying(AiException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(AiErrorCode.AI_DAILY_RATE_LIMIT_EXCEEDED));
+
+        verify(aiClient, never()).recordFallback(any(AiCallContext.class), anyString(), anyLong());
+        verify(fallbackFeedbackGenerator, never()).generate(any(ScoringResult.class), any(ScoringCriteria.class));
+        verify(contextLoader, never()).saveResultAndComplete(
+                eq(SESSION_ID), any(FinalDeduction.class), any());
+        verify(contextLoader).releaseFinalDeductionLock(SESSION_ID);
     }
 
     private void stubOwnerMatch() {

@@ -26,7 +26,10 @@ public record InterrogationResponse(
         List<UnlockedEvidenceDto> unlockedEvidences,
 
         @Schema(description = "생성 시각")
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+
+        @Schema(description = "AI 호출 quota 상태와 UX 유도 정보")
+        AiQuotaStatus aiQuota
 ) {
     @Schema(description = "해금된 증거 요약")
     public record UnlockedEvidenceDto(

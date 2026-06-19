@@ -127,6 +127,11 @@ cp .env.example .env
 | `OPENAI_CHAT_MODEL` | Chat model 이름. 기본 운영 후보는 `deepseek-v4-flash` |
 | `OPENAI_CHAT_TEMPERATURE` | Chat temperature |
 | `AI_LLMOPS_DB_LOGGING_ENABLED` | AI 호출 로그 DB 저장 활성화 여부 |
+| `AI_RATE_LIMIT_ENABLED` | Redis 기반 계정별 AI 호출 제한 활성화 여부. 운영 기본 `true` |
+| `AI_DAILY_RATE_LIMIT_PER_USER_PER_SCENARIO` | 인증 계정+시나리오별 일일 실제 AI provider 호출 한도. 운영 기본 `150` |
+| `AI_DAILY_RATE_LIMIT_PER_USER_TOTAL` | 인증 계정별 전체 일일 실제 AI provider 호출 한도. 운영 기본 `350` |
+| `AI_RATE_LIMIT_TTL_HOURS` | rate-limit Redis key TTL. 기본 `24` |
+| `AI_RATE_LIMIT_ADMIN_BYPASS_ENABLED` | ADMIN role의 AI 호출 제한 우회 여부. 운영/QA smoke 기본 `true` |
 | `AUTH_MOCK_FALLBACK_ENABLED` | JWT 전환기 token 없는 기존 API 요청을 `MOCK_USER_ID`로 허용할지 여부 |
 | `AUTH_DEV_LOGIN_ENABLED` | `/api/auth/dev` 개발용 로그인 활성 여부. 운영 기본 `false` |
 | `AUTH_REQUIRE_AUTHENTICATION` | 사용자별 API 인증 강제 여부. local/test 호환 모드는 `false`, 운영 protected mode는 `true` |

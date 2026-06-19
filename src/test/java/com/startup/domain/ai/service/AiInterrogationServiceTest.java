@@ -13,6 +13,8 @@ import com.startup.domain.ai.dto.SuspectProfile;
 import com.startup.domain.ai.entity.InterrogationLog;
 import com.startup.domain.ai.enums.AiFeatureType;
 import com.startup.domain.ai.enums.QuestionType;
+import com.startup.domain.ai.error.AiErrorCode;
+import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.prompt.AiPromptBuilder;
 import com.startup.domain.ai.repository.InterrogationLogRepository;
 import com.startup.domain.ai.support.AiPromptContextLogger;
@@ -27,6 +29,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -35,6 +38,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -328,5 +332,77 @@ class AiInterrogationServiceTest {
                 eq("답변"),
                 eq("deepseek-v4-flash")
         );
+    }
+
+    @Test
+    void interrogate_propagatesRateLimitWithoutFallbackOrLogSave() {
+        InterrogationContextLoader contextLoader = mock(InterrogationContextLoader.class);
+        AiPromptBuilder promptBuilder = mock(AiPromptBuilder.class);
+        AiClient aiClient = mock(AiClient.class);
+        MockResponseProvider mockResponseProvider = mock(MockResponseProvider.class);
+        InterrogationLogWriter logWriter = mock(InterrogationLogWriter.class);
+        InterrogationLogRepository interrogationLogRepository = mock(InterrogationLogRepository.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        TimeEvidenceUnlockSyncer timeEvidenceUnlockSyncer = mock(TimeEvidenceUnlockSyncer.class);
+        InterrogationEvidenceUnlockService interrogationEvidenceUnlockService =
+                mock(InterrogationEvidenceUnlockService.class);
+        MockUserProvider mockUserProvider = mock(MockUserProvider.class);
+        AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
+        AiInterrogationService service = new AiInterrogationService(
+                contextLoader,
+                promptBuilder,
+                aiClient,
+                mockResponseProvider,
+                logWriter,
+                interrogationLogRepository,
+                eventPublisher,
+                timeEvidenceUnlockSyncer,
+                interrogationEvidenceUnlockService,
+                mockUserProvider,
+                promptContextLogger
+        );
+        Long sessionId = 20L;
+        Long suspectId = 30L;
+        InterrogationRequest request = new InterrogationRequest(
+                suspectId, QuestionType.FREE, "더 물어볼 수 있습니까?", null);
+        SuspectProfile suspect = new SuspectProfile(
+                suspectId,
+                "NPC_SECRETARY",
+                "문하연",
+                "비서실장",
+                "측근",
+                "공개 프로필",
+                "공개 진술",
+                "알리바이"
+        );
+        InterrogationContext context = new InterrogationContext(
+                10L,
+                suspect,
+                List.of(),
+                null,
+                ResponsePolicyResult.hardcodedFallback(),
+                List.of()
+        );
+
+        when(mockUserProvider.currentUserId()).thenReturn(1L);
+        when(contextLoader.load(sessionId, suspectId, null)).thenReturn(context);
+        when(aiClient.isMockMode()).thenReturn(false);
+        when(promptBuilder.buildSystemPrompt()).thenReturn("system prompt");
+        when(promptBuilder.buildUserPrompt(
+                eq(suspect), eq(List.of()), isNull(), eq(context.policy()), eq(List.of()),
+                eq(request.question()), eq(request.questionType())))
+                .thenReturn("user prompt");
+        when(promptBuilder.interrogationTemplateHash(request.questionType())).thenReturn("abc123def456");
+        when(aiClient.chatWithMetadata(
+                anyString(), anyString(), any(AiRequestParams.class), any(AiCallContext.class)))
+                .thenThrow(new AiException(AiErrorCode.AI_DAILY_RATE_LIMIT_EXCEEDED));
+
+        assertThatThrownBy(() -> service.interrogate(sessionId, request))
+                .isInstanceOfSatisfying(AiException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(AiErrorCode.AI_DAILY_RATE_LIMIT_EXCEEDED));
+
+        verify(aiClient, never()).recordFallback(any(AiCallContext.class), anyString(), anyLong());
+        verify(logWriter, never()).save(
+                anyLong(), anyLong(), any(), any(QuestionType.class), any(), any(), any());
     }
 }

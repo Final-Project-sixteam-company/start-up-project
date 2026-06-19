@@ -1808,11 +1808,26 @@ POST /api/play-sessions/{sessionId}/interrogations
     "question": "사건 당시 어디에 있었습니까?",
     "answer": "저는 그 시간에 재무팀 자리에서 투자 자료를 정리하고 있었습니다. 데모룸 근처에는 가지 않았습니다.",
     "unlockedEvidences": [],
-    "createdAt": "2026-05-15T20:12:00"
+    "createdAt": "2026-05-15T20:12:00",
+    "aiQuota": {
+      "scope": "SCENARIO_DAILY",
+      "scenarioUsed": 35,
+      "scenarioLimit": 150,
+      "accountUsed": 52,
+      "accountLimit": 350,
+      "stage": "SUGGEST_EVIDENCE_REVIEW",
+      "recommendedAction": "OPEN_EVIDENCE_TIMELINE",
+      "message": "지금까지 해금한 증거와 타임라인을 한 번 정리해 보세요.",
+      "nextThreshold": 50,
+      "remaining": 115
+    }
   },
   "error": null
 }
 ```
+
+`aiQuota`는 실제 provider AI 호출에 대해서만 내려온다. 프론트는 `stage`와 `recommendedAction`을 보고 정리/힌트/최종추리 CTA를 표시할 수 있다.
+안내 threshold는 현재 `35 / 50 / 70 / 100 / 120`회이며, hard cap은 계정+시나리오별 150회/day다.
 
 ---
 
@@ -1850,7 +1865,19 @@ POST /api/play-sessions/{sessionId}/interrogations
         "title": "박재민의 법인카드 결제 내역"
       }
     ],
-    "createdAt": "2026-05-15T20:14:00"
+    "createdAt": "2026-05-15T20:14:00",
+    "aiQuota": {
+      "scope": "SCENARIO_DAILY",
+      "scenarioUsed": 70,
+      "scenarioLimit": 150,
+      "accountUsed": 104,
+      "accountLimit": 350,
+      "stage": "SUGGEST_HINT_OR_GUIDANCE",
+      "recommendedAction": "OPEN_HINT_OR_GUIDANCE",
+      "message": "증거 상세의 추천 질문, 함께 볼 증거, 힌트를 활용해 남은 모순을 좁혀보세요.",
+      "nextThreshold": 100,
+      "remaining": 80
+    }
   },
   "error": null
 }

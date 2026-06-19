@@ -28,9 +28,15 @@ public enum AiErrorCode implements ErrorCode {
     SCENARIO_VALIDATION_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "AI018", "시나리오 검증 결과를 찾을 수 없습니다"),
     SCENARIO_NOT_FOUND(HttpStatus.NOT_FOUND, "AI019", "시나리오를 찾을 수 없습니다"),
     SCENARIO_DATA_INCOMPLETE(HttpStatus.BAD_REQUEST, "AI020", "시나리오 데이터가 불완전합니다"),
-    FINAL_DEDUCTION_EVIDENCE_NOT_UNLOCKED(HttpStatus.BAD_REQUEST, "AI021", "최종 추리에 사용할 수 없는 증거입니다.");
+    FINAL_DEDUCTION_EVIDENCE_NOT_UNLOCKED(HttpStatus.BAD_REQUEST, "AI021", "최종 추리에 사용할 수 없는 증거입니다."),
+    AI_DAILY_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "AI_RATE_002", "오늘 AI 호출 한도를 초과했습니다."),
+    AI_RATE_LIMIT_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI_RATE_003", "AI 호출 제한 상태를 확인할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
     private final String message;
+
+    public boolean isRateLimitError() {
+        return code.startsWith("AI_RATE_");
+    }
 }

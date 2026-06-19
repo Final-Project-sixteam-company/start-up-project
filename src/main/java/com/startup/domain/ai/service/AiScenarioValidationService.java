@@ -218,6 +218,13 @@ public class AiScenarioValidationService {
 
             AiCallResult response = aiClient.chatWithMetadata(systemPrompt, userPrompt, params, context);
             return parseAiResponse(response.text());
+        } catch (AiException e) {
+            if (e.getErrorCode() instanceof AiErrorCode aiErrorCode && aiErrorCode.isRateLimitError()) {
+                throw e;
+            }
+            log.warn("AI 검증 호출 실패: {}", e.getMessage());
+            aiClient.recordFallback(context, e.getErrorCode().getCode(), elapsedMs(startTime));
+            return AiValidationOutcome.failed();
         } catch (Exception e) {
             log.warn("AI 검증 호출 실패: {}", e.getMessage());
             aiClient.recordFallback(context, errorCode(e), elapsedMs(startTime));

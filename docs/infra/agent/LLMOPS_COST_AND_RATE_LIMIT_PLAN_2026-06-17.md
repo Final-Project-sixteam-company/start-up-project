@@ -12,9 +12,9 @@
 |---|---|
 | 제품 목표 기준 | 30~50회 심문 안에 submit-ready 도달 후 최종 추리 1회 |
 | 현재 QA 관측 기준 | 30~50회는 안정적 범인 특정 미달, submit-ready까지 서월채 약 80회, 스튜디오9 약 100회 extended interrogation 필요 |
-| QA overrun / abuse 기준 | 120회 이상 심문은 비용·UX 남용 신호로 본다 |
-| 계정당 session hard cap | `INTERROGATION` 120회 / session, `FINAL_DEDUCTION` 3회 / session |
-| 계정당 기본 daily cap | `INTERROGATION` 180회 / day, `FINAL_DEDUCTION` 10회 / day |
+| QA overrun / abuse 기준 | 120회 이상 심문은 비용·UX 남용 신호로 보고 강하게 최종추리로 유도한다 |
+| 계정+시나리오 hard cap | 실제 AI provider 호출 150회 / day |
+| 계정당 기본 daily cap | 계정+시나리오별 실제 AI provider 호출 150회 / day, 계정 전체 350회 / day |
 | 계정당 기본 monthly cap | `INTERROGATION` 1,500회 / month, `FINAL_DEDUCTION` 30회 / month |
 | QA 전용 계정 | 별도 role 또는 allowlist로 일반 cap보다 높게 부여하고 public report에 raw 결과를 남기지 않음 |
 | 우선 최적화 대상 | `npc_interrogation_v1`의 evidence/history prompt context |
@@ -146,11 +146,13 @@ cost_usd =
 |---|---:|---|---|
 | guidance nudge | 35 `INTERROGATION` / session | 목표형 30~50턴 구간 진입 | guidance, 힌트, 증거 비교 UI 노출을 강화 |
 | soft cap | 50 `INTERROGATION` / session | 제품 목표 상한이지만 현재 QA 미달 | 차단하지 않고 “막힌 상태”로 보고 힌트/정리 화면 유도 |
-| strong warning | 70 `INTERROGATION` / session | extended play 진입 신호 | 현재 추리 요약, 핵심 증거 재정리, 최종 추리 준비도 checklist 유도 |
-| hard cap | 120 `INTERROGATION` / session | 현재 QA extended 80~100회에 buffer를 둔 비용/남용 방어 | 추가 심문 차단 또는 QA/관리 계정만 허용 |
+| guidance nudge | 70 `INTERROGATION` / session | extended play 진입 신호 | 힌트/함께 볼 증거/추천 질문 활용 유도 |
+| final deduction checklist | 100 `INTERROGATION` / session | 현재 QA submit-ready baseline 도달 구간 | 범인·동기·수단·은폐 정황 정리 유도 |
+| strong warning | 120 `INTERROGATION` / session | 비용·UX overrun 신호 | 추가 심문보다 최종 추리 CTA를 강하게 노출 |
+| hard cap | 150 actual AI calls / account+scenario / day | 하루에 공식 시나리오 하나를 충분히 플레이하되 반복 호출 abuse 방어 | 추가 AI 호출 차단, 증거/힌트/최종추리 화면으로 유도 |
 | final submit cap | 3 `FINAL_DEDUCTION` / session | 찍기 제출/반복 채점 방어 | 제출 전 근거 completeness check 유도 |
 
-세션 hard cap은 UX 차단처럼 보이면 안 된다. 문구는 “심문 기회를 모두 사용했습니다”보다 “수사 기록이 길어져 AI 응답 품질이 떨어질 수 있습니다. 증거 정리/힌트/최종 추리로 이동하세요.”에 가깝게 둔다. 현재 QA 기준으로 50회 hard stop은 금지한다.
+150회 hard cap 전까지는 조용히 허용하지 않고 35/50/70/100/120 threshold에서 정리, 힌트, 추천 질문, 최종 추리로 유도한다. 현재 QA 기준으로 50회 hard stop은 금지한다.
 
 ### 5.2 계정 단위 제한
 
@@ -160,15 +162,16 @@ MVP 무료 계정 기본값:
 |---|---:|
 | `INTERROGATION` burst | 8회 / minute |
 | `INTERROGATION` hourly | 60회 / hour |
-| `INTERROGATION` daily | 180회 / day |
+| AI provider call daily per scenario | 150회 / day |
+| AI provider call daily total | 350회 / day |
 | `INTERROGATION` monthly | 1,500회 / month |
-| `FINAL_DEDUCTION` daily | 10회 / day |
+| `FINAL_DEDUCTION` daily | 별도 분리 전까지 account daily cap에 합산 |
 | `FINAL_DEDUCTION` monthly | 30회 / month |
 | concurrent AI call | 1~2회 / account |
 
-180회/day + final deduction 5회는 보수적으로 약 555k tokens, 약 $0.079, 약 120원 수준이다. 한 계정이 하루에 1개 시나리오를 길게 플레이하고 다른 시나리오를 일부 진행하는 정도까지 허용하면서, 자동화된 반복 호출은 막는 수준이다.
+현재 구현 baseline은 feature별 분리 전 단계이므로 `INTERROGATION`, `FINAL_DEDUCTION`, `SCENARIO_VALIDATION`의 실제 provider 호출을 계정+시나리오별 150회/day로 합산한다. 계정 전체 daily cap은 350회/day로 두어 한 계정이 하루에 서월채와 스튜디오9를 모두 길게 플레이할 수 있게 한다.
 
-1,500회/month + final deduction 30회는 보수적으로 약 4.6M tokens, 약 $0.66, 약 1,000원 수준이다. 현재 QA 기준 100회 심문형 플레이로 약 15회까지 허용하는 값이라, `daily 180회`와 충돌하지 않으면서도 월 단위 남용을 막는 기준으로 볼 수 있다.
+1,500회/month + final deduction 30회는 보수적으로 약 4.6M tokens, 약 $0.66, 약 1,000원 수준이다. 현재 QA 기준 100회 심문형 플레이로 약 15회까지 허용하는 값이라, per-scenario `daily 150회`와 충돌하지 않으면서도 월 단위 남용을 막는 후보로 볼 수 있다.
 
 QA/운영 계정:
 
@@ -186,7 +189,7 @@ QA/운영 계정:
 |---|---:|
 | same IP AI calls | 300회 / 10분 warning |
 | same IP hard cap | 1,000회 / 1시간 |
-| same deviceId AI calls | 180회 / day |
+| same deviceId AI calls | 150회 / day |
 | anonymous/public path | AI 호출 없음. 시나리오 목록/상세만 허용 |
 
 ## 6. 구현 방식
@@ -198,7 +201,8 @@ QA/운영 계정:
 ```text
 ai:limit:user:{userId}:minute:{yyyyMMddHHmm}
 ai:limit:user:{userId}:hour:{yyyyMMddHH}
-ai:limit:user:{userId}:day:{yyyyMMdd}
+ai:rate:daily:{yyyyMMdd}:user:{userId}:scenario:{scenarioId}
+ai:rate:daily:{yyyyMMdd}:user:{userId}:total
 ai:limit:user:{userId}:month:{yyyyMM}
 ai:limit:session:{sessionId}:interrogation
 ai:limit:session:{sessionId}:final-deduction
@@ -214,7 +218,7 @@ ai:limit:device:{deviceHash}:day:{yyyyMMdd}
 |---|---:|---|---|
 | session hard cap | 429 | `AI_RATE_001` | 심문량이 많아 품질/비용 보호를 위해 제한. 힌트/증거 정리/최종 추리 유도 |
 | account daily cap | 429 | `AI_RATE_002` | 오늘 사용량 초과. 다음 날 또는 QA 계정 사용 안내 |
-| global circuit breaker | 503 | `AI_RATE_003` | 현재 AI 사용량이 높아 일시 제한 |
+| rate-limit state unavailable | 503 | `AI_RATE_003` | Redis 장애 등으로 quota 상태를 확인할 수 없어 비용 방어를 위해 일시 제한 |
 
 ## 7. 글로벌 예산 경보
 
@@ -461,7 +465,7 @@ model
 ```text
 - 핵심 증거 guidance 보강
 - suggested question reason / compare evidence 설명 추가
-- 35/50/70턴 nudge 문구 설계
+- 35/50/70/100/120턴 nudge 문구 설계
 - 최종 추리 준비도 checklist 추가
 ```
 
@@ -571,8 +575,8 @@ model
 
 | 우선순위 | 작업 |
 |---|---|
-| P0 | Redis 기반 `INTERROGATION`/`FINAL_DEDUCTION` rate limit 구현 |
-| P0 | session-level 35/50/70/120 threshold를 AI_CALL log와 metric에 기록 |
+| P0 | Redis 기반 계정+시나리오별 AI provider call rate limit 구현 |
+| P0 | 35/50/70/100/120 threshold를 심문 응답 `aiQuota`로 노출 |
 | P0 | AI_CALL에 `estimatedCostUsd`, `inputTokens`, `outputTokens`, `promptVersion`, `model`을 안정적으로 남김 |
 | P0 | 30~50 목표 미달을 기준으로 calls-to-submit-ready baseline을 80~100회로 기록 |
 | P1 | n8n LLMOps daily report에 cost/session, cost/account percentile 추가 |

@@ -30,14 +30,14 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 | AI-safe Gameplay | Production Ops | LLMOps | QA Evidence |
 |---|---|---|---|
-| 정답은 서버가 보관하고 AI에는 public-safe context만 전달 | Lightsail 3서버, Blue-Green, external MySQL/Redis | `AI_CALL` / `AI_CALL_CONTEXT` 기반 token·latency 관측 | Android/Web E2E와 public-safe QA report 관리 |
+| 정답은 서버가 보관하고 AI에는 public-safe context만 전달 | Lightsail 3서버, Blue-Green, external MySQL/Redis | `AI_CALL` / `AI_CALL_CONTEXT` 기반 token·latency 관측, Redis-backed AI quota | Android/Web E2E와 public-safe QA report 관리 |
 | ResponsePolicyResolver가 답변 정책 결정 | Loki/Grafana/n8n/Slack alert 운영 | prompt token 비율과 비용 계획 문서화 | spoiler metadata, 정답성 신호, raw transcript 비공개 |
 
 ## Proof Snapshot
 
 | Backend Test | Scenario Coverage | Scenario API Perf | LLMOps Smoke | Scale-out PoC | Web Retest |
 |---:|---:|---:|---:|---:|---:|
-| **330 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | **10 / 0 / 0** success/failure/fallback | **21 / 19 / 20** over 60 requests | guidance/bookmark/mobile/final/result **PASS** |
+| **342 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | **10 / 0 / 0** success/failure/fallback | **21 / 19 / 20** over 60 requests | guidance/bookmark/mobile/final/result **PASS** |
 
 > 수치는 public-safe QA/LLMOps/PoC 보고서 기준입니다. 정답, 점수, session/token, raw prompt/answer는 공개 README에 포함하지 않습니다.
 
@@ -45,6 +45,7 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 - [Live & Docs](#live--docs)
 - [Visual Evidence](#visual-evidence)
+- [Metric Charts](#metric-charts)
 - [Repository Scope](#repository-scope)
 - [Team Ownership](#team-ownership)
 - [Product Flow](#product-flow)
@@ -114,6 +115,39 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 ---
 
+## Metric Charts
+
+아래 차트는 public-safe 문서에 남긴 집계 수치만 사용합니다. 원문 prompt, AI 답변, 사용자 질문, session/token, 정답성 정보는 포함하지 않습니다.
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/scenario-api-p95.svg" alt="Scenario API P95 latency chart" width="100%">
+      <br>
+      <sub>시나리오 목록 API는 복합 인덱스와 Redis short TTL cache 적용 후 P95가 241ms에서 19ms로 내려갔습니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/llmops-context-breakdown.svg" alt="LLMOps prompt context breakdown chart" width="100%">
+      <br>
+      <sub>LLMOps 집계에서는 심문 비용의 병목이 completion이 아니라 evidence/history prompt context임을 확인했습니다. block token은 estimate 기준입니다.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/scaleout-lb-distribution.svg" alt="Scale-out load balancing distribution chart" width="100%">
+      <br>
+      <sub>Scale-out은 운영 기본 구조가 아니라 PoC입니다. Terraform app node 2대와 local active slot을 Nginx equal upstream으로 묶어 60회 요청 분산을 확인했습니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/evidence-reachability.svg" alt="Official scenario evidence reachability chart" width="100%">
+      <br>
+      <sub>Android E2E local retest에서 두 공식 시나리오 모두 public evidence reachability를 끝까지 확인했습니다.</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
 ## Repository Scope
 
 ClueRoom은 Android 앱, Web 프론트, Backend가 함께 동작합니다. 이 README는 백엔드 포트폴리오 진입점이므로 화면 구현보다 서버가 책임지는 경계를 중심으로 설명합니다.
@@ -171,6 +205,7 @@ ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 
 | Scenario List Performance | QueryDSL 동적 필터, `(status, visibility, created_at DESC)` 복합 인덱스, Redis 30초 캐시 | 홈 화면 핵심 API를 k6로 측정하고 P95 `241ms -> 19ms`로 개선. [성능 리포트](docs/perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md) |
 | Play Runtime | session, evidence unlock, suspect, interrogation, final deduction, result path 관리 | 추리게임 상태 전이를 서버에서 일관되게 보장 |
 | Auth | Google/Kakao OAuth, JWT access token, refresh session, web/android 공존 | 모바일 앱과 웹 배포를 함께 지원 |
+| AI Quota / Rate Limit | Redis 일일 counter로 계정+시나리오 150회, 계정 전체 350회 실제 AI provider 호출 제한 | 과다 심문은 35/50/70/100/120회 안내 단계로 정리 유도, quota 초과는 `429 / AI_RATE_002`로 차단 |
 | Review / Play Count Consistency | 리뷰 평점은 DB 비관적 락, playCount는 쿼리 레벨 atomic update 적용 | Lost update 방어와 단순 카운터 경합 최소화 |
 | Ops | Blue-Green 배포, 외부 MySQL/Redis, Loki/Grafana/n8n, Slack alert | 저비용 MVP 환경에서 운영 경험과 복구 절차 확보 |
 | LLMOps | `AI_CALL`, `AI_CALL_CONTEXT` 로그로 token, latency, failure/fallback 관측 | 비용과 품질을 raw prompt 없이 운영 지표화 |
@@ -293,7 +328,7 @@ AI receives:
 | Play Session | `POST /api/play-sessions`, `GET /api/play-sessions/{sessionId}` | 플레이 시작과 진행 상태 조회 |
 | Evidence | `GET /api/play-sessions/{sessionId}/evidences` | 해금된 증거, guidance, 함께 볼 증거 |
 | Suspect | `GET /api/play-sessions/{sessionId}/suspects` | public-safe 용의자 정보 |
-| Interrogation | `POST /api/play-sessions/{sessionId}/interrogations` | AI 용의자 심문 |
+| Interrogation | `POST /api/play-sessions/{sessionId}/interrogations` | AI 용의자 심문. 응답에 `aiQuota` 안내 metadata 포함 |
 | Final Deduction | `POST /api/play-sessions/{sessionId}/final-deduction` | 최종 추리 제출 |
 | Result | `GET /api/play-sessions/{sessionId}/result` | 제출 후 결과 조회 |
 | Review / Bookmark | `POST /api/scenarios/{scenarioId}/reviews`, `POST /api/scenarios/{scenarioId}/bookmarks` | 계정 기반 리뷰/북마크 |
@@ -311,6 +346,7 @@ ClueRoom은 AI 기능을 “잘 동작한다” 수준에서 끝내지 않고, �
 |---|---|
 | `AI_CALL` | featureType, promptVersion, model, latency, token, success/failure/fallback 관측 |
 | `AI_CALL_CONTEXT` | system/policy/npc/evidence/history/question block별 token estimate 관측 |
+| `AI_QUOTA_BLOCK` / `ai.quota.blocks` | Redis counter로 실제 provider 호출 전 차단된 요청을 provider failure와 분리해 기록. quota 초과/Redis 장애를 `AI_RATE_002`/`AI_RATE_003`으로 명확히 분리 |
 | LLMOps Light Monitor | 최근 window 기준 Slack alert |
 | Codex Handoff Report | 사람이 필요할 때 raw-free 집계 리포트를 Codex에 전달해 분석 |
 
@@ -318,8 +354,8 @@ ClueRoom은 AI 기능을 “잘 동작한다” 수준에서 끝내지 않고, �
   <img src="docs/brochure-assets/clueroom_quality_metrics_board_v1.png" alt="ClueRoom quality metrics board" width="100%">
 </p>
 
-비용 계획은 [LLMOps 비용·레이트리밋 계획](docs/infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md)에 정리했습니다.
-핵심 결론은 `INTERROGATION / npc_interrogation_v1`이 비용을 지배하고, token 대부분이 completion이 아니라 evidence/history prompt context에서 발생한다는 점입니다.
+비용 계획과 rate-limit 정책은 [LLMOps 비용·레이트리밋 계획](docs/infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md)에 정리했습니다.
+핵심 결론은 `INTERROGATION / npc_interrogation_v1`이 비용을 지배하고, token 대부분이 completion이 아니라 evidence/history prompt context에서 발생한다는 점입니다. 운영 기본값은 계정+시나리오별 150회, 계정 전체 350회이며, 35/50/70/100/120회 구간에서 증거 정리·후보 비교·최종 추리를 유도합니다.
 
 ---
 

@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -104,6 +105,26 @@ class AiScenarioValidationServiceTest {
         assertThat(response.validationStatus()).isEqualTo(ValidationStatus.FAILED.name());
         assertThat(response.validationScore()).isLessThanOrEqualTo(40);
         assertThat(response.checkItems()).hasSize(10);
+    }
+
+    @Test
+    @DisplayName("AI rate limit은 시나리오 검증 실패 결과로 저장하지 않고 전파한다")
+    void validate_aiRateLimit_propagatesWithoutSavingFallback() {
+        ScenarioValidationResultRepository repository = mock(ScenarioValidationResultRepository.class);
+        AiClient aiClient = mock(AiClient.class);
+        when(aiClient.isMockMode()).thenReturn(false);
+        when(aiClient.chatWithMetadata(anyString(), anyString(), any(AiRequestParams.class), any(AiCallContext.class)))
+                .thenThrow(new AiException(AiErrorCode.AI_DAILY_RATE_LIMIT_EXCEEDED));
+
+        AiScenarioValidationService service = newService(
+                new MockScenarioDataReader(), aiClient, repository, new NoopLockService());
+
+        assertThatThrownBy(() -> service.validate(1L))
+                .isInstanceOfSatisfying(AiException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(AiErrorCode.AI_DAILY_RATE_LIMIT_EXCEEDED));
+
+        verify(aiClient, never()).recordFallback(any(AiCallContext.class), anyString(), anyLong());
+        verify(repository, never()).save(any(ScenarioValidationResult.class));
     }
 
     @Test

@@ -10,8 +10,10 @@ import com.startup.domain.ai.dto.InterrogationCompletedEvent;
 import com.startup.domain.ai.dto.InterrogationContext;
 import com.startup.domain.ai.dto.InterrogationRequest;
 import com.startup.domain.ai.dto.InterrogationResponse;
+import com.startup.domain.ai.dto.AiQuotaStatus;
 import com.startup.domain.ai.enums.AiFeatureType;
 import com.startup.domain.ai.enums.QuestionType;
+import com.startup.domain.ai.error.AiErrorCode;
 import com.startup.domain.ai.entity.InterrogationLog;
 import com.startup.domain.ai.error.AiException;
 import com.startup.domain.ai.prompt.AiPromptBuilder;
@@ -90,7 +92,8 @@ public class AiInterrogationService {
                 request.question(),
                 result.answer(),
                 unlockedEvidences,
-                savedLog.getCreatedAt()
+                savedLog.getCreatedAt(),
+                result.quotaStatus()
         );
     }
 
@@ -126,7 +129,7 @@ public class AiInterrogationService {
         if (aiClient.isMockMode()) {
             AiCallResult result = aiClient.chatOrMockWithMetadata(
                     null, null, null, aiCallContext, request.suspectId(), hasPresented);
-            return new AiResult(result.text(), result.modelName());
+            return new AiResult(result.text(), result.modelName(), result.quotaStatus());
         }
 
         String systemPrompt = promptBuilder.buildSystemPrompt();
@@ -146,11 +149,14 @@ public class AiInterrogationService {
         long startTime = System.currentTimeMillis();
         try {
             AiCallResult result = aiClient.chatWithMetadata(systemPrompt, userPrompt, params, aiCallContext);
-            return new AiResult(result.text(), result.modelName());
+            return new AiResult(result.text(), result.modelName(), result.quotaStatus());
         } catch (AiException e) {
+            if (e.getErrorCode() instanceof AiErrorCode aiErrorCode && aiErrorCode.isRateLimitError()) {
+                throw e;
+            }
             log.warn("AI 호출 실패, Fallback 응답 반환: {}", e.getMessage());
             aiClient.recordFallback(aiCallContext, e.getErrorCode().getCode(), elapsedMs(startTime));
-            return new AiResult(mockResponseProvider.getFallbackResponse(), "FALLBACK");
+            return new AiResult(mockResponseProvider.getFallbackResponse(), "FALLBACK", null);
         }
     }
 
@@ -196,5 +202,5 @@ public class AiInterrogationService {
         ));
     }
 
-    private record AiResult(String answer, String modelName) {}
+    private record AiResult(String answer, String modelName, AiQuotaStatus quotaStatus) {}
 }

@@ -66,6 +66,26 @@ public class AiCallRecorder {
                 latencyMs, success, safeErrorCode, fallbackUsed, usage);
     }
 
+    public void recordQuotaBlock(AiCallContext context, String errorCode, long latencyMs) {
+        AiCallContext safeContext = context == null ? AiCallContext.unknown() : context;
+        String safePromptVersion = safe(safeContext.promptVersion());
+        String safeErrorCode = errorCode == null ? "unknown" : safe(errorCode);
+
+        log.info(
+                "AI_QUOTA_BLOCK featureType={} promptVersion={} scenarioId={} sessionId={} suspectId={} npcCode={} latencyMs={} errorCode={}",
+                safeContext.featureType(),
+                safePromptVersion,
+                safeContext.scenarioId(),
+                safeContext.sessionId(),
+                safeContext.suspectId(),
+                safe(safeContext.npcCode()),
+                Math.max(0, latencyMs),
+                safeErrorCode
+        );
+
+        recordQuotaMetric(safeContext, safePromptVersion, Math.max(0, latencyMs), safeErrorCode);
+    }
+
     private void recordMetrics(AiCallContext context,
                                String provider,
                                String model,
@@ -123,6 +143,38 @@ public class AiCallRecorder {
             recordTokenMetric(registry, baseTags, "total", usage == null ? null : usage.totalTokens());
         } catch (Exception e) {
             log.debug("AI_CALL metric recording skipped: {}", e.getMessage());
+        }
+    }
+
+    private void recordQuotaMetric(AiCallContext context,
+                                   String promptVersion,
+                                   long latencyMs,
+                                   String errorCode) {
+        MeterRegistry registry = meterRegistryProvider.getIfAvailable();
+        if (registry == null) {
+            return;
+        }
+
+        try {
+            Tags tags = Tags.of(
+                    "feature_type", context.featureType().name(),
+                    "prompt_version", promptVersion,
+                    "error_code", errorCode
+            );
+
+            Counter.builder("ai.quota.blocks")
+                    .description("Total AI requests blocked before provider calls by quota/rate-limit policy.")
+                    .tags(tags)
+                    .register(registry)
+                    .increment();
+
+            Timer.builder("ai.quota.latency")
+                    .description("AI quota check latency for blocked requests.")
+                    .tags(tags)
+                    .register(registry)
+                    .record(Math.max(0, latencyMs), TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            log.debug("AI_QUOTA_BLOCK metric recording skipped: {}", e.getMessage());
         }
     }
 

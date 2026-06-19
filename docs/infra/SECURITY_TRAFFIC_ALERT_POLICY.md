@@ -66,6 +66,20 @@ Backend Redis rate limiting은 user/session/scenario aware 규칙에 사용한�
 
 Backend rate limit은 Android가 처리할 수 있는 API error response를 반환해야 한다.
 
+현재 Backend Redis AI quota baseline:
+
+```text
+AI_RATE_LIMIT_ENABLED=true
+AI_DAILY_RATE_LIMIT_PER_USER_PER_SCENARIO=150
+AI_DAILY_RATE_LIMIT_PER_USER_TOTAL=350
+AI_RATE_LIMIT_TTL_HOURS=24
+AI_RATE_LIMIT_ADMIN_BYPASS_ENABLED=true
+Redis key: ai:rate:daily:{yyyyMMdd}:user:{userId}:scenario:{scenarioId}
+Redis key: ai:rate:daily:{yyyyMMdd}:user:{userId}:total
+대상: 실제 provider AI 호출(INTERROGATION / FINAL_DEDUCTION / SCENARIO_VALIDATION)
+응답: 429 AI_RATE_002
+```
+
 ### Cloudflare / WAF 계층
 
 DNS/proxy 구성이 활성화되어 있다면 Cloudflare WAF를 coarse bot/country/path rule에 사용할 수 있다.
@@ -120,6 +134,8 @@ location /api/ {
 향후 Backend Redis rate-limit key 후보:
 
 ```text
+ai:rate:daily:{yyyyMMdd}:user:{userId}:scenario:{scenarioId}
+ai:rate:daily:{yyyyMMdd}:user:{userId}:total
 rate:ai:interrogation:user:{userId}:session:{sessionId}
 rate:ai:validation:user:{userId}:scenario:{scenarioId}
 rate:final-deduction:session:{sessionId}
