@@ -41,7 +41,7 @@ Framework: Spring Boot 4
 Persistence: Spring Data JPA
 Database: MySQL
 Cache/Lock 확장: Redis
-Client: Android Kotlin
+Clients: Flutter Android(Dart), React/Vite Web
 ```
 
 ### 1.2 1차 MVP 우선순위

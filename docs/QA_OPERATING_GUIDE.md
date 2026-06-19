@@ -473,11 +473,11 @@ Findings First를 먼저 쓴다.
 
 | Owner | Priority | Status | Source / Last verified | Issue | Next verification |
 |---|---|---|---|---|---|
-| Backend | P0/P1 | Open | 2026-06-10~2026-06-15 reports | public gameplay DTO/API에서 정답성/핵심성/비후보 추론 metadata가 플레이어 surface에 노출되는 문제 | public DTO/admin DTO 분리 후 API-only spoiler scan |
-| Frontend | P0/P1 | Open | 2026-06-12 follow-up, 2026-06-15 report | FE가 정답성 metadata에 후보/핵심 증거 UI를 의존할 수 있음 | metadata 제거 후 앱 후보/증거 UI regression |
+| Backend | P0/P1 | Fixed, regression scan needed | Public DTO cleanup / 2026-06-19 code review | public gameplay DTO/API에서 정답성/핵심성/비후보 추론 metadata가 플레이어 surface에 노출될 수 있었음. 현재 public evidence/suspect DTO와 locked compare evidence code masking은 수정됨 | API-only spoiler scan: `importance`, `culpritEligible`, `suspicionLevel`, raw asset key, locked compare evidence code 부재 확인 |
+| Frontend | P0/P1 | Fixed, regression scan needed | FE paired cleanup / 2026-06-19 web QA | FE가 정답성 metadata에 후보/핵심 증거 UI를 의존할 수 있었음. 현재 후보/증거 UI는 공개 필드와 해금 상태 기준으로 전환됨 | Android/Web 후보/증거 UI regression |
 | Frontend | P0 | Open | 2026-06-15 report, OAuth Android E2E 검증 artifact 없음 | 운영 앱 로그인 경로가 막혔던 이슈. OAuth 연결만으로 해결 처리하지 않고 fresh install Android E2E 통과 전까지 blocker로 유지 | fresh install에서 OAuth login, token refresh, `/api/auth/me`, scenario 진입 |
-| Backend/Product | P0/P1 | Open | 2026-06-15 report | 앱 login gate와 public play API 인증 정책 불일치 | `AUTH_REQUIRE_AUTHENTICATION` 운영 정책, QA 계정 정책, mock/public gameplay 정책 확정 |
-| Frontend | P1 | Open | 2026-06-11~2026-06-15 reports | 기본 suggested-question chip 자동 전송 가능성 | 모든 chip route가 prefill-only인지 Android E2E |
+| Backend/Product | P0/P1 | Policy fixed, prod smoke needed | Auth docs/code sync / 2026-06-19 | 앱 login gate와 public play API 인증 정책이 불명확했음. 현재 정책은 local/test mock compatibility와 운영 protected mode를 분리함 | 운영 `AUTH_REQUIRE_AUTHENTICATION=true`, QA 계정, public endpoint, refresh/CORS smoke |
+| Frontend | P1 | Fixed, regression scan needed | FE paired cleanup / 2026-06-19 review | 기본 suggested-question chip 자동 전송 가능성. 현재 정적/guidance chip은 prefill-only 경로로 정리됨 | 모든 chip route가 prefill-only인지 Android/Web E2E |
 | Scenario seed | P1 | Changed, needs blind retest | 2026-06 guidance seed 반영 후 미재검 | 30~50턴 안에 후보를 안정적으로 좁히기 어려웠고, guidance coverage가 부족했음 | Android 또는 masked API blind retest |
 | AI policy | P1 | Open | 2026-06-10~2026-06-15 reports | 증거 제시 답변이 회피형으로 끝나고 다음 비교 대상을 충분히 주지 못함 | response shape smoke: 인정 사실/모르는 범위/다음 비교 대상 |
 | Backend/AI | P1 | Open | 이전 QA_HANDOFF에서 유지 | INTERROGATION 조건 기반 증거 해금 E2E가 정본 board에서 별도 재검 필요 | INTERROGATION unlock rule seed/import 후 `unlockedEvidences`, evidence board count, dashboard count 대조 |
