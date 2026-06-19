@@ -1076,11 +1076,21 @@ Exporter gap은 확실하지 않은 사실을 만들어내지 말고 `OBSERVABIL
 
 AI cost 방어는 계층적으로 처리한다.
 
+현재 구현:
+
 ```text
 1. Edge-level bot traffic은 Nginx IP rate limit으로 방어한다.
-2. userId, sessionId, scenarioId, featureType 기준 Redis backend quota를 둔다.
-3. interrogation, scenario validation, final deduction용 AI quota를 분리한다.
+2. 현재 구현 baseline은 userId + scenarioId 기준 150회/day, userId 전체 기준 350회/day Redis backend quota를 둔다.
+3. quota는 실제 AI provider 호출 전에 차감하고, quota hit는 provider failure가 아닌 AI_QUOTA_BLOCK으로 분리 관측한다.
 4. quota hit와 fallback usage를 metric 또는 log summary로 관측한다.
+```
+
+후속 목표:
+
+```text
+1. sessionId 기준 반복 심문 방어를 추가한다.
+2. interrogation, scenario validation, final deduction용 feature별 quota를 분리한다.
+3. account, scenario, session, featureType 축의 비용/UX 지표를 비교해 hard cap과 guidance threshold를 조정한다.
 ```
 
 ### 16.6 현재 n8n Infra/Ops Workflow

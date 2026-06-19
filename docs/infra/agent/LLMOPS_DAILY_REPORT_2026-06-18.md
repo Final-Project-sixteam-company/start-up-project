@@ -29,7 +29,7 @@ AI_CALL_CONTEXT의 block token 값은 exact tokenizer 결과가 아니라 estima
 |---|---|
 | `ClueRoom LLMOps Codex Handoff Report v3` | 최근 24시간 AI_CALL, AI_CALL_CONTEXT, token, latency, failure/fallback 집계 |
 | `docs/infra/agent/LLMOPS_DAILY_SUMMARY_2026-06-09_TO_2026-06-13.md` | 이전 LLMOps daily report 구조와 token risk 해석 |
-| `docs/infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md` | 비용/레이트리밋 기준, 30~50회 목표 재해석, hard cap 후보 |
+| `docs/infra/agent/LLMOPS_COST_AND_RATE_LIMIT_PLAN_2026-06-17.md` | 비용/레이트리밋 기준, 30~50회 목표 재해석, 120회 strong warning 후보 |
 | `docs/qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md` | 같은 날짜 QA 결과와 데이터 경계 대조. 비용 표본으로는 사용하지 않음 |
 
 ## 2. Safety Declaration
@@ -189,7 +189,7 @@ local none/mock 답변 품질은 후보 축소에 충분히 기여하지 못했�
 |---|---|
 | 30~50회 | 달성된 평균이 아니라 제품 목표 |
 | 80~100회 | 이전 extended QA 기반 현실적 비용 대표값 |
-| 120회 | session hard cap 후보 |
+| 120회 | strong warning 후보, 현재 구현상 차단 아님 |
 | 오늘 AI_CALL 10건 | 기준 변경 근거 아님 |
 
 ## 10. Verification

@@ -9,9 +9,8 @@ flowchart LR
     standby --> data_mysql
     standby --> data_redis
 
-    active --> deepseek["DeepSeek API<br/>AI interrogation"]
-    active --> portone["Payment Provider<br/>PortOne/KG Inicis if enabled"]
-    active --> oauth["Google/Kakao OAuth verify<br/>when auth PR enabled"]
+    active --> deepseek["DeepSeek API<br/>AI interrogation / scoring"]
+    active --> oauth["Google/Kakao OAuth verify"]
 
     prod_monitor["prod: Prometheus/Grafana<br/>current local monitoring"] -. scrapes .-> active
     prod_monitor -. scrapes .-> standby
@@ -23,5 +22,5 @@ flowchart LR
 
     class nginx,active,standby prod;
     class data_mysql,data_redis data;
-    class deepseek,portone,oauth ext;
+    class deepseek,oauth ext;
     class prod_monitor monitor;

@@ -65,13 +65,13 @@ k6 run scripts/k6/scenario-list-load-test.js
 
 ```sql
 CREATE INDEX idx_scenarios_status_visibility_created
-ON scenarios (status, visibility, created_at DESC);
+ON scenarios (status, visibility, created_at DESC, id DESC);
 ```
 
 기대 효과:
 
 - `status`, `visibility` 조건 필터링 비용 감소
-- `created_at DESC` 정렬의 filesort 제거
+- `created_at DESC, id DESC` 정렬의 filesort 제거
 - 목록 read path의 DB scan 범위 축소
 
 ### 3. Redis Short TTL Cache
