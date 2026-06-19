@@ -451,7 +451,7 @@ GET /api/scenarios/{scenarioId}
 
 이유: 인증된 작성자는 자기 DRAFT/PRIVATE 시나리오를 볼 수 있다. 익명 사용자는 public/playable data만 본다.
 
-백엔드가 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환하면 보호되는 endpoint:
+운영 보호 모드(`AUTH_REQUIRE_AUTHENTICATION=true`)에서 보호되는 endpoint:
 
 ```text
 /api/play-sessions/**
@@ -534,7 +534,7 @@ Authenticated
 
 ## 14. QA 체크리스트
 
-백엔드 protected mode 전환 전 확인:
+운영 보호 모드 유지 전제 확인:
 
 - [ ] Google login이 `/api/auth/oauth`에 `provider=GOOGLE`, `idToken`을 보낸다.
 - [ ] Kakao login이 `/api/auth/oauth`에 `provider=KAKAO`, `accessToken`을 보낸다.
@@ -550,7 +550,7 @@ Authenticated
 - [ ] UI가 `user.email == null`을 허용한다.
 - [ ] client role만 보고 admin/rate-limit bypass UI를 노출하지 않는다.
 
-백엔드가 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한 뒤 smoke:
+운영 보호 모드 smoke:
 
 ```text
 token 없는 protected gameplay API -> 401
