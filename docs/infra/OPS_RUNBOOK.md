@@ -82,9 +82,6 @@ External-data 운영에서는 data server MySQL이 source of truth다.
 /opt/clueroom/secrets/env.d/ai.env
 → AI API Key / DeepSeek 설정
 
-/opt/clueroom/secrets/env.d/portone.env
-→ PortOne 결제 Secret
-
 /opt/clueroom/secrets/env.d/oauth.env
 → OAuth / JWT Secret
 ```
@@ -296,7 +293,6 @@ cat /opt/clueroom/secrets/firebase-service-account.json
 
 ```bash
 cat /opt/clueroom/secrets/env.d/ai.env
-cat /opt/clueroom/secrets/env.d/portone.env
 cat /opt/clueroom/secrets/env.d/oauth.env
 ```
 
