@@ -247,9 +247,9 @@ docker-compose.bluegreen.external-data.yml
 
 운영 Blue-Green에서 `APP_DB_HOST` / `APP_REDIS_HOST`는 compose interpolation 단계에서 필요하다. 따라서 `/opt/clueroom/app/.env` 또는 배포 명령을 실행하는 쉘 환경에 넣어야 하며, service `env_file`로만 추가되는 secret env 파일에만 두면 `DB_HOST` / `REDIS_HOST` 값이 바뀌지 않을 수 있다.
 
-### 3.3 Auth/JWT 1단계 로컬 테스트
+### 3.3 Auth/JWT 로컬 호환 테스트와 운영 보호 모드
 
-1단계 auth는 기존 API 호환을 위해 전역 인증 강제를 아직 켜지 않는다. Bearer token이 있으면 SecurityContext 사용자로 처리하고, token이 없으면 `AUTH_MOCK_FALLBACK_ENABLED=true`일 때 `MOCK_USER_ID`로 fallback한다.
+로컬 호환 테스트에서는 기존 API 호환을 위해 전역 인증 강제를 끄고 실행할 수 있다. Bearer token이 있으면 SecurityContext 사용자로 처리하고, token이 없으면 `AUTH_MOCK_FALLBACK_ENABLED=true`일 때 `MOCK_USER_ID`로 fallback한다.
 
 로컬에서 개발용 로그인 플로우를 확인할 때만 아래 값을 `.env`에 둔다.
 
@@ -311,7 +311,7 @@ curl -s -X POST http://localhost:8080/api/auth/oauth \
 Android와 Web이 같은 백엔드를 쓰면 `GOOGLE_CLIENT_IDS`에 Android OAuth client id와 Web OAuth client id를 comma-separated로 모두 넣는다.
 기존 계정 email 기반 linking은 provider가 verified email을 제공한 경우에만 수행한다. Google은 `email_verified`, Kakao는 `is_email_valid=true`와 `is_email_verified=true`를 기준으로 한다.
 
-보호 API 전환은 Android와 Web이 모두 access token 저장과 `Authorization: Bearer <accessToken>` 첨부를 완료한 뒤 진행한다.
+운영 보호 모드는 Android와 Web이 모두 access token 저장과 `Authorization: Bearer <accessToken>` 첨부를 완료한 상태를 전제로 한다.
 
 ```properties
 AUTH_REQUIRE_AUTHENTICATION=true

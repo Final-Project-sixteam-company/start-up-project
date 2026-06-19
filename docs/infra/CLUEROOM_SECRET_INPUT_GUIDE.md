@@ -115,8 +115,8 @@ JWT_ISSUER=https://api.clueroom.xyz
 JWT_ACCESS_TOKEN_TTL_SECONDS=1800
 JWT_REFRESH_TOKEN_TTL_DAYS=30
 AUTH_DEV_LOGIN_ENABLED=false
-AUTH_MOCK_FALLBACK_ENABLED=true
-AUTH_REQUIRE_AUTHENTICATION=false
+AUTH_MOCK_FALLBACK_ENABLED=false
+AUTH_REQUIRE_AUTHENTICATION=true
 CORS_ALLOWED_ORIGIN_PATTERNS=https://clueroom.xyz,https://www.clueroom.xyz,http://localhost:[*],http://127.0.0.1:[*],http://10.0.2.2:[*],http://192.168.*.*:[*]
 AUTH_ADMIN_SEED_ENABLED=false
 AUTH_ADMIN_SEED_EMAIL=
@@ -135,7 +135,8 @@ GOOGLE_CLIENT_SECRET=...
 
 JWT secret은 32자 이상의 충분히 긴 난수로 생성하고 레포에 기록하지 않는다.
 `AUTH_DEV_LOGIN_ENABLED`는 개발/스테이징 token-flow 확인용이며 운영에서는 기본적으로 `false`를 유지한다.
-`AUTH_REQUIRE_AUTHENTICATION`은 Android와 Web이 Bearer token 첨부를 완료한 뒤 `true`로 전환한다.
+로컬 호환 테스트에서는 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true` 조합을 사용할 수 있다.
+운영 secret에는 보호 API 기본 인증을 유지하기 위해 `AUTH_REQUIRE_AUTHENTICATION=true`를 둔다.
 AI rate limit 검증용 admin 계정이 필요하면 `AUTH_ADMIN_SEED_ENABLED=true`와 실제 admin email을 서버 secret env에만 입력한다. 공개 문서/PR/코드에는 실제 admin email을 기록하지 않는다.
 blind QA 격리용 일반 계정이 필요하면 `AUTH_QA_SEED_ENABLED=true`와 실제 QA email을 서버 secret env에만 입력한다. 공개 문서/PR/코드에는 실제 QA email을 기록하지 않는다.
 `GOOGLE_CLIENT_IDS`는 Android/Web 등 여러 client id가 같은 백엔드를 사용할 때 comma-separated로 입력한다.
