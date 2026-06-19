@@ -168,8 +168,8 @@ CORS_ALLOWED_ORIGIN_PATTERNS
 `KAKAO_REST_API_KEY`는 Web Kakao authorization-code login(`/api/auth/oauth/kakao/code`)을 사용할 때 필요하다.
 `KAKAO_CLIENT_SECRET`은 Kakao console에서 client secret을 활성화한 경우에만 입력한다.
 
-1단계에서는 기존 API 호환을 위해 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`를 유지한다.
-Android와 Web이 OAuth login과 Bearer token 첨부를 완료한 뒤 `AUTH_REQUIRE_AUTHENTICATION=true`로 전환한다.
+로컬/전환 테스트에서는 기존 API 호환을 위해 `AUTH_REQUIRE_AUTHENTICATION=false`, `AUTH_MOCK_FALLBACK_ENABLED=true`를 사용할 수 있다.
+운영 보호 모드는 Android와 Web이 OAuth login과 Bearer token 첨부를 완료한 상태를 전제로 `AUTH_REQUIRE_AUTHENTICATION=true`를 사용한다.
 보호 모드에서는 명시 public endpoint를 제외한 `/api/**`가 기본 인증 대상이다.
 OAuth email 기반 기존 계정 연결은 provider verified email에만 허용한다.
 보호 모드에서는 `AUTH_MOCK_FALLBACK_ENABLED=true`가 남아 있어도 token 없는 요청에 `MOCK_USER_ID`를 부여하지 않는다.

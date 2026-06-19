@@ -4,12 +4,12 @@
 
 ## 0. Scope
 
-이 문서는 2026-06-19 KST에 수행한 `clueroom-toss-miniapp` 웹 프론트 기준 E2E QA 결과를 public-safe로 정리한다. Android 앱 배포 대신 웹 배포로 전환하는 현재 상황에서, 실제 웹 사용자가 공식 시나리오를 시작하고 심문, 증거 확인, 최종 제출/result 경로까지 도달할 수 있는지 확인하는 데 초점을 둔다.
+이 문서는 2026-06-19 KST에 수행한 ClueRoom React/Vite 웹 프론트 기준 E2E QA 결과를 public-safe로 정리한다. Android 앱 배포 대신 웹 배포로 전환하는 현재 상황에서, 실제 웹 사용자가 공식 시나리오를 시작하고 심문, 증거 확인, 최종 제출/result 경로까지 도달할 수 있는지 확인하는 데 초점을 둔다.
 
 ```text
 Backend repo: C:\java\assignment\spring\start-up
 Backend branch/commit: codex/llmops-cost-rate-limit-plan / c86fe98
-Web frontend repo: C:\java\assignment\spring\clueroom-toss-miniapp
+Web frontend repo: local React/Vite web checkout
 Web frontend branch/commit: main / 33618a3
 API: https://api.clueroom.xyz
 Web surface: Vite production build served by local preview http://127.0.0.1:4173

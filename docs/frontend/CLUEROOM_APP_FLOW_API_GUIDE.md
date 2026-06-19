@@ -553,7 +553,7 @@ GET /api/scenarios?difficulty=NORMAL&page=0&size=20
 |---|---|
 | `조사 시작` 클릭 | 세션 생성 없이 사건 브리핑 화면으로 이동 |
 | 뒤로가기 | 사건 라이브러리로 복귀 |
-| 리뷰/북마크 클릭 | 현재 리뷰/북마크 API 미구현. UI는 숨기거나 비활성 |
+| 리뷰/북마크 클릭 | 서버 API 연동. 북마크는 `POST/DELETE /api/scenarios/{scenarioId}/bookmarks`, 리뷰는 `GET/POST /api/scenarios/{scenarioId}/reviews`를 사용 |
 
 ### 6.5 사건 브리핑 화면
 

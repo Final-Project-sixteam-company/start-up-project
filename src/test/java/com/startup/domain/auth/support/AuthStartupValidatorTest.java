@@ -38,18 +38,6 @@ class AuthStartupValidatorTest {
     }
 
     @Test
-    void validateRejectsTossMtlsConfigWithoutJwtSecret() {
-        AuthProperties authProperties = new AuthProperties();
-        authProperties.getOauth().getToss().setMtlsCertPath("/opt/clueroom/secrets/toss/client.crt");
-        authProperties.getOauth().getToss().setMtlsKeyPath("/opt/clueroom/secrets/toss/client.key");
-        AuthStartupValidator validator = new AuthStartupValidator(authProperties);
-
-        assertThatThrownBy(validator::validate)
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("JWT_SECRET");
-    }
-
-    @Test
     void validateAllowsAuthFeaturesWhenJwtSecretIsConfigured() {
         AuthProperties authProperties = new AuthProperties();
         authProperties.setRequireAuthentication(true);

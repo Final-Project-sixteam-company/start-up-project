@@ -132,13 +132,6 @@ clueroom:
         app-id: ${KAKAO_APP_ID:}
         rest-api-key: ${KAKAO_REST_API_KEY:}
         client-secret: ${KAKAO_CLIENT_SECRET:}
-      toss:
-        api-base-url: ${TOSS_APPS_IN_TOSS_API_BASE_URL:https://apps-in-toss-api.toss.im}
-        # 운영 Apps in Toss 서버 간 로그인 호출은 mTLS가 필요하다.
-        # 값은 서버 secret 파일 경로만 주입하고 인증서/키 원문은 repo나 로그에 남기지 않는다.
-        # key 파일은 unencrypted PKCS#8 PEM 형식이어야 한다.
-        mtls-cert-path: ${TOSS_APPS_IN_TOSS_MTLS_CERT_PATH:}
-        mtls-key-path: ${TOSS_APPS_IN_TOSS_MTLS_KEY_PATH:}
     admin-seed:
       enabled: ${AUTH_ADMIN_SEED_ENABLED:false}
       email: ${AUTH_ADMIN_SEED_EMAIL:}
