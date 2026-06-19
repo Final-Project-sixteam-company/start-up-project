@@ -8,6 +8,21 @@
 새 blind QA를 시작할 때 QA operator는 [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md)를 사용한다.
 blind tester/agent에게는 `QA_OPERATING_GUIDE.md` 전체를 전달하지 않고, 7장의 fenced block만 복사해 전달한다.
 
+## QA 계정 / 로그인
+
+QA 계정 식별자는 public 문서에 직접 쓰지 않는다.
+운영자는 blind tester/agent에게 private handoff로 QA 계정 접근 방법만 전달한다.
+
+웹 QA에서 QA 로그인 버튼이 보이지 않으면 임의 개인 계정으로 우회하지 않고, 아래를 환경 blocker로 기록한다.
+
+```text
+QA login unavailable:
+- frontend build env: VITE_ENABLE_QA_LOGIN / VITE_QA_LOGIN_EMAIL 확인 필요
+- backend env: AUTH_DEV_LOGIN_ENABLED 확인 필요
+```
+
+정확한 실행 문구는 [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md)의 `복붙용 QA 프롬프트` 안의 `계정 / 로그인` 섹션을 사용한다.
+
 이전 긴 프롬프트에서 반복되던 아래 규칙은 정본 문서로 이동했다.
 
 ```text
