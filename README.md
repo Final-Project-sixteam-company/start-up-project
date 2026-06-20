@@ -35,11 +35,12 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 ## Proof Snapshot
 
-| Backend Test | Scenario Coverage | Scenario API Perf | LLMOps Smoke | Scale-out PoC | Web Retest |
+| Backend Test | Scenario Coverage | Scenario API Perf | LLMOps Window | Scale-out PoC | Web Prod Smoke |
 |---:|---:|---:|---:|---:|---:|
-| **344 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | **10 / 0 / 0** success/failure/fallback | **21 / 19 / 20** over 60 requests | targeted retest **PASS**, mobile CTA tracked |
+| **344 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | **95 / 0 / 0** success/failure/fallback | **21 / 19 / 20** over 60 requests | core flow **PASS**, release gates tracked |
 
 > 수치는 public-safe QA/LLMOps/PoC 보고서 기준입니다. 정답, 점수, session/token, raw prompt/answer는 공개 README에 포함하지 않습니다.
+> LLMOps 95건 window는 2026-06-19 웹 QA 활동이 섞인 provider 표본입니다. organic production traffic 평균으로 과장하지 않습니다.
 
 ## Contents
 
@@ -166,12 +167,12 @@ ClueRoom은 Android 앱, Web 프론트, Backend가 함께 동작합니다. 이 R
 
 ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 맞물리는 팀 프로젝트입니다. README에서는 팀 단위 담당 영역과 산출물을 먼저 보여줍니다.
 
-| Area | Owner | Deliverables |
+| Area | Contributors | Deliverables |
 |---|---|---|
-| Backend Foundation / Infra / LLMOps / Release Evidence | 황도윤 | 공통 세팅, 공식 시나리오 seed, scenario YAML 운영 절차, Blue-Green, monitoring, backup/runbook, LLMOps report, scale-out PoC, README 작성, 브로셔 작성, 발표 |
-| AI Interrogation / Prompt Policy | 배강혁 | AI 심문, 최종 추리, prompt policy, AI validation, 발표자료와 시연 영상 |
-| Game Runtime / Evidence Flow | 소수경 | play session, evidence unlock, hint flow, scenario/play runtime consistency |
-| Android App / QA Surface | 정채림 | Android 화면 흐름, API 연동, Mock to API 전환, Android E2E QA |
+| Backend Foundation / Infra / LLMOps / Release Evidence | 황도윤 중심, 팀 리뷰 | 공통 세팅, 공식 시나리오 seed, scenario YAML 운영 절차, Blue-Green, monitoring, backup/runbook, LLMOps report, scale-out PoC, 공개 문서와 발표 근거 정리 |
+| AI Interrogation / Prompt Policy | 배강혁 중심, 백엔드 협업 | AI 심문, 최종 추리, prompt policy, AI validation, 발표자료와 시연 영상 |
+| Game Runtime / Evidence Flow | 소수경 중심, 백엔드 협업 | play session, evidence unlock, hint flow, scenario/play runtime consistency |
+| Android App / QA Surface | 정채림 중심, 팀 QA | Android 화면 흐름, API 연동, Mock to API 전환, Android E2E QA |
 
 ---
 
@@ -382,7 +383,8 @@ QA는 blind 조건과 public/private 경계를 분리해서 운영합니다.
 |---|---|
 | [Android E2E Local Retest 2026-06-18](docs/qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md) | 로그인, 라이브러리, 상세, 브리핑, 조사 탭, 심문, 제출 화면 도달. 공식 시나리오 `25/25`, `35/35` evidence reachability |
 | [Web E2E QA 2026-06-19](docs/qa/archive/QA_WEB_E2E_REPORT_2026-06-19.md) | 웹 로그인, 시나리오 진입, 심문, 최종 제출/result path targeted retest PASS. 모바일 scenario detail CTA 이슈는 QA board에서 추적 |
-| [LLMOps Daily Report 2026-06-18](docs/infra/agent/LLMOPS_DAILY_REPORT_2026-06-18.md) | 운영 `AI_CALL` 10건, success/failure/fallback `10/0/0`, prompt token ratio `97.2%` |
+| Web Production Smoke 2026-06-20 | 운영 웹에서 library/detail/mobile CTA/case tabs/interrogation/final validation PASS. QA/dev login gate, bookmark/review persistence, refresh-cookie retry는 release gate로 추적 |
+| [LLMOps Daily Report 2026-06-19](docs/infra/agent/LLMOPS_DAILY_REPORT_2026-06-19.md) | 운영 provider window `AI_CALL` 95건, success/failure/fallback `95/0/0`. 웹 QA가 섞인 표본이라 organic traffic으로 해석하지 않음 |
 | [Scale-out PoC 2026-06-12](docs/infra/poc/POC-006-scaleout-manual-lb.md) | 수동 Nginx LB equal mode, 60회 요청 `21/19/20` 분산, rollback 기준 |
 
 정본 QA 지침은 [QA Operating Guide](docs/QA_OPERATING_GUIDE.md)를 기준으로 합니다.
