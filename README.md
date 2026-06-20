@@ -383,7 +383,7 @@ QA는 blind 조건과 public/private 경계를 분리해서 운영합니다.
 |---|---|
 | [Android E2E Local Retest 2026-06-18](docs/qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md) | 로그인, 라이브러리, 상세, 브리핑, 조사 탭, 심문, 제출 화면 도달. 공식 시나리오 `25/25`, `35/35` evidence reachability |
 | [Web E2E QA 2026-06-19](docs/qa/archive/QA_WEB_E2E_REPORT_2026-06-19.md) | 웹 로그인, 시나리오 진입, 심문, 최종 제출/result path targeted retest PASS. 모바일 scenario detail CTA 이슈는 QA board에서 추적 |
-| Web Production Smoke 2026-06-20 | 운영 웹에서 library/detail/mobile CTA/case tabs/interrogation/final validation PASS. QA/dev login gate, bookmark/review persistence, refresh-cookie retry는 release gate로 추적 |
+| [Web Production PR #7 Smoke 2026-06-20](docs/qa/archive/QA_WEB_PROD_PR7_SMOKE_REPORT_2026-06-20.md) | 운영 웹에서 공개 QA 로그인 숨김, Google/Kakao 버튼, 북마크 서버 persistence, 저장한 사건 목록, core play smoke PASS. 리뷰 성공 경로와 access-expiry refresh retry는 PARTIAL로 기록 |
 | [LLMOps Daily Report 2026-06-19](docs/infra/agent/LLMOPS_DAILY_REPORT_2026-06-19.md) | 운영 provider window `AI_CALL` 95건, success/failure/fallback `95/0/0`. 웹 QA가 섞인 표본이라 organic traffic으로 해석하지 않음 |
 | [Scale-out PoC 2026-06-12](docs/infra/poc/POC-006-scaleout-manual-lb.md) | 수동 Nginx LB equal mode, 60회 요청 `21/19/20` 분산, rollback 기준 |
 
