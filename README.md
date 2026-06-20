@@ -35,9 +35,9 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 ## Proof Snapshot
 
-| Backend Test | Scenario Coverage | Scenario API Perf | LLMOps Window | Scale-out PoC | Web Prod Smoke |
+| Backend Test | Scenario Coverage | Scenario API Perf | LLMOps QA Window | Scale-out PoC | Web Prod Smoke |
 |---:|---:|---:|---:|---:|---:|
-| **344 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | **95 / 0 / 0** success/failure/fallback | **21 / 19 / 20** over 60 requests | core flow **PASS**, release gates tracked |
+| **344 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | QA-window **95 / 0 / 0**, organic 분리 필요 | **21 / 19 / 20** over 60 requests | core flow **PASS**, release gates tracked |
 
 > 수치는 public-safe QA/LLMOps/PoC 보고서 기준입니다. 정답, 점수, session/token, raw prompt/answer는 공개 README에 포함하지 않습니다.
 > LLMOps 95건 window는 2026-06-19 웹 QA 활동이 섞인 provider 표본입니다. organic production traffic 평균으로 과장하지 않습니다.
