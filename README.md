@@ -67,6 +67,7 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 | 구분 | 링크 |
 |---|---|
 | Web Service | https://www.clueroom.xyz |
+| Product Brochure | [ClueRoom - AI 추리게임 플랫폼](https://sunset-roll-810.notion.site/ClueRoom-AI-383bfd4e7b00818d9a01faf855da5667?source=copy_link) |
 | API Health | https://api.clueroom.xyz/actuator/health |
 | Monitoring | https://monitor.clueroom.xyz `protected` |
 | Backend Docs Index | [docs/README.md](docs/README.md) |
@@ -167,7 +168,7 @@ ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 
 
 | Area | Owner | Deliverables |
 |---|---|---|
-| Backend Foundation / Infra / LLMOps / Release Evidence | 황도윤 | 공통 세팅, 공식 시나리오 seed, scenario YAML 운영 절차, Blue-Green, monitoring, backup/runbook, LLMOps report, scale-out PoC |
+| Backend Foundation / Infra / LLMOps / Release Evidence | 황도윤 | 공통 세팅, 공식 시나리오 seed, scenario YAML 운영 절차, Blue-Green, monitoring, backup/runbook, LLMOps report, scale-out PoC, README 작성, 브로셔 작성, 발표 |
 | AI Interrogation / Prompt Policy | 배강혁 | AI 심문, 최종 추리, prompt policy, AI validation, 발표자료와 시연 영상 |
 | Game Runtime / Evidence Flow | 소수경 | play session, evidence unlock, hint flow, scenario/play runtime consistency |
 | Android App / QA Surface | 정채림 | Android 화면 흐름, API 연동, Mock to API 전환, Android E2E QA |
