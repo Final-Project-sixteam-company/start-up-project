@@ -37,7 +37,7 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 | Backend Test | Scenario Coverage | Scenario API Perf | LLMOps QA Window | Scale-out PoC | Web Prod Smoke |
 |---:|---:|---:|---:|---:|---:|
-| **344 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | QA-window **95 / 0 / 0**, organic 분리 필요 | **21 / 19 / 20** over 60 requests | core flow **PASS**, release gates tracked |
+| **345 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | QA-window **95 / 0 / 0**, organic 분리 필요 | **21 / 19 / 20** over 60 requests | core flow **PASS**, release gates tracked |
 
 > 수치는 public-safe QA/LLMOps/PoC 보고서 기준입니다. 정답, 점수, session/token, raw prompt/answer는 공개 README에 포함하지 않습니다.
 > LLMOps 95건 window는 2026-06-19 웹 QA 활동이 섞인 provider 표본입니다. organic production traffic 평균으로 과장하지 않습니다.
@@ -169,7 +169,7 @@ ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 
 
 | Area | Contributors | Deliverables |
 |---|---|---|
-| Backend Foundation / Infra / LLMOps / Release Evidence | 황도윤 중심, 팀 리뷰 | 공통 세팅, 공식 시나리오 seed, scenario YAML 운영 절차, Blue-Green, monitoring, backup/runbook, LLMOps report, scale-out PoC, 공개 문서와 발표 근거 정리 |
+| Backend Foundation / Infra / LLMOps / Release Evidence | 황도윤 중심, 팀 리뷰 | 공통 세팅, 공식 시나리오 seed, scenario YAML 운영 절차, Blue-Green, monitoring, backup/runbook, LLMOps report, scale-out PoC, README/브로셔/발표 근거 정리 |
 | AI Interrogation / Prompt Policy | 배강혁 중심, 백엔드 협업 | AI 심문, 최종 추리, prompt policy, AI validation, 발표자료와 시연 영상 |
 | Game Runtime / Evidence Flow | 소수경 중심, 백엔드 협업 | play session, evidence unlock, hint flow, scenario/play runtime consistency |
 | Android App / QA Surface | 정채림 중심, 팀 QA | Android 화면 흐름, API 연동, Mock to API 전환, Android E2E QA |
