@@ -107,6 +107,7 @@
 | [qa/archive/QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md](qa/archive/QA_E2E_CULPRIT_CONFIRMATION_REPORT_2026-06-15.md) | 2026-06-15 Android E2E/API fallback 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
 | [qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md](qa/archive/QA_ANDROID_E2E_LOCAL_RETEST_REPORT_2026-06-18.md) | 2026-06-18 local backend + Android E2E retest 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
 | [qa/archive/QA_WEB_E2E_REPORT_2026-06-19.md](qa/archive/QA_WEB_E2E_REPORT_2026-06-19.md) | 2026-06-19 web frontend E2E QA 역사 보고서 | 현재 오픈 이슈는 `QA_OPERATING_GUIDE.md`에 흡수한다. |
+| [qa/archive/QA_WEB_PROD_PR7_SMOKE_REPORT_2026-06-20.md](qa/archive/QA_WEB_PROD_PR7_SMOKE_REPORT_2026-06-20.md) | 2026-06-20 PR #7 이후 web production smoke QA 보고서 | 공개 QA 로그인 숨김, 북마크 서버 persistence, 플레이 smoke를 재검증했다. |
 
 ## 3. 흡수/제거 이력
 
