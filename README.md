@@ -191,7 +191,7 @@ ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 
 
 | Area | Contributors | Deliverables |
 |---|---|---|
-| Backend Foundation / Infra / LLMOps / Release Evidence | 황도윤 중심, 팀 리뷰 | 공통 세팅, 공식 시나리오 seed, scenario YAML 운영 절차, Blue-Green, monitoring, backup/runbook, LLMOps report, scale-out PoC, README/브로셔/발표 근거 정리 |
+| Backend Foundation / Scenario Authoring / Infra / LLMOps / Release Evidence | 황도윤 중심, 팀 리뷰 | 공통 세팅, 공식 시나리오 기획·집필·검증, scenario YAML seed 제작/import 운영, public/private 시나리오 경계 관리, Blue-Green, monitoring, backup/runbook, LLMOps report, scale-out PoC, README/브로셔/발표 근거 정리 |
 | AI Interrogation / Prompt Policy | 배강혁 중심, 백엔드 협업 | AI 심문, 최종 추리, prompt policy, AI validation, 발표자료와 시연 영상 |
 | Game Runtime / Evidence Flow | 소수경 중심, 백엔드 협업 | play session, evidence unlock, hint flow, scenario/play runtime consistency |
 | Android App / QA Surface | 정채림 중심, 팀 QA | Android 화면 흐름, API 연동, Mock to API 전환, Android E2E QA |
