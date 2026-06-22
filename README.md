@@ -64,6 +64,8 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 |---|---|
 | Web Service | https://www.clueroom.xyz |
 | Product Brochure | [ClueRoom - AI 추리게임 플랫폼](https://sunset-roll-810.notion.site/ClueRoom-AI-383bfd4e7b00818d9a01faf855da5667?source=copy_link) |
+| Presentation Deck | [15분 발표덱 + 발표자 노트](docs/presentation/clueroom-presentation-15min-with-speaker-notes.pptx) |
+| Demo Video | [ClueRoom 시연 영상](docs/presentation/clueroom-demo.mp4) |
 | API Health | https://api.clueroom.xyz/actuator/health |
 | Monitoring | https://monitor.clueroom.xyz `protected` |
 | Backend Docs Index | [docs/README.md](docs/README.md) |
@@ -489,6 +491,7 @@ docs/
   db/migrations/  운영 DB 보강 SQL, 성능 인덱스
   infra/           운영 인프라, runbook, LLMOps, scale-out PoC
   frontend/        앱/웹 화면 흐름과 API mapping
+  presentation/    발표덱, 발표자 노트, 시연 영상
   qa/archive/      public-safe QA history
   scenarios/       scenario YAML schema
 
