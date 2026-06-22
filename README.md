@@ -46,6 +46,7 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 - [Live & Docs](#live--docs)
 - [Visual Evidence](#visual-evidence)
+- [Ops Automation Evidence](#ops-automation-evidence)
 - [Metric Charts](#metric-charts)
 - [Repository Scope](#repository-scope)
 - [Team Ownership](#team-ownership)
@@ -111,6 +112,27 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
       <img src="docs/readme-assets/grafana-bot-scan-defense-summary.png" alt="Grafana bot scan defense summary" width="100%">
       <br>
       <sub>운영 로그 탐색 대시보드. 봇 스캔 요청 급증을 Loki에서 분리해 확인하고, 같은 window에서 app error와 Nginx 5xx를 함께 봅니다.</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Ops Automation Evidence
+
+운영 알림은 단순히 "문제가 생겼다"를 보내는 데서 끝나지 않고, Codex가 읽을 수 있는 형태의 handoff report로 정리합니다. 아래 캡처는 public-safe 집계와 운영 상태만 포함하며 secret 값, raw token, raw prompt/answer는 포함하지 않습니다.
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/ops/ops-snapshot-agent-v3.png" alt="ClueRoom Ops Snapshot Agent Slack report" width="100%">
+      <br>
+      <sub>Ops Snapshot Agent. active slot, data/server health, disk/memory, backup age, suspicious request pattern을 Slack으로 요약하고 기본 확인 순서를 함께 전달합니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/ops/llmops-codex-handoff-v3.png" alt="ClueRoom LLMOps Codex handoff Slack report" width="100%">
+      <br>
+      <sub>LLMOps Codex Handoff. AI_CALL/AI_CALL_CONTEXT 집계를 기반으로 feature별 latency, token/call, prompt ratio, context breakdown을 raw-free 형태로 전달합니다.</sub>
     </td>
   </tr>
 </table>
