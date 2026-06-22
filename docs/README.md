@@ -35,6 +35,7 @@
 | scale-out 및 수동 Nginx LB 운영 절차 확인 | [infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md](infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) |
 | 인프라 구축 중 실제 장애/오탐/운영 실수 회고 확인 | [infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md](infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md) |
 | QA 실행 지시, blind retest prompt, 보고서 템플릿, 현재 QA board 확인 | [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md) |
+| 최종 발표덱과 시연 영상 확인 | [presentation/README.md](presentation/README.md) |
 | 구 공식 데모 시나리오 히스토리 확인 | [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) |
 | 시나리오 YAML 스키마 확인 | [scenarios/SCENARIO_YAML_SCHEMA.md](scenarios/SCENARIO_YAML_SCHEMA.md) |
 | 증거 안내 UX / 추천 질문 설계 확인 | [scenarios/SCENARIO_GUIDANCE_UX_SPEC.md](scenarios/SCENARIO_GUIDANCE_UX_SPEC.md) |
