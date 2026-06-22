@@ -907,7 +907,10 @@ public class CustomScenarioService {
         validateEvidenceArray(scenarioId, node.get("requiredEvidenceIds"));
         validateEvidenceArray(scenarioId, node.get("excludedEvidenceIds"));
 
-        String conditionKey = node.has("conditionKey") && !node.get("conditionKey").isNull() ? node.get("conditionKey").asText("") : "DEFAULT";
+        String rawConditionKey = node.has("conditionKey") && !node.get("conditionKey").isNull()
+                ? node.get("conditionKey").asText("").trim()
+                : "DEFAULT";
+        String conditionKey = rawConditionKey.isBlank() ? "DEFAULT" : rawConditionKey;
 
         boolean hasGates = false;
 
@@ -933,8 +936,12 @@ public class CustomScenarioService {
             }
         }
 
-        if ("DEFAULT".equals(conditionKey) && hasGates) {
+        boolean isDefaultCondition = "DEFAULT".equals(conditionKey);
+        if (isDefaultCondition && hasGates) {
             throw new ScenarioException(ScenarioErrorCode.INVALID_DEFAULT_POLICY_CONDITION);
+        }
+        if (!isDefaultCondition && !hasGates) {
+            throw new ScenarioException(ScenarioErrorCode.INVALID_NON_DEFAULT_POLICY_CONDITION);
         }
     }
 
