@@ -59,48 +59,55 @@ public class AiInterrogationService {
     private int maxTokens;
 
     public InterrogationResponse interrogate(Long sessionId, InterrogationRequest request) {
-        if (finalDeductionLockManager.isLocked(sessionId)) {
+        Long currentUserId = mockUserProvider.currentUserId();
+        contextLoader.validateSessionAccess(sessionId, currentUserId);
+
+        FinalDeductionLockManager.InterrogationLock interrogationLock =
+                finalDeductionLockManager.tryLockInterrogation(sessionId);
+        if (interrogationLock == null) {
             throw new AiException(AiErrorCode.SCORING_IN_PROGRESS);
         }
 
-        // readOnly 트랜잭션 시작 전에 시간 해금 동기화 (REPEATABLE READ 대응)
-        timeEvidenceUnlockSyncer.sync(sessionId, mockUserProvider.currentUserId());
+        try (interrogationLock) {
+            // readOnly 트랜잭션 시작 전에 시간 해금 동기화 (REPEATABLE READ 대응)
+            timeEvidenceUnlockSyncer.sync(sessionId, currentUserId);
 
-        // 1. 데이터 조회 (readOnly 트랜잭션 — InterrogationContextLoader)
-        InterrogationContext context = contextLoader.load(
-                sessionId, request.suspectId(), request.presentedEvidenceId());
+            // 1. 데이터 조회 (readOnly 트랜잭션 — InterrogationContextLoader)
+            InterrogationContext context = contextLoader.load(
+                    sessionId, request.suspectId(), request.presentedEvidenceId());
 
-        // 2. AI 호출 (트랜잭션 밖)
-        AiResult result = callAi(sessionId, context, request);
+            // 2. AI 호출 (트랜잭션 밖)
+            AiResult result = callAi(sessionId, context, request);
 
-        // 3. 로그 저장 (쓰기 트랜잭션 — InterrogationLogWriter)
-        InterrogationLog savedLog = logWriter.save(
-                sessionId,
-                request.suspectId(),
-                request.presentedEvidenceId(),
-                request.questionType(),
-                request.question(),
-                result.answer(),
-                result.modelName()
-        );
+            // 3. 로그 저장 (쓰기 트랜잭션 — InterrogationLogWriter)
+            InterrogationLog savedLog = logWriter.save(
+                    sessionId,
+                    request.suspectId(),
+                    request.presentedEvidenceId(),
+                    request.questionType(),
+                    request.question(),
+                    result.answer(),
+                    result.modelName()
+            );
 
-        // 4. 이벤트 발행 (향후 비동기/분석용 확장 대비 보존)
-        publishEvent(sessionId, request);
+            // 4. 이벤트 발행 (향후 비동기/분석용 확장 대비 보존)
+            publishEvent(sessionId, request);
 
-        // 5. 증거 제시 기반 해금 (A안: domain/play 서비스 동기 호출 → 새로 해금된 증거 diff)
-        List<InterrogationResponse.UnlockedEvidenceDto> unlockedEvidences =
-                resolveUnlockedEvidences(sessionId, request);
+            // 5. 증거 제시 기반 해금 (A안: domain/play 서비스 동기 호출 → 새로 해금된 증거 diff)
+            List<InterrogationResponse.UnlockedEvidenceDto> unlockedEvidences =
+                    resolveUnlockedEvidences(sessionId, request);
 
-        return new InterrogationResponse(
-                savedLog.getId(),
-                context.suspect().id(),
-                context.suspect().name(),
-                request.question(),
-                result.answer(),
-                unlockedEvidences,
-                savedLog.getCreatedAt(),
-                result.quotaStatus()
-        );
+            return new InterrogationResponse(
+                    savedLog.getId(),
+                    context.suspect().id(),
+                    context.suspect().name(),
+                    request.question(),
+                    result.answer(),
+                    unlockedEvidences,
+                    savedLog.getCreatedAt(),
+                    result.quotaStatus()
+            );
+        }
     }
 
     private List<InterrogationResponse.UnlockedEvidenceDto> resolveUnlockedEvidences(

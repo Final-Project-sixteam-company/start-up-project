@@ -59,7 +59,7 @@ class AiInterrogationServiceTest {
                 mock(InterrogationEvidenceUnlockService.class);
         MockUserProvider mockUserProvider = mock(MockUserProvider.class);
         AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
-        FinalDeductionLockManager finalDeductionLockManager = mock(FinalDeductionLockManager.class);
+        FinalDeductionLockManager finalDeductionLockManager = new FinalDeductionLockManager();
         AiInterrogationService service = new AiInterrogationService(
                 contextLoader,
                 promptBuilder,
@@ -144,7 +144,7 @@ class AiInterrogationServiceTest {
                 mock(InterrogationEvidenceUnlockService.class);
         MockUserProvider mockUserProvider = mock(MockUserProvider.class);
         AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
-        FinalDeductionLockManager finalDeductionLockManager = mock(FinalDeductionLockManager.class);
+        FinalDeductionLockManager finalDeductionLockManager = new FinalDeductionLockManager();
         AiInterrogationService service = new AiInterrogationService(
                 contextLoader,
                 promptBuilder,
@@ -243,7 +243,7 @@ class AiInterrogationServiceTest {
                 mock(InterrogationEvidenceUnlockService.class);
         MockUserProvider mockUserProvider = mock(MockUserProvider.class);
         AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
-        FinalDeductionLockManager finalDeductionLockManager = mock(FinalDeductionLockManager.class);
+        FinalDeductionLockManager finalDeductionLockManager = new FinalDeductionLockManager();
         AiInterrogationService service = new AiInterrogationService(
                 contextLoader,
                 promptBuilder,
@@ -355,7 +355,7 @@ class AiInterrogationServiceTest {
                 mock(InterrogationEvidenceUnlockService.class);
         MockUserProvider mockUserProvider = mock(MockUserProvider.class);
         AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
-        FinalDeductionLockManager finalDeductionLockManager = mock(FinalDeductionLockManager.class);
+        FinalDeductionLockManager finalDeductionLockManager = new FinalDeductionLockManager();
         AiInterrogationService service = new AiInterrogationService(
                 contextLoader,
                 promptBuilder,
@@ -429,7 +429,7 @@ class AiInterrogationServiceTest {
                 mock(InterrogationEvidenceUnlockService.class);
         MockUserProvider mockUserProvider = mock(MockUserProvider.class);
         AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
-        FinalDeductionLockManager finalDeductionLockManager = mock(FinalDeductionLockManager.class);
+        FinalDeductionLockManager finalDeductionLockManager = new FinalDeductionLockManager();
         AiInterrogationService service = new AiInterrogationService(
                 contextLoader,
                 promptBuilder,
@@ -448,17 +448,20 @@ class AiInterrogationServiceTest {
         InterrogationRequest request = new InterrogationRequest(
                 30L, QuestionType.FREE, "채점 중에도 질문할 수 있습니까?", null);
 
-        when(finalDeductionLockManager.isLocked(sessionId)).thenReturn(true);
+        finalDeductionLockManager.tryLock(sessionId);
+        try {
+            assertThatThrownBy(() -> service.interrogate(sessionId, request))
+                    .isInstanceOfSatisfying(AiException.class, exception ->
+                            assertThat(exception.getErrorCode()).isEqualTo(AiErrorCode.SCORING_IN_PROGRESS));
 
-        assertThatThrownBy(() -> service.interrogate(sessionId, request))
-                .isInstanceOfSatisfying(AiException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(AiErrorCode.SCORING_IN_PROGRESS));
-
-        verify(timeEvidenceUnlockSyncer, never()).sync(anyLong(), anyLong());
-        verify(contextLoader, never()).load(anyLong(), anyLong(), any());
-        verify(aiClient, never()).chatWithMetadata(
-                anyString(), anyString(), any(AiRequestParams.class), any(AiCallContext.class));
-        verify(logWriter, never()).save(
-                anyLong(), anyLong(), any(), any(QuestionType.class), any(), any(), any());
+            verify(timeEvidenceUnlockSyncer, never()).sync(anyLong(), anyLong());
+            verify(contextLoader, never()).load(anyLong(), anyLong(), any());
+            verify(aiClient, never()).chatWithMetadata(
+                    anyString(), anyString(), any(AiRequestParams.class), any(AiCallContext.class));
+            verify(logWriter, never()).save(
+                    anyLong(), anyLong(), any(), any(QuestionType.class), any(), any(), any());
+        } finally {
+            finalDeductionLockManager.release(sessionId);
+        }
     }
 }
