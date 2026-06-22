@@ -46,6 +46,7 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 - [Live & Docs](#live--docs)
 - [Visual Evidence](#visual-evidence)
+- [Ops Automation Evidence](#ops-automation-evidence)
 - [Metric Charts](#metric-charts)
 - [Repository Scope](#repository-scope)
 - [Team Ownership](#team-ownership)
@@ -117,6 +118,27 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 
 ---
 
+## Ops Automation Evidence
+
+운영 알림은 단순히 "문제가 생겼다"를 보내는 데서 끝나지 않고, Codex가 읽을 수 있는 형태의 handoff report로 정리합니다. 아래 캡처는 public-safe 집계와 운영 상태만 포함하며 secret 값, raw token, raw prompt/answer는 포함하지 않습니다.
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/ops/ops-snapshot-agent-v3.png" alt="ClueRoom Ops Snapshot Agent Slack report" width="100%">
+      <br>
+      <sub>Ops Snapshot Agent. active slot, data/server health, disk/memory, backup age, suspicious request pattern을 Slack으로 요약하고 기본 확인 순서를 함께 전달합니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/ops/llmops-codex-handoff-v3.png" alt="ClueRoom LLMOps Codex handoff Slack report" width="100%">
+      <br>
+      <sub>LLMOps Codex Handoff. AI_CALL/AI_CALL_CONTEXT 집계를 기반으로 feature별 latency, token/call, prompt ratio, context breakdown을 raw-free 형태로 전달합니다.</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
 ## Metric Charts
 
 아래 차트는 public-safe 문서에 남긴 집계 수치만 사용합니다. 원문 prompt, AI 답변, 사용자 질문, session/token, 정답성 정보는 포함하지 않습니다.
@@ -169,7 +191,7 @@ ClueRoom은 Android, AI 백엔드, 게임 런타임, 인프라/운영이 함께 
 
 | Area | Contributors | Deliverables |
 |---|---|---|
-| Backend Foundation / Infra / LLMOps / Release Evidence | 황도윤 중심, 팀 리뷰 | 공통 세팅, 공식 시나리오 seed, scenario YAML 운영 절차, Blue-Green, monitoring, backup/runbook, LLMOps report, scale-out PoC, README/브로셔/발표 근거 정리 |
+| Backend Foundation / Scenario Authoring / Infra / LLMOps / Release Evidence | 황도윤 중심, 팀 리뷰 | 공통 세팅, 공식 시나리오 기획·집필·검증, scenario YAML seed 제작/import 운영, public/private 시나리오 경계 관리, Blue-Green, monitoring, backup/runbook, LLMOps report, scale-out PoC, README/브로셔/발표 근거 정리 |
 | AI Interrogation / Prompt Policy | 배강혁 중심, 백엔드 협업 | AI 심문, 최종 추리, prompt policy, AI validation, 발표자료와 시연 영상 |
 | Game Runtime / Evidence Flow | 소수경 중심, 백엔드 협업 | play session, evidence unlock, hint flow, scenario/play runtime consistency |
 | Android App / QA Surface | 정채림 중심, 팀 QA | Android 화면 흐름, API 연동, Mock to API 전환, Android E2E QA |
