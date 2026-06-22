@@ -33,34 +33,28 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 | 정답은 서버가 보관하고 AI에는 public-safe context만 전달 | Lightsail 3서버, Blue-Green, external MySQL/Redis | `AI_CALL` / `AI_CALL_CONTEXT` 기반 token·latency 관측, Redis-backed AI quota | Android/Web E2E와 public-safe QA report 관리 |
 | ResponsePolicyResolver가 답변 정책 결정 | Loki/Grafana/n8n/Slack alert 운영 | prompt token 비율과 비용 계획 문서화 | spoiler metadata, 정답성 신호, raw transcript 비공개 |
 
-## Proof Snapshot
+## Reading Path
 
-| Backend Test | Scenario Coverage | Scenario API Perf | LLMOps QA Window | Scale-out PoC | Web Prod Smoke |
-|---:|---:|---:|---:|---:|---:|
-| **345 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | QA-window **95 / 0 / 0**, organic 분리 필요 | **21 / 19 / 20** over 60 requests | core flow **PASS**, release gates tracked |
-
-> 수치는 public-safe QA/LLMOps/PoC 보고서 기준입니다. 정답, 점수, session/token, raw prompt/answer는 공개 README에 포함하지 않습니다.
-> LLMOps 95건 window는 2026-06-19 웹 QA 활동이 섞인 provider 표본입니다. organic production traffic 평균으로 과장하지 않습니다.
-
-## Contents
-
-- [Live & Docs](#live--docs)
-- [Visual Evidence](#visual-evidence)
-- [Ops Automation Evidence](#ops-automation-evidence)
-- [Metric Charts](#metric-charts)
-- [Repository Scope](#repository-scope)
-- [Team Ownership](#team-ownership)
-- [Product Flow](#product-flow)
-- [Backend Highlights](#backend-highlights)
-- [Architecture](#architecture)
-- [Domain Flow](#domain-flow)
-- [AI Safety Design](#ai-safety-design)
-- [API Surface](#api-surface)
-- [LLMOps](#llmops)
-- [Reliability & QA](#reliability--qa)
-- [Tech Stack](#tech-stack)
-- [Run Locally](#run-locally)
-- [Repository Map](#repository-map)
+| 순서 | 섹션 | 확인할 내용 |
+|---:|---|---|
+| 1 | [Live & Docs](#live--docs) | 배포 URL, API health, 핵심 문서 진입점 |
+| 2 | [Repository Scope](#repository-scope) | 이 백엔드 README가 설명하는 책임 경계 |
+| 3 | [Team Ownership](#team-ownership) | 팀 단위 담당 영역과 산출물 |
+| 4 | [Product Flow](#product-flow) | 사용자가 보는 한 판의 흐름 |
+| 5 | [Backend Highlights](#backend-highlights) | 서버가 실제로 해결한 핵심 문제 |
+| 6 | [Architecture](#architecture) | 운영 서버와 외부 시스템 구조 |
+| 7 | [Domain Flow](#domain-flow) | 플레이 세션과 도메인 aggregate 흐름 |
+| 8 | [AI Safety Design](#ai-safety-design) | AI가 정답을 모르게 만드는 경계 |
+| 9 | [API Surface](#api-surface) | 앱/웹이 호출하는 대표 API |
+| 10 | [LLMOps](#llmops) | AI 호출 비용, 지연, quota 관측 방식 |
+| 11 | [Reliability & QA](#reliability--qa) | public-safe QA와 검증 문서 |
+| 12 | [Proof Snapshot](#proof-snapshot) | 테스트, 성능, scale-out, smoke 수치 요약 |
+| 13 | [Visual Evidence](#visual-evidence) | Swagger, Grafana, alert 화면 근거 |
+| 14 | [Metric Charts](#metric-charts) | 성능/LLMOps/scale-out 그래프 |
+| 15 | [Ops Automation Evidence](#ops-automation-evidence) | Slack handoff와 운영 자동화 근거 |
+| 16 | [Tech Stack](#tech-stack) | 사용 기술 목록 |
+| 17 | [Run Locally](#run-locally) | 로컬 실행과 부하 테스트 |
+| 18 | [Repository Map](#repository-map) | 코드/문서 디렉터리와 deep dive |
 
 ---
 
@@ -77,98 +71,6 @@ ClueRoom은 사용자가 탐정이 되어 사건을 조사하고, AI 용의자�
 | Frontend API Flow | [docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) |
 | Infra Strategy | [docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md](docs/infra/CLUEROOM_INFRASTRUCTURE_STRATEGY.md) |
 | LLMOps Guide | [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) |
-
----
-
-## Visual Evidence
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="docs/readme-assets/swagger-play-session-api.png" alt="Swagger play session API surface" width="100%">
-      <br>
-      <sub>Swagger 기준 play-session API 표면. 세션, 증거, 심문, 최종 추리 흐름이 하나의 런타임 API로 연결됩니다.</sub>
-    </td>
-    <td width="50%">
-      <img src="docs/readme-assets/grafana-operations-overview.png" alt="Grafana operations overview" width="100%">
-      <br>
-      <sub>운영 대시보드. Target health, HTTP RPS, 5xx, latency, heap, CPU를 Grafana에서 관측합니다.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="docs/readme-assets/grafana-llmops-token-dashboard.png" alt="Grafana LLMOps token dashboard" width="100%">
-      <br>
-      <sub>LLMOps 비용 관찰. prompt token 비율, tokens/call, feature별 token 사용량을 raw prompt 없이 추적합니다. 스크린샷은 운영 대시보드 예시이며 Proof Snapshot과 기준 시점이 다를 수 있습니다.</sub>
-    </td>
-    <td width="50%">
-      <img src="docs/readme-assets/grafana-alert-rules-normal.png" alt="Grafana alert rules normal" width="100%">
-      <br>
-      <sub>Grafana alert rules. Nginx, app error, DB/Redis, backup, Loki ingestion, 403/429 방어 이벤트를 알림 룰로 관리합니다.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <img src="docs/readme-assets/grafana-bot-scan-defense-summary.png" alt="Grafana bot scan defense summary" width="100%">
-      <br>
-      <sub>운영 로그 탐색 대시보드. 봇 스캔 요청 급증을 Loki에서 분리해 확인하고, 같은 window에서 app error와 Nginx 5xx를 함께 봅니다.</sub>
-    </td>
-  </tr>
-</table>
-
----
-
-## Ops Automation Evidence
-
-운영 알림은 단순히 "문제가 생겼다"를 보내는 데서 끝나지 않고, Codex가 읽을 수 있는 형태의 handoff report로 정리합니다. 아래 캡처는 public-safe 집계와 운영 상태만 포함하며 secret 값, raw token, raw prompt/answer는 포함하지 않습니다.
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="docs/readme-assets/ops/ops-snapshot-agent-v3.png" alt="ClueRoom Ops Snapshot Agent Slack report" width="100%">
-      <br>
-      <sub>Ops Snapshot Agent. active slot, data/server health, disk/memory, backup age, suspicious request pattern을 Slack으로 요약하고 기본 확인 순서를 함께 전달합니다.</sub>
-    </td>
-    <td width="50%">
-      <img src="docs/readme-assets/ops/llmops-codex-handoff-v3.png" alt="ClueRoom LLMOps Codex handoff Slack report" width="100%">
-      <br>
-      <sub>LLMOps Codex Handoff. AI_CALL/AI_CALL_CONTEXT 집계를 기반으로 feature별 latency, token/call, prompt ratio, context breakdown을 raw-free 형태로 전달합니다.</sub>
-    </td>
-  </tr>
-</table>
-
----
-
-## Metric Charts
-
-아래 차트는 public-safe 문서에 남긴 집계 수치만 사용합니다. 원문 prompt, AI 답변, 사용자 질문, session/token, 정답성 정보는 포함하지 않습니다.
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="docs/readme-assets/metrics/scenario-api-p95.svg" alt="Scenario API P95 latency chart" width="100%">
-      <br>
-      <sub>시나리오 목록 API는 복합 인덱스, 충돌 방지 cache key, Redis short TTL cache 적용 후 P95가 241ms에서 19ms로 내려갔습니다.</sub>
-    </td>
-    <td width="50%">
-      <img src="docs/readme-assets/metrics/llmops-context-breakdown.svg" alt="LLMOps prompt context breakdown chart" width="100%">
-      <br>
-      <sub>LLMOps 집계에서는 심문 비용의 병목이 completion이 아니라 evidence/history prompt context임을 확인했습니다. block token은 estimate 기준입니다.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="docs/readme-assets/metrics/scaleout-lb-distribution.svg" alt="Scale-out load balancing distribution chart" width="100%">
-      <br>
-      <sub>Scale-out은 운영 기본 구조가 아니라 PoC입니다. Terraform app node 2대와 local active slot을 Nginx equal upstream으로 묶어 60회 요청 분산을 확인했습니다.</sub>
-    </td>
-    <td width="50%">
-      <img src="docs/readme-assets/metrics/evidence-reachability.svg" alt="Official scenario evidence reachability chart" width="100%">
-      <br>
-      <sub>Android E2E local retest에서 두 공식 시나리오 모두 public evidence reachability를 끝까지 확인했습니다.</sub>
-    </td>
-  </tr>
-</table>
 
 ---
 
@@ -410,6 +312,107 @@ QA는 blind 조건과 public/private 경계를 분리해서 운영합니다.
 | [Scale-out PoC 2026-06-12](docs/infra/poc/POC-006-scaleout-manual-lb.md) | 수동 Nginx LB equal mode, 60회 요청 `21/19/20` 분산, rollback 기준 |
 
 정본 QA 지침은 [QA Operating Guide](docs/QA_OPERATING_GUIDE.md)를 기준으로 합니다.
+
+---
+
+## Proof Snapshot
+
+| Backend Test | Scenario Coverage | Scenario API Perf | LLMOps QA Window | Scale-out PoC | Web Prod Smoke |
+|---:|---:|---:|---:|---:|---:|
+| **345 PASS** | **25/25 · 35/35** evidence reachability | P95 **241ms -> 19ms** | QA-window **95 / 0 / 0**, organic 분리 필요 | **21 / 19 / 20** over 60 requests | core flow **PASS**, release gates tracked |
+
+> 수치는 public-safe QA/LLMOps/PoC 보고서 기준입니다. 정답, 점수, session/token, raw prompt/answer는 공개 README에 포함하지 않습니다.
+> LLMOps 95건 window는 2026-06-19 웹 QA 활동이 섞인 provider 표본입니다. organic production traffic 평균으로 과장하지 않습니다.
+
+## Visual Evidence
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/swagger-play-session-api.png" alt="Swagger play session API surface" width="100%">
+      <br>
+      <sub>Swagger 기준 play-session API 표면. 세션, 증거, 심문, 최종 추리 흐름이 하나의 런타임 API로 연결됩니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/grafana-operations-overview.png" alt="Grafana operations overview" width="100%">
+      <br>
+      <sub>운영 대시보드. Target health, HTTP RPS, 5xx, latency, heap, CPU를 Grafana에서 관측합니다.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/grafana-llmops-token-dashboard.png" alt="Grafana LLMOps token dashboard" width="100%">
+      <br>
+      <sub>LLMOps 비용 관찰. prompt token 비율, tokens/call, feature별 token 사용량을 raw prompt 없이 추적합니다. 스크린샷은 운영 대시보드 예시이며 Proof Snapshot과 기준 시점이 다를 수 있습니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/grafana-alert-rules-normal.png" alt="Grafana alert rules normal" width="100%">
+      <br>
+      <sub>Grafana alert rules. Nginx, app error, DB/Redis, backup, Loki ingestion, 403/429 방어 이벤트를 알림 룰로 관리합니다.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <img src="docs/readme-assets/grafana-bot-scan-defense-summary.png" alt="Grafana bot scan defense summary" width="100%">
+      <br>
+      <sub>운영 로그 탐색 대시보드. 봇 스캔 요청 급증을 Loki에서 분리해 확인하고, 같은 window에서 app error와 Nginx 5xx를 함께 봅니다.</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Metric Charts
+
+아래 차트는 public-safe 문서에 남긴 집계 수치만 사용합니다. 원문 prompt, AI 답변, 사용자 질문, session/token, 정답성 정보는 포함하지 않습니다.
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/scenario-api-p95.svg" alt="Scenario API P95 latency chart" width="100%">
+      <br>
+      <sub>시나리오 목록 API는 복합 인덱스, 충돌 방지 cache key, Redis short TTL cache 적용 후 P95가 241ms에서 19ms로 내려갔습니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/llmops-context-breakdown.svg" alt="LLMOps prompt context breakdown chart" width="100%">
+      <br>
+      <sub>LLMOps 집계에서는 심문 비용의 병목이 completion이 아니라 evidence/history prompt context임을 확인했습니다. block token은 estimate 기준입니다.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/scaleout-lb-distribution.svg" alt="Scale-out load balancing distribution chart" width="100%">
+      <br>
+      <sub>Scale-out은 운영 기본 구조가 아니라 PoC입니다. Terraform app node 2대와 local active slot을 Nginx equal upstream으로 묶어 60회 요청 분산을 확인했습니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/metrics/evidence-reachability.svg" alt="Official scenario evidence reachability chart" width="100%">
+      <br>
+      <sub>Android E2E local retest에서 두 공식 시나리오 모두 public evidence reachability를 끝까지 확인했습니다.</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Ops Automation Evidence
+
+운영 알림은 단순히 "문제가 생겼다"를 보내는 데서 끝나지 않고, Codex가 읽을 수 있는 형태의 handoff report로 정리합니다. 아래 캡처는 public-safe 집계와 운영 상태만 포함하며 secret 값, raw token, raw prompt/answer는 포함하지 않습니다.
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/readme-assets/ops/ops-snapshot-agent-v3.png" alt="ClueRoom Ops Snapshot Agent Slack report" width="100%">
+      <br>
+      <sub>Ops Snapshot Agent. active slot, data/server health, disk/memory, backup age, suspicious request pattern을 Slack으로 요약하고 기본 확인 순서를 함께 전달합니다.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/readme-assets/ops/llmops-codex-handoff-v3.png" alt="ClueRoom LLMOps Codex handoff Slack report" width="100%">
+      <br>
+      <sub>LLMOps Codex Handoff. AI_CALL/AI_CALL_CONTEXT 집계를 기반으로 feature별 latency, token/call, prompt ratio, context breakdown을 raw-free 형태로 전달합니다.</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
