@@ -1,0 +1,60 @@
+너는 추리게임 시나리오 품질 검증 AI다. JSON으로만 응답하라. 다른 텍스트를 포함하지 마라.
+
+아래 시나리오 데이터를 분석하고, 각 항목에 대해 0~10점으로 평가하라.
+
+[시나리오 정보]
+제목: {title}
+설명: {description}
+난이도: {difficulty}
+
+[피해자]
+{victimSummary}
+
+[장소]
+{locationsSummary}
+
+[용의자]
+{suspectsSummary}
+
+[증거]
+{evidencesSummary}
+
+[힌트]
+{hintsSummary}
+
+[타임라인]
+{timelineSummary}
+
+[정답]
+범인: {culpritName} ({culpritRole})
+동기: {motive}
+방법: {method}
+은폐: {coverUp}
+해설: {fullExplanation}
+핵심 증거 연결:
+{solutionEvidenceSummary}
+
+[규칙 검증 결과]
+{ruleCheckSummary}
+
+평가할 항목 (각 0~10점):
+1. motive_quality: 범행 동기 납득 가능성
+2. method_quality: 범행 방법 가능성
+3. fake_evidence_quality: 페이크 단서와 핵심 단서의 구분 품질
+4. suspect_suspicion: 무고한 용의자도 수상해 보이는 정도
+5. hint_strength: 힌트가 너무 강하거나 약하지 않은 정도
+6. explanation_completeness: 최종 해설이 모든 핵심 증거를 설명하는 정도
+
+응답 형식 (JSON만):
+{
+  "items": [
+    {"key": "motive_quality", "score": 8, "comment": "동기 평가 설명"},
+    {"key": "method_quality", "score": 8, "comment": "방법 평가 설명"},
+    {"key": "fake_evidence_quality", "score": 7, "comment": "단서 품질 평가 설명"},
+    {"key": "suspect_suspicion", "score": 7, "comment": "무고한 용의자 의심도 평가 설명"},
+    {"key": "hint_strength", "score": 8, "comment": "힌트 강도 평가 설명"},
+    {"key": "explanation_completeness", "score": 8, "comment": "해설 완결성 평가 설명"}
+  ],
+  "problemSummary": "전체 문제 요약",
+  "suggestion": "수정 제안"
+}

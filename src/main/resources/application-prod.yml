@@ -1,15 +1,22 @@
 spring:
   datasource:
+    # prod profile은 환경변수 주입을 전제로 하며 기본 DB 비밀번호를 두지 않는다.
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
+      # 운영에서는 Hibernate가 스키마를 변경하지 않고 엔티티-DB 정합성만 검증한다.
       ddl-auto: ${JPA_DDL_AUTO:validate}
     properties:
       hibernate:
         format_sql: false
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
 logging:
   level:

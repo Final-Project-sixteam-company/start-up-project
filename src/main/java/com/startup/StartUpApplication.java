@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
+// @CreatedDate, @LastModifiedDate 같은 JPA Auditing 필드를 전역으로 활성화한다.
 @ConfigurationPropertiesScan
 @EnableJpaAuditing
 @SpringBootApplication

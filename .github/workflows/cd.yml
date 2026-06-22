@@ -1,0 +1,29 @@
+name: Backend CD
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: clueroom-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Lightsail
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/clueroom_deploy_key
+          chmod 600 ~/.ssh/clueroom_deploy_key
+          ssh-keyscan -H "${{ secrets.LIGHTSAIL_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run deploy script
+        run: |
+          ssh -i ~/.ssh/clueroom_deploy_key \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }}" \
+            "/opt/clueroom/deploy.sh"

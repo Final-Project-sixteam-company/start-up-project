@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" role="img" aria-labelledby="title desc">
+  <title id="title">Scenario API P95 latency improvement</title>
+  <desc id="desc">Bar chart showing P95 latency improving from 241 milliseconds to 185 milliseconds and then 19 milliseconds.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #dbe4ee; stroke-width: 1; }
+      .grid { stroke: #e5edf5; stroke-width: 1; }
+      .target { stroke: #ef4444; stroke-width: 2; stroke-dasharray: 8 8; }
+      .axis { stroke: #94a3b8; stroke-width: 1.4; }
+      .title { fill: #0f172a; font: 700 28px "Segoe UI", Arial, sans-serif; }
+      .subtitle { fill: #475569; font: 500 15px "Segoe UI", Arial, sans-serif; }
+      .label { fill: #334155; font: 600 15px "Segoe UI", Arial, sans-serif; }
+      .small { fill: #64748b; font: 500 13px "Segoe UI", Arial, sans-serif; }
+      .value { fill: #0f172a; font: 800 24px "Segoe UI", Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="900" height="480" rx="18"/>
+  <rect class="panel" x="30" y="28" width="840" height="424" rx="18"/>
+
+  <text class="title" x="72" y="78">Scenario API P95 Latency</text>
+  <text class="subtitle" x="72" y="105">Scenario list load test · lower is better</text>
+
+  <line class="grid" x1="120" y1="129" x2="820" y2="129"/>
+  <line class="grid" x1="120" y1="225" x2="820" y2="225"/>
+  <line class="grid" x1="120" y1="322" x2="820" y2="322"/>
+  <line class="axis" x1="120" y1="370" x2="820" y2="370"/>
+  <line class="axis" x1="120" y1="120" x2="120" y2="370"/>
+
+  <text class="small" x="84" y="133">250ms</text>
+  <text class="small" x="84" y="229">150ms</text>
+  <text class="small" x="92" y="326">50ms</text>
+  <text class="small" x="96" y="374">0</text>
+
+  <line class="target" x1="120" y1="178" x2="820" y2="178"/>
+  <text class="small" x="720" y="169">200ms target</text>
+
+  <rect x="202" y="138" width="104" height="232" rx="10" fill="#f97316"/>
+  <rect x="398" y="192" width="104" height="178" rx="10" fill="#2563eb"/>
+  <rect x="594" y="352" width="104" height="18" rx="9" fill="#16a34a"/>
+
+  <text class="value" x="215" y="126">241ms</text>
+  <text class="value" x="411" y="180">185ms</text>
+  <text class="value" x="609" y="340">19ms</text>
+
+  <text class="label" x="208" y="405">Baseline</text>
+  <text class="label" x="417" y="405">Index</text>
+  <text class="label" x="591" y="405">Redis cache</text>
+
+  <text class="small" x="72" y="432">Source: docs/perf/SCENARIO_LIST_PERFORMANCE_REPORT_2026-06-19.md</text>
+</svg>

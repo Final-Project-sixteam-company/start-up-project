@@ -1,1 +1,2 @@
+// Gradle root project name. Docker image/tag and IDE project display name도 이 값을 기준으로 읽히는 경우가 많다.
 rootProject.name = 'start-up'

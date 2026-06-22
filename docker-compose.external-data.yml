@@ -1,0 +1,29 @@
+# Optional override for external data server mode.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.external-data.yml config
+#   docker compose -f docker-compose.yml -f docker-compose.external-data.yml up -d --build app
+#
+# Required env:
+#   APP_DB_HOST=<data-server-private-ip-or-dns>
+#   APP_DB_PORT=3306
+#   APP_REDIS_HOST=<data-server-private-ip-or-dns>
+#   APP_REDIS_PORT=6379
+#
+# Production Blue-Green helpers include this after external-data cutover.
+# The local mysql/redis services remain available behind the local-data profile
+# for rollback/comparison windows, but app containers must not depend on them.
+services:
+  mysql:
+    profiles:
+      - local-data
+
+  redis:
+    profiles:
+      - local-data
+
+  app:
+    depends_on: !reset []
+
+  prometheus:
+    depends_on: !reset []

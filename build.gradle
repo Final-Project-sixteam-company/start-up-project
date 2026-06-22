@@ -22,33 +22,55 @@ configurations {
 
 repositories {
     mavenCentral()
+    // Spring AI milestone 버전을 사용하므로 Spring milestone repository가 필요하다.
+    maven { url 'https://repo.spring.io/milestone' }
 }
 
 dependencies {
+    // Spring Boot 기본 웹/API 운영 의존성
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'tools.jackson.dataformat:jackson-dataformat-yaml'
 
-    implementation 'io.github.openfeign.querydsl:querydsl-jpa:7.0'
+    // 기본값은 AI model을 none으로 두고, 기능을 붙일 때 OpenAI provider를 켠다.
+    implementation platform('org.springframework.ai:spring-ai-bom:2.0.0-M6')
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+
+    // Redis 분산락, Swagger/OpenAPI
+    implementation 'org.apache.commons:commons-pool2'
+    implementation 'org.redisson:redisson:4.3.1'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
+
+    // QueryDSL (타입 안전 동적 쿼리)
+    implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
+    annotationProcessor 'com.querydsl:querydsl-apt:5.1.0:jakarta'
+    annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
+    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
 
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
 
-    annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.0:jakarta'
-    annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
-    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // 서버에서 Android FCM registration token으로 푸시를 발송하기 위한 Firebase Admin SDK다.
+    implementation 'com.google.firebase:firebase-admin:9.9.0'
 }
 
 tasks.named('test') {
@@ -57,4 +79,53 @@ tasks.named('test') {
 
 tasks.withType(JavaCompile).configureEach {
     options.compilerArgs.add('-parameters')
+}
+
+def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+def dockerComposeCommand = { String arguments ->
+    // IntelliJ/터미널이 Windows와 Unix 계열 어디서 실행돼도 같은 Gradle task를 쓰게 한다.
+    isWindows
+            ? ['cmd', '/c', "docker compose ${arguments}"]
+            : ['sh', '-c', "docker compose ${arguments}"]
+}
+
+// 팀원이 Docker 명령을 외우지 않아도 Gradle 창에서 compose stack을 제어할 수 있게 둔 task들이다.
+tasks.register('composeUp', Exec) {
+    group = 'docker'
+    description = 'Build bootJar and start the Docker Compose stack.'
+    dependsOn tasks.named('bootJar')
+    workingDir rootDir
+    commandLine dockerComposeCommand('up -d --build')
+}
+
+tasks.register('composeDown', Exec) {
+    group = 'docker'
+    description = 'Stop the Docker Compose stack.'
+    workingDir rootDir
+    commandLine dockerComposeCommand('down')
+}
+
+tasks.register('composePs', Exec) {
+    group = 'docker'
+    description = 'Show Docker Compose container status.'
+    workingDir rootDir
+    commandLine dockerComposeCommand('ps')
+}
+
+tasks.register('composeLogs', Exec) {
+    group = 'docker'
+    description = 'Tail Docker Compose logs.'
+    workingDir rootDir
+    commandLine dockerComposeCommand('logs -f --tail=100')
+}
+tasks.register('updateGitHooks', Copy) {
+    from './scripts/prepare-commit-msg'
+    into './.git/hooks'
+    filePermissions {
+        unix('rwxrwxr-x')
+    }
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('updateGitHooks')
 }

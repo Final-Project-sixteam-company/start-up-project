@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" role="img" aria-labelledby="title desc">
+  <title id="title">Scale-out load balancing distribution</title>
+  <desc id="desc">Bar chart showing 60 health requests distributed 21, 19, and 20 across three upstreams in a manual Nginx load balancing proof of concept.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #dbe4ee; stroke-width: 1; }
+      .grid { stroke: #e5edf5; stroke-width: 1; }
+      .target { stroke: #0f766e; stroke-width: 2; stroke-dasharray: 8 8; }
+      .axis { stroke: #94a3b8; stroke-width: 1.4; }
+      .title { fill: #0f172a; font: 700 28px "Segoe UI", Arial, sans-serif; }
+      .subtitle { fill: #475569; font: 500 15px "Segoe UI", Arial, sans-serif; }
+      .label { fill: #334155; font: 600 15px "Segoe UI", Arial, sans-serif; }
+      .small { fill: #64748b; font: 500 13px "Segoe UI", Arial, sans-serif; }
+      .value { fill: #0f172a; font: 800 25px "Segoe UI", Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="900" height="480" rx="18"/>
+  <rect class="panel" x="30" y="28" width="840" height="424" rx="18"/>
+
+  <text class="title" x="72" y="78">Scale-out PoC Distribution</text>
+  <text class="subtitle" x="72" y="105">Nginx equal upstream · 60 requests · PoC only</text>
+
+  <line class="grid" x1="120" y1="141" x2="820" y2="141"/>
+  <line class="grid" x1="120" y1="247" x2="820" y2="247"/>
+  <line class="grid" x1="120" y1="353" x2="820" y2="353"/>
+  <line class="axis" x1="120" y1="370" x2="820" y2="370"/>
+  <line class="axis" x1="120" y1="120" x2="120" y2="370"/>
+
+  <text class="small" x="92" y="145">22</text>
+  <text class="small" x="92" y="251">12</text>
+  <text class="small" x="100" y="357">2</text>
+
+  <line class="target" x1="120" y1="162" x2="820" y2="162"/>
+  <text class="small" x="704" y="153">ideal 20 each</text>
+
+  <rect x="204" y="151" width="104" height="219" rx="10" fill="#0f766e"/>
+  <rect x="398" y="172" width="104" height="198" rx="10" fill="#2563eb"/>
+  <rect x="592" y="162" width="104" height="208" rx="10" fill="#f97316"/>
+
+  <text class="value" x="240" y="139">21</text>
+  <text class="value" x="434" y="160">19</text>
+  <text class="value" x="628" y="150">20</text>
+
+  <text class="label" x="195" y="405">local active</text>
+  <text class="label" x="427" y="405">app01</text>
+  <text class="label" x="621" y="405">app02</text>
+
+  <text class="small" x="72" y="432">Source: docs/infra/poc/POC-006-scaleout-manual-lb.md · not the default production topology</text>
+</svg>

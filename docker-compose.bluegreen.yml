@@ -1,0 +1,54 @@
+services:
+  app-blue:
+    build:
+      context: .
+      dockerfile: dockerfile
+    image: clueroom-app-blue:latest
+    container_name: start-up-app-blue
+    env_file:
+      - ${CLUEROOM_RUNTIME_ENV_FILE:-.env.example}
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      DB_HOST: ${APP_DB_HOST:-mysql}
+      DB_PORT: ${APP_DB_PORT:-3306}
+      REDIS_HOST: ${APP_REDIS_HOST:-redis}
+      REDIS_PORT: ${APP_REDIS_PORT:-6379}
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - /opt/clueroom/secrets:/opt/clueroom/secrets:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  app-green:
+    build:
+      context: .
+      dockerfile: dockerfile
+    image: clueroom-app-green:latest
+    container_name: start-up-app-green
+    env_file:
+      - ${CLUEROOM_RUNTIME_ENV_FILE:-.env.example}
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      DB_HOST: ${APP_DB_HOST:-mysql}
+      DB_PORT: ${APP_DB_PORT:-3306}
+      REDIS_HOST: ${APP_REDIS_HOST:-redis}
+      REDIS_PORT: ${APP_REDIS_PORT:-6379}
+    ports:
+      - "127.0.0.1:8082:8080"
+    volumes:
+      - /opt/clueroom/secrets:/opt/clueroom/secrets:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped

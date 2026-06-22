@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-labelledby="title desc">
+  <title id="title">LLMOps prompt context token breakdown</title>
+  <desc id="desc">Horizontal bar chart showing evidence context as the dominant average token block in npc interrogation prompt context.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #dbe4ee; stroke-width: 1; }
+      .track { fill: #edf2f7; }
+      .title { fill: #0f172a; font: 700 28px "Segoe UI", Arial, sans-serif; }
+      .subtitle { fill: #475569; font: 500 15px "Segoe UI", Arial, sans-serif; }
+      .label { fill: #334155; font: 700 15px "Segoe UI", Arial, sans-serif; }
+      .value { fill: #0f172a; font: 800 17px "Segoe UI", Arial, sans-serif; }
+      .small { fill: #64748b; font: 500 13px "Segoe UI", Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="900" height="520" rx="18"/>
+  <rect class="panel" x="30" y="28" width="840" height="464" rx="18"/>
+
+  <text class="title" x="72" y="78">LLMOps Context Breakdown</text>
+  <text class="subtitle" x="72" y="105">Avg tokens per INTERROGATION prompt block · 2026-06-13 estimate</text>
+
+  <text class="label" x="92" y="157">System</text>
+  <rect class="track" x="215" y="136" width="560" height="28" rx="8"/>
+  <rect x="215" y="136" width="83" height="28" rx="8" fill="#0ea5e9"/>
+  <text class="value" x="795" y="157">271</text>
+
+  <text class="label" x="92" y="211">Policy</text>
+  <rect class="track" x="215" y="190" width="560" height="28" rx="8"/>
+  <rect x="215" y="190" width="17" height="28" rx="8" fill="#22c55e"/>
+  <text class="value" x="795" y="211">57</text>
+
+  <text class="label" x="92" y="265">NPC</text>
+  <rect class="track" x="215" y="244" width="560" height="28" rx="8"/>
+  <rect x="215" y="244" width="15" height="28" rx="8" fill="#a855f7"/>
+  <text class="value" x="795" y="265">49</text>
+
+  <text class="label" x="92" y="319">Evidence</text>
+  <rect class="track" x="215" y="298" width="560" height="28" rx="8"/>
+  <rect x="215" y="298" width="560" height="28" rx="8" fill="#f97316"/>
+  <text class="value" x="795" y="319">1,830</text>
+
+  <text class="label" x="92" y="373">History</text>
+  <rect class="track" x="215" y="352" width="560" height="28" rx="8"/>
+  <rect x="215" y="352" width="177" height="28" rx="8" fill="#2563eb"/>
+  <text class="value" x="795" y="373">579</text>
+
+  <text class="label" x="92" y="427">Question</text>
+  <rect class="track" x="215" y="406" width="560" height="28" rx="8"/>
+  <rect x="215" y="406" width="10" height="28" rx="8" fill="#64748b"/>
+  <text class="value" x="795" y="427">33</text>
+
+  <text class="small" x="72" y="466">Source: LLMOPS_DAILY_SUMMARY_2026-06-09_TO_2026-06-13.md · block token counts are estimates</text>
+</svg>

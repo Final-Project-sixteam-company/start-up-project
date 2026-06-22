@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @RequiredArgsConstructor
+// C 계열 코드는 도메인에 종속되지 않는 공통 HTTP/요청 오류에 사용한다.
 public enum CommonErrorCode implements ErrorCode {
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "C001", "Invalid input value."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "C002", "Invalid request."),

@@ -1,0 +1,10 @@
+apiVersion: 1
+
+datasources:
+  # Grafana 컨테이너가 시작될 때 Prometheus datasource를 자동으로 등록한다.
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true

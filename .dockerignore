@@ -1,0 +1,29 @@
+# Docker build context에는 bootJar 산출물만 필요하다.
+# 소스와 Gradle wrapper를 제외해 이미지 빌드 전송량과 캐시 무효화를 줄인다.
+.git
+.gradle
+.idea
+out
+*.iml
+.env
+.env.*
+secrets
+*.pem
+*.key
+*.sql
+*.sql.gz
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+src
+gradle
+HELP.md
+README.md
+
+build/classes
+build/generated
+build/reports
+build/resources
+build/test-results
+build/tmp

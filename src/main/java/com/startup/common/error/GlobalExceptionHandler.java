@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -19,9 +20,12 @@ import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
+// 컨트롤러 밖으로 올라온 예외를 ApiResponse.fail(...) 형식으로 통일한다.
+// 예상 가능한 비즈니스/검증 오류는 warn, 알 수 없는 서버 오류는 error로 남긴다.
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
@@ -33,7 +37,7 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = e.getErrorCode();
         return ResponseEntity
                 .status(errorCode.getStatus())
-                .body(ApiResponse.fail(buildErrorResponse(errorCode, e.getMessage(), request.getRequestURI())));
+                .body(ApiResponse.fail(buildErrorResponse(errorCode, e.getMessage(), request.getRequestURI(), e.getDetails())));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -73,6 +77,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception e, HttpServletRequest request) {
         log.warn("{}: {}", e.getClass().getSimpleName(), e.getMessage());
         return badRequest(e.getMessage(), request);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException e,
+            HttpServletRequest request
+    ) {
+        // 본문 역직렬화 실패(잘못된 JSON, 타입 불일치, 잘못된 enum 값 등)는 클라이언트 입력 오류이므로 400으로 매핑한다.
+        // 원본 메시지/입력값은 응답·로그 어디에도 노출하지 않고, 로그에는 원인 예외 클래스만 남긴다.
+        Throwable cause = e.getMostSpecificCause();
+        log.warn("HttpMessageNotReadableException: cause={}", cause == null ? "n/a" : cause.getClass().getSimpleName());
+        return badRequest("요청 본문을 읽을 수 없습니다. 요청 형식을 확인해 주세요.", request);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
@@ -164,6 +180,7 @@ public class GlobalExceptionHandler {
     }
 
     private String firstFieldErrorMessage(org.springframework.validation.BindingResult bindingResult, String defaultMessage) {
+        // Bean Validation 오류가 여러 개여도 클라이언트에는 가장 먼저 잡힌 필드 메시지만 내려준다.
         if (bindingResult.getFieldError() == null || bindingResult.getFieldError().getDefaultMessage() == null) {
             return defaultMessage;
         }
@@ -171,6 +188,10 @@ public class GlobalExceptionHandler {
     }
 
     private ErrorResponse buildErrorResponse(ErrorCode errorCode, String message, String path) {
+        return buildErrorResponse(errorCode, message, path, null);
+    }
+
+    private ErrorResponse buildErrorResponse(ErrorCode errorCode, String message, String path, Map<String, Object> details) {
         return ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(errorCode.getStatus().value())
@@ -178,6 +199,7 @@ public class GlobalExceptionHandler {
                 .code(errorCode.getCode())
                 .message(message)
                 .path(path)
+                .details(details)
                 .build();
     }
 }

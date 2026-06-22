@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    # docker-compose 내부 네트워크에서는 DB_HOST 기본값으로 mysql 서비스명을 사용한다.
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${DB_NAME:startup}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:12345678}
+  jpa:
+    hibernate:
+      # 팀 개발 초반에는 update가 편하지만, 운영 배포에서는 validate를 우선 검토한다.
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
+  data:
+    redis:
+      # docker-compose 내부 네트워크에서는 Redis 서비스명이 redis다.
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+logging:
+  level:
+    org.hibernate.SQL: ${HIBERNATE_SQL_LOG:warn}
+    org.hibernate.orm.jdbc.bind: ${HIBERNATE_SQL_PARAM_LOG:warn}

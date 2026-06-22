@@ -1,0 +1,21 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- IntelliJ Gradle 창을 열지 않아도 상단 실행 목록에서 composeUp을 바로 실행하기 위한 설정이다. -->
+  <configuration default="false" name="composeUp" type="GradleRunConfiguration" factoryName="Gradle">
+    <ExternalSystemSettings>
+      <option name="externalProjectPath" value="$PROJECT_DIR$" />
+      <option name="externalSystemIdString" value="GRADLE" />
+      <option name="scriptParameters" value="composeUp" />
+      <option name="taskNames">
+        <list>
+          <option value="composeUp" />
+        </list>
+      </option>
+      <option name="vmOptions" />
+    </ExternalSystemSettings>
+    <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+    <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+    <DebugAllEnabled>false</DebugAllEnabled>
+    <RunAsTest>false</RunAsTest>
+    <method v="2" />
+  </configuration>
+</component>

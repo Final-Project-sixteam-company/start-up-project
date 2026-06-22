@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'clueroom-app'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - app:8080
+
+  - job_name: 'clueroom-app-blue'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - app-blue:8080
+
+  - job_name: 'clueroom-app-green'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - app-green:8080
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+          - localhost:9090

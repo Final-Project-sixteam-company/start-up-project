@@ -1,8 +1,10 @@
 server:
   port: ${SERVER_PORT:8080}
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:framework}
 
 spring:
   config:
+    # 로컬 개발자는 .env만 만들면 yml을 수정하지 않고 환경값을 덮어쓸 수 있다.
     import: optional:file:.env[.properties]
   application:
     name: start-up
@@ -14,18 +16,152 @@ spring:
       max-file-size: ${MULTIPART_MAX_FILE_SIZE:10MB}
       max-request-size: ${MULTIPART_MAX_REQUEST_SIZE:12MB}
   jpa:
+    # OSIV를 끄고 서비스 트랜잭션 안에서 필요한 연관관계를 명시적으로 조회한다.
     open-in-view: false
+  data:
+    redis:
+      repositories:
+        # RedisRepository를 쓰지 않으므로 Spring Data Redis repository 스캔을 끈다.
+        enabled: false
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: ${REDIS_TIMEOUT:2s}
+      lettuce:
+        pool:
+          max-active: ${REDIS_POOL_MAX_ACTIVE:8}
+          max-idle: ${REDIS_POOL_MAX_IDLE:8}
+          min-idle: ${REDIS_POOL_MIN_IDLE:1}
+  ai:
+    model:
+      # none이면 provider bean을 만들지 않아 OPENAI_API_KEY 없이도 서버가 부팅된다.
+      chat: ${SPRING_AI_MODEL_CHAT:none}
+      embedding: ${SPRING_AI_MODEL_EMBEDDING:none}
+      image: ${SPRING_AI_MODEL_IMAGE:none}
+      moderation: ${SPRING_AI_MODEL_MODERATION:none}
+    openai:
+      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL:deepseek-v4-flash}
+          temperature: ${OPENAI_CHAT_TEMPERATURE:0.4}
 
 management:
   endpoints:
     web:
       exposure:
+        # Prometheus가 메트릭을 긁어갈 수 있도록 prometheus endpoint를 노출한다.
         include: health, info, metrics, prometheus
   endpoint:
     health:
       show-details: when_authorized
 
+springdoc:
+  # Swagger UI: http://localhost:8080/swagger-ui.html
+  swagger-ui:
+    path: /swagger-ui.html
+    display-request-duration: true
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
 logging:
   level:
     root: ${LOG_LEVEL_ROOT:info}
     com.startup: ${LOG_LEVEL_APP:debug}
+
+fcm:
+  # 기본값은 false로 두어 service account 파일이 없는 로컬/테스트 환경도 그대로 부팅되게 한다.
+  enabled: ${FCM_ENABLED:false}
+  # Firebase 프로젝트 ID와 service account 경로는 서버 환경변수로만 주입한다.
+  project-id: ${FCM_PROJECT_ID:}
+  service-account-path: ${FCM_SERVICE_ACCOUNT_PATH:}
+
+caselab:
+  scoring:
+    criteria-path: ${SCORING_CRITERIA_PATH:classpath:scoring/demo_day_criteria.json}
+    defaults:
+      culprit-max-score: ${SCORING_CULPRIT_MAX_SCORE:30}
+      evidence-max-score: ${SCORING_EVIDENCE_MAX_SCORE:15}
+      method-max-score: ${SCORING_METHOD_MAX_SCORE:25}
+      motive-max-score: ${SCORING_MOTIVE_MAX_SCORE:20}
+      cover-up-max-score: ${SCORING_COVER_UP_MAX_SCORE:10}
+  ai:
+    interrogation:
+      max-history-turns: ${AI_INTERROGATION_MAX_HISTORY_TURNS:10}
+      temperature: ${AI_INTERROGATION_TEMPERATURE:0.3}
+      max-tokens: ${AI_INTERROGATION_MAX_TOKENS:150}
+    deduction:
+      temperature: ${AI_DEDUCTION_TEMPERATURE:0.2}
+      max-tokens: ${AI_DEDUCTION_MAX_TOKENS:1500}
+    validation:
+      temperature: ${AI_VALIDATION_TEMPERATURE:0.2}
+      max-tokens: ${AI_VALIDATION_MAX_TOKENS:1500}
+    llmops:
+      # true로 켜려면 운영 DB에 ai_call_logs 테이블을 먼저 생성해야 한다.
+      db-logging-enabled: ${AI_LLMOPS_DB_LOGGING_ENABLED:false}
+
+clueroom:
+  assets:
+    public-base-url: ${AWS_S3_PUBLIC_BASE_URL:}
+  ai:
+    rate-limit:
+      enabled: ${AI_RATE_LIMIT_ENABLED:true}
+      daily-limit-per-user-per-scenario: ${AI_DAILY_RATE_LIMIT_PER_USER_PER_SCENARIO:${AI_DAILY_RATE_LIMIT_PER_USER:150}}
+      daily-limit-per-user-total: ${AI_DAILY_RATE_LIMIT_PER_USER_TOTAL:350}
+      ttl-hours: ${AI_RATE_LIMIT_TTL_HOURS:24}
+      admin-bypass-enabled: ${AI_RATE_LIMIT_ADMIN_BYPASS_ENABLED:true}
+  auth:
+    mock-fallback-enabled: ${AUTH_MOCK_FALLBACK_ENABLED:true}
+    dev-login-enabled: ${AUTH_DEV_LOGIN_ENABLED:false}
+    require-authentication: ${AUTH_REQUIRE_AUTHENTICATION:false}
+    jwt:
+      issuer: ${JWT_ISSUER:https://api.clueroom.xyz}
+      # 운영에서는 /opt/clueroom/secrets/env.d/oauth.env 등 서버 secret으로만 주입한다.
+      # 비어 있거나 너무 짧으면 토큰 발급/검증만 실패하고 서버 부팅은 유지한다.
+      secret: ${JWT_SECRET:}
+      access-token-ttl-seconds: ${JWT_ACCESS_TOKEN_TTL_SECONDS:1800}
+      refresh-token-ttl-days: ${JWT_REFRESH_TOKEN_TTL_DAYS:30}
+    refresh-cookie:
+      enabled: ${AUTH_REFRESH_COOKIE_ENABLED:true}
+      name: ${AUTH_REFRESH_COOKIE_NAME:clueroom_refresh_token}
+      path: ${AUTH_REFRESH_COOKIE_PATH:/api/auth}
+      domain: ${AUTH_REFRESH_COOKIE_DOMAIN:}
+      secure: ${AUTH_REFRESH_COOKIE_SECURE:true}
+      same-site: ${AUTH_REFRESH_COOKIE_SAME_SITE:Lax}
+    oauth:
+      timeout-seconds: ${OAUTH_PROVIDER_TIMEOUT_SECONDS:5}
+      google:
+        client-ids: ${GOOGLE_CLIENT_IDS:${GOOGLE_CLIENT_ID:}}
+      kakao:
+        app-id: ${KAKAO_APP_ID:}
+        rest-api-key: ${KAKAO_REST_API_KEY:}
+        client-secret: ${KAKAO_CLIENT_SECRET:}
+    admin-seed:
+      enabled: ${AUTH_ADMIN_SEED_ENABLED:false}
+      email: ${AUTH_ADMIN_SEED_EMAIL:}
+      nickname: ${AUTH_ADMIN_SEED_NICKNAME:ClueRoom Admin}
+    qa-seed:
+      enabled: ${AUTH_QA_SEED_ENABLED:false}
+      email: ${AUTH_QA_SEED_EMAIL:}
+      nickname: ${AUTH_QA_SEED_NICKNAME:ClueRoom QA}
+  scenario-import:
+    # 민감한 공식 시나리오 YAML은 repo에 올리지 않고 서버 로컬 경로 또는 private storage에서 주입한다.
+    enabled: ${CLUEROOM_SCENARIO_IMPORT_ENABLED:false}
+    paths: ${CLUEROOM_SCENARIO_IMPORT_PATHS:}
+    fail-on-error: ${CLUEROOM_SCENARIO_IMPORT_FAIL_ON_ERROR:true}
+
+app:
+  # JWT 인증 전환기에는 Bearer token이 없으면 이 값을 fallback 사용자로 사용한다.
+  # 후속 PR에서 보호 API를 강제할 때 mock fallback을 끈다.
+  mock-user-id: ${MOCK_USER_ID:1}
+  cors:
+    # 브라우저/WebView CORS 허용 목록이다. Native Android HTTP 클라이언트는 CORS 대상이 아니다.
+    # 웹 배포는 https://clueroom.xyz / https://www.clueroom.xyz, API는 https://api.clueroom.xyz를 사용한다.
+    # 운영에서 preview/staging origin을 추가할 때는 CORS_ALLOWED_ORIGIN_PATTERNS로 덮어쓴다.
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:https://clueroom.xyz,https://www.clueroom.xyz,http://localhost:[*],http://127.0.0.1:[*],http://10.0.2.2:[*],http://192.168.*.*:[*]}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
