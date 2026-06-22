@@ -108,7 +108,7 @@ public class CustomScenarioServiceSuspectTest {
         
         ObjectMapper mapper = new ObjectMapper();
         ArrayNode policyNode = mapper.createArrayNode();
-        policyNode.addObject().put("policyText", "응답정책테스트").put("conditionKey", "DEFAULT");
+        policyNode.addObject().put("policyText", "응답정책테스트").put("conditionKey", " DEFAULT ");
         ReflectionTestUtils.setField(request, "responsePolicyJson", policyNode);
 
         // when
@@ -116,7 +116,9 @@ public class CustomScenarioServiceSuspectTest {
 
         // then
         assertThat(response.getName()).isEqualTo("변경이름");
-        assertThat(suspectResponsePolicyRepository.findAllBySuspectId(suspect.getId())).hasSize(1);
+        assertThat(suspectResponsePolicyRepository.findAllBySuspectId(suspect.getId()))
+                .singleElement()
+                .satisfies(policy -> assertThat(policy.getConditionKey()).isEqualTo("DEFAULT"));
     }
 
     @Test
