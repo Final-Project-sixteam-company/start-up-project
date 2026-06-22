@@ -23,6 +23,7 @@ import com.startup.domain.ai.support.InterrogationLogWriter;
 import com.startup.domain.ai.support.AiPromptContextLogger;
 import com.startup.domain.play.service.InterrogationEvidenceUnlockService;
 import com.startup.domain.play.service.TimeEvidenceUnlockSyncer;
+import com.startup.domain.play.support.FinalDeductionLockManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +50,7 @@ public class AiInterrogationService {
     private final InterrogationEvidenceUnlockService interrogationEvidenceUnlockService;
     private final MockUserProvider mockUserProvider;
     private final AiPromptContextLogger promptContextLogger;
+    private final FinalDeductionLockManager finalDeductionLockManager;
 
     @Value("${caselab.ai.interrogation.temperature:0.3}")
     private double temperature;
@@ -57,6 +59,10 @@ public class AiInterrogationService {
     private int maxTokens;
 
     public InterrogationResponse interrogate(Long sessionId, InterrogationRequest request) {
+        if (finalDeductionLockManager.isLocked(sessionId)) {
+            throw new AiException(AiErrorCode.SCORING_IN_PROGRESS);
+        }
+
         // readOnly 트랜잭션 시작 전에 시간 해금 동기화 (REPEATABLE READ 대응)
         timeEvidenceUnlockSyncer.sync(sessionId, mockUserProvider.currentUserId());
 

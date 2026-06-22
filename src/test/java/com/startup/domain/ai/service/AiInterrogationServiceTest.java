@@ -22,6 +22,7 @@ import com.startup.domain.ai.support.InterrogationContextLoader;
 import com.startup.domain.ai.support.InterrogationLogWriter;
 import com.startup.domain.play.service.InterrogationEvidenceUnlockService;
 import com.startup.domain.play.service.TimeEvidenceUnlockSyncer;
+import com.startup.domain.play.support.FinalDeductionLockManager;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -58,6 +59,7 @@ class AiInterrogationServiceTest {
                 mock(InterrogationEvidenceUnlockService.class);
         MockUserProvider mockUserProvider = mock(MockUserProvider.class);
         AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
+        FinalDeductionLockManager finalDeductionLockManager = mock(FinalDeductionLockManager.class);
         AiInterrogationService service = new AiInterrogationService(
                 contextLoader,
                 promptBuilder,
@@ -69,7 +71,8 @@ class AiInterrogationServiceTest {
                 timeEvidenceUnlockSyncer,
                 interrogationEvidenceUnlockService,
                 mockUserProvider,
-                promptContextLogger
+                promptContextLogger,
+                finalDeductionLockManager
         );
         Long scenarioId = 10L;
         Long sessionId = 20L;
@@ -141,6 +144,7 @@ class AiInterrogationServiceTest {
                 mock(InterrogationEvidenceUnlockService.class);
         MockUserProvider mockUserProvider = mock(MockUserProvider.class);
         AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
+        FinalDeductionLockManager finalDeductionLockManager = mock(FinalDeductionLockManager.class);
         AiInterrogationService service = new AiInterrogationService(
                 contextLoader,
                 promptBuilder,
@@ -152,7 +156,8 @@ class AiInterrogationServiceTest {
                 timeEvidenceUnlockSyncer,
                 interrogationEvidenceUnlockService,
                 mockUserProvider,
-                promptContextLogger
+                promptContextLogger,
+                finalDeductionLockManager
         );
         Long scenarioId = 10L;
         Long sessionId = 20L;
@@ -238,6 +243,7 @@ class AiInterrogationServiceTest {
                 mock(InterrogationEvidenceUnlockService.class);
         MockUserProvider mockUserProvider = mock(MockUserProvider.class);
         AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
+        FinalDeductionLockManager finalDeductionLockManager = mock(FinalDeductionLockManager.class);
         AiInterrogationService service = new AiInterrogationService(
                 contextLoader,
                 promptBuilder,
@@ -249,7 +255,8 @@ class AiInterrogationServiceTest {
                 timeEvidenceUnlockSyncer,
                 interrogationEvidenceUnlockService,
                 mockUserProvider,
-                promptContextLogger
+                promptContextLogger,
+                finalDeductionLockManager
         );
         Long scenarioId = 10L;
         Long sessionId = 20L;
@@ -348,6 +355,7 @@ class AiInterrogationServiceTest {
                 mock(InterrogationEvidenceUnlockService.class);
         MockUserProvider mockUserProvider = mock(MockUserProvider.class);
         AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
+        FinalDeductionLockManager finalDeductionLockManager = mock(FinalDeductionLockManager.class);
         AiInterrogationService service = new AiInterrogationService(
                 contextLoader,
                 promptBuilder,
@@ -359,7 +367,8 @@ class AiInterrogationServiceTest {
                 timeEvidenceUnlockSyncer,
                 interrogationEvidenceUnlockService,
                 mockUserProvider,
-                promptContextLogger
+                promptContextLogger,
+                finalDeductionLockManager
         );
         Long sessionId = 20L;
         Long suspectId = 30L;
@@ -402,6 +411,53 @@ class AiInterrogationServiceTest {
                         assertThat(exception.getErrorCode()).isEqualTo(AiErrorCode.AI_DAILY_RATE_LIMIT_EXCEEDED));
 
         verify(aiClient, never()).recordFallback(any(AiCallContext.class), anyString(), anyLong());
+        verify(logWriter, never()).save(
+                anyLong(), anyLong(), any(), any(QuestionType.class), any(), any(), any());
+    }
+
+    @Test
+    void interrogate_rejectsWhenFinalDeductionScoringIsInProgress() {
+        InterrogationContextLoader contextLoader = mock(InterrogationContextLoader.class);
+        AiPromptBuilder promptBuilder = mock(AiPromptBuilder.class);
+        AiClient aiClient = mock(AiClient.class);
+        MockResponseProvider mockResponseProvider = mock(MockResponseProvider.class);
+        InterrogationLogWriter logWriter = mock(InterrogationLogWriter.class);
+        InterrogationLogRepository interrogationLogRepository = mock(InterrogationLogRepository.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        TimeEvidenceUnlockSyncer timeEvidenceUnlockSyncer = mock(TimeEvidenceUnlockSyncer.class);
+        InterrogationEvidenceUnlockService interrogationEvidenceUnlockService =
+                mock(InterrogationEvidenceUnlockService.class);
+        MockUserProvider mockUserProvider = mock(MockUserProvider.class);
+        AiPromptContextLogger promptContextLogger = mock(AiPromptContextLogger.class);
+        FinalDeductionLockManager finalDeductionLockManager = mock(FinalDeductionLockManager.class);
+        AiInterrogationService service = new AiInterrogationService(
+                contextLoader,
+                promptBuilder,
+                aiClient,
+                mockResponseProvider,
+                logWriter,
+                interrogationLogRepository,
+                eventPublisher,
+                timeEvidenceUnlockSyncer,
+                interrogationEvidenceUnlockService,
+                mockUserProvider,
+                promptContextLogger,
+                finalDeductionLockManager
+        );
+        Long sessionId = 20L;
+        InterrogationRequest request = new InterrogationRequest(
+                30L, QuestionType.FREE, "채점 중에도 질문할 수 있습니까?", null);
+
+        when(finalDeductionLockManager.isLocked(sessionId)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.interrogate(sessionId, request))
+                .isInstanceOfSatisfying(AiException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(AiErrorCode.SCORING_IN_PROGRESS));
+
+        verify(timeEvidenceUnlockSyncer, never()).sync(anyLong(), anyLong());
+        verify(contextLoader, never()).load(anyLong(), anyLong(), any());
+        verify(aiClient, never()).chatWithMetadata(
+                anyString(), anyString(), any(AiRequestParams.class), any(AiCallContext.class));
         verify(logWriter, never()).save(
                 anyLong(), anyLong(), any(), any(QuestionType.class), any(), any(), any());
     }
