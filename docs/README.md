@@ -35,7 +35,7 @@
 | scale-out 및 수동 Nginx LB 운영 절차 확인 | [infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md](infra/runbook/SCALEOUT_MANUAL_LB_RUNBOOK.md) |
 | 인프라 구축 중 실제 장애/오탐/운영 실수 회고 확인 | [infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md](infra/runbook/CLUEROOM_INFRA_TROUBLESHOOTING.md) |
 | QA 실행 지시, blind retest prompt, 보고서 템플릿, 현재 QA board 확인 | [QA_OPERATING_GUIDE.md](QA_OPERATING_GUIDE.md) |
-| 공식 데모 시나리오 확인 | [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) |
+| 구 공식 데모 시나리오 히스토리 확인 | [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) |
 | 시나리오 YAML 스키마 확인 | [scenarios/SCENARIO_YAML_SCHEMA.md](scenarios/SCENARIO_YAML_SCHEMA.md) |
 | 증거 안내 UX / 추천 질문 설계 확인 | [scenarios/SCENARIO_GUIDANCE_UX_SPEC.md](scenarios/SCENARIO_GUIDANCE_UX_SPEC.md) |
 
@@ -59,9 +59,9 @@
 | 문서 | 정본 범위 | 비고 |
 |---|---|---|
 | [AI_NPC_PROMPT_POLICY.md](AI_NPC_PROMPT_POLICY.md) | AI 지식 경계, prompt 구조, ResponsePolicy, injection 방어, AI_CALL/AI_CALL_CONTEXT logging | 실제 prompt template 기준으로 유지한다. |
-| [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 정본, 채점 기준 | 스포일러 포함 문서다. 공개 범위 주의. |
+| [OFFICIAL_SCENARIO_DEMO_DAY.md](OFFICIAL_SCENARIO_DEMO_DAY.md) | Legacy CaseLab AI 1차 공식 시나리오 초안 | 현재 공식 시나리오 정본이 아니다. `official_demo_day_001`/증거 15개는 히스토리로만 사용한다. |
 | [scenarios/SCENARIO_YAML_SCHEMA.md](scenarios/SCENARIO_YAML_SCHEMA.md) | YAML import schema, 공개 범위, private seed 경계, MVP scoring bridge | 시나리오 문서 정본이다. 기존 seed hotfix 절차는 [RUN_AND_DEPLOY.md](RUN_AND_DEPLOY.md#101-공식-시나리오-guidance-seed-hotfix)로 연결한다. |
-| [scenarios/SCENARIO_GUIDANCE_UX_SPEC.md](scenarios/SCENARIO_GUIDANCE_UX_SPEC.md) | 증거 판독 포인트, 함께 볼 증거, 추천 질문 UX/API 설계 | backend guidance contract는 구현 완료. seed/Android 적용은 별도 PR에서 추적한다. |
+| [scenarios/SCENARIO_GUIDANCE_UX_SPEC.md](scenarios/SCENARIO_GUIDANCE_UX_SPEC.md) | 증거 판독 포인트, 함께 볼 증거, 추천 질문 UX/API 설계 | backend guidance contract는 구현 완료. surface별 적용 상태는 문서 상단 status matrix와 Android/Web README/QA 보고서를 함께 본다. |
 
 ### 실행 / 운영 / 인프라
 

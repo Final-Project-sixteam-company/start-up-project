@@ -917,7 +917,8 @@ AI 용의자 답변은 1~2줄로 제한한다.
 ## 10. 데모 공식 시나리오
 
 이 절은 PRD에서 필요한 공식 시나리오 요약만 다룬다.
-공식 시나리오 seed data 전문은 `OFFICIAL_SCENARIO_DEMO_DAY.md`를 정본으로 삼는다.
+현재 공식 시나리오 seed/import 정본은 운영 YAML seed, `docs/scenarios/SCENARIO_YAML_SCHEMA.md`, `docs/RUN_AND_DEPLOY.md`의 import/hotfix 절차, 그리고 README/QA의 `서월채 25/25`, `스튜디오9 35/35` evidence reachability 기준을 따른다.
+`OFFICIAL_SCENARIO_DEMO_DAY.md`는 초기 CaseLab AI 1차 공식 시나리오 초안이며, 현재 production/demo seed 정본으로 사용하지 않는다.
 
 ### 10.1 사건명
 
@@ -1341,7 +1342,9 @@ frontend/CLUEROOM_APP_FLOW_API_GUIDE.md
 CaseLab_AI_ERD_Design.md
 CaseLab_AI_ERDCloud.sql
 AI_NPC_PROMPT_POLICY.md
-OFFICIAL_SCENARIO_DEMO_DAY.md
+scenarios/SCENARIO_YAML_SCHEMA.md
+RUN_AND_DEPLOY.md
+OFFICIAL_SCENARIO_DEMO_DAY.md (legacy reference only)
 ```
 
 권장 순서:
@@ -1353,7 +1356,9 @@ OFFICIAL_SCENARIO_DEMO_DAY.md
 4. CaseLab_AI_ERD_Design.md
 5. CaseLab_AI_ERDCloud.sql
 6. AI_NPC_PROMPT_POLICY.md
-7. OFFICIAL_SCENARIO_DEMO_DAY.md
+7. scenarios/SCENARIO_YAML_SCHEMA.md
+8. RUN_AND_DEPLOY.md
+9. OFFICIAL_SCENARIO_DEMO_DAY.md (legacy reference only)
 ```
 
 ---

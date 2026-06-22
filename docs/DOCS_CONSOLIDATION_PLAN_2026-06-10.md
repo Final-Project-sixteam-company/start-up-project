@@ -80,7 +80,8 @@ PR #55에 포함된 2026-06-10 QA 문서들은 아직 `develop` 기준 tracked �
 | AI 프롬프트 정책 | `docs/AI_NPC_PROMPT_POLICY.md` | AI 지식 경계, prompt 구조, injection 방어, ResponsePolicy 규칙 정본으로 유지한다. |
 | DB/ERD | `docs/CaseLab_AI_ERD_Design.md` | 코드 SoT 기준 drift를 먼저 정정한 뒤 DB 설계 정본으로 유지한다. |
 | ADR | `docs/ADR.md` | 짧은 결정 목록으로 유지한다. 상세 설명은 각 정본 문서로 링크한다. |
-| 공식 시나리오 | `docs/OFFICIAL_SCENARIO_DEMO_DAY.md` | 스포일러 포함 정본으로 유지한다. 공개/비공개 경계 주석을 강화한다. |
+| 공식 시나리오 | 운영 YAML seed, `docs/scenarios/SCENARIO_YAML_SCHEMA.md`, `docs/RUN_AND_DEPLOY.md` | 현재 production/demo seed와 import/hotfix 절차 정본으로 유지한다. |
+| 구 공식 시나리오 초안 | `docs/OFFICIAL_SCENARIO_DEMO_DAY.md` | Legacy CaseLab AI 1차 공식 시나리오 초안으로 보존한다. 현재 정본으로 사용하지 않는다. |
 | 시나리오 스키마 | `docs/scenarios/SCENARIO_YAML_SCHEMA.md` | `docs/scenarios/README.md`의 정책 내용을 흡수한다. |
 | 로컬 실행/배포 요약 | `docs/RUN_AND_DEPLOY.md` | 개발자 빠른 실행, Android 연결, 배포 요약만 유지한다. 상세 운영은 runbook으로 링크한다. |
 | 운영 runbook | `docs/infra/OPS_RUNBOOK.md` | 실제 명령어, 장애 대응, 백업/복구, rate limit dry-run 실행 절차를 흡수한다. |

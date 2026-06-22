@@ -1,17 +1,19 @@
 # OFFICIAL_SCENARIO_DEMO_DAY.md
 
-# CaseLab AI 공식 시나리오 정본 문서  
+# Legacy CaseLab AI 1차 공식 시나리오 초안
 ## 데모데이 전야 살인사건
 
-> 이 문서는 CaseLab AI의 1차 공식 시나리오인 **「데모데이 전야 살인사건」**의 기준 문서다.  
-> 백엔드 Seed Data, Android Mock Data, AI 용의자 심문 정책, 최종 추리 채점 로직은 이 문서를 기준으로 작성한다.  
-> 개발 AI는 이 문서의 사건 정보, 용의자 정보, 증거 정보, 정답 정보를 임의로 변경하면 안 된다.
+> 상태: LEGACY / SUPERSEDED.
+> 이 문서는 초기 CaseLab AI 시절의 1차 공식 시나리오 초안이다.
+> 현재 ClueRoom 공식 시나리오 정본은 운영 YAML seed, `SCENARIO_YAML_SCHEMA.md`, `RUN_AND_DEPLOY.md`의 import/hotfix 절차, 그리고 README/QA의 `서월채 25/25`, `스튜디오9 35/35` evidence reachability 기준을 따른다.
+> 이 문서의 `official_demo_day_001`, 증거 15개, Android Mock Data, 채점 기준은 현재 production/demo seed 정본으로 사용하지 않는다.
+> 히스토리와 초기 설계 의도 보존용으로만 읽는다.
 
 ---
 
 ## 0. 문서 사용 목적
 
-이 문서는 다음 작업의 기준이 된다.
+이 문서는 초기 MVP 단계에서 다음 작업의 기준으로 사용되었다.
 
 ```text
 1. 공식 시나리오 Seed Data 작성

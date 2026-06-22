@@ -578,6 +578,11 @@ AI_CALL / AI_CALL_CONTEXT:
 - user question 전문 없음
 - raw sessionId/token 없음
 - prompt block estimate, templateHash, latency, token count 같은 metadata만 기록
+
+README/발표 표현 경계:
+- "AI_CALL/AI_CALL_CONTEXT telemetry는 raw-free 설계이며 public report에는 raw prompt/answer/question/session/token을 남기지 않는다"는 표현은 허용한다.
+- "모든 app/access/Hibernate 운영 로그 privacy 검증 완료"라고 표현하면 안 된다.
+- Hibernate bind TRACE, app/access log redacted snippet, AI_CALL privacy spot check는 Current QA Board의 open item 상태와 함께 말한다.
 ```
 
 ## 12. 역사 보고서 사용법

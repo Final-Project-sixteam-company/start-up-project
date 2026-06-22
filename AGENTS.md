@@ -174,7 +174,8 @@ AI가 설정에 없는 사실을 만드는 구조를 허용하지 않는다.
 | [docs/CaseLab_AI_API_Spec.md](docs/CaseLab_AI_API_Spec.md) | API 명세 (Request/Response 포함) |
 | [docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md](docs/frontend/CLUEROOM_APP_FLOW_API_GUIDE.md) | Android/Frontend 화면 흐름 / API 매핑 |
 | [docs/AI_NPC_PROMPT_POLICY.md](docs/AI_NPC_PROMPT_POLICY.md) | AI 심문 프롬프트 정책 정본 |
-| [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 정본 (채점 기준 포함) |
+| [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md), 운영 YAML seed, [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 현재 공식 시나리오 seed/import 정본 |
+| [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | Legacy CaseLab AI 1차 공식 시나리오 초안. 현재 production/demo seed 정본으로 사용하지 않는다. |
 | [docs/BACKEND_IMPLEMENTATION_GUIDE.md](docs/BACKEND_IMPLEMENTATION_GUIDE.md) | 백엔드 구현 규칙 정본 |
 | [docs/CaseLab_AI_ERD_Design.md](docs/CaseLab_AI_ERD_Design.md) | ERD 설계 / 비판적 리뷰 |
 | [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 실행 / Android 연결 / Docker Compose / 배포 명령 요약 |

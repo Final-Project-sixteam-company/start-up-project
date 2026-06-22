@@ -230,7 +230,8 @@ bash scripts/compose-down.sh
 | [docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md](docs/infra/agent/INFRA_AGENT_OPERATING_GUIDE.md) | Infra Agent, Ops Snapshot, Monitoring Agent, Codex 운영 기준 |
 | [docs/infra/agent/LLMOPS_OPERATING_GUIDE.md](docs/infra/agent/LLMOPS_OPERATING_GUIDE.md) | LLMOps telemetry, smoke, PromQL, agent 운영 기준 |
 | [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md) | 시나리오 YAML 구조, 공개 범위, private seed 경계 |
-| [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | 공식 데모 시나리오 seed 정본 |
+| [docs/scenarios/SCENARIO_YAML_SCHEMA.md](docs/scenarios/SCENARIO_YAML_SCHEMA.md), 운영 YAML seed, [docs/RUN_AND_DEPLOY.md](docs/RUN_AND_DEPLOY.md) | 현재 공식 시나리오 seed/import 정본 |
+| [docs/OFFICIAL_SCENARIO_DEMO_DAY.md](docs/OFFICIAL_SCENARIO_DEMO_DAY.md) | Legacy CaseLab AI 1차 공식 시나리오 초안. 현재 production/demo seed 정본으로 사용하지 않는다. |
 | [docs/QA_HANDOFF.md](docs/QA_HANDOFF.md) | QA 이슈, 해결 상태, 재검증 항목 |
 
 권장 읽기 순서:
