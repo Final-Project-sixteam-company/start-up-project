@@ -35,15 +35,7 @@ public class InterrogationContextLoader {
     @Transactional(readOnly = true)
     public InterrogationContext load(Long sessionId, Long suspectId,
                                     Long presentedEvidenceId) {
-        if (!playSessionReader.isPlaying(sessionId)) {
-            throw new AiException(AiErrorCode.INTERROGATION_SESSION_NOT_PLAYING);
-        }
-
-        // 세션 소유자 검증
-        Long ownerUserId = playSessionReader.getOwnerUserId(sessionId);
-        if (!Objects.equals(mockUserProvider.currentUserId(), ownerUserId)) {
-            throw new BusinessException(CommonErrorCode.ACCESS_DENIED);
-        }
+        validateSessionAccess(sessionId, mockUserProvider.currentUserId());
 
         Long scenarioId = playSessionReader.getScenarioId(sessionId);
         SuspectProfile suspect = suspectReader.findByIdAndScenarioId(suspectId, scenarioId);
@@ -67,5 +59,18 @@ public class InterrogationContextLoader {
 
         return new InterrogationContext(
                 scenarioId, suspect, revealedEvidences, presentedEvidence, policy, history);
+    }
+
+    @Transactional(readOnly = true)
+    public void validateSessionAccess(Long sessionId, Long userId) {
+        if (!playSessionReader.isPlaying(sessionId)) {
+            throw new AiException(AiErrorCode.INTERROGATION_SESSION_NOT_PLAYING);
+        }
+
+        // 세션 소유자 검증
+        Long ownerUserId = playSessionReader.getOwnerUserId(sessionId);
+        if (!Objects.equals(userId, ownerUserId)) {
+            throw new BusinessException(CommonErrorCode.ACCESS_DENIED);
+        }
     }
 }
