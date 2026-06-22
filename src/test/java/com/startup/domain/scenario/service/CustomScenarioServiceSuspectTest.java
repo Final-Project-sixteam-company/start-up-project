@@ -108,7 +108,7 @@ public class CustomScenarioServiceSuspectTest {
         
         ObjectMapper mapper = new ObjectMapper();
         ArrayNode policyNode = mapper.createArrayNode();
-        policyNode.addObject().put("policyText", "응답정책테스트").put("conditionKey", "DEFAULT");
+        policyNode.addObject().put("policyText", "응답정책테스트").put("conditionKey", " DEFAULT ");
         ReflectionTestUtils.setField(request, "responsePolicyJson", policyNode);
 
         // when
@@ -116,7 +116,37 @@ public class CustomScenarioServiceSuspectTest {
 
         // then
         assertThat(response.getName()).isEqualTo("변경이름");
-        assertThat(suspectResponsePolicyRepository.findAllBySuspectId(suspect.getId())).hasSize(1);
+        assertThat(suspectResponsePolicyRepository.findAllBySuspectId(suspect.getId()))
+                .singleElement()
+                .satisfies(policy -> assertThat(policy.getConditionKey()).isEqualTo("DEFAULT"));
+    }
+
+    @Test
+    @DisplayName("용의자 수정 실패 - DEFAULT가 아닌 응답 정책에 증거 조건이 없는 경우 예외 발생")
+    void updateSuspect_fail_when_non_default_policy_has_no_gate() {
+        // given
+        Suspect suspect = suspectRepository.save(Suspect.builder()
+                .scenarioId(savedScenario.getId())
+                .code("SUSPECT_001")
+                .name("기존이름")
+                .role("역할")
+                .characterType("NPC")
+                .culpritEligible(true)
+                .sortOrder(1)
+                .build());
+
+        CustomSuspectUpdateRequest request = new CustomSuspectUpdateRequest();
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayNode policyNode = mapper.createArrayNode();
+        policyNode.addObject()
+                .put("conditionKey", "HAS_EVIDENCE")
+                .put("policyText", "증거가 있을 때만 공개해야 하는 응답");
+        ReflectionTestUtils.setField(request, "responsePolicyJson", policyNode);
+
+        // when & then
+        assertThatThrownBy(() -> customScenarioService.updateSuspect(OWNER_USER_ID, suspect.getId(), request))
+                .isInstanceOf(ScenarioException.class)
+                .hasMessageContaining(ScenarioErrorCode.INVALID_NON_DEFAULT_POLICY_CONDITION.getMessage());
     }
 
     @Test
