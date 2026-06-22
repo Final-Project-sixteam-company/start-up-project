@@ -1,10 +1,30 @@
 # Scenario Guidance UX Spec 한글 정본
 
-> 상태: 제안서
+> 상태: accepted design / backend contract implemented / surface status는 아래 matrix 기준
 >
 > 마지막 업데이트: 2026-06-10
 >
 > 범위: player-facing evidence guidance, Android evidence UX, backend/API support, YAML authoring rules
+
+> 최신 상태 기준: 이 문서의 본문에는 2026-06-10 설계 당시의 gap 표현이 남아 있다.
+> 현재 정본 판단은 아래 status matrix, 백엔드 README, Android/Web README, QA 보고서를 함께 본다.
+
+## 0. Current Status Matrix
+
+| Layer | Current status | Source of truth |
+|---|---|---|
+| Backend guidance contract | Done | `ScenarioYaml` guidance field, `evidences.guidance_json`, validator, `PlayEvidenceDetailResponse.guidance`, locked compare evidence masking |
+| API contract | Done | `CaseLab_AI_API_Spec.md`, `frontend/CLUEROOM_APP_FLOW_API_GUIDE.md` |
+| Android display | Implemented for current README surface; full chip-route matrix remains QA follow-up | `project-fe` README, 2026-06-18 Android local retest |
+| Web display | Uses the same backend gameplay/auth contract; guidance-specific full matrix is not the primary PR #7 smoke gate | `clueroom-web-fe` README/PORTING_STATUS |
+| Official seed guidance | Exists for selected high-impact evidence; full coverage remains iterative UX work | QA reports and scenario YAML/import docs |
+| Product goal | Reduce repeated free-form interrogation by guiding reading points, compare evidence, and prefill-only questions | LLMOps cost/rate-limit plan, QA operating guide |
+
+해석:
+
+- `30~50회`는 현재 달성된 평균이 아니라 장기 제품 목표다.
+- 현재 QA 기준에서는 70~100회 플레이를 현실 baseline으로 보고, guidance는 이를 60~80회, 이후 30~50회로 낮추기 위한 UX/비용 개선 축이다.
+- 본문에 남아 있는 "Android/Frontend pending" 표현은 초기 설계 시점의 gap을 설명하는 문맥으로 읽고, 최신 release 상태는 위 matrix와 각 README를 우선한다.
 
 ## 1. 목적
 
@@ -373,8 +393,9 @@ locked compare evidence evidenceCode masking
 malformed guidance_json fail-soft parsing
 ```
 
-남은 gap은 Android/Frontend 표시와 official seed guidance 작성이다.
-YAML data만 추가하면 API 응답에는 반영되지만, Android가 guidance UI를 구현하기 전까지 사용자는 화면에서 볼 수 없다.
+초기 설계 시점의 남은 gap은 Android/Frontend 표시와 official seed guidance 작성이었다.
+현재는 backend contract와 API 응답은 구현 완료로 보고, Android/Web 표시와 official seed coverage는 각 README/QA 보고서의 최신 상태를 함께 확인한다.
+YAML data만 추가하면 API 응답에는 반영되지만, 사용자에게 보이는 품질은 surface별 UI 구현과 scenario별 guidance coverage에 좌우된다.
 
 ### 9.2 Persistence Recommendation 저장 방식 권장안
 
