@@ -1692,7 +1692,7 @@ Android 개발 AI는 다음 기준을 따른다.
 2. DTO 필드명은 CaseLab_AI_API_Spec.md를 기준으로 한다.
 3. 화면 목적과 MVP 범위는 CaseLab_AI_PRD.md를 기준으로 한다.
 4. AI 심문 화면은 AI_NPC_PROMPT_POLICY.md의 답변 제약을 따른다.
-5. 공식 시나리오 데이터는 OFFICIAL_SCENARIO_DEMO_DAY.md를 기준으로 한다.
+5. 공식 시나리오 데이터는 운영 YAML seed와 SCENARIO_YAML_SCHEMA.md / RUN_AND_DEPLOY.md의 import 절차를 기준으로 한다. OFFICIAL_SCENARIO_DEMO_DAY.md는 legacy 초안으로만 읽는다.
 6. 1차 MVP에서는 인증/거래/크레딧을 필수 흐름으로 만들지 않는다.
 7. sessionId, scenarioId, evidenceId, suspectId 필드명을 임의로 id로 축약하지 않는다.
 ```
